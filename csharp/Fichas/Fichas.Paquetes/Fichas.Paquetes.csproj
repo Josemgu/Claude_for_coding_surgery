@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- El Excel de ida y vuelta con los companeros.
+       Terreno de un solo programador: nadie mas escribe aqui (EN-CURSO.md, ciclo 7). -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Paquetes</RootNamespace>
+    <AssemblyName>Fichas.Paquetes</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+  </ItemGroup>
+
+  <!--
+    ClosedXML, y la eleccion la trae el plan: ADR-0003 §5.2 la recomienda con su
+    motivo medido —el Excel del agente tiene 18 propiedades estructurales que hay que
+    reproducir y ClosedXML expresa cada una en una linea, OpenXML crudo en varias—.
+    Licencia MIT. Arrastra DocumentFormat.OpenXml (MIT), SixLabors.Fonts (Apache-2.0),
+    ExcelNumberFormat (MIT) y RBush (MIT); el peso medido esta en la entrega.
+
+    ⚠️ SixLabors.Fonts entra por la puerta de atras y el ADR ya lo marca: es una
+    dependencia que este proyecto no pidio. Se pesa, no se supone.
+  -->
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <!--
+      PdfPig 0.1.11, Apache-2.0 (leido en pdfpig.nuspec del paquete instalado). Es para unir en
+      un solo PDF las hojas de los documentos que lleva el companero. NO es una biblioteca nueva
+      en el proyecto: Fichas.Lectura ya la usa y por tanto ya viaja en el paquete publicado, asi
+      que referenciarla aqui no anade ni un archivo a la entrega.
+    -->
+    <PackageReference Include="PdfPig" Version="0.1.11" />
+  </ItemGroup>
+
+</Project>

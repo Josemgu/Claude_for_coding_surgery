@@ -1,0 +1,11 @@
+# La espiga de la FASE C0 se tira al cerrarla: solo viaja el codigo, nunca lo compilado.
+bin/
+obj/
+
+# Lo que escribe el propio programa al medir.
+arranque.txt
+cuaderno.txt
+
+# Ningun PDF ni volcado de OCR entra aqui: son datos personales del dueno.
+*.pdf
+*.volcado.txt

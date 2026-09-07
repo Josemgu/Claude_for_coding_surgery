@@ -1,0 +1,133 @@
+using Fichas.Lectura;
+
+namespace Fichas.Pruebas.Lectura;
+
+/// <summary>
+/// Las reglas de formato de los campos, portadas de `extraccion/normalizacion.py`.
+/// </summary>
+/// <remarks>
+/// Cada caso sale de una medicion escrita en `DECISIONES.md`, no del codigo: la cedula
+/// que termina en letra (2026-09-04), la unidad de 6 o 7 digitos (2026-09-02), y el
+/// rango de fechas que no es una fecha de viaje.
+/// </remarks>
+[TestClass]
+public class PruebaDeNormalizacion
+{
+    // --- Cedula de miembro (MRN) -------------------------------------------------
+
+    [TestMethod]
+    public void LaCedulaDeOnceDigitosSeGuardaTalCual()
+        => Assert.AreEqual("055-1115-4668", Normalizacion.NormalizarCedula("MRN 055-1115-4668 "));
+
+    /// <summary>
+    /// `DECISIONES.md`, 2026-09-04: «muchas cedulas de miembro tienen una A u otra letra
+    /// al final». Es la regla que hacia perder 2 de las 7 cedulas de los escaneos reales.
+    /// </summary>
+    [TestMethod]
+    public void LaCedulaPuedeTerminarEnLetraYNoSeToca()
+    {
+        Assert.AreEqual("066-2222-133A", Normalizacion.NormalizarCedula("066-2222-133A"));
+        Assert.AreEqual("066-2222-133a", Normalizacion.NormalizarCedula("066-2222-133a"),
+            "la letra no se sube a mayuscula: eso seria corregir lo leido");
+    }
+
+    [TestMethod]
+    public void UnaCedulaConLaLetraEnMedioNoEsUnaCedula()
+        => Assert.IsNull(Normalizacion.NormalizarCedula("055-11A1-3853"));
+
+    [TestMethod]
+    public void UnTextoSinCedulaDevuelveNulo()
+    {
+        Assert.IsNull(Normalizacion.NormalizarCedula("Ana Prueba"));
+        Assert.IsNull(Normalizacion.NormalizarCedula(null));
+        Assert.IsNull(Normalizacion.NormalizarCedula("   "));
+    }
+
+    // --- Numero de caso ----------------------------------------------------------
+
+    [TestMethod]
+    public void ElNumeroDeCasoSonCuatroLetrasYCuatroDigitos()
+        => Assert.AreEqual("CASP2609", Normalizacion.NormalizarNumeroDeCaso("Caso: CASP2609"));
+
+    /// <summary>
+    /// `DECISIONES.md`, ADR-0004 §6ter: `CASD2609` pasa el formato aunque el papel diga
+    /// `CASP2609`. Ninguna restriccion de forma caza ese error, y por eso el numero
+    /// entra tal como se leyo y se corrige a mano.
+    /// </summary>
+    [TestMethod]
+    public void UnNumeroDeCasoMalLeidoPeroConLaFormaBuenaEntraIgual()
+        => Assert.AreEqual("CASD2609", Normalizacion.NormalizarNumeroDeCaso("CASD2609"));
+
+    [TestMethod]
+    public void ElNumeroDeCasoEnMinusculasNoSeSubeAMayuscula()
+        => Assert.IsNull(Normalizacion.NormalizarNumeroDeCaso("casp2609"));
+
+    // --- Fecha -------------------------------------------------------------------
+
+    [TestMethod]
+    public void LaFechaConElMesEnLetrasSaleEnIso()
+    {
+        Assert.AreEqual("2026-09-07", Normalizacion.NormalizarFecha("September 7, 2026"));
+        Assert.AreEqual("2026-09-08", Normalizacion.NormalizarFecha("8 Sept 2026"));
+        Assert.AreEqual("2027-03-14", Normalizacion.NormalizarFecha("14 de marzo de 2027"));
+    }
+
+    /// <summary>
+    /// Medido el 2026-09-03: las fechas del formulario espanol llegan en cifras. Y las
+    /// cifras se miran ANTES que el rango, porque «14-03-2027» tambien casa con el
+    /// patron de rango y sin ese orden se perderian todas.
+    /// </summary>
+    [TestMethod]
+    public void LaFechaEnCifrasSeResuelveCuandoLosDigitosLaDecidan()
+    {
+        Assert.AreEqual("2027-03-14", Normalizacion.NormalizarFecha("14-03-2027"));
+        Assert.AreEqual("2026-09-08", Normalizacion.NormalizarFecha("2026-09-08"));
+    }
+
+    [TestMethod]
+    public void UnaFechaAmbiguaEnCifrasNoSeAdivina()
+        => Assert.IsNull(Normalizacion.NormalizarFecha("05-10-2027"),
+            "«05-10-2027» es el 5 de octubre o el 10 de mayo, y elegir seria inventar");
+
+    /// <summary>
+    /// «September 8-11, 2026» es la cita del templo, no el dia de viaje. Es el texto que
+    /// de verdad aparece en los siete documentos del dueno.
+    /// </summary>
+    [TestMethod]
+    public void UnRangoDeFechasNoEsUnaFechaDeViaje()
+        => Assert.IsNull(Normalizacion.NormalizarFecha("September 8-11, 2026"));
+
+    [TestMethod]
+    public void UnDiaQueNoExisteNoSeRedondea()
+        => Assert.IsNull(Normalizacion.NormalizarFecha("February 31, 2026"));
+
+    // --- Unidad ------------------------------------------------------------------
+
+    [TestMethod]
+    public void LaUnidadAdmiteSeisOSieteDigitos()
+    {
+        Assert.AreEqual("700001", Normalizacion.NormalizarNumeroDeUnidad("Castries Branch - 700001"));
+        Assert.AreEqual("7000015", Normalizacion.NormalizarNumeroDeUnidad("Kingstown, St. Vincent - 7000015"));
+    }
+
+    [TestMethod]
+    public void UnaCifraDeOtroLargoNoSeRecorta()
+        => Assert.IsNull(Normalizacion.NormalizarNumeroDeUnidad("Rama - 12345678"));
+
+    [TestMethod]
+    public void ElNombreDeLaUnidadSaleSinSuNumero()
+    {
+        Assert.AreEqual("Castries Branch", Normalizacion.NormalizarNombreDeUnidad("Castries Branch - 700001"));
+        Assert.AreEqual("Kingstown, St. Vincent", Normalizacion.NormalizarNombreDeUnidad("Kingstown, St. Vincent - 7000015"));
+    }
+
+    // --- Templo ------------------------------------------------------------------
+
+    [TestMethod]
+    public void ElTemploSoloJuntaEspaciosYNoSeCorrigeContraNingunCatalogo()
+    {
+        Assert.AreEqual("Panama City, Panama", Normalizacion.NormalizarNombreDelTemplo(" Panama  City, Panama "));
+        Assert.AreEqual("Panama City", Normalizacion.NormalizarNombreDelTemplo("Panama City"),
+            "no hay catalogo: un templo a medias se ve a medias, no se completa");
+    }
+}

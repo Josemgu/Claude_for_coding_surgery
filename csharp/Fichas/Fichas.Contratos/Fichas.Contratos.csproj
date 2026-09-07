@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Biblioteca de contratos: modelos y interfaces que cruzan proyectos.
+    NO depende de nada: ni de WinUI, ni de SQLite, ni de red. Si algun dia
+    necesita una referencia, es que algo se puso en el sitio equivocado.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Contratos</RootNamespace>
+    <AssemblyName>Fichas.Contratos</AssemblyName>
+  </PropertyGroup>
+
+</Project>

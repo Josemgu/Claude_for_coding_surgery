@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de Fichas.Datos. MSTest por el ADR-0003 §8.2: es el marco de la plantilla
+    oficial de WinUI y el unico donde [UITestMethod] esta documentado; tener dos marcos en
+    el mismo arbol es peor que tener uno.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Pruebas.Datos</RootNamespace>
+    <AssemblyName>Fichas.Pruebas.Datos</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+    <ProjectReference Include="..\Fichas.Datos\Fichas.Datos.csproj" />
+
+    <!--
+      El repositorio FALSO entra aqui para poder comparar los dos lado a lado en la
+      misma prueba. Sin esta referencia, «el falso se comporta igual que el de verdad»
+      solo se puede afirmar leyendo los dos archivos, y asi se colo el hueco de
+      `estado_del_companero`: el falso lo escribia, el de verdad no, y las pruebas
+      pasaban en verde sobre el falso.
+    -->
+    <ProjectReference Include="..\Fichas.Datos.Falso\Fichas.Datos.Falso.csproj" />
+  </ItemGroup>
+
+</Project>

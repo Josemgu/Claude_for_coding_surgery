@@ -1,0 +1,64 @@
+# Una ruta por línea. Mientras esté aquí, ningún agente puede tocarla.
+# El supervisor la añade al lanzar una auditoría a ciegas y la retira al cerrarla.
+
+# 2026-09-04, ciclo 7: lo COMPARTIDO del programa en C#. Lo escribió el pase de
+# esqueleto y ahora lo leen siete programadores a la vez. Dos manos en un archivo
+# compartido es un choque garantizado, y el dueño pidió expresamente que nadie
+# trabaje en el mismo archivo que otro.
+csharp/Fichas/Fichas.sln
+csharp/Fichas/Directory.Build.props
+csharp/Fichas/publish.ps1
+csharp/Fichas/pruebas.ps1
+csharp/Fichas/.gitignore
+# 2026-09-05: la CARPETA Fichas.Contratos deja de estar congelada entera y se
+# congela archivo por archivo. Motivo medido: el candado alcanzaba a archivos que
+# el propio supervisor habia autorizado en dos pases, y dejaba a un programador
+# parado sin poder crear un archivo NUEVO que nadie mas toca. Quedan libres, y
+# solo para quien los tiene asignados: IMantenimiento.cs (nuevo, borrado y
+# equipo) e IPaquetes.cs (el PDF unido). Todo lo demas sigue cerrado.
+csharp/Fichas/Fichas.Contratos/Fichas.Contratos.csproj
+csharp/Fichas/Fichas.Contratos/Puertos/IAsignaciones.cs
+csharp/Fichas/Fichas.Contratos/Puertos/IExtraccion.cs
+csharp/Fichas/Fichas.Contratos/Puertos/IIlegibles.cs
+csharp/Fichas/Fichas.Contratos/Puertos/ILecturaDePdf.cs
+csharp/Fichas/Fichas.Contratos/Puertos/IReloj.cs
+csharp/Fichas/Fichas.Contratos/Puertos/IReportes.cs
+
+# La espiga de la FASE C0: se consulta, no se edita. Su medición ya está cerrada.
+csharp/C0-espiga
+
+# 2026-09-04, tarde: se DESCONGELAN la cascara, App.xaml* y Fichas.App.csproj
+# para el pase de conexion. Son justo los archivos que hay que tocar para
+# enchufar la app a la base real, a la lectura, a los paquetes y a los reportes,
+# y los toca un solo agente. Se vuelven a congelar al cerrar ese pase.
+
+# 2026-09-05, el ciclo de las peticiones del dueno. Se descongelan para UN
+# programador cada uno, y nadie mas los toca:
+#   Modelos, ICasos.cs, ICompaneros.cs, IPersonas.cs -> el de la base y la
+#     migracion 18 (los tres estados y las categorias de companero).
+#   Fichas.App.csproj -> el del tema y el logo, que necesita declarar el icono.
+# Se vuelven a congelar al cerrar el ciclo.
+
+# 2026-09-05: se descongelan Fichas.Datos.Falso, Fichas.Pruebas.Datos.Falso y
+# Fichas.Pruebas.Contratos para el programador de la base. Motivo medido: el
+# candado le dejo DOS PRUEBAS EN ROJO que solo se arreglan ahi, y ademas le
+# impedia cerrar la divergencia entre el repositorio falso y el de verdad, que
+# es lo que hacia que las pruebas pasaran en verde sobre un hueco real.
+
+# 2026-09-06. Se DESCONGELA Fichas.Contratos/Puertos/IProcedencia.cs, y solo para
+# el programador que unifica el veredicto de «listo para asignar». Lo autoriza el
+# supervisor, titular de lo congelado.
+#
+# Motivo, medido: hay SEIS sitios donde Correccion y la cola contestan distinto a
+# «le falta algo», y uno de ellos deja documentos fuera de las dos listas. Cerrarlo
+# exige leer las procedencias en bloque, y el puerto no tiene por donde: la via que
+# hay hoy cuesta 4,4 s frente a los 50 ms de la buena, medido por dos programadores
+# por separado.
+#
+# ⚠️ Un agente leyo el aviso del candado —que habla de una auditoria a ciegas— y
+# paro. Hizo bien en parar y hay que decirlo: no habia ninguna auditoria sobre este
+# archivo. Estaba en la lista por el motivo del 2026-09-05, que es el choque entre
+# programadores, y el aviso del hook dice siempre lo mismo aunque el motivo sea
+# otro. Sin QA corriendo, no hay nada que declararle.
+#
+# Solo se ANADEN metodos. Nada de lo que ya esta se cambia ni se quita.

@@ -1,0 +1,42 @@
+<Project>
+
+  <!--
+    Propiedades comunes a TODOS los proyectos de csharp/Fichas.
+    Este archivo es del pase de esqueleto y queda congelado: quien necesite otra
+    cosa la pone en SU .csproj, no aqui.
+  -->
+  <PropertyGroup>
+    <!--
+      El marco sale de la espiga C0 (csharp/C0-espiga/Espiga/Espiga.csproj), que es
+      la unica combinacion que ya compilo y publico en esta maquina. Se repite igual
+      en las bibliotecas para que el proyecto de pruebas pueda compartir marco con la
+      app WinUI, que es lo que exige el ADR-0003 §8.2.
+    -->
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+
+    <!-- Una sola arquitectura: la maquina del dueno es x64 y la entrega tambien. -->
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Un aviso del compilador es un error: no se acumulan avisos en este arbol. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!--
+      Espanol en todo (CLAUDE.md, regla permanente 4). Esto marca el idioma neutro
+      del ensamblado; los textos de pantalla van en espanol escritos a mano.
+    -->
+    <NeutralLanguage>es</NeutralLanguage>
+    <InvariantGlobalization>false</InvariantGlobalization>
+
+    <!-- Sin datos de telemetria ni de red en la compilacion. -->
+    <RestoreDisableParallel>false</RestoreDisableParallel>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

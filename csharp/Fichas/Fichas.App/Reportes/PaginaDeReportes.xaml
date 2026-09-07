@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<cascara:PaginaDeFichas
+    x:Class="Fichas.App.Reportes.PaginaDeReportes"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:reportes="using:Fichas.App.Reportes"
+    mc:Ignorable="d">
+
+    <cascara:PaginaDeFichas.Resources>
+        <!--
+            Los seis colores ya NO se declaran aqui: viven en App.xaml con sus dos temas, y
+            entran por {ThemeResource}. Con la copia local en claro y fija, esta pantalla se
+            clavaba entera con RequestedTheme="Light" e ignoraba lo que el dueno eligiera.
+        -->
+
+        <!--  Un renglon del historico: el caso, cuando viajaba, su gente y cuando se archivo.  -->
+        <DataTemplate x:Key="RenglonArchivadoPlantilla" x:DataType="reportes:RenglonArchivado">
+            <Border
+                Margin="0,0,0,2"
+                Padding="10,6"
+                Background="{ThemeResource Papel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="3">
+                <TextBlock
+                    FontSize="12"
+                    Foreground="{ThemeResource Tinta}"
+                    IsTextSelectionEnabled="True"
+                    Text="{x:Bind Texto, Mode=OneTime}"
+                    TextWrapping="Wrap" />
+            </Border>
+        </DataTemplate>
+    </cascara:PaginaDeFichas.Resources>
+
+    <!--
+        Toda pantalla va dentro de un ScrollView (ADR-0003 §6.2), con las dos barras y con
+        ancho minimo: a 1100x700 la pagina no recorta nada sin forma de llegar a ello.
+    -->
+    <ScrollView
+        x:Name="_desplazamientoDeLaPantalla"
+        Background="{ThemeResource Panel}"
+        ContentOrientation="Vertical"
+        HorizontalScrollBarVisibility="Auto"
+        VerticalScrollBarVisibility="Auto">
+
+        <StackPanel
+            MinWidth="{StaticResource AnchoMinimoDeContenido}"
+            Margin="{StaticResource MargenDePantalla}"
+            Spacing="{StaticResource SeparacionEntreBloques}">
+
+            <TextBlock
+                FontSize="20"
+                FontWeight="SemiBold"
+                Foreground="{ThemeResource Tinta}"
+                Text="Reportes" />
+
+            <!--  ─────────  El informe para los jefes  ─────────  -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource Papel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource Tinta}"
+                        Text="El informe para los jefes" />
+
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{ThemeResource TintaSuave}"
+                        Text="Elija el período, genere el PDF y ábralo desde aquí."
+                        TextWrapping="Wrap" />
+
+                    <!--  Los tres atajos del programa viejo, y las dos fechas a mano para el resto.  -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            x:Name="_botonEsteMes"
+                            Click="AlPulsarEsteMes"
+                            Content="Este mes" />
+                        <Button
+                            x:Name="_botonMesAnterior"
+                            Click="AlPulsarMesAnterior"
+                            Content="Mes anterior" />
+                        <Button
+                            x:Name="_botonNoventaDias"
+                            Click="AlPulsarNoventaDias"
+                            Content="Últimos 90 días" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="{ThemeResource TintaSuave}"
+                            Text="Desde" />
+                        <TextBox
+                            x:Name="_desde"
+                            Width="130"
+                            PlaceholderText="2026-09-01"
+                            TextChanged="AlEscribirUnaFecha" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontSize="12"
+                            Foreground="{ThemeResource TintaSuave}"
+                            Text="Hasta" />
+                        <TextBox
+                            x:Name="_hasta"
+                            Width="130"
+                            PlaceholderText="2026-09-30"
+                            TextChanged="AlEscribirUnaFecha" />
+                    </StackPanel>
+
+                    <TextBlock
+                        x:Name="_tituloDelPeriodo"
+                        FontSize="13"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource Tinta}"
+                        Text="" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <!--
+                            AutomationProperties.Name porque el contenido del boton es un icono
+                            mas un texto: sin esto el boton no tiene nombre para el lector de
+                            pantalla, y tampoco lo tiene para una comprobacion que lo pulse desde
+                            fuera.
+                        -->
+                        <Button
+                            x:Name="_botonDeGenerar"
+                            AutomationProperties.Name="Generar el PDF…"
+                            Click="AlPulsarGenerarElReporte"
+                            Style="{ThemeResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE749;" />
+                                <TextBlock Text="Generar el PDF…" />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            x:Name="_botonDeAbrir"
+                            Click="AlPulsarAbrir"
+                            Content="Abrir el PDF"
+                            IsEnabled="False" />
+                        <Button
+                            x:Name="_botonDeLaCarpeta"
+                            Click="AlPulsarAbrirLaCarpeta"
+                            Content="Ver la carpeta"
+                            IsEnabled="False" />
+                    </StackPanel>
+
+                    <!--
+                        El resumen: UNA linea, y «ver» abre el detalle DEBAJO. Ni un cuadro
+                        modal que haya que cerrar con Aceptar (requisito 4 del dueno).
+                    -->
+                    <Border
+                        x:Name="_zonaDelResumen"
+                        Padding="12,10"
+                        Background="{ThemeResource Panel}"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    x:Name="_lineaDelResumen"
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    Text=""
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <Button
+                                    x:Name="_botonDeVer"
+                                    Grid.Column="1"
+                                    Click="AlPulsarVer"
+                                    Content="ver" />
+                                <Button
+                                    Grid.Column="2"
+                                    AutomationProperties.Name="Cerrar este resumen"
+                                    Click="AlPulsarCerrarElResumen"
+                                    Content="✕" />
+                            </Grid>
+                            <Border
+                                x:Name="_zonaDelDetalle"
+                                Padding="10,8"
+                                Background="{ThemeResource Papel}"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    x:Name="_textoDelDetalle"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    IsTextSelectionEnabled="True"
+                                    Text=""
+                                    TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+
+            <!--  ─────────  El informe por agente  ─────────  -->
+            <!--
+                Del dueno, 2026-09-05: «es importante tener un informe por agente tambien: lo que
+                hicieron los agentes en ese mes y lo que hicieron en esa semana, que hicieron».
+                Usa EL MISMO periodo que el informe de los jefes, de arriba: las dos casillas y
+                los tres atajos valen para los dos. «La semana» son los ultimos 7 dias de ese
+                periodo, y el propio PDF lo dice dentro.
+            -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource Papel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource Tinta}"
+                        Text="El informe por agente" />
+
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{ThemeResource TintaSuave}"
+                        Text="Qué hizo esa persona en el período de arriba, y qué hizo en su última semana. Elija a quién."
+                        TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <ComboBox
+                            x:Name="_deQuienEsElInforme"
+                            Width="240"
+                            AutomationProperties.Name="Agente del que es el informe"
+                            DisplayMemberPath="Nombre"
+                            PlaceholderText="Elija un agente"
+                            SelectionChanged="AlElegirElAgente" />
+                        <Button
+                            x:Name="_botonDelInformeDeAgente"
+                            AutomationProperties.Name="Generar el informe del agente…"
+                            Click="AlPulsarGenerarElInformeDeAgente"
+                            IsEnabled="False">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE77B;" />
+                                <TextBlock Text="Generar el informe del agente…" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!--  El resumen: UNA linea, «ver» abre el detalle debajo, X lo cierra.  -->
+                    <Border
+                        x:Name="_zonaDelAgente"
+                        Padding="12,10"
+                        Background="{ThemeResource Panel}"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    x:Name="_lineaDelAgente"
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    Text=""
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <Button
+                                    x:Name="_verDelAgente"
+                                    Grid.Column="1"
+                                    Click="AlPulsarVerElAgente"
+                                    Content="ver" />
+                                <Button
+                                    Grid.Column="2"
+                                    AutomationProperties.Name="Cerrar este resumen"
+                                    Click="AlPulsarCerrarElAgente"
+                                    Content="✕" />
+                            </Grid>
+                            <Border
+                                x:Name="_detalleDelAgente"
+                                Padding="10,8"
+                                Background="{ThemeResource Papel}"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    x:Name="_textoDelAgente"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    IsTextSelectionEnabled="True"
+                                    Text=""
+                                    TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!--  ─────────  El historico  ─────────  -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource Papel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource Tinta}"
+                        Text="Histórico — lo archivado" />
+
+                    <TextBlock
+                        x:Name="_lineaDelHistorico"
+                        FontSize="12"
+                        Foreground="{ThemeResource TintaSuave}"
+                        Text=""
+                        TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            x:Name="_botonDelHistorico"
+                            Click="AlPulsarGenerarElHistorico"
+                            Content="Generar el histórico en PDF…" />
+                        <Button
+                            x:Name="_botonDeRefrescar"
+                            Click="AlPulsarRefrescar"
+                            Content="Volver a leer" />
+                    </StackPanel>
+
+                    <!--
+                        Los renglones van seguidos, SIN lista con su propia barra: una lista
+                        anidada se traga la rueda del raton y entonces la pagina deja de bajar,
+                        que es el requisito 1 del dueno. Por eso hay tope, y por eso el tope se
+                        dice en la linea de arriba.
+                    -->
+                    <ItemsControl
+                        x:Name="_renglonesDelHistorico"
+                        ItemTemplate="{StaticResource RenglonArchivadoPlantilla}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollView>
+</cascara:PaginaDeFichas>

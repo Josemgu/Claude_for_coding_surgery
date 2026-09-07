@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas v2 · Panel — especificación visual para tkinter</title>
+<style>
+/* ==========================================================================
+   Fichas — v2 · PANEL. ESPECIFICACIÓN VISUAL PARA tkinter.
+   Conserva la cara de `mockup-inicio.html` (la que el dueño prefiere) y mete
+   dentro LO QUE EL VIEJO HACE: tres tarjetas, cuatro contadores, calendario
+   con archivados, cajón de soltar con cuatro acciones, y un menú de iconos.
+   100% autocontenido: cero file://, cero CDN, cero fuentes externas.
+   Cero <use>, cero sprites, cero ids de SVG: los iconos van dibujados en su
+   sitio con `currentColor`, así que no hay id que colisione entre archivos.
+   TODOS los nombres, cédulas y números de caso son INVENTADOS.
+   ========================================================================== */
+
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21;        /* 16.91:1 sobre papel · 15.50:1 sobre panel */
+  --tinta-suave:#46505C;  /*  8.20:1 sobre papel ·  7.51:1 sobre panel */
+  --apagado:#646C77;      /*  5.31:1 sobre papel ·  4.87:1 sobre panel */
+
+  --verde-fondo:#E7F5EC; --verde-marca:#1B6E3C; --verde-tinta:#12351F;
+  --gris-marca:#5B6470;
+  --ambar-fondo:#FFF3C4; --ambar-marca:#8A5B00; --ambar-tinta:#3D2A00;
+  --rojo-fondo:#FDE7E7;  --rojo-marca:#B3261E;  --rojo-tinta:#4A0F0B;
+  --rojo-solido:#B3261E; --rojo-fila:#F8D7D5;
+
+  /* AZUL. Es un color NUEVO y se declara por qué: marca «duplicado de», que no
+     es un origen de campo sino una propiedad del documento. Los cuatro colores
+     de origen (verde/gris/ámbar/rojo) siguen significando lo mismo y el azul
+     NUNCA aparece dentro de un campo. */
+  --azul-fondo:#E4EEFB;  --azul-marca:#1B4F9C;  --azul-tinta:#0F2C57;
+
+  --foco:#1A1D21;        /* ≥11.71:1 contra todos los fondos claros de aquí */
+  --foco-claro:#FFFFFF;  /* 6.54:1 sobre el rojo sólido · 16.91:1 sobre la tinta */
+
+  /* Escala de espaciado. Todo valor de separación sale de aquí.
+     EXCEPCIÓN DECLARADA con su motivo: los recuadros en línea (`code`, `.marca`,
+     `.pastilla`) y el `gap:2px` de la rejilla del calendario usan 1–3 px. No son
+     espaciado: los primeros son ajuste óptico dentro de una caja de línea —a 4 px
+     se rompe el interlineado— y el del calendario es una línea de separación
+     entre celdas, no una separación de bloques.
+     Y otros dos, dichos uno por uno en vez de forzarlos a token:
+       · `padding:0 6px` de la cápsula con la cuenta: es el hueco a los lados de
+         un número de una o dos cifras dentro de una cápsula de 9 px de radio.
+         A --sp-1 (4 px) la cifra toca el borde; a --sp-2 (8 px) la cápsula se
+         alarga hasta parecer un botón.
+       · `padding-bottom:80px` de `.hoja`: es el respiro al final de ESTE
+         documento de especificación, no de la ventana del programa. La ventana
+         no lo lleva. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:#5C6270; color:var(--tinta);
+  /* Segoe UI es lo que Tk devuelve de verdad en esta máquina: medido con
+     tkfont.nametofont("TkDefaultFont").actual() -> family 'Segoe UI'. */
+  font-family:"Segoe UI", system-ui, sans-serif; font-size:14px; line-height:1.45;
+}
+.hoja{ max-width:1360px; margin:0 auto; padding:var(--sp-6) var(--sp-5) 80px; }
+
+.aviso-doc{
+  background:#111418; color:#E8EAED; border-left:6px solid #E8B931;
+  padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-6); border-radius:2px;
+}
+.aviso-doc h1{ font-size:17px; margin:0 0 var(--sp-2); }
+.aviso-doc p{ margin:0 0 var(--sp-2); max-width:92ch; }
+.aviso-doc p:last-child{ margin-bottom:0; }
+.aviso-doc code{ background:#2A2F36; padding:1px 5px; border-radius:2px; }
+h2.seccion{
+  color:#FFFFFF; font-size:15px; letter-spacing:.06em; text-transform:uppercase;
+  margin:var(--sp-8) 0 var(--sp-3); font-weight:600;
+}
+
+/* ============================ LA VENTANA ================================= */
+.ventana{
+  width:1280px; max-width:100%; background:var(--panel);
+  border:1px solid #3A4049; border-radius:2px; overflow:hidden;
+  display:grid; grid-template-columns:168px 1fr;   /* rail 13.1 % · resto 86.9 % */
+  /* Las filas van EXPLÍCITAS a propósito: sin ellas la línea `-1` de
+     `.rail{grid-row:1/-1}` cae en la línea 1 y el rail sólo ocupa la primera
+     fila, con la cabecera centrada en un hueco alto. Medido abriendo el
+     archivo, no razonado. */
+  grid-template-rows:auto 1fr;
+}
+
+/* ---- El menú de iconos. «El menú que funciona», en la cara del nuevo ----- */
+.rail{
+  /* El rail ocupa la columna 1 de arriba abajo. Sin `grid-row:1/-1` sólo ocupa
+     la primera fila y la cabecera queda centrada en un hueco alto: medido
+     abriendo el archivo, no razonado. */
+  grid-column:1; grid-row:1 / -1;
+  background:var(--panel-hondo); border-right:1px solid var(--linea);
+  padding:var(--sp-3) var(--sp-2); display:flex; flex-direction:column; gap:2px;
+}
+.rail .marca-app{
+  display:flex; align-items:center; gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-2) var(--sp-4);
+  font-weight:700; font-size:15px; letter-spacing:.01em;
+}
+.rail .grupo{
+  font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--tinta-suave); padding:var(--sp-3) var(--sp-2) var(--sp-1);
+}
+.item{
+  display:flex; align-items:center; gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-2); border-radius:2px;
+  font-size:13.5px; color:var(--tinta); border:1px solid transparent;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.item:hover{ background:#DDE0E6; }
+.item:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.item[aria-current="page"]{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+/* Sobre la tinta el anillo oscuro mide 1.00:1 — invisible. Se cambia a blanco. */
+.item[aria-current="page"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.item .tecla{ margin-left:auto; font-size:11px; color:var(--tinta-suave); }
+.item[aria-current="page"] .tecla{ color:#C3C8D0; }
+.icono{ width:18px; height:18px; flex:none; }
+
+/* ---- Cabecera ----------------------------------------------------------- */
+.cabecera{
+  grid-column:2; display:flex; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-5); background:var(--panel-hondo);
+  border-bottom:1px solid var(--linea);
+}
+.cabecera h1{ font-size:16px; margin:0; font-weight:600; }
+.cabecera .hoy{ color:var(--tinta-suave); font-size:13px; }
+.buscador{
+  margin-left:auto; display:flex; align-items:center; gap:var(--sp-2);
+  height:30px; width:280px; padding:0 var(--sp-2);
+  background:var(--papel); border:1px solid var(--linea-fuerte); border-radius:2px;
+  color:var(--tinta-suave); font-size:13px;
+}
+.buscador:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+
+.cuerpo{ grid-column:2; padding:var(--sp-3) var(--sp-5) var(--sp-5); }
+
+/* ---- LA FRANJA DE AVISOS: UNA línea, cerrable, agrupada ------------------ */
+.franja{
+  display:flex; align-items:center; gap:var(--sp-3);
+  background:var(--ambar-fondo); color:var(--ambar-tinta);
+  border-left:5px solid var(--ambar-marca); border-radius:0 2px 2px 0;
+  padding:var(--sp-1) var(--sp-3); font-size:13px; min-height:30px;
+  margin-bottom:var(--sp-3);
+}
+.franja .x, .franja .ver{
+  border:1px solid var(--ambar-marca); background:transparent; color:var(--ambar-tinta);
+  font:inherit; font-size:12px; border-radius:2px; padding:0 var(--sp-2); height:22px;
+  cursor:pointer; transition:background-color 120ms ease;
+}
+.franja .ver{ margin-left:auto; }
+.franja .x{ width:22px; padding:0; }
+.franja .x:hover, .franja .ver:hover{ background:#F7E39A; }
+.franja .x:focus, .franja .ver:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.franja b{ font-variant-numeric:tabular-nums; }
+
+/* ---- Fila de tres tarjetas ---------------------------------------------- */
+.tres{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--sp-3); margin-bottom:var(--sp-3); }
+.tarjeta{ background:var(--papel); border:1px solid var(--linea); border-radius:2px; display:flex; flex-direction:column; }
+.tarjeta-cab{
+  display:flex; align-items:center; gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--linea); background:var(--panel);
+}
+.tarjeta-cab h3{ font-size:13px; margin:0; font-weight:700; letter-spacing:.02em; }
+.tarjeta-cab .der{ margin-left:auto; }
+.enlace{
+  font-size:12px; color:var(--tinta-suave); border:1px solid transparent;
+  background:transparent; font:inherit; cursor:pointer; padding:1px var(--sp-1); border-radius:2px;
+}
+.enlace:hover{ background:var(--panel-hondo); }
+.enlace:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.tarjeta-cuerpo{ padding:var(--sp-2) var(--sp-3) var(--sp-3); flex:1; }
+
+.tarjeta.alarma .tarjeta-cab{ background:var(--rojo-solido); border-bottom-color:#8E1B15; }
+.tarjeta.alarma .tarjeta-cab h3{ color:#FFFFFF; }         /* 6.54:1 */
+.tarjeta.alarma .tarjeta-cab .enlace{ color:#FFFFFF; }
+.tarjeta.alarma .tarjeta-cab .enlace:hover{ background:#8E1B15; }
+.tarjeta.alarma .tarjeta-cab .enlace:focus{ outline-color:var(--foco-claro); }
+
+.cifra{ display:flex; align-items:baseline; gap:var(--sp-2); margin-bottom:var(--sp-2); }
+.cifra b{ font-size:30px; line-height:1; font-variant-numeric:tabular-nums; }
+.cifra span{ font-size:12.5px; color:var(--tinta-suave); }
+.tarjeta.alarma .cifra b{ color:var(--rojo-marca); }
+
+.mini{
+  display:grid; grid-template-columns:52px 1fr auto; gap:var(--sp-2);
+  align-items:center; font-size:12.5px; padding:var(--sp-1) var(--sp-1);
+  border-top:1px solid #EEF0F3;
+  transition:background-color 120ms ease;
+}
+.mini:hover{ background:#F7F8FA; }
+.mini:focus{ outline:2px solid var(--foco); outline-offset:-1px; }
+.mini .f{ font-variant-numeric:tabular-nums; color:var(--tinta-suave); }
+.mini .f b{ color:var(--rojo-marca); }
+.mini .c{ font-family:"Consolas","Courier New",monospace; font-weight:600; font-size:12.5px; }
+.mini .c small{ display:block; font-family:"Segoe UI",sans-serif; font-weight:400; color:var(--tinta-suave); font-size:11.5px; }
+.mini .n{ font-variant-numeric:tabular-nums; color:var(--tinta-suave); text-align:right; }
+
+/* El equipo: un renglón por agente */
+.agente{
+  display:grid; grid-template-columns:1fr 64px 74px; gap:var(--sp-2);
+  align-items:center; font-size:12.5px; padding:var(--sp-1) var(--sp-1);
+  border-top:1px solid #EEF0F3;
+}
+.agente:first-of-type{ border-top:0; }
+.agente .nom{ font-weight:600; }
+.agente .dato{ text-align:right; font-variant-numeric:tabular-nums; color:var(--tinta-suave); }
+.agente .dato b{ color:var(--tinta); }
+
+/* ---- Cuatro contadores --------------------------------------------------- */
+.cuatro{ display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-3); margin-bottom:var(--sp-3); }
+.contador{
+  background:var(--papel); border:1px solid var(--linea); border-radius:2px;
+  padding:var(--sp-2) var(--sp-3); display:flex; align-items:center; gap:var(--sp-3);
+}
+.contador .txt{ font-size:12px; color:var(--tinta-suave); line-height:1.25; }
+.contador .num{ margin-left:auto; font-size:24px; font-weight:700; font-variant-numeric:tabular-nums; }
+.contador .glifo{
+  width:28px; height:28px; flex:none; border-radius:2px;
+  display:flex; align-items:center; justify-content:center;
+}
+.g-gris{ background:var(--panel-hondo); color:var(--gris-marca); }
+.g-verde{ background:var(--verde-fondo); color:var(--verde-marca); }
+.g-ambar{ background:var(--ambar-fondo); color:var(--ambar-marca); }
+.g-rojo{ background:var(--rojo-fondo); color:var(--rojo-marca); }
+.contador.malo .num{ color:var(--rojo-marca); }
+
+/* ---- Calendario + Documentos -------------------------------------------- */
+.abajo{ display:grid; grid-template-columns:1fr 320px; gap:var(--sp-3); }
+
+.mes{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.dia-cab{
+  font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--tinta-suave); text-align:center; padding:var(--sp-1) 0;
+}
+.dia{
+  min-height:74px; border:1px solid var(--linea); background:var(--papel);
+  padding:3px 4px; font-size:11px; border-radius:1px; overflow:hidden;
+}
+.dia:focus{ outline:2px solid var(--foco); outline-offset:-1px; }
+.dia .n{ font-weight:700; font-size:11.5px; color:var(--tinta-suave); font-variant-numeric:tabular-nums; }
+.dia.fuera{ background:var(--panel); }
+/* Apagado no es ilegible: #A6ADB8 medía 2.07:1 sobre el panel; #646C77 da 4.87:1. */
+.dia.fuera .n{ color:var(--apagado); }
+.dia.hoy{ border:2px solid var(--tinta); }
+.dia.hoy .n{ color:var(--tinta); }
+.dia.en-ventana{ background:#FFF7F7; }
+.pastilla{
+  display:block; margin-top:2px; padding:2px 4px; border-radius:1px;
+  border-left:3px solid var(--gris-marca); background:var(--panel);
+  line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.pastilla b{ font-family:"Consolas","Courier New",monospace; font-size:10.5px; }
+.pastilla .p{ font-weight:700; font-variant-numeric:tabular-nums; }
+.pastilla.grave{ border-left-color:var(--rojo-marca); background:var(--rojo-fondo); color:var(--rojo-tinta); }
+.pastilla.leve{ border-left-color:var(--verde-marca); background:var(--verde-fondo); color:var(--verde-tinta); }
+/* ARCHIVADO. Se ve —lo pidió el dueño— y dice su palabra, no solo un color. */
+.pastilla.archivado{
+  border-left-color:var(--gris-marca); background:var(--panel);
+  color:var(--tinta-suave); border-top:1px dashed var(--linea-fuerte);
+  border-right:1px dashed var(--linea-fuerte); border-bottom:1px dashed var(--linea-fuerte);
+}
+/* La palabra va en SU PROPIA LÍNEA. Medido: en la misma línea que el número de
+   caso, la celda de 74 px la cortaba en «ARC…» — y el dueño pidió literalmente
+   que diga «archivado», no que se intuya. Por eso esta pastilla, y sólo ésta,
+   levanta el `nowrap`. */
+.pastilla.archivado{ white-space:normal; }
+.pastilla .arch{
+  display:block; font-size:9.5px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--gris-marca); line-height:1.1;
+}
+.leyenda{ display:flex; gap:var(--sp-4); font-size:11.5px; color:var(--tinta-suave); margin-top:var(--sp-2); }
+.leyenda i{ width:9px; height:9px; display:inline-block; border-radius:1px; margin-right:var(--sp-1); }
+
+/* Documentos: cajón de soltar + cuatro acciones */
+.cajon{
+  border:2px dashed var(--linea-fuerte); background:var(--panel);
+  border-radius:2px; padding:var(--sp-5) var(--sp-3); text-align:center;
+  color:var(--tinta-suave); font-size:13px; margin-bottom:var(--sp-3);
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.cajon:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.cajon.encima{ border-color:var(--verde-marca); background:var(--verde-fondo); color:var(--verde-tinta); }
+.acciones{ display:flex; flex-direction:column; gap:var(--sp-2); }
+
+.boton{
+  font:inherit; font-size:13px; height:32px; padding:0 var(--sp-3);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer; text-align:left;
+  display:flex; align-items:center; gap:var(--sp-2);
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.boton:hover{ background:#F0F2F5; }
+.boton:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.boton .tecla{ margin-left:auto; color:var(--tinta-suave); font-size:11px; }
+.boton-primario{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.boton-primario:hover{ background:#2C323A; }
+.boton-primario .tecla{ color:#C3C8D0; }
+.boton-primario:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.boton[aria-disabled="true"]{
+  background:var(--panel-hondo); color:var(--gris-marca); border-color:var(--linea);
+  border-style:dashed; cursor:not-allowed;
+}
+.boton[aria-disabled="true"]:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+
+.marca{
+  display:inline-flex; align-items:center; gap:var(--sp-1);
+  font-size:11px; font-weight:700; letter-spacing:.03em;
+  padding:1px var(--sp-2); border-radius:2px; border:1px solid;
+  text-transform:uppercase; white-space:nowrap;
+}
+.marca.roja{ background:var(--rojo-solido); color:#FFFFFF; border-color:#8E1B15; }
+.marca.verde{ background:var(--verde-fondo); color:var(--verde-tinta); border-color:var(--verde-marca); }
+.marca.ambar{ background:var(--ambar-fondo); color:var(--ambar-tinta); border-color:var(--ambar-marca); }
+.marca.gris{ background:var(--panel); color:var(--tinta-suave); border-color:var(--linea-fuerte); }
+
+/* ------------------------------- anexo ----------------------------------- */
+.papel-anexo{ background:var(--papel); border-radius:2px; padding:var(--sp-5) var(--sp-6); margin-top:var(--sp-3); }
+.papel-anexo h3{ font-size:15px; margin:var(--sp-5) 0 var(--sp-2); }
+.papel-anexo h3:first-child{ margin-top:0; }
+.papel-anexo p, .papel-anexo li{ max-width:96ch; }
+.papel-anexo p{ margin:0 0 var(--sp-3); }
+.tabla-envoltorio{ overflow-x:auto; margin-bottom:var(--sp-4); }
+table{ border-collapse:collapse; width:100%; font-size:13px; min-width:640px; }
+th,td{ text-align:left; padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--linea); vertical-align:top; }
+th{ background:var(--panel); font-weight:600; }
+td code, th code, p code, li code{
+  font-family:"Consolas","Courier New",monospace; font-size:12.5px;
+  background:var(--panel); padding:1px 4px; border-radius:2px;
+}
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+<div class="aviso-doc">
+  <h1>Fichas v2 · Panel — especificación visual para <code>tkinter</code></h1>
+  <p>Esto <b>no es el programa</b>: es el plano de una ventana de <code>tkinter</code>. Ningún
+  botón de aquí guarda nada. La cara es la de <code>mockup-inicio.html</code> —la que el dueño
+  prefiere—; lo que cambia es <b>qué hay dentro</b>: lo que el proyecto viejo hace.</p>
+  <p><b>Todos los nombres, cédulas, unidades y números de caso son inventados.</b> No se copió
+  ni un dato de personas del proyecto viejo ni de los PDF.</p>
+</div>
+
+<h2 class="seccion">La ventana · 1280 × 955 (medido)</h2>
+
+<div class="ventana">
+
+  <!-- ================= EL MENÚ DE ICONOS ================= -->
+  <nav class="rail" aria-label="Secciones">
+    <div class="marca-app">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/>
+      </svg>
+      Fichas
+    </div>
+    <div class="grupo">El trabajo</div>
+    <div class="item" aria-current="page" tabindex="0">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/>
+        <rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>
+      </svg>
+      Panel <span class="tecla">Alt+1</span>
+    </div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M5 3h11l4 4v14H5z"/><path d="M9 12h7"/><path d="M9 16h4"/>
+      </svg>
+      Revisar <span class="tecla">Alt+2</span>
+    </div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 9v11M15 9v11"/>
+      </svg>
+      Tabla <span class="tecla">Alt+3</span>
+    </div>
+    <div class="grupo">La gente</div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.4 6-5.4s6 2.1 6 5.4"/>
+        <path d="M16 5.6A3.2 3.2 0 0 1 16 12"/><path d="M18 14.9c2 .8 3 2.6 3 5.1"/>
+      </svg>
+      Equipo <span class="tecla">Alt+4</span>
+    </div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5.3l3.4 2"/>
+      </svg>
+      Historial <span class="tecla">Alt+5</span>
+    </div>
+  </nav>
+
+  <!-- ================= CABECERA ================= -->
+  <header class="cabecera">
+    <h1>Panel</h1>
+    <span class="hoy">jueves 3 de septiembre de 2026</span>
+    <div class="buscador" tabindex="0">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>
+      </svg>
+      Buscar caso, unidad o cédula
+    </div>
+  </header>
+
+  <!-- ================= CUERPO ================= -->
+  <div class="cuerpo">
+
+    <!-- UN aviso, UNA línea, agrupado y cerrable -->
+    <div class="franja" role="status">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+        <path d="M12 4.5l8.5 15h-17z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".9" fill="currentColor" stroke="none"/>
+      </svg>
+      <span><b>3</b> documentos duplicados sin decidir &middot; <b>2</b> hojas ilegibles</span>
+      <button class="ver">ver &#9662;</button>
+      <button class="x" aria-label="Cerrar los avisos">&times;</button>
+    </div>
+
+    <!-- TRES TARJETAS -->
+    <div class="tres">
+
+      <section class="tarjeta alarma">
+        <div class="tarjeta-cab">
+          <h3>Por verificar antes de que salgan</h3>
+          <div class="der"><button class="enlace">ver las 6</button></div>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <div class="cifra"><b>6</b> <span>documentos que viajan en 7 días y no están completos</span></div>
+          <div class="mini" tabindex="0">
+            <span class="f"><b>en 2 d</b></span>
+            <span class="c">RVSC2609 <small>Rama Ejemplo Norte &middot; 7000011</small></span>
+            <span class="n">4 personas</span>
+          </div>
+          <div class="mini" tabindex="-1">
+            <span class="f"><b>en 5 d</b></span>
+            <span class="c">MTRC2609 <small>Rama Ejemplo Sur &middot; 212987</small></span>
+            <span class="n">2 personas</span>
+          </div>
+          <div class="mini" tabindex="-1">
+            <span class="f"><b>en 6 d</b></span>
+            <span class="c">EJMC2609 <small>sin unidad leída</small></span>
+            <span class="n">1 persona</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cab">
+          <h3>Próximas salidas</h3>
+          <div class="der"><button class="enlace">ver todas</button></div>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <div class="cifra"><b>23</b> <span>personas en 5 salidas</span></div>
+          <div class="mini" tabindex="-1">
+            <span class="f">10 sep</span><span class="c">2 documentos</span><span class="n">9 personas</span>
+          </div>
+          <div class="mini" tabindex="-1">
+            <span class="f">17 sep</span><span class="c">1 documento</span><span class="n">4 personas</span>
+          </div>
+          <div class="mini" tabindex="-1">
+            <span class="f">25 sep</span><span class="c">2 documentos</span><span class="n">10 personas</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cab">
+          <h3>El equipo</h3>
+          <div class="der"><button class="enlace">ver todo</button></div>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <div class="agente">
+            <span class="nom">Agente A</span>
+            <span class="dato"><b>8</b> doc.</span>
+            <span class="dato"><b>3</b> sin volver</span>
+          </div>
+          <div class="agente">
+            <span class="nom">Agente B</span>
+            <span class="dato"><b>5</b> doc.</span>
+            <span class="dato">0 sin volver</span>
+          </div>
+          <div class="agente">
+            <span class="nom">Sin asignar</span>
+            <span class="dato"><b>5</b> doc.</span>
+            <span class="dato">&mdash;</span>
+          </div>
+          <div style="margin-top:var(--sp-3)">
+            <button class="boton" style="height:28px"><span>Repartir los 5 sin asignar</span></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- CUATRO CONTADORES -->
+    <div class="cuatro">
+      <div class="contador">
+        <span class="glifo g-gris">
+          <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.4 6-5.4s6 2.1 6 5.4"/><path d="M17 11h5"/>
+          </svg>
+        </span>
+        <span class="txt">Personas<br>por viajar</span><span class="num">23</span>
+      </div>
+      <div class="contador">
+        <span class="glifo g-verde">
+          <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M7.8 12.3l2.8 2.8 5.6-5.9"/>
+          </svg>
+        </span>
+        <span class="txt">Con la recomendación<br>completa</span><span class="num">9</span>
+      </div>
+      <div class="contador">
+        <span class="glifo g-ambar">
+          <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M5 3h11l4 4v14H5z"/><path d="M9 13h6M12 10v6"/>
+          </svg>
+        </span>
+        <span class="txt">Hojas sin<br>devolver</span><span class="num">3</span>
+      </div>
+      <div class="contador malo">
+        <span class="glifo g-rojo">
+          <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+            <path d="M12 4.5l8.5 15h-17z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".9" fill="currentColor" stroke="none"/>
+          </svg>
+        </span>
+        <span class="txt">Viajaron sin<br>verificar</span><span class="num">4</span>
+      </div>
+    </div>
+
+    <!-- CALENDARIO + DOCUMENTOS -->
+    <div class="abajo">
+
+      <section class="tarjeta">
+        <div class="tarjeta-cab">
+          <h3>Septiembre de 2026</h3>
+          <div class="der" style="display:flex; gap:var(--sp-1)">
+            <button class="enlace" aria-label="Mes anterior">&#8249;</button>
+            <button class="enlace">Hoy</button>
+            <button class="enlace" aria-label="Mes siguiente">&#8250;</button>
+          </div>
+        </div>
+        <div class="tarjeta-cuerpo">
+          <div class="mes">
+            <div class="dia-cab">L</div><div class="dia-cab">M</div><div class="dia-cab">M</div>
+            <div class="dia-cab">J</div><div class="dia-cab">V</div><div class="dia-cab">S</div><div class="dia-cab">D</div>
+
+            <div class="dia fuera"><span class="n">31</span></div>
+            <div class="dia"><span class="n">1</span></div>
+            <div class="dia"><span class="n">2</span></div>
+            <div class="dia hoy en-ventana" tabindex="0"><span class="n">3</span>
+              <span class="pastilla grave"><b>RVSC2609</b> <span class="p">4</span></span>
+            </div>
+            <div class="dia en-ventana"><span class="n">4</span></div>
+            <div class="dia en-ventana"><span class="n">5</span></div>
+            <div class="dia en-ventana"><span class="n">6</span></div>
+
+            <div class="dia en-ventana"><span class="n">7</span></div>
+            <div class="dia en-ventana"><span class="n">8</span>
+              <span class="pastilla archivado"><b>PLZC2608</b> <span class="arch">archivado</span></span>
+            </div>
+            <div class="dia en-ventana"><span class="n">9</span></div>
+            <div class="dia"><span class="n">10</span>
+              <span class="pastilla grave"><b>MTRC2609</b> <span class="p">2</span></span>
+              <span class="pastilla leve"><b>SLDC2609</b> <span class="p">7</span></span>
+            </div>
+            <div class="dia"><span class="n">11</span></div>
+            <div class="dia"><span class="n">12</span></div>
+            <div class="dia"><span class="n">13</span></div>
+
+            <div class="dia"><span class="n">14</span></div>
+            <div class="dia"><span class="n">15</span></div>
+            <div class="dia"><span class="n">16</span></div>
+            <div class="dia"><span class="n">17</span>
+              <span class="pastilla leve"><b>EJMC2609</b> <span class="p">4</span></span>
+            </div>
+            <div class="dia"><span class="n">18</span></div>
+            <div class="dia"><span class="n">19</span></div>
+            <div class="dia"><span class="n">20</span></div>
+
+            <div class="dia"><span class="n">21</span></div>
+            <div class="dia"><span class="n">22</span></div>
+            <div class="dia"><span class="n">23</span></div>
+            <div class="dia"><span class="n">24</span></div>
+            <div class="dia"><span class="n">25</span>
+              <span class="pastilla archivado"><b>CRDC2609</b> <span class="arch">archivado</span></span>
+              <span class="pastilla grave"><b>VLLC2609</b> <span class="p">6</span></span>
+            </div>
+            <div class="dia"><span class="n">26</span></div>
+            <div class="dia"><span class="n">27</span></div>
+
+            <div class="dia"><span class="n">28</span></div>
+            <div class="dia"><span class="n">29</span></div>
+            <div class="dia"><span class="n">30</span></div>
+            <div class="dia fuera"><span class="n">1</span></div>
+            <div class="dia fuera"><span class="n">2</span></div>
+            <div class="dia fuera"><span class="n">3</span></div>
+            <div class="dia fuera"><span class="n">4</span></div>
+          </div>
+          <div class="leyenda">
+            <span><i style="background:var(--rojo-marca)"></i>sin completar</span>
+            <span><i style="background:var(--verde-marca)"></i>completa</span>
+            <span><i style="background:var(--gris-marca)"></i>archivado</span>
+            <span>el número es cuántas personas</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="tarjeta">
+        <div class="tarjeta-cab"><h3>Documentos</h3></div>
+        <div class="tarjeta-cuerpo">
+          <div class="cajon" tabindex="0">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M12 16V4"/><path d="M8 8l4-4 4 4"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+            </svg>
+            <div>Suelta los archivos aquí</div>
+          </div>
+          <div class="acciones">
+            <button class="boton boton-primario">
+              <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M5 3h11l4 4v14H5z"/><path d="M12 10v6M9 13h6"/>
+              </svg>
+              <span>Cargar formularios</span><span class="tecla">Ctrl+O</span>
+            </button>
+            <button class="boton">
+              <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M4 5h16v14H4z"/><path d="M4 9h16M10 9v10"/>
+              </svg>
+              <span>Recibir hoja del agente</span><span class="tecla">Ctrl+R</span>
+            </button>
+            <button class="boton">
+              <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M6 3h9l4 4v14H6z"/><path d="M9.5 17v-5h2a1.6 1.6 0 0 1 0 3.2h-2"/>
+              </svg>
+              <span>Informe para la dirección (PDF)</span><span class="tecla">Ctrl+I</span>
+            </button>
+            <button class="boton">
+              <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                <path d="M12 4v10"/><path d="M8 10l4 4 4-4"/><path d="M4 18h16"/>
+              </svg>
+              <span>Bajar la base en Excel</span><span class="tecla">Ctrl+E</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== VARIANTES DE LA FRANJA ======================== -->
+<h2 class="seccion">La franja de avisos: sus tres estados</h2>
+<div style="width:1280px; max-width:100%; background:var(--panel); border:1px solid #3A4049; padding:var(--sp-4) var(--sp-5)">
+
+  <p style="margin:0 0 var(--sp-2); font-size:12.5px; color:var(--tinta-suave)">1 · Cerrada (por defecto). Una línea, 30 px de alto.</p>
+  <div class="franja" role="status">
+    <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+      <path d="M12 4.5l8.5 15h-17z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".9" fill="currentColor" stroke="none"/>
+    </svg>
+    <span><b>3</b> documentos duplicados sin decidir &middot; <b>2</b> hojas ilegibles</span>
+    <button class="ver">ver &#9662;</button>
+    <button class="x" aria-label="Cerrar los avisos">&times;</button>
+  </div>
+
+  <p style="margin:var(--sp-4) 0 var(--sp-2); font-size:12.5px; color:var(--tinta-suave)">
+    2 · Abierta. Alto máximo 96 px; si hay más, se desplaza <b>dentro</b> de la caja &mdash; nunca empuja el resto.</p>
+  <div class="franja" role="status" style="flex-direction:column; align-items:stretch; gap:var(--sp-1); max-height:96px; overflow-y:auto">
+    <div style="display:flex; align-items:center; gap:var(--sp-3)">
+      <span><b>2 avisos</b></span>
+      <button class="ver">ocultar &#9652;</button>
+      <button class="x" aria-label="Cerrar los avisos">&times;</button>
+    </div>
+    <div style="font-size:12.5px">&bull; Duplicado de otro documento &nbsp;<b>&times; 3 documentos</b> &nbsp;<button class="ver" style="margin:0">ver cuáles</button></div>
+    <div style="font-size:12.5px">&bull; Hoja sin texto legible &nbsp;<b>&times; 2 páginas</b> &nbsp;<button class="ver" style="margin:0">ver cuáles</button></div>
+    <div style="font-size:12.5px">&bull; Sin número de caso leído &nbsp;<b>&times; 1 página</b> &nbsp;<button class="ver" style="margin:0">ver cuál</button></div>
+  </div>
+
+  <p style="margin:var(--sp-4) 0 var(--sp-2); font-size:12.5px; color:var(--tinta-suave)">
+    3 · Cerrada por Miguel. La franja desaparece y deja <b>una campana con el número</b> en la cabecera:
+    nada se pierde, pero deja de ocupar.</p>
+  <div class="cabecera" style="border:1px solid var(--linea)">
+    <h1>Panel</h1><span class="hoy">jueves 3 de septiembre de 2026</span>
+    <button class="boton" style="margin-left:auto; height:28px">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 19a2 2 0 0 0 4 0"/>
+      </svg>
+      <span class="marca ambar">5 avisos</span>
+    </button>
+  </div>
+</div>
+
+<!-- ============================== ANEXO ================================== -->
+<h2 class="seccion">El reparto del espacio, medido &mdash; no estimado</h2>
+<div class="papel-anexo">
+<p>Medido abriendo <b>este mismo archivo</b> en el navegador con la ventana a 1280 px de ancho y
+leyendo <code>getBoundingClientRect()</code> de cada zona. Los números de esta tabla son los que
+salen de ahí, no los que puse al diseñar: la cabecera, las tres tarjetas y el ancho del
+calendario me salieron distintos al medirlos, y se corrigieron aquí.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Zona</th><th>Medido</th><th>% de la ventana</th><th>Por qué</th></tr></thead>
+<tbody>
+<tr><td><b>La ventana entera</b></td><td><b>1280 &times; 955 px</b></td><td>&mdash;</td><td>A 1280 de ancho, el contenido pide 955 de alto. Ver la nota de abajo</td></tr>
+<tr><td>Menú de iconos (rail)</td><td>168 &times; 953 px</td><td>13,1 % del ancho · 99,8 % del alto</td><td>Cabe la palabra más larga («Historial») con su icono, sin recortar</td></tr>
+<tr><td>Cabecera</td><td>1110 &times; 55 px</td><td>86,7 % · 5,8 %</td><td>Título, fecha y buscador en una línea</td></tr>
+<tr><td>Franja de avisos</td><td>1070 &times; 30 px (cerrada) · 96 px máx. abierta</td><td>3,2 % · 10,1 % máx.</td><td>Regla del dueño: los avisos no empujan al resto</td></tr>
+<tr><td>Tres tarjetas</td><td>1070 &times; 252 px</td><td>26,5 % del alto</td><td>Cifra grande + tres renglones, sin párrafos</td></tr>
+<tr><td>Cuatro contadores</td><td>1070 &times; 53 px</td><td>5,5 %</td><td>Una fila</td></tr>
+<tr><td>Calendario</td><td>738 &times; 492 px</td><td><b>66,5 % del ancho útil</b></td><td>Celda de 74 px de alto = caben dos pastillas</td></tr>
+<tr><td>Documentos (cajón + 4 acciones)</td><td>320 &times; 492 px</td><td><b>28,8 % del ancho útil</b></td><td>El botón más largo («Informe para la dirección (PDF)») cabe entero</td></tr>
+<tr><td>Celda de un día</td><td>74 px de alto</td><td>&mdash;</td><td>Medido</td></tr>
+<tr><td><b>Párrafos dentro de la ventana</b></td><td><b>0</b> (contados con <code>querySelectorAll('p').length</code>)</td><td><b>0 %</b></td><td>Regla del 2026-09-03: «el texto ocupa todo el programa»</td></tr>
+</tbody>
+</table>
+</div>
+<p><b>Y lo que la medición destapó, dicho aunque incomode:</b> a 1280 de ancho esta pantalla pide
+<b>955 px de alto</b>, no 800. En una ventana de 800 sobran 155. <b>Qué cede:</b> la fila de
+calendario + Documentos es la única <code>1fr</code>; se le restan los 155 y el calendario baja de
+492 a 337, con celdas de 45 px en vez de 74 &mdash; y entonces sólo cabe <b>una</b> pastilla por
+día, con «+1» para el resto. <b>Es una decisión, no un accidente</b>, y el constructor tiene que
+hacerla a propósito: nada de cortar la fila por abajo.</p>
+
+<h3>El recorrido del teclado</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Tecla</th><th>Dónde</th><th>Qué hace</th></tr></thead>
+<tbody>
+<tr><td><code>Tab</code></td><td>toda la ventana</td><td>Siete paradas en este orden: rail &rarr; buscador &rarr; franja de avisos &rarr; tarjeta roja &rarr; tarjeta del equipo &rarr; calendario &rarr; Documentos. El rail es <b>una sola</b> parada</td></tr>
+<tr><td><code>&uarr;</code> <code>&darr;</code></td><td>dentro del rail</td><td>Cambia de sección. El foco no sale del rail hasta el siguiente <code>Tab</code></td></tr>
+<tr><td><code>Alt+1</code>&hellip;<code>Alt+5</code></td><td>toda la ventana</td><td>Salta a Panel · Revisar · Tabla · Equipo · Historial desde cualquier sitio</td></tr>
+<tr><td><code>&larr;&uarr;&rarr;&darr;</code></td><td>dentro del calendario</td><td>Mueve de día en día; <code>Inicio</code>/<code>Fin</code> al primero/último del mes; <code>RePág</code>/<code>AvPág</code> cambian de mes</td></tr>
+<tr><td><code>Intro</code></td><td>sobre un día o una fila</td><td>Abre ese documento en la pantalla de documento abierto</td></tr>
+<tr><td><code>Ctrl+O · Ctrl+R · Ctrl+I · Ctrl+E</code></td><td>toda la ventana</td><td>Las cuatro acciones, sin pasar por el ratón</td></tr>
+<tr><td><code>Esc</code></td><td>franja de avisos abierta</td><td>La cierra y devuelve el foco a donde estaba</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Control / qué hace de verdad &middot; y qué dice la pantalla después</h3>
+<p>Todos los controles de esta pantalla. «Pendiente del frontend real» significa que en el
+mockup no ocurre nada: es trabajo declarado del constructor, no un defecto del mockup.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Control</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>Rail &middot; los 5 iconos</td><td>Cambia de vista dentro de la misma ventana</td><td>El icono pulsado queda con fondo tinta y texto blanco (16,91:1) y la cabecera cambia de título</td></tr>
+<tr><td>Buscador</td><td>Filtra por número de caso, unidad o cédula</td><td>Pendiente del frontend real. Diseñado: al escribir, el calendario y las tarjetas se reducen a lo que casa, y aparece «N de M» al lado del cuadro</td></tr>
+<tr><td>Franja &middot; «ver»</td><td>Despliega el detalle agrupado dentro de la propia caja</td><td>La franja pasa de 30 a 96 px como máximo, el botón dice «ocultar», y <b>nada de abajo se mueve</b>: la caja tiene alto máximo y desplaza dentro</td></tr>
+<tr><td>Franja &middot; «&times;»</td><td>Cierra la franja para esta sesión</td><td>La franja desaparece y en la cabecera queda una campana con «5 avisos». Volver a pulsarla la reabre</td></tr>
+<tr><td>Tarjeta roja &middot; «ver las 6»</td><td>Va a Revisar con el filtro «viajan en 7 días» puesto</td><td>Pendiente del frontend real. Diseñado: Revisar abre con esa pastilla de filtro marcada y el contador de arriba diciendo 6</td></tr>
+<tr><td>Fila de un documento (las 3 de la tarjeta roja)</td><td>Abre ese documento</td><td>Pendiente del frontend real</td></tr>
+<tr><td>«Repartir los 5 sin asignar»</td><td>Abre el diálogo de reparto (en español)</td><td>Pendiente del frontend real. Diseñado: al cerrar, «Sin asignar» baja a 0 y los agentes suben; si el dueño no ha decidido P-11, dos agentes vivos sobre el mismo caso se cuentan dos veces (ver más abajo)</td></tr>
+<tr><td>Calendario &middot; «&#8249;» «Hoy» «&#8250;»</td><td>Cambia el mes que se ve</td><td>Cambia el título («Octubre de 2026») y la rejilla. «Hoy» vuelve a septiembre y pone el foco en el día 3</td></tr>
+<tr><td>Un día del calendario</td><td>Abre el documento de ese día; si hay varios, los lista</td><td>Pendiente del frontend real</td></tr>
+<tr><td>Cajón «Suelta los archivos aquí»</td><td>Recibe PDF arrastrados</td><td>Al pasar el archivo por encima el borde se pone verde y dice «Suelta para cargar 3 archivos». Al soltar, el resumen de importación. <b>Nota del constructor:</b> Tk no trae arrastrar-y-soltar de archivos de serie; sin una extensión, el cajón funciona como <b>botón</b> y abre el selector. Se dice aquí para que nadie lo dé por hecho</td></tr>
+<tr><td>«Cargar formularios»</td><td>Abre el selector de PDF</td><td>Pendiente del frontend real. Diseñado: al terminar, franja de avisos con el resumen agrupado y los contadores actualizados</td></tr>
+<tr><td>«Recibir hoja del agente»</td><td>Abre el selector de Excel del compañero</td><td>Pendiente del frontend real. Diseñado: «Hojas sin devolver» baja, y lo que el compañero propone entra como <b>propuesta</b>, no firmado (regla permanente 5)</td></tr>
+<tr><td>«Informe para la dirección (PDF)»</td><td>Escribe el PDF y abre su carpeta</td><td>Pendiente del frontend real</td></tr>
+<tr><td>«Bajar la base en Excel»</td><td>Escribe el <code>.xlsx</code> espejo</td><td>Pendiente del frontend real</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Qué se copia del viejo, qué se mejora, qué no se trae</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Del viejo</th><th>Decisión</th><th>Motivo</th></tr></thead>
+<tbody>
+<tr><td>Tres tarjetas arriba</td><td><b>Se copia la función</b></td><td>Es la respuesta a «qué tengo que mirar hoy» en una sola pantalla</td></tr>
+<tr><td>Cuatro contadores</td><td><b>Se copia la función</b></td><td>Igual</td></tr>
+<tr><td>Calendario del mes</td><td><b>Se copia y se amplía</b>: también los archivados, con la palabra «archivado»</td><td>Lo pidió el dueño el 2026-09-03. La franja de 7 días y la lista de pendientes siguen <b>sin</b> archivados</td></tr>
+<tr><td>Cajón de soltar + 4 acciones</td><td><b>Se copia la función</b></td><td>Es el gesto con el que empieza todo el trabajo</td></tr>
+<tr><td>Menú lateral de iconos</td><td><b>Se copia la función</b>, con la cara del nuevo</td><td>El dueño: «el menú de iconos que funciona». Aquí es panel claro, no barra negra</td></tr>
+<tr><td>Barra lateral negra, tipografía redonda, botón coral</td><td><b>No se trae</b></td><td>El dueño: «la interfaz de la vieja NO me gusta; me gusta más la nueva»</td></tr>
+<tr><td>«¿Quién revisa?» arriba a la derecha</td><td><b>No se trae</b></td><td>Aquí solo revisa Miguel. Un selector de revisor sobra y ocupa</td></tr>
+<tr><td>Lista larga «Casos y quién viaja» al pie</td><td><b>No se trae al panel</b></td><td>Es la pantalla de Revisar. Repetirla aquí es el «demasiado texto» que el dueño rechazó</td></tr>
+<tr><td>Colores planos sin palabra</td><td><b>Se mejora</b>: color <b>y</b> palabra, siempre</td><td>Un rojo sin palabra no se lee si no se distinguen los colores</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Lo que esta pantalla necesita y hoy NO existe</h3>
+<p>Medido contra el esquema que construye el código, no contra el documento:
+<code>python -c "&hellip;aplicar_esquema&hellip;PRAGMA table_info"</code> sobre la versión 13.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Lo que la pantalla enseña</th><th>Estado en el esquema real (v13)</th><th>Qué falta</th></tr></thead>
+<tbody>
+<tr><td>«Con la recomendación completa» = 9</td><td><code>casos.estado_recomendacion</code> <b>existe</b>. Pero <code>datos/estados.py</code> tiene <code>ESTADOS_RECOMENDACION = ("no_indicada","incompleta")</code> y <code>ESTADOS_QUE_RESUELVEN = ()</code></td><td><b>Falta el valor <code>completa</code></b>. Hoy este contador <b>siempre daría 0</b> y la tarjeta roja contaría <b>todos</b> los casos. Es la decisión del dueño del 2026-09-03 sin aterrizar</td></tr>
+<tr><td>Archivados en el calendario</td><td><code>casos.archivado</code> y <code>casos.fecha_archivado</code> <b>existen</b></td><td>Nada del esquema. Es código: <code>datos/calendario.py</code> los excluye hoy</td></tr>
+<tr><td>«Hojas sin devolver» = 3</td><td>No hay columna. Lo más cercano: <code>asignaciones.activa</code> + <code>personas.propuesto_en</code> nulo</td><td><b>Pregunta al dueño:</b> ¿«sin devolver» es «asignado y ninguna persona trae propuesta», o «asignado y falta <b>alguna</b>»? Son dos números distintos y no hay columna que lo zanje</td></tr>
+<tr><td>«El equipo»: N documentos por agente</td><td><code>companeros</code> + <code>asignaciones</code> bastan (ARQUITECTURA §6ter.1: cero columnas nuevas)</td><td>Nada. Pero <b>P-11 sigue abierta</b>: hoy el motor acepta dos agentes vivos sobre el mismo caso y entonces la suma de la tarjeta no cuadra con el total</td></tr>
+<tr><td>«3 documentos duplicados»</td><td><code>casos.duplicado_de</code> <b>existe</b> (migración 13)</td><td>Nada</td></tr>
+<tr><td>«2 hojas ilegibles»</td><td><code>documentos_ilegibles</code> <b>existe</b></td><td>Nada. ⚠️ P-14 abierta: reprocesar una hoja ilegible <b>duplica</b> el renglón, así que este número puede inflarse</td></tr>
+<tr><td>El nombre del archivo como identidad visible</td><td><code>casos.ruta_pdf</code> <b>existe</b></td><td>Nada</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Requisitos para el constructor (no son adorno: son el motivo de dos quejas)</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Requisito</th><th>Por qué</th></tr></thead>
+<tbody>
+<tr><td>Esta pantalla se desplaza con <b>rueda y con trackpad</b>: se atan <code>&lt;MouseWheel&gt;</code> <b>y</b> <code>&lt;TouchpadScroll&gt;</code></td><td><code>grep -rn TouchpadScroll interfaz/</code> &rarr; <b>0 líneas</b>, y en <code>interfaz/inicio.py</code> no hay <b>ninguna</b> atadura de rueda. El proyecto corre sobre Tk 9.0, que separa los dos eventos. <b>No lo he comprobado con un trackpad</b>: aquí no hay</td></tr>
+<tr><td>El desplazamiento <b>acumula el delta</b> en píxeles, no redondea a muescas de 120</td><td>Decisión del 2026-09-03. Un gesto pequeño tiene que mover algo</td></tr>
+<tr><td>La franja de avisos tiene <b>alto máximo</b> y desplaza dentro de sí</td><td>Regla del dueño: el documento y los campos mandan sobre el espacio</td></tr>
+<tr><td>El calendario se redibuja <b>solo al cambiar de mes</b>, no en cada movimiento del ratón</td><td>Misma familia que la queja del visor: «lento, se corta, tosco»</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Contraste medido (mínimo exigido: 4,5:1 en texto, 3:1 en foco y bordes de estado)</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Par</th><th>Colores</th><th>Medido</th></tr></thead>
+<tbody>
+<tr><td>Texto normal sobre papel</td><td>#1A1D21 / #FFFFFF</td><td>16,91:1</td></tr>
+<tr><td>Texto secundario sobre panel</td><td>#46505C / #F4F5F7</td><td>7,51:1</td></tr>
+<tr><td>Días del mes vecino sobre panel</td><td>#646C77 / #F4F5F7</td><td>4,87:1</td></tr>
+<tr><td>Título blanco sobre la cabecera roja</td><td>#FFFFFF / #B3261E</td><td>6,54:1</td></tr>
+<tr><td>Item del rail seleccionado</td><td>#FFFFFF / #1A1D21</td><td>16,91:1</td></tr>
+<tr><td>Pastilla «archivado»</td><td>#46505C / #F4F5F7</td><td>7,51:1</td></tr>
+<tr><td>Texto de la franja ámbar</td><td>#3D2A00 / #FFF3C4</td><td>12,34:1</td></tr>
+<tr><td>Anillo de foco sobre papel / panel / ámbar / rojo claro / línea</td><td>#1A1D21 sobre cada uno</td><td>16,91 · 15,50 · 15,20 · 14,30 · 11,71:1</td></tr>
+<tr><td>Anillo de foco <b>sobre la tinta</b> (item seleccionado, botón primario)</td><td>#1A1D21 / #1A1D21 &rarr; se cambia a #FFFFFF</td><td>1,00:1 &rarr; <b>16,91:1</b></td></tr>
+<tr><td>Anillo de foco <b>sobre el rojo sólido</b></td><td>#1A1D21 &rarr; #FFFFFF</td><td>2,59:1 &rarr; <b>6,54:1</b></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div>
+</body>
+</html>

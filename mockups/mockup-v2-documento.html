@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas v2 · Documento abierto — especificación visual para tkinter</title>
+<style>
+/* ==========================================================================
+   Fichas — v2 · DOCUMENTO ABIERTO. ESPECIFICACIÓN VISUAL PARA tkinter.
+   El PDF entero a la izquierda con zoom a cualquier punto y arrastre libre;
+   a la derecha las personas con su cédula y las seis ordenanzas como fichas
+   pulsables de TRES estados; arriba los dos botones grandes; los avisos en
+   UNA línea cerrable y agrupada.
+   100% autocontenido. Cero <use>, cero sprites, cero ids de SVG.
+   La hoja dibujada en el visor es un DIBUJO INVENTADO, no un PDF real.
+   TODOS los nombres, cédulas y números de caso son INVENTADOS.
+   ========================================================================== */
+
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21; --tinta-suave:#46505C; --apagado:#646C77;
+  --verde-fondo:#E7F5EC; --verde-marca:#1B6E3C; --verde-tinta:#12351F;
+  --gris-marca:#5B6470;
+  --ambar-fondo:#FFF3C4; --ambar-marca:#8A5B00; --ambar-tinta:#3D2A00;
+  --rojo-fondo:#FDE7E7;  --rojo-marca:#B3261E;  --rojo-tinta:#4A0F0B;
+  --rojo-solido:#B3261E;
+  --azul-fondo:#E4EEFB;  --azul-marca:#1B4F9C;  --azul-tinta:#0F2C57;
+  /* El lienzo del visor. Oscuro a propósito: sobre gris claro el borde de una
+     hoja blanca no se ve, y el dueño necesita saber dónde acaba la hoja. */
+  --visor-fondo:#3A4049;
+  --foco:#1A1D21; --foco-claro:#FFFFFF;
+  /* Escala de espaciado. Todo valor de separación sale de aquí.
+     EXCEPCIÓN DECLARADA, con su motivo: 1–3 px sólo dentro de cajas de línea
+     (`code`, `.marca`, `.motivo`, `.casilla`, `.grupo-titulo .cuenta`), donde
+     subir a --sp-1 rompe el interlineado del renglón que las contiene. Más dos
+     valores dichos uno por uno: `padding:0 6px` de la cápsula con la cuenta
+     —a 4 px la cifra toca el borde, a 8 px la cápsula parece un botón— y
+     `padding-bottom:80px` de `.hoja`, que es el respiro de ESTE documento de
+     especificación, no de la ventana del programa. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:#5C6270; color:var(--tinta);
+  font-family:"Segoe UI", system-ui, sans-serif; font-size:14px; line-height:1.45;
+}
+.hoja{ max-width:1360px; margin:0 auto; padding:var(--sp-6) var(--sp-5) 80px; }
+.aviso-doc{
+  background:#111418; color:#E8EAED; border-left:6px solid #E8B931;
+  padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-6); border-radius:2px;
+}
+.aviso-doc h1{ font-size:17px; margin:0 0 var(--sp-2); }
+.aviso-doc p{ margin:0 0 var(--sp-2); max-width:92ch; }
+.aviso-doc p:last-child{ margin-bottom:0; }
+.aviso-doc code{ background:#2A2F36; padding:1px 5px; border-radius:2px; }
+h2.seccion{
+  color:#FFFFFF; font-size:15px; letter-spacing:.06em; text-transform:uppercase;
+  margin:var(--sp-8) 0 var(--sp-3); font-weight:600;
+}
+
+.ventana{
+  width:1280px; max-width:100%; background:var(--panel);
+  border:1px solid #3A4049; border-radius:2px; overflow:hidden;
+  display:grid; grid-template-columns:56px 1fr;   /* rail plegado: 4,4 % */
+  /* Cuatro filas explícitas —cabecera, franja, cuerpo, pie—: sin ellas
+     `grid-row:1/-1` del rail no abarca nada y el rail sólo ocupa la cabecera. */
+  grid-template-rows:auto auto 1fr auto;
+}
+
+/* ---- El rail, PLEGADO. Los iconos siguen funcionando ------------------- */
+.rail{
+  /* Ocupa la columna 1 de arriba abajo: sin esto sólo ocupa la primera fila. */
+  grid-column:1; grid-row:1 / -1;
+  background:var(--panel-hondo); border-right:1px solid var(--linea);
+  padding:var(--sp-3) var(--sp-2); display:flex; flex-direction:column;
+  align-items:center; gap:var(--sp-1);
+}
+.item{
+  width:36px; height:36px; display:flex; align-items:center; justify-content:center;
+  border-radius:2px; color:var(--tinta); border:1px solid transparent;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.item:hover{ background:#DDE0E6; }
+.item:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.item[aria-current="page"]{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.item[aria-current="page"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.rail .raya{ width:24px; height:1px; background:var(--linea-fuerte); margin:var(--sp-2) 0; }
+.icono{ width:18px; height:18px; flex:none; }
+
+/* ---- Cabecera del documento: UNA línea de 44 px ------------------------- */
+.cabecera{
+  grid-column:2; display:flex; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-2) var(--sp-4); background:var(--panel-hondo);
+  border-bottom:1px solid var(--linea); min-height:44px;
+}
+.volver{
+  font:inherit; font-size:13px; height:28px; padding:0 var(--sp-2);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer; display:inline-flex; align-items:center; gap:var(--sp-1);
+  transition:background-color 120ms ease;
+}
+.volver:hover{ background:#F0F2F5; }
+.volver:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.titulo-caso{ font-family:"Consolas","Courier New",monospace; font-weight:700; font-size:16px; }
+.subtitulo{ font-size:12.5px; color:var(--tinta-suave); }
+.subtitulo b{ color:var(--tinta); font-variant-numeric:tabular-nums; }
+.cabecera .der{ margin-left:auto; display:flex; gap:var(--sp-2); align-items:center; }
+
+.b-si, .b-no{
+  font:inherit; font-size:13.5px; height:34px; padding:0 var(--sp-4); border-radius:2px;
+  cursor:pointer; display:inline-flex; align-items:center; gap:var(--sp-2); border:1px solid;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.b-si{ background:var(--papel); border-color:var(--verde-marca); color:var(--verde-marca); }
+.b-si:hover{ background:var(--verde-fondo); }
+.b-no{ background:var(--papel); border-color:var(--rojo-marca); color:var(--rojo-marca); }
+.b-no:hover{ background:var(--rojo-fondo); }
+.b-si:focus, .b-no:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.b-si[aria-pressed="true"]{ background:var(--verde-marca); color:#FFFFFF; }
+.b-no[aria-pressed="true"]{ background:var(--rojo-marca); color:#FFFFFF; }
+.b-si[aria-pressed="true"]:focus, .b-no[aria-pressed="true"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+
+/* ---- LA FRANJA DE AVISOS: una línea, agrupada, cerrable ----------------- */
+.franja{
+  grid-column:2; display:flex; align-items:center; gap:var(--sp-3);
+  background:var(--ambar-fondo); color:var(--ambar-tinta);
+  border-bottom:1px solid var(--ambar-marca); border-left:5px solid var(--ambar-marca);
+  padding:var(--sp-1) var(--sp-4); font-size:13px; min-height:30px;
+}
+.franja .x, .franja .ver{
+  border:1px solid var(--ambar-marca); background:transparent; color:var(--ambar-tinta);
+  font:inherit; font-size:12px; border-radius:2px; padding:0 var(--sp-2); height:22px; cursor:pointer;
+  transition:background-color 120ms ease;
+}
+.franja .ver{ margin-left:auto; }
+.franja .x{ width:22px; padding:0; }
+.franja .x:hover, .franja .ver:hover{ background:#F7E39A; }
+.franja .x:focus, .franja .ver:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.franja b{ font-variant-numeric:tabular-nums; }
+
+/* ---- El cuerpo: visor 61,9 % · campos 35,1 % ---------------------------- */
+.cuerpo{
+  grid-column:2; display:grid; grid-template-columns:1fr 430px; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-4);
+}
+
+/* ---- EL VISOR ----------------------------------------------------------- */
+.visor{ display:flex; flex-direction:column; border:1px solid var(--linea-fuerte); border-radius:2px; overflow:hidden; }
+.visor-barra{
+  display:flex; align-items:center; gap:var(--sp-2); height:34px;
+  background:var(--panel-hondo); border-bottom:1px solid var(--linea-fuerte); padding:0 var(--sp-2);
+}
+.vb{
+  font:inherit; font-size:12.5px; height:24px; min-width:24px; padding:0 var(--sp-2);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-1);
+  transition:background-color 120ms ease;
+}
+.vb:hover{ background:#F0F2F5; }
+.vb:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.vb[aria-pressed="true"]{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.vb[aria-pressed="true"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.zoom-num{ font-size:12.5px; font-variant-numeric:tabular-nums; min-width:44px; text-align:center; }
+/* `nowrap`: medido, el texto largo se partía en dos líneas y subía la barra de
+   34 a 43 px. La pista es una ayuda, no puede crecer a costa del visor. */
+.visor-barra .pista{ margin-left:auto; font-size:11.5px; color:var(--tinta-suave); white-space:nowrap; }
+.vb{ white-space:nowrap; }
+
+.lienzo{
+  background:var(--visor-fondo); height:598px; overflow:hidden; position:relative;
+  display:flex; align-items:flex-start; justify-content:center; padding:var(--sp-3);
+  cursor:grab;
+}
+.lienzo:focus{ outline:2px solid var(--foco-claro); outline-offset:-3px; }  /* 10,45:1 */
+.lienzo .pagina{ background:#FFFFFF; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+.lienzo .flotante{
+  position:absolute; left:var(--sp-3); bottom:var(--sp-3);
+  background:rgba(26,29,33,.88); color:#FFFFFF; font-size:11.5px;
+  padding:2px var(--sp-2); border-radius:2px;
+}
+
+/* ---- LA COLUMNA DE LA DERECHA ------------------------------------------- */
+.derecha{
+  background:var(--papel); border:1px solid var(--linea); border-radius:2px;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.derecha-scroll{ overflow-y:auto; height:598px; padding:var(--sp-3); scrollbar-color:#9AA2AE var(--panel-hondo); }
+
+.grupo-titulo{
+  display:flex; align-items:center; gap:var(--sp-2);
+  font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--tinta-suave); margin:0 0 var(--sp-2);
+}
+.grupo-titulo::after{ content:""; flex:1; height:1px; background:var(--linea); }
+.grupo-titulo .cuenta{
+  font-variant-numeric:tabular-nums; background:var(--panel-hondo);
+  border-radius:9px; padding:0 6px; letter-spacing:0;
+}
+.grupo-titulo.alerta{ color:var(--rojo-marca); }
+.grupo-titulo.alerta .cuenta{ background:var(--rojo-fondo); color:var(--rojo-tinta); }
+.plegable{
+  font:inherit; font-size:11.5px; letter-spacing:0; text-transform:none;
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta-suave);
+  border-radius:2px; padding:0 var(--sp-2); height:20px; cursor:pointer;
+  transition:background-color 120ms ease;
+}
+.plegable:hover{ background:#F0F2F5; }
+.plegable:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+
+.persona{
+  border:1px solid var(--linea); border-radius:2px; padding:var(--sp-2);
+  margin-bottom:var(--sp-2);
+}
+.persona-cab{ display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2); }
+.persona-num{
+  width:22px; height:22px; flex:none; border-radius:2px; background:var(--panel-hondo);
+  color:var(--tinta); display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12.5px;
+}
+.persona-nom{ font-weight:600; font-size:14px; }
+.persona-hoja{ margin-left:auto; font-size:11.5px; color:var(--tinta-suave); }
+
+.cedula{ display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2); }
+.cedula .et{ font-size:12px; color:var(--tinta-suave); width:52px; flex:none; }
+.entrada{
+  height:28px; border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  font:inherit; font-size:13px; padding:0 var(--sp-2); flex:1; border-radius:1px;
+  font-family:"Consolas","Courier New",monospace; letter-spacing:.02em;
+  transition:border-color 120ms ease, background-color 120ms ease;
+}
+.entrada:focus{ outline:2px solid var(--foco); outline-offset:1px; border-color:var(--foco); }
+/* El fondo del campo ES su origen. Los CUATRO colores, cada uno con su palabra. */
+.es-anotacion .entrada{ background:var(--verde-fondo); border-color:var(--verde-marca); color:var(--verde-tinta); }
+.es-ocr       .entrada{ background:var(--papel);       border-color:var(--linea-fuerte); }
+.es-revisar   .entrada{ background:var(--ambar-fondo); border-color:var(--ambar-marca); color:var(--ambar-tinta); }
+.es-invalido  .entrada{ background:var(--rojo-fondo);  border-color:var(--rojo-marca);  color:var(--rojo-tinta); border-width:2px; }
+
+.origen{ display:inline-flex; align-items:center; gap:var(--sp-1); font-size:11.5px; white-space:nowrap; }
+.punto{ width:9px; height:9px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.25); }
+.es-anotacion .punto{ background:var(--verde-marca); } .es-anotacion .origen{ color:var(--verde-marca); }
+.es-ocr       .punto{ background:var(--gris-marca);  } .es-ocr .origen{ color:var(--gris-marca); }
+.es-revisar   .punto{ background:var(--ambar-marca); } .es-revisar .origen{ color:var(--ambar-marca); }
+.es-invalido  .punto{ background:var(--rojo-marca);  } .es-invalido .origen{ color:var(--rojo-marca); }
+
+.b-firma{
+  font:inherit; font-size:11.5px; height:24px; padding:0 var(--sp-2);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer; white-space:nowrap;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.b-firma:hover{ background:#F0F2F5; }
+.b-firma:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.b-firma[aria-pressed="true"]{ background:var(--verde-fondo); border-color:var(--verde-marca); color:var(--verde-tinta); }
+
+/* ---- LAS SEIS ORDENANZAS, con TRES estados ------------------------------ */
+.ordenanzas{ display:flex; flex-wrap:wrap; gap:var(--sp-1) var(--sp-2); }
+.casilla{
+  display:inline-flex; align-items:center; gap:var(--sp-1);
+  border:1px solid var(--linea-fuerte); background:var(--papel);
+  padding:2px var(--sp-2) 2px var(--sp-1); border-radius:2px; font-size:12px;
+  cursor:pointer; color:var(--tinta);
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.casilla:hover{ background:#F0F2F5; }
+.casilla:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.caja{
+  width:16px; height:16px; flex:none; border:2px solid var(--tinta-suave);
+  background:var(--papel); border-radius:2px; position:relative;
+}
+/* 1 · MARCADA: caja verde con su check. */
+.casilla.marcada{ border-color:var(--verde-marca); background:var(--verde-fondo); color:var(--verde-tinta); }
+.casilla.marcada .caja{ border-color:var(--verde-marca); background:var(--verde-marca); }
+.casilla.marcada .caja::after{
+  content:""; position:absolute; left:3.5px; top:-0.5px; width:5px; height:10px;
+  border:solid #FFFFFF; border-width:0 2.2px 2.2px 0; transform:rotate(42deg);
+}
+/* 2 · NO MARCADA: caja vacía y NADA más. */
+.casilla.no-marcada .caja{ border-color:var(--tinta-suave); }
+/* 3 · NO LEÍDA: ni vacía ni marcada. Rayada, ámbar, y CON SU PALABRA.
+   Está medido que `tk.Checkbutton` dibuja «no leída» igual que «no marcada»:
+   por eso esto NO es un Checkbutton, es un Frame pulsable de tres estados. */
+.casilla.no-leida{ background:var(--ambar-fondo); border-color:var(--ambar-marca); color:var(--ambar-tinta); }
+.casilla.no-leida .caja{
+  border-color:var(--ambar-marca);
+  background:repeating-linear-gradient(45deg,#FFFFFF,#FFFFFF 3px,var(--ambar-marca) 3px,var(--ambar-marca) 5px);
+}
+.casilla .sufijo{ font-weight:700; font-size:10px; letter-spacing:.05em; color:var(--ambar-marca); }
+
+/* ---- Campo por comprobar ------------------------------------------------ */
+.campo{
+  display:grid; grid-template-columns:1fr auto; gap:var(--sp-2) var(--sp-2);
+  align-items:center; padding:var(--sp-2); border:1px solid var(--linea);
+  border-radius:2px; margin-bottom:var(--sp-2);
+}
+.campo.es-revisar{ border-color:var(--ambar-marca); background:#FFFCF0; }
+.campo.es-invalido{ border-color:var(--rojo-marca); background:#FFF6F6; }
+.campo .et{ grid-column:1 / -1; font-size:12px; color:var(--tinta-suave); }
+.campo .fila-btn{ display:flex; gap:var(--sp-1); }
+.campo .motivo{
+  grid-column:1 / -1; font-size:11.5px; color:var(--rojo-tinta); background:var(--rojo-fondo);
+  border-left:3px solid var(--rojo-marca); padding:1px var(--sp-2); border-radius:0 2px 2px 0;
+}
+.campo .banda{
+  grid-column:1 / -1; height:36px; border:1px solid var(--linea-fuerte);
+  background:#F2F1EE; border-radius:1px; overflow:hidden;
+}
+.campo .banda svg{ display:block; width:100%; height:100%; }
+.campo .banda-vacia{
+  grid-column:1 / -1; height:36px; border:1px dashed var(--linea-fuerte);
+  background:repeating-linear-gradient(45deg,#F2F1EE,#F2F1EE 6px,#E7E5E1 6px,#E7E5E1 12px);
+  display:flex; align-items:center; justify-content:center; font-size:11.5px;
+  color:var(--tinta-suave); border-radius:1px;
+}
+
+/* ---- Sección plegada ---------------------------------------------------- */
+.plegado{
+  border:1px dashed var(--linea-fuerte); background:var(--panel);
+  border-radius:2px; padding:var(--sp-2) var(--sp-3);
+  display:flex; align-items:center; gap:var(--sp-2); font-size:12.5px; color:var(--tinta-suave);
+}
+
+/* ---- Pie ---------------------------------------------------------------- */
+.pie{
+  grid-column:2; background:var(--panel-hondo); border-top:1px solid var(--linea-fuerte);
+  padding:var(--sp-2) var(--sp-4); display:flex; align-items:center; gap:var(--sp-3); min-height:46px;
+}
+.contador{ font-size:12.5px; color:var(--tinta-suave); }
+.contador b{ color:var(--tinta); font-variant-numeric:tabular-nums; }
+.pie .der{ margin-left:auto; display:flex; gap:var(--sp-2); align-items:center; }
+.boton{
+  font:inherit; font-size:13px; height:32px; padding:0 var(--sp-4);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer; display:inline-flex; align-items:center; gap:var(--sp-2);
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.boton:hover{ background:#F0F2F5; }
+.boton:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.boton .tecla{ color:var(--tinta-suave); font-size:11px; }
+.boton-primario{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.boton-primario:hover{ background:#2C323A; }
+.boton-primario .tecla{ color:#C3C8D0; }
+.boton-primario:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+
+.marca{
+  display:inline-flex; align-items:center; gap:var(--sp-1);
+  font-size:11px; font-weight:700; letter-spacing:.03em;
+  padding:1px var(--sp-2); border-radius:2px; border:1px solid;
+  text-transform:uppercase; white-space:nowrap;
+}
+.marca.verde{ background:var(--verde-fondo); color:var(--verde-tinta); border-color:var(--verde-marca); }
+.marca.ambar{ background:var(--ambar-fondo); color:var(--ambar-tinta); border-color:var(--ambar-marca); }
+.marca.gris{  background:var(--panel); color:var(--tinta-suave); border-color:var(--linea-fuerte); }
+.marca.azul{  background:var(--azul-fondo); color:var(--azul-tinta); border-color:var(--azul-marca); }
+
+/* ------------------------------- anexo ----------------------------------- */
+.papel-anexo{ background:var(--papel); border-radius:2px; padding:var(--sp-5) var(--sp-6); margin-top:var(--sp-3); }
+.papel-anexo h3{ font-size:15px; margin:var(--sp-5) 0 var(--sp-2); }
+.papel-anexo h3:first-child{ margin-top:0; }
+.papel-anexo p{ margin:0 0 var(--sp-3); max-width:96ch; }
+.tabla-envoltorio{ overflow-x:auto; margin-bottom:var(--sp-4); }
+table{ border-collapse:collapse; width:100%; font-size:13px; min-width:640px; }
+th,td{ text-align:left; padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--linea); vertical-align:top; }
+th{ background:var(--panel); font-weight:600; }
+td code, th code, p code, li code{
+  font-family:"Consolas","Courier New",monospace; font-size:12.5px;
+  background:var(--panel); padding:1px 4px; border-radius:2px;
+}
+.muestra{ display:flex; gap:var(--sp-4); flex-wrap:wrap; align-items:center; margin-bottom:var(--sp-3); }
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+<div class="aviso-doc">
+  <h1>Fichas v2 · Documento abierto — especificación visual para <code>tkinter</code></h1>
+  <p>El PDF entero a la izquierda, las personas y sus ordenanzas a la derecha, los dos botones
+  arriba, y los avisos en <b>una sola línea que se cierra</b>. Nada de esto guarda: es un plano.</p>
+  <p><b>La hoja dibujada dentro del visor es un dibujo inventado</b>, no un PDF real, y
+  <b>todos los nombres, cédulas y números de caso son inventados.</b></p>
+</div>
+
+<h2 class="seccion">La ventana · 1280 × 791 (medido)</h2>
+
+<div class="ventana">
+
+  <!-- El rail PLEGADO: el menú de iconos sigue estando y sigue funcionando -->
+  <nav class="rail" aria-label="Secciones">
+    <div class="item" tabindex="-1" aria-label="Panel">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/>
+        <rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>
+      </svg>
+    </div>
+    <div class="item" aria-current="page" tabindex="0" aria-label="Revisar">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M5 3h11l4 4v14H5z"/><path d="M9 12h7"/><path d="M9 16h4"/>
+      </svg>
+    </div>
+    <div class="item" tabindex="-1" aria-label="Tabla">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 9v11M15 9v11"/>
+      </svg>
+    </div>
+    <div class="raya"></div>
+    <div class="item" tabindex="-1" aria-label="Equipo">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.4 6-5.4s6 2.1 6 5.4"/>
+        <path d="M16 5.6A3.2 3.2 0 0 1 16 12"/><path d="M18 14.9c2 .8 3 2.6 3 5.1"/>
+      </svg>
+    </div>
+    <div class="item" tabindex="-1" aria-label="Historial">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5.3l3.4 2"/>
+      </svg>
+    </div>
+  </nav>
+
+  <!-- Cabecera: UNA línea -->
+  <header class="cabecera">
+    <button class="volver">&#8249; Volver <span style="color:var(--tinta-suave); font-size:11px">Esc</span></button>
+    <span class="titulo-caso">RVSC2609</span>
+    <span class="subtitulo">formulario-ejemplo-01.pdf &middot; hojas 1&ndash;2 &middot; <b>4</b> personas &middot; sale <b>en 2 días</b></span>
+    <span class="marca gris">sin revisar</span>
+    <div class="der">
+      <button class="b-si" aria-pressed="false">
+        <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <path d="M5 12.5l4.5 4.5L19 7"/>
+        </svg>
+        Sí, completa
+      </button>
+      <button class="b-no" aria-pressed="false">
+        <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+        No está completa
+      </button>
+    </div>
+  </header>
+
+  <!-- LA FRANJA: una línea, agrupada, cerrable -->
+  <div class="franja" role="status">
+    <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+      <path d="M12 4.5l8.5 15h-17z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".9" fill="currentColor" stroke="none"/>
+    </svg>
+    <span>Ordenanzas sin leer &nbsp;<b>&times; 2 personas</b> &middot; La fecha de viaje no cae en el mes del número de caso</span>
+    <button class="ver">ver &#9662;</button>
+    <button class="x" aria-label="Cerrar los avisos">&times;</button>
+  </div>
+
+  <div class="cuerpo">
+
+    <!-- ================= EL VISOR ================= -->
+    <section class="visor">
+      <div class="visor-barra">
+        <button class="vb" aria-label="Alejar">&minus;</button>
+        <span class="zoom-num">118 %</span>
+        <button class="vb" aria-label="Acercar">+</button>
+        <button class="vb" aria-pressed="true">Ajustar</button>
+        <button class="vb" aria-pressed="false">Ancho</button>
+        <button class="vb" aria-pressed="false">100 %</button>
+        <span style="width:1px; height:20px; background:var(--linea-fuerte)"></span>
+        <button class="vb" aria-label="Hoja anterior">&#8249;</button>
+        <span class="zoom-num">1 / 2</span>
+        <button class="vb" aria-label="Hoja siguiente">&#8250;</button>
+        <span class="pista">arrastra para mover &middot; Ctrl+rueda: zoom donde apunta el cursor</span>
+      </div>
+      <div class="lienzo" tabindex="0">
+        <!-- Dibujo INVENTADO de una hoja de formulario. No es un PDF real. -->
+        <svg class="pagina" width="452" height="585" viewBox="0 0 452 585" role="img"
+             aria-label="Hoja 1 del formulario, ampliada al 118 por ciento">
+          <rect width="452" height="585" fill="#FFFFFF"/>
+          <!-- cabecera del papel -->
+          <rect x="26" y="24" width="46" height="30" fill="none" stroke="#B9BDC4"/>
+          <rect x="30" y="30" width="38" height="4" fill="#C9CDD4"/>
+          <rect x="30" y="38" width="30" height="3" fill="#D6DAE0"/>
+          <rect x="30" y="44" width="34" height="3" fill="#D6DAE0"/>
+          <rect x="84" y="26" width="250" height="7" fill="#2C323A"/>
+          <rect x="84" y="38" width="180" height="7" fill="#2C323A"/>
+          <rect x="26" y="62" width="400" height="3" fill="#DFE2E7"/>
+          <rect x="26" y="69" width="392" height="3" fill="#DFE2E7"/>
+          <rect x="26" y="76" width="360" height="3" fill="#DFE2E7"/>
+          <!-- número de caso, arriba a la derecha -->
+          <rect x="336" y="90" width="90" height="14" fill="#EEF0F3" stroke="#B9BDC4"/>
+          <text x="381" y="101" font-family="Consolas, monospace" font-size="11" fill="#1A1D21" text-anchor="middle">RVSC2609</text>
+          <!-- rejilla de la tabla de personas -->
+          <rect x="26" y="112" width="400" height="150" fill="none" stroke="#8E949C"/>
+          <line x1="26" y1="140" x2="426" y2="140" stroke="#8E949C"/>
+          <line x1="150" y1="112" x2="150" y2="262" stroke="#8E949C"/>
+          <line x1="266" y1="112" x2="266" y2="262" stroke="#8E949C"/>
+          <line x1="26" y1="164" x2="426" y2="164" stroke="#C6CAD1"/>
+          <line x1="26" y1="188" x2="426" y2="188" stroke="#C6CAD1"/>
+          <line x1="26" y1="212" x2="426" y2="212" stroke="#C6CAD1"/>
+          <line x1="26" y1="236" x2="426" y2="236" stroke="#C6CAD1"/>
+          <text x="34" y="131" font-family="Segoe UI, sans-serif" font-size="8.5" fill="#46505C">Nombre de pila</text>
+          <text x="158" y="131" font-family="Segoe UI, sans-serif" font-size="8.5" fill="#46505C">Número de cédula</text>
+          <text x="274" y="131" font-family="Segoe UI, sans-serif" font-size="8.5" fill="#46505C">Ordenanzas</text>
+          <!-- cuatro filas escritas a mano (trazos, sin datos) -->
+          <rect x="34" y="150" width="86" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="158" y="150" width="76" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="34" y="174" width="94" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="158" y="174" width="76" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="34" y="198" width="80" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="158" y="198" width="76" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="34" y="222" width="90" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="158" y="222" width="76" height="4" rx="2" fill="#2F5EA8"/>
+          <!-- casillas de ordenanzas -->
+          <g stroke="#8E949C" fill="none">
+            <rect x="276" y="146" width="9" height="9"/><rect x="292" y="146" width="9" height="9"/>
+            <rect x="308" y="146" width="9" height="9"/><rect x="324" y="146" width="9" height="9"/>
+            <rect x="340" y="146" width="9" height="9"/><rect x="356" y="146" width="9" height="9"/>
+            <rect x="276" y="170" width="9" height="9"/><rect x="292" y="170" width="9" height="9"/>
+            <rect x="308" y="170" width="9" height="9"/><rect x="324" y="170" width="9" height="9"/>
+            <rect x="340" y="170" width="9" height="9"/><rect x="356" y="170" width="9" height="9"/>
+            <rect x="276" y="194" width="9" height="9"/><rect x="292" y="194" width="9" height="9"/>
+            <rect x="308" y="194" width="9" height="9"/><rect x="324" y="194" width="9" height="9"/>
+            <rect x="340" y="194" width="9" height="9"/><rect x="356" y="194" width="9" height="9"/>
+            <rect x="276" y="218" width="9" height="9"/><rect x="292" y="218" width="9" height="9"/>
+            <rect x="308" y="218" width="9" height="9"/><rect x="324" y="218" width="9" height="9"/>
+            <rect x="340" y="218" width="9" height="9"/><rect x="356" y="218" width="9" height="9"/>
+          </g>
+          <g stroke="#2F5EA8" stroke-width="1.6" fill="none">
+            <path d="M277.5 150.5l2.5 3 4-5"/><path d="M325.5 150.5l2.5 3 4-5"/>
+            <path d="M293.5 174.5l2.5 3 4-5"/><path d="M341.5 174.5l2.5 3 4-5"/>
+            <path d="M309.5 222.5l2.5 3 4-5"/>
+          </g>
+          <!-- resto del papel -->
+          <rect x="26" y="278" width="400" height="3" fill="#DFE2E7"/>
+          <rect x="26" y="286" width="330" height="3" fill="#DFE2E7"/>
+          <rect x="26" y="302" width="190" height="16" fill="none" stroke="#8E949C"/>
+          <rect x="236" y="302" width="190" height="16" fill="none" stroke="#8E949C"/>
+          <rect x="32" y="308" width="90" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="242" y="308" width="70" height="4" rx="2" fill="#2F5EA8"/>
+          <rect x="26" y="334" width="400" height="120" fill="none" stroke="#8E949C"/>
+          <line x1="26" y1="358" x2="426" y2="358" stroke="#C6CAD1"/>
+          <line x1="26" y1="382" x2="426" y2="382" stroke="#C6CAD1"/>
+          <line x1="26" y1="406" x2="426" y2="406" stroke="#C6CAD1"/>
+          <line x1="26" y1="430" x2="426" y2="430" stroke="#C6CAD1"/>
+          <line x1="300" y1="334" x2="300" y2="454" stroke="#8E949C"/>
+          <rect x="26" y="472" width="400" height="3" fill="#DFE2E7"/>
+          <rect x="26" y="480" width="370" height="3" fill="#DFE2E7"/>
+          <rect x="26" y="500" width="180" height="14" fill="none" stroke="#8E949C"/>
+          <rect x="246" y="500" width="180" height="14" fill="none" stroke="#8E949C"/>
+          <rect x="26" y="540" width="400" height="2.5" fill="#E7E9ED"/>
+          <rect x="26" y="548" width="320" height="2.5" fill="#E7E9ED"/>
+        </svg>
+        <span class="flotante">hoja 1 de 2 &middot; 118 % &middot; arrastrando</span>
+      </div>
+    </section>
+
+    <!-- ================= LA COLUMNA DERECHA ================= -->
+    <section class="derecha">
+      <div class="derecha-scroll">
+
+        <div class="grupo-titulo">A qué va cada quien <span class="cuenta">4</span></div>
+
+        <!-- Persona 1: todo leído -->
+        <div class="persona">
+          <div class="persona-cab">
+            <span class="persona-num">1</span>
+            <span class="persona-nom">Ejemplo Ramírez Solís</span>
+            <span class="persona-hoja">hoja 1</span>
+          </div>
+          <div class="cedula es-anotacion">
+            <span class="et">Cédula</span>
+            <input class="entrada" value="000-0000-0001" readonly>
+            <span class="origen"><span class="punto"></span>anotación</span>
+            <button class="b-firma" aria-pressed="true">firmado</button>
+          </div>
+          <div class="ordenanzas">
+            <span class="casilla marcada" tabindex="0"><span class="caja"></span>Ordenanza personal</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Presenciar sellamiento</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Traductor</span>
+            <span class="casilla marcada" tabindex="-1"><span class="caja"></span>Investidura</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Sellamiento de esposos</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Sellamiento de hijos a padres</span>
+          </div>
+        </div>
+
+        <!-- Persona 2: dos ordenanzas NO LEÍDAS -->
+        <div class="persona">
+          <div class="persona-cab">
+            <span class="persona-num">2</span>
+            <span class="persona-nom">Ejemplo Duarte Ramírez</span>
+            <span class="persona-hoja">hoja 1</span>
+          </div>
+          <div class="cedula es-ocr">
+            <span class="et">Cédula</span>
+            <input class="entrada" value="000-0000-0002" readonly>
+            <span class="origen"><span class="punto"></span>leído 96 %</span>
+            <button class="b-firma" aria-pressed="false">Está bien</button>
+          </div>
+          <div class="ordenanzas">
+            <span class="casilla marcada" tabindex="-1"><span class="caja"></span>Ordenanza personal</span>
+            <span class="casilla no-leida" tabindex="-1"><span class="caja"></span>Presenciar sellamiento <span class="sufijo">NO LEÍDA</span></span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Traductor</span>
+            <span class="casilla no-leida" tabindex="-1"><span class="caja"></span>Investidura <span class="sufijo">NO LEÍDA</span></span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Sellamiento de esposos</span>
+            <span class="casilla marcada" tabindex="-1"><span class="caja"></span>Sellamiento de hijos a padres</span>
+          </div>
+        </div>
+
+        <!-- Persona 3: cédula no válida -->
+        <div class="persona">
+          <div class="persona-cab">
+            <span class="persona-num">3</span>
+            <span class="persona-nom">Ejemplo Duarte Solís</span>
+            <span class="persona-hoja">hoja 2</span>
+          </div>
+          <div class="cedula es-invalido">
+            <span class="et">Cédula</span>
+            <input class="entrada" value="00-0000-003" readonly>
+            <span class="origen"><span class="punto"></span>no válida</span>
+            <button class="b-firma">Está bien</button>
+          </div>
+          <div class="campo es-invalido" style="border:0; padding:0; margin:0">
+            <span class="motivo">Faltan dígitos: la cédula va 3&ndash;4&ndash;4</span>
+          </div>
+          <div class="ordenanzas" style="margin-top:var(--sp-2)">
+            <span class="casilla marcada" tabindex="-1"><span class="caja"></span>Ordenanza personal</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Presenciar sellamiento</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Traductor</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Investidura</span>
+            <span class="casilla marcada" tabindex="-1"><span class="caja"></span>Sellamiento de esposos</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Sellamiento de hijos a padres</span>
+          </div>
+        </div>
+
+        <!-- Persona 4: propuesta del agente, sin firmar -->
+        <div class="persona">
+          <div class="persona-cab">
+            <span class="persona-num">4</span>
+            <span class="persona-nom">Ejemplo Solís Duarte</span>
+            <span class="persona-hoja">hoja 2</span>
+          </div>
+          <div class="cedula es-ocr">
+            <span class="et">Cédula</span>
+            <input class="entrada" value="000-0000-0004" readonly>
+            <span class="origen"><span class="punto"></span>leído 91 %</span>
+            <button class="b-firma">Está bien</button>
+          </div>
+          <div style="margin:var(--sp-1) 0 var(--sp-2)">
+            <span class="marca azul">el agente propone: completa</span>
+          </div>
+          <div class="ordenanzas">
+            <span class="casilla marcada" tabindex="-1"><span class="caja"></span>Ordenanza personal</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Presenciar sellamiento</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Traductor</span>
+            <span class="casilla marcada" tabindex="-1"><span class="caja"></span>Investidura</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Sellamiento de esposos</span>
+            <span class="casilla no-marcada" tabindex="-1"><span class="caja"></span>Sellamiento de hijos a padres</span>
+          </div>
+        </div>
+
+        <div class="grupo-titulo alerta">Por comprobar <span class="cuenta">2</span></div>
+
+        <div class="campo es-revisar">
+          <span class="et">Fecha de viaje &middot; <b>leído 61 %</b></span>
+          <div class="banda">
+            <svg viewBox="0 0 380 36" role="img" aria-label="Recorte del escaneo donde va la fecha de viaje">
+              <rect width="380" height="36" fill="#F2F1EE"/>
+              <rect x="8" y="14" width="70" height="4" rx="2" fill="#2F5EA8"/>
+              <rect x="88" y="14" width="46" height="4" rx="2" fill="#2F5EA8"/>
+              <rect x="150" y="12" width="120" height="8" fill="#E2E0DC"/>
+            </svg>
+          </div>
+          <input class="entrada" style="font-family:'Segoe UI',sans-serif" value="2026-09-05" readonly>
+          <div class="fila-btn">
+            <button class="b-firma">Está bien</button>
+            <button class="b-firma">No está en el papel</button>
+          </div>
+          <span class="motivo">El mes no coincide con el número de caso (2609 = septiembre). Es un aviso, no una pared</span>
+        </div>
+
+        <div class="campo es-invalido">
+          <span class="et">Número de unidad &middot; <b>no se leyó</b></span>
+          <div class="banda-vacia">no hay recorte: el campo no se localizó en la hoja</div>
+          <input class="entrada" style="font-family:'Segoe UI',sans-serif" value="" placeholder="6 o 7 dígitos" readonly>
+          <div class="fila-btn">
+            <button class="b-firma">Está bien</button>
+            <button class="b-firma">No está en el papel</button>
+          </div>
+        </div>
+
+        <div class="grupo-titulo">Lo demás <span class="cuenta">24</span>
+          <button class="plegable">ver &#9662;</button>
+        </div>
+        <div class="plegado">
+          <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M5 3h11l4 4v14H5z"/><path d="M9 12h7M9 16h4"/>
+          </svg>
+          <span>24 campos ya comprobados. <b>Cerrado</b> para que no ocupe.</span>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <div class="pie">
+    <span class="contador">Quedan <b>2</b> campos por comprobar &middot; <b>2</b> ordenanzas sin leer</span>
+    <div class="der">
+      <button class="boton">Deshacer <span class="tecla">Ctrl+Z</span></button>
+      <button class="boton boton-primario">Guardar <span class="tecla">Ctrl+S</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LOS TRES ESTADOS, AL LADO ================= -->
+<h2 class="seccion">Los tres estados de una ficha de ordenanza</h2>
+<div class="papel-anexo">
+<div class="muestra">
+  <span class="casilla marcada" tabindex="0"><span class="caja"></span>Investidura</span>
+  <span class="casilla no-marcada" tabindex="0"><span class="caja"></span>Investidura</span>
+  <span class="casilla no-leida" tabindex="0"><span class="caja"></span>Investidura <span class="sufijo">NO LEÍDA</span></span>
+</div>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Estado</th><th>Caja</th><th>Fondo de la ficha</th><th>Palabra</th><th>Qué guarda</th></tr></thead>
+<tbody>
+<tr><td><b>Marcada</b></td><td>verde rellena con su check blanco (6,28:1)</td><td>verde claro #E7F5EC</td><td>ninguna extra: el check ya lo dice</td><td><code>ord_* = 1</code></td></tr>
+<tr><td><b>No marcada</b></td><td>vacía, borde #46505C (8,20:1)</td><td>papel</td><td>ninguna</td><td><code>ord_* = 0</code></td></tr>
+<tr><td><b>No leída</b></td><td><b>rayada en diagonal</b>, borde ámbar</td><td>ámbar #FFF3C4</td><td><b>«NO LEÍDA»</b>, escrita</td><td><code>ord_* IS NULL</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><b>Por qué no es un <code>tk.Checkbutton</code>.</b> Está medido en este proyecto que
+<code>tk.Checkbutton</code> dibuja «no leída» exactamente igual que «no marcada»: las dos salen
+como una caja vacía, y entonces el dato que <b>nadie leyó</b> se confunde con el que el papel
+dice que <b>no</b>. Es la diferencia entre «no lo sé» y «sé que no», y en una recomendación al
+templo no es la misma cosa. Por eso la ficha es un <code>Frame</code> pulsable que cicla entre
+tres estados, con <b>tres señales a la vez</b>: la trama de la caja, el color del fondo, y la
+palabra. Ninguna de las tres va sola.</p>
+<p><b>Al pulsar</b> cicla en este orden: no leída &rarr; marcada &rarr; no marcada &rarr; marcada&hellip;
+Una vez que Miguel la toca <b>nunca vuelve a «no leída»</b>, porque ya la leyó él: volver a ese
+estado sería borrar su trabajo. Para eso está «Deshacer».</p>
+
+<h3>El reparto del espacio, medido &mdash; no estimado</h3>
+<p>Medido abriendo <b>este archivo</b> a 1280 px de ancho y leyendo
+<code>getBoundingClientRect()</code>. Cinco de estas cifras me salieron distintas de las que puse
+al diseñar (cabecera, pie, visor, columna derecha y el % del visor) y se corrigieron aquí.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Zona</th><th>Medido</th><th>%</th><th>Por qué</th></tr></thead>
+<tbody>
+<tr><td><b>La ventana entera</b></td><td><b>1280 &times; 791 px</b></td><td>&mdash;</td><td>Cabe en un portátil de 1366 &times; 768 con la ventana maximizada, restando la barra de título</td></tr>
+<tr><td>Rail plegado</td><td>56 &times; 789 px</td><td>4,4 % del ancho</td><td>El menú de iconos sigue ahí y sigue funcionando, pero deja de ocupar 168 px. <code>Ctrl+B</code> lo despliega</td></tr>
+<tr><td>Cabecera del documento</td><td>1222 &times; 51 px</td><td>6,4 % del alto</td><td>Todo en una línea: volver, caso, archivo, personas, salida, estado, y los dos botones</td></tr>
+<tr><td>Franja de avisos</td><td>1222 &times; 31 px cerrada · 96 px máx.</td><td>3,9 % · 12,1 % máx.</td><td>Nunca más de una franja. La captura que el dueño rechazó tenía <b>seis bloques</b></td></tr>
+<tr><td><b>Visor del PDF</b></td><td>748 &times; 634 px</td><td><b>58,4 % de la ventana · 61,2 % del cuerpo</b></td><td>Es lo que el dueño mira. La hoja al «Ajustar» sale a 452 px de ancho; a 118 % llena el alto del lienzo</td></tr>
+<tr><td>Lienzo (lo que se ve de la hoja)</td><td>746 &times; 598 px</td><td>75,6 % del alto</td><td>Medido</td></tr>
+<tr><td>Columna de campos</td><td>430 &times; 634 px</td><td>33,6 % de la ventana · 35,2 % del cuerpo</td><td>Caben las seis fichas de ordenanza en tres renglones sin cortar la más larga («Sellamiento de hijos a padres»)</td></tr>
+<tr><td>Pie</td><td>1222 &times; 49 px</td><td>6,2 %</td><td>Contador, «Deshacer», «Guardar»</td></tr>
+<tr><td>Fichas de ordenanza dibujadas</td><td><b>24</b> (contadas) = 4 personas &times; 6</td><td>&mdash;</td><td>Las seis de cada persona, siempre, incluso las no leídas</td></tr>
+<tr><td><b>Párrafos dentro de la ventana</b></td><td><b>0</b> (contados con <code>querySelectorAll('p').length</code>)</td><td><b>0 %</b></td><td>La queja literal del dueño: «el texto ocupa todo el programa»</td></tr>
+</tbody>
+</table>
+</div>
+<p><b>Comparación con lo que el dueño rechazó:</b> su captura tenía seis bloques de aviso que
+empujaban el documento a un sello del <b>7 %</b> del ancho. Aquí el documento ocupa
+<b>61,2 % del cuerpo</b>, y los avisos como mucho el 12,1 % del alto <b>sin empujar nada</b>.</p>
+
+<h3>Cómo se cierra un aviso, y cómo se agrupan</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Situación</th><th>Qué se ve</th></tr></thead>
+<tbody>
+<tr><td>Ningún aviso</td><td>La franja no existe. El cuerpo sube 30 px</td></tr>
+<tr><td>Un aviso</td><td>Una línea con su texto, «ver» y «&times;»</td></tr>
+<tr><td>El mismo aviso en 5 hojas</td><td><b>Una</b> línea: «Ordenanzas sin leer <b>&times; 5 páginas</b>». Nunca cinco bloques</td></tr>
+<tr><td>Avisos de tipos distintos</td><td>Una línea con los dos primeros separados por «&middot;» y, si no caben, «y 2 más»</td></tr>
+<tr><td>Se pulsa «ver»</td><td>La franja crece hasta <b>96 px como máximo</b> y desplaza dentro. El cuerpo <b>no se mueve</b>: se le resta ese alto al visor, no al revés</td></tr>
+<tr><td>Se pulsa «&times;»</td><td>La franja desaparece. En la cabecera queda una campana con «2 avisos». Se reabre pulsándola. <b>No se pierde nada</b></td></tr>
+<tr><td>Se pulsa <code>Esc</code> con la franja abierta</td><td>La cierra y devuelve el foco a donde estaba</td></tr>
+<tr><td>Explicaciones largas</td><td><b>No entran en la pantalla.</b> Van al informe y al detalle de la importación. La regla del 2026-09-03: «un aviso es una línea»</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>El recorrido del teclado</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Tecla</th><th>Dónde</th><th>Qué hace</th></tr></thead>
+<tbody>
+<tr><td><code>Tab</code></td><td>la ventana</td><td>Seis paradas: rail &rarr; «Volver» &rarr; los dos botones grandes &rarr; franja &rarr; visor &rarr; columna de campos &rarr; pie</td></tr>
+<tr><td><code>Esc</code></td><td>la ventana</td><td>Vuelve a Revisar. Si hay cambios sin guardar, pregunta en español</td></tr>
+<tr><td><code>Ctrl+B</code></td><td>la ventana</td><td>Despliega o pliega el rail (56 &harr; 168 px)</td></tr>
+<tr><td><code>&larr;&uarr;&rarr;&darr;</code></td><td>con el foco en el visor</td><td>Mueve la hoja. <code>Mayús</code> la mueve 5 veces más rápido</td></tr>
+<tr><td><code>+</code> <code>&minus;</code> <code>0</code></td><td>con el foco en el visor</td><td>Acerca, aleja, y vuelve a «Ajustar»</td></tr>
+<tr><td><code>RePág</code> <code>AvPág</code></td><td>con el foco en el visor</td><td>Cambia de hoja</td></tr>
+<tr><td><code>Tab</code> / <code>Mayús+Tab</code></td><td>columna de campos</td><td>Salta <b>sólo</b> a lo que falta por comprobar, en orden. Los 24 ya comprobados están plegados y no se pisan</td></tr>
+<tr><td><code>Espacio</code></td><td>sobre una ficha de ordenanza</td><td>Cicla su estado</td></tr>
+<tr><td><code>&larr;</code> <code>&rarr;</code></td><td>entre fichas de una persona</td><td>Se mueve entre las seis sin salir de la persona</td></tr>
+<tr><td><code>Ctrl+Intro</code></td><td>la ventana</td><td>«Sí, completa». <code>Ctrl+Mayús+Intro</code> es «No está completa»</td></tr>
+<tr><td><code>Ctrl+Z</code> / <code>Ctrl+S</code></td><td>la ventana</td><td>Deshacer / Guardar</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Control / qué hace de verdad &middot; y qué dice la pantalla después</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Control</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>«&#8249; Volver»</td><td>Vuelve a Revisar</td><td>Pendiente del frontend real</td></tr>
+<tr><td>«Sí, completa»</td><td>Marca el documento completa, con la firma de Miguel</td><td>El botón se rellena de verde (6,28:1), la marca de la cabecera pasa de «sin revisar» a «completa», y en Revisar la tarjeta cambia de borde. <b>No cierra la ventana</b>: el dueño puede seguir mirando</td></tr>
+<tr><td>«No está completa»</td><td>Marca el documento no completa</td><td>Igual, en rojo</td></tr>
+<tr><td>Los dos botones con campos sin comprobar</td><td><b>Se pueden pulsar igual.</b> No se bloquean</td><td>Antes de marcar, un diálogo de una línea: «quedan 2 campos por comprobar &mdash; ¿marcar completa igual?». <b>Motivo:</b> el que decide es Miguel, no el programa (regla permanente 5). Bloquear el botón le quitaría la decisión</td></tr>
+<tr><td>Visor &middot; <code>&minus;</code> / <code>+</code></td><td>Zoom en pasos, centrado en el <b>centro de lo que se ve</b></td><td>El número cambia (118 % &rarr; 130 %), «Ajustar» se despulsa</td></tr>
+<tr><td>Visor &middot; Ctrl+rueda</td><td>Zoom <b>centrado en el cursor</b>: el punto bajo el ratón no se mueve</td><td>Igual. Es la petición literal del dueño: «zoom a cualquier parte del documento»</td></tr>
+<tr><td>Visor &middot; arrastrar con el botón izquierdo</td><td>Mueve la hoja libremente en los dos ejes</td><td>El cursor pasa de <code>grab</code> a <code>grabbing</code> y abajo a la izquierda aparece «hoja 1 de 2 &middot; 118 % &middot; arrastrando». <b>Hoy no existe:</b> <code>grep</code> sobre <code>interfaz/visor.py</code> &rarr; no hay <code>&lt;B1-Motion&gt;</code></td></tr>
+<tr><td>Visor &middot; doble clic</td><td>Amplía en ese punto</td><td>El zoom sube un paso y ese punto queda en el centro</td></tr>
+<tr><td>Visor &middot; «Ajustar» / «Ancho» / «100 %»</td><td>Tres encuadres</td><td>El pulsado queda con fondo tinta y texto blanco (16,91:1); los otros dos vuelven a papel</td></tr>
+<tr><td>Visor &middot; <code>&#8249;</code> <code>&#8250;</code></td><td>Cambia de hoja del mismo documento</td><td>«1 / 2» pasa a «2 / 2» y la flecha de la derecha se apaga</td></tr>
+<tr><td>Ficha de ordenanza</td><td>Cicla el estado de esa casilla</td><td>Cambia la trama de la caja, el fondo, y la palabra. El contador del pie baja: «2 ordenanzas sin leer» &rarr; «1». El campo queda <b>firmado por Miguel</b></td></tr>
+<tr><td>«Está bien» de un campo</td><td>Firma ese campo: <code>verificado=1</code> con quién y cuándo</td><td>El botón pasa a verde claro y dice «firmado». El contador del pie baja. Si era el último, «Por comprobar» desaparece y su cuenta se va a «Lo demás»</td></tr>
+<tr><td>«No está en el papel»</td><td>Dice que ese dato no viene en la hoja</td><td>El campo queda vacío, con trama diagonal, y la palabra «no está en el papel». <b>⚠️ No hay hoy dónde guardarlo</b>: ver la lista de abajo</td></tr>
+<tr><td>Escribir en un campo</td><td>Corrige el valor a mano</td><td>El fondo pasa a verde de «anotación» y, si el campo estaba firmado, <b>se le retira la firma</b> (decisión del 2026-09-03: cambiar o borrar un campo firmado le retira la firma). El contador sube</td></tr>
+<tr><td>«Lo demás» &middot; «ver»</td><td>Despliega los 24 campos ya comprobados</td><td>La sección crece dentro de la columna, que ya desplaza. El botón dice «ocultar». <b>Cerrado por defecto</b>: es la petición «que se pueda cerrar el texto»</td></tr>
+<tr><td>«Deshacer»</td><td>Deshace el último cambio, incluida una firma</td><td>Pendiente del frontend real. Diseñado: una línea abajo dice qué se deshizo</td></tr>
+<tr><td>«Guardar»</td><td>Escribe a la base</td><td>Pendiente del frontend real</td></tr>
+<tr><td>Marca azul «el agente propone: completa»</td><td>Nada: es una <b>propuesta</b>, no una firma</td><td>Se queda ahí hasta que Miguel firme. Regla permanente 5: nada se marca solo</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Qué se copia del viejo, qué se mejora</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Del viejo</th><th>Decisión</th><th>Motivo</th></tr></thead>
+<tbody>
+<tr><td>PDF entero a la izquierda</td><td><b>Se copia y se amplía</b>: 61,9 % del ancho, arrastre libre y zoom al cursor</td><td>El viejo tiene <code>&minus;</code> <code>Ajustar</code> <code>+</code> y desplazamiento, pero el dueño se quejó de que era pequeño y de que no podía moverse</td></tr>
+<tr><td>«A qué va cada quien»: persona + cédula + seis fichas</td><td><b>Se copia la función y el nombre de la sección</b></td><td>Es exactamente lo que el dueño necesita ver de un vistazo</td></tr>
+<tr><td>Los dos botones grandes arriba</td><td><b>Se copian</b></td><td>Igual</td></tr>
+<tr><td>«Está bien» por campo</td><td><b>Se copia</b>, y se le añade <b>quién firmó y cuándo</b></td><td>Es lo que el nuevo ya hace mejor: firma por campo</td></tr>
+<tr><td>Fichas de ordenanza con <b>dos</b> estados</td><td><b>Se mejora a TRES.</b> Medido en el viejo con <code>aria-pressed</code>: 28 fichas, todas con dos estados, <b>ninguna con un tercero</b></td><td>El viejo no distingue «no leída» de «no marcada». Aquí sí, con tres señales</td></tr>
+<tr><td>Porcentaje de confianza suelto («100 %», «0 %»)</td><td><b>Se mejora</b>: el número va junto a la palabra del origen («leído 96 %»)</td><td>Un porcentaje sin decir de qué es no se entiende</td></tr>
+<tr><td>Etiquetas técnicas («ancla&lt;algo&gt;», «patrón&lt;algo&gt;»)</td><td><b>No se traen</b></td><td>Le explican a Miguel <b>cómo funciona el programa</b>. Regla del 2026-09-03, punto 4</td></tr>
+<tr><td>«¿Hará el miembro una contribución? Sí / No»</td><td><b>No se dibuja</b></td><td><b>No existe columna</b> en el esquema v13. Dibujarlo sería inventar un campo. Va a la lista de abajo</td></tr>
+<tr><td>Colores de origen por campo, firma, «Deshacer», diálogos en español</td><td><b>Se conservan del nuevo</b></td><td>Son lo que el nuevo hace mejor y el viejo no tiene</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Lo que esta pantalla necesita y hoy NO existe</h3>
+<p>Medido sobre el esquema que construye el código (versión 13), no sobre el documento.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Lo que la pantalla enseña</th><th>Estado real</th><th>Qué falta</th></tr></thead>
+<tbody>
+<tr><td>Botón «Sí, completa»</td><td><code>datos/estados.py</code>: <code>ESTADOS_RECOMENDACION = ("no_indicada","incompleta")</code></td><td><b>El valor <code>completa</code> no existe.</b> Es lo primero que hay que añadir, o el botón no tiene qué guardar</td></tr>
+<tr><td>«No está en el papel»</td><td><code>procedencia_campo</code> tiene <code>verificado</code> y <code>anulado_por_tachon</code>. <b>Ninguna</b> significa «este dato no viene en la hoja»</td><td><b>Decisión del dueño.</b> Tres salidas: (a) columna nueva <code>ausente_en_el_papel</code>; (b) reutilizar el valor vacío firmado &mdash; pero entonces no se distingue de «lo borré»; (c) no traer el botón. <b>Recomiendo (a)</b>: es un dato distinto y confundirlo con un borrado es justo el error que la regla permanente 1 evita. <b>No la tomo yo</b></td></tr>
+<tr><td>Las seis fichas con tres estados</td><td><code>personas.ord_*</code> son <code>INTEGER</code> que aceptan <code>NULL</code></td><td>Nada. <code>NULL</code> = «no leída» ya está</td></tr>
+<tr><td>Firma por ordenanza («lo marcó Miguel»)</td><td><code>procedencia_campo</code> se indexa por nombre de campo, y las seis casillas <b>son columnas</b>, así que caben</td><td>⚠️ Pregunta abierta del programador: <b>si Miguel corrige uno de los pasos, quién firma esa corrección.</b> La misma pregunta vale para las ordenanzas. Sin respuesta, la firma por ficha queda sin dueño</td></tr>
+<tr><td>«¿Hará el miembro una contribución?»</td><td><b>No hay columna</b> en <code>casos</code> ni en <code>personas</code></td><td>El campo entero. <b>Pregunta al dueño:</b> ¿hace falta? El viejo lo tiene; el nuevo no lo ha pedido nunca</td></tr>
+<tr><td>«el agente propone: completa»</td><td><code>personas.estado_propuesto</code>, <code>nota_companero</code>, <code>propuesto_por</code>, <code>propuesto_en</code> <b>existen</b></td><td>Nada</td></tr>
+<tr><td>Recorte del escaneo junto al campo</td><td><code>procedencia_campo.banda_x0/y0/x1/y1</code> <b>existen</b></td><td>Nada</td></tr>
+<tr><td>Nombre del templo</td><td><code>casos.templo_nombre</code> existe pero <b>va sin fila en <code>procedencia_campo</code> y sin campo en pantalla</b> (decidido y aceptado el 2026-09-03)</td><td>Un templo mal leído <b>no se puede corregir</b>. Sigue pendiente y no lo dibujo aquí</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Requisitos para el constructor &mdash; son los dos que originaron la queja</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Requisito</th><th>Por qué, y qué hay medido</th></tr></thead>
+<tbody>
+<tr><td><b>El visor no reescala la hoja entera en cada movimiento.</b> Se guarda la hoja ya escalada al zoom actual y el arrastre <b>sólo mueve lo dibujado</b> (<code>canvas.move</code> o desplazamiento de la vista), sin volver a rasterizar</td><td>Queja literal: «conmigo es lento, se corta, se siente tosco al moverlo». Lo medido: 48&ndash;105 ms por repintado y una región reescalada del 44 % de la hoja al zoom por defecto, <b>en la máquina de desarrollo</b>. En el portátil del dueño <b>no hay ninguna medición</b></td></tr>
+<tr><td>El reescalado ocurre <b>al cambiar el zoom</b>, una vez, con un límite de repintados por segundo</td><td>Igual</td></tr>
+<tr><td><b>Se atan <code>&lt;MouseWheel&gt;</code> y <code>&lt;TouchpadScroll&gt;</code></b>, y el desplazamiento acumula el delta en píxeles en vez de redondear a muescas de 120</td><td>Tk 9 separa los dos eventos; <code>grep -rn TouchpadScroll interfaz/</code> &rarr; <b>0 líneas</b>. <b>No comprobado con un trackpad</b>: aquí no hay ninguno. Se prueba en el portátil del dueño</td></tr>
+<tr><td><b>Se ata <code>&lt;B1-Motion&gt;</code></b> para el arrastre libre</td><td><code>grep</code> sobre <code>interfaz/visor.py</code>: hay rueda, <code>Control-MouseWheel</code> y <code>Shift-MouseWheel</code>, y <b>no hay <code>&lt;B1-Motion&gt;</code></b>. Hoy no se puede arrastrar con el ratón</td></tr>
+<tr><td>El zoom con <code>Ctrl</code>+rueda es <b>centrado en el cursor</b>, no en el centro del lienzo</td><td>Petición literal: «el zoom debe permitirme hacer zoom a cualquier parte del documento»</td></tr>
+<tr><td>La hoja se rasteriza <b>una vez por hoja y por nivel de zoom</b>, no por evento</td><td>Estimado por el diseñador: ~9,5 MB por hoja a 2705&times;3500. <b>Es una estimación, no una medición</b></td></tr>
+<tr><td><b>Criterio de aceptación:</b> arrastrar y hacer zoom sin saltos perceptibles <b>en el portátil del dueño</b>, medido allí</td><td>Aquí nadie lo notó; en su máquina sí. Un criterio medido en la máquina equivocada no es un criterio</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Contraste medido</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Par</th><th>Colores</th><th>Medido</th></tr></thead>
+<tbody>
+<tr><td>Ficha marcada: texto sobre su fondo</td><td>#12351F / #E7F5EC</td><td>12,01:1</td></tr>
+<tr><td>Check blanco dentro de la caja verde</td><td>#FFFFFF / #1B6E3C</td><td>6,28:1</td></tr>
+<tr><td>Ficha «no leída»: texto y palabra</td><td>#3D2A00 / #FFF3C4</td><td>12,34:1</td></tr>
+<tr><td>Borde ámbar de la ficha «no leída»</td><td>#8A5B00 / #FFF3C4</td><td>5,28:1</td></tr>
+<tr><td>Caja de la ficha «no marcada»</td><td>#46505C / #FFFFFF</td><td>8,20:1</td></tr>
+<tr><td>Campo con origen «anotación»</td><td>#12351F / #E7F5EC</td><td>12,01:1</td></tr>
+<tr><td>Campo con origen «no válida»</td><td>#4A0F0B / #FDE7E7</td><td>13,02:1</td></tr>
+<tr><td>Palabra del origen «leído»</td><td>#5B6470 / #FFFFFF</td><td>6,00:1</td></tr>
+<tr><td>Pista de la barra del visor</td><td>#46505C / #E9EBEF</td><td>6,87:1</td></tr>
+<tr><td>Rótulo flotante sobre el lienzo</td><td>#FFFFFF / rgba(26,29,33,.88) sobre #3A4049</td><td>&ge;10,45:1</td></tr>
+<tr><td><b>Anillo de foco sobre el lienzo del visor</b></td><td>#1A1D21 / #3A4049 &rarr; se cambia a #FFFFFF</td><td><b>1,62:1 &rarr; 10,45:1.</b> Un anillo a 1,62:1 es invisible: sobre el lienzo oscuro el foco es blanco</td></tr>
+<tr><td>Anillo de foco sobre los botones sólidos verde / rojo / tinta</td><td>#FFFFFF sobre cada uno</td><td>6,28 · 6,54 · 16,91:1</td></tr>
+<tr><td>Anillo de foco sobre papel / panel / ámbar / rojo claro</td><td>#1A1D21 sobre cada uno</td><td>16,91 · 15,50 · 15,20 · 14,30:1</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div>
+</body>
+</html>

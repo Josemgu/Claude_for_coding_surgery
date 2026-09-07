@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pruebas de Fichas.Datos.Falso. MSTest por el ADR-0003 §8.2. -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Pruebas.Datos.Falso</RootNamespace>
+    <AssemblyName>Fichas.Pruebas.Datos.Falso</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+    <ProjectReference Include="..\Fichas.Datos.Falso\Fichas.Datos.Falso.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="Fichas.App.Cascara.VentanaPrincipal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Fichas"
+    mc:Ignorable="d">
+
+    <!--
+        _raiz es donde se pone el tema que eligio el dueno (Cascara/VentanaPrincipal.Tema.cs).
+        Va AQUI, en la raiz del contenido de la ventana, y no en App.xaml: el tema de la
+        aplicacion se fija al arrancar y cambiarlo despues lanza, asi que no se podria cambiar
+        sin cerrar. Ademas esta es la raiz del XamlRoot, que es de donde toman el tema los
+        desplegables y los cuadros, que viven fuera de este arbol.
+    -->
+    <!--
+        ⚠️ El fondo va AQUI y es obligatorio. Sin el, la raiz es transparente y lo que se ve
+        detras del panel de navegacion —que tambien es transparente— es el fondo crudo de la
+        ventana, que es NEGRO. Medido el 2026-09-05 sobre el paquete publicado: con el tema
+        claro el panel de la izquierda quedaba negro y sus ocho iconos, oscuros por el tema,
+        desaparecian dentro. Una pantalla ilegible.
+    -->
+    <Grid x:Name="_raiz" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--
+            ⚠️ Background transparente y no el suyo por defecto. Medido el 2026-09-05 sobre
+            el paquete publicado: con el tema claro esta franja se quedaba NEGRA mientras el
+            resto de la ventana era claro, porque su fondo por defecto no sigue al tema del
+            elemento. Transparente deja pasar el de _raiz, que si lo sigue.
+        -->
+        <TitleBar
+            x:Name="_barraDeTitulo"
+            Grid.Row="0"
+            Title="Fichas"
+            Background="Transparent">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="ms-appx:///Assets/AppIcon.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <!--
+            La navegacion de las ocho entradas. Cada programador rellena su pantalla y
+            no toca esta cascara.
+
+            ⚠️ Estuvo CONGELADA desde el pase de esqueleto y se descongela el 2026-09-06
+            para meter «Completar», que el dueño pidió ese día con estas palabras: «debe
+            haber una tab solo para esto». Hasta entonces, la ventana de incompletos de
+            Inicio tuvo que entrar por un botón en vez de por aquí.
+        -->
+        <NavigationView
+            x:Name="_navegacion"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleButtonVisible="True"
+            IsSettingsVisible="False"
+            OpenPaneLength="220"
+            PaneDisplayMode="LeftCompact"
+            SelectionChanged="AlElegirUnaEntrada">
+
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Inicio" Tag="Inicio">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE80F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <!--
+                    Por aqui entra TODO. Va la segunda, justo detras de Inicio, porque es
+                    el primer paso del trabajo: sin documentos importados no hay nada que
+                    corregir, ni que asignar, ni que reportar.
+                -->
+                <NavigationViewItem Content="Importar" Tag="Importar">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8E5;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Corrección" Tag="Correccion">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE70F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <!--
+                    La octava, pedida por el dueño el 2026-09-06 con estas palabras: «debe
+                    haber una tab solo para esto: completar información de documentos que
+                    faltan».
+
+                    Va justo detrás de Corrección porque es el mismo trabajo hecho en
+                    cadena: Corrección abre UN documento suelto por su desplegable; ésta
+                    abre la cola entera y, al guardar uno que quede sin huecos, lo saca y
+                    pone delante el siguiente. Una no sustituye a la otra.
+                -->
+                <NavigationViewItem Content="Completar" Tag="Completar">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9D5;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Revisar" Tag="Revisar">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8A5;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Asignar" Tag="Asignar">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE716;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Paquetes" Tag="Paquetes">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8B7;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Reportes" Tag="Reportes">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE9D9;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <!--
+                El tema lo elige el dueño (pedido el 2026-09-05). Va en el pie del panel y no
+                como una pantalla mas: es un ajuste de la ventana, no un paso del trabajo, y
+                asi se alcanza desde las ocho entradas sin salir de donde se esta.
+            -->
+            <NavigationView.PaneFooter>
+                <Button
+                    x:Name="_botonDelTema"
+                    Margin="4,4,4,8"
+                    Padding="12,8"
+                    HorizontalAlignment="Left"
+                    AutomationProperties.Name="Tema de la ventana"
+                    ToolTipService.ToolTip="Tema de la ventana: claro, oscuro o el de Windows">
+                    <StackPanel Orientation="Horizontal" Spacing="14">
+                        <FontIcon FontSize="16" Glyph="&#xE706;" />
+                        <TextBlock x:Name="_temaEnElBoton" Text="Tema" />
+                    </StackPanel>
+
+                    <Button.Flyout>
+                        <Flyout Placement="Right">
+                            <StackPanel MinWidth="220" Spacing="6">
+                                <TextBlock
+                                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                                    Text="Tema de la ventana" />
+                                <RadioButton
+                                    x:Name="_temaDeWindows"
+                                    Checked="AlElegirElTema"
+                                    Content="El de Windows"
+                                    GroupName="ElTemaDeLaVentana"
+                                    Tag="ElDeWindows" />
+                                <RadioButton
+                                    x:Name="_temaClaro"
+                                    Checked="AlElegirElTema"
+                                    Content="Claro"
+                                    GroupName="ElTemaDeLaVentana"
+                                    Tag="Claro" />
+                                <RadioButton
+                                    x:Name="_temaOscuro"
+                                    Checked="AlElegirElTema"
+                                    Content="Oscuro"
+                                    GroupName="ElTemaDeLaVentana"
+                                    Tag="Oscuro" />
+                                <TextBlock
+                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                    Text="La elección se guarda y el programa vuelve a abrir con ella."
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+            </NavigationView.PaneFooter>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <cascara:FranjaDeAvisos x:Name="_franjaDeAvisos" Grid.Row="0" />
+
+                <!--  Cada pantalla trae SU propio desplazamiento; aqui no se recorta nada.  -->
+                <Frame x:Name="_marco" Grid.Row="1" />
+
+                <cascara:Acuse x:Name="_acuse" Grid.Row="2" />
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

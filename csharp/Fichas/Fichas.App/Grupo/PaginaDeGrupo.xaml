@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Fichas.App.Grupo.PaginaDeGrupo"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:grupo="using:Fichas.App.Grupo"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+
+        <x:Double x:Key="AltoDeLaLista">470</x:Double>
+
+        <!--
+            Lo que se pulsa es un BOTON, aunque no lo parezca. El motivo entero esta escrito
+            en Inicio/PaginaDeInicio.xaml, donde nacio: un Border se puede pulsar con el
+            raton y con nada mas —ni teclado, ni lector de pantalla, ni una comprobacion
+            automatica—, porque no tiene patron de invocacion.
+        -->
+        <Style x:Key="LoQueSePulsa" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+
+        <!--
+            UN solo renglon para las dos cosas que trae la lista: la cabecera de una unidad
+            y una persona. Se ensena una mitad o la otra segun «EsCabecera».
+
+            Es asi porque la lista va aplanada, y eso esta explicado donde se aplana
+            (GrupoDelDia.EnUnaSolaLista): un repetidor dentro de otro construiria las 517
+            personas del dia mas cargado de una base de 3 000, y el criterio C13-5 pide que
+            el numero de elementos visuales tenga tope.
+        -->
+        <DataTemplate x:Key="RenglonDelGrupoPlantilla" x:DataType="grupo:RenglonDelGrupo">
+            <Grid Background="Transparent">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!--  ···· la cabecera de una unidad ····  -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,8,0,2"
+                    Padding="10,6"
+                    Background="{x:Bind grupo:PinturaDelGrupo.PanelHondo, Mode=OneTime}"
+                    BorderBrush="{x:Bind grupo:PinturaDelGrupo.Linea, Mode=OneTime}"
+                    BorderThickness="0,0,0,1"
+                    Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(EsCabecera), Mode=OneTime}">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="Bold"
+                                Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}"
+                                Text="{x:Bind Titulo, Mode=OneTime}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                FontSize="11.5"
+                                Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                                Text="{x:Bind Detalle, Mode=OneTime}"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Button
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Click="AlPedirAsignarLaUnidad"
+                            Content="Asignar esta unidad"
+                            FontSize="12"
+                            IsEnabled="{x:Bind SePuedeAsignarLaUnidad, Mode=OneTime}" />
+                    </Grid>
+                </Border>
+
+                <!--  ···· una persona del grupo ····  -->
+                <Button
+                    Grid.Row="1"
+                    AutomationProperties.Name="{x:Bind ParaElLector, Mode=OneTime}"
+                    Click="AlPulsarUnaPersona"
+                    Style="{StaticResource LoQueSePulsa}"
+                    Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(EsUnaPersona), Mode=OneTime}">
+                <Grid Padding="10,5" ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="230" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="12.5"
+                            FontWeight="SemiBold"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}"
+                            Text="{x:Bind Titulo, Mode=OneTime}"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            FontSize="11.5"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.TintaDelDetalle(ElPdfNoSePuedeAbrir), Mode=OneTime}"
+                            Text="{x:Bind Detalle, Mode=OneTime}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                        Text="{x:Bind Cedula, Mode=OneTime}" />
+
+                    <!--
+                        LO QUE LE FALTA AL DOCUMENTO.
+
+                        Palabras del dueño el 2026-09-07: «Cuando guardo información ya
+                        corregida no cambia de estado, sigue igual. Es algo que pedí arreglar».
+
+                        Medido con la ventana abierta antes de tocar nada: el renglón decía
+                        «CASP2609 · sin mirar · recomendación sin confirmar · sin asignar · el
+                        PDF no está en su ruta», y esa línea era EXACTAMENTE la misma para un
+                        documento entero y para uno al que le faltan tres campos. El veredicto
+                        sí estaba bien calculado —Inicio contaba 71 de 75— y hasta la frase
+                        estaba escrita en PersonaDelGrupo.LoQueFaltaTexto: lo que faltaba era
+                        que llegara aquí.
+
+                        ⛔ Va en SU columna y no dentro del detalle, y es a propósito: la línea
+                        de al lado contesta «¿está confirmada la recomendación de ESTA persona
+                        en el sistema del obispo?» y esta contesta «¿le falta algún dato a ESTE
+                        documento?». Son dos preguntas de dos sitios, y meterlas en la misma
+                        frase es lo que hacía que él leyera una creyendo la otra.
+
+                        Se ajusta el texto en vez de recortarlo: el significado va pegado al
+                        rótulo (criterio C17-1) y recortando se perdería justo el significado.
+
+                        Aquí iba antes la palabra ARCHIVADO del renglón, que el dueño pidió el
+                        2026-09-03 y quitó el 2026-09-06: al grupo ya no llega ni un archivado.
+                    -->
+                    <TextBlock
+                        Grid.Column="2"
+                        VerticalAlignment="Center"
+                        FontSize="11.5"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                        Text="{x:Bind LoQueLeFaltaAlDocumento, Mode=OneTime}"
+                        TextWrapping="Wrap" />
+                </Grid>
+                </Button>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <!--
+        Toda pantalla va dentro de un ScrollView (ADR-0003 §6.2), y la lista trae ADEMAS su
+        propio desplazamiento con barra visible.
+    -->
+    <ScrollView
+        x:Name="_desplazamientoDeLaPantalla"
+        Background="{x:Bind grupo:PinturaDelGrupo.Panel, Mode=OneTime}"
+        ContentOrientation="Vertical"
+        HorizontalScrollBarVisibility="Auto"
+        VerticalScrollBarVisibility="Auto">
+
+        <Grid
+            MinWidth="{StaticResource AnchoMinimoDeContenido}"
+            Margin="{StaticResource MargenDePantalla}"
+            RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  ============================ LA CABECERA ============================  -->
+            <Grid Grid.Row="0" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!--
+                    Vuelve a Inicio. Hace falta un boton propio: la entrada «Inicio» del
+                    menu de la izquierda sigue marcada mientras se ve esta pantalla, y
+                    volver a pulsarla no dispara nada. Ver LlegadaAlGrupo.
+                -->
+                <Button
+                    x:Name="_volver"
+                    VerticalAlignment="Top"
+                    Click="AlPedirVolver"
+                    Content="&#x2039; Volver al inicio"
+                    FontSize="12.5" />
+
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock
+                        x:Name="_titulo"
+                        FontSize="18"
+                        FontWeight="SemiBold"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}" />
+                    <TextBlock
+                        x:Name="_denominador"
+                        FontSize="12"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.Apagado, Mode=OneTime}" />
+                    <!--
+                        Las PERSONAS confirmadas primero y en negrita: es la pregunta que el
+                        dueno contesta de verdad. Los DOCUMENTOS completos van debajo, con
+                        su palabra delante, porque son otra respuesta y de otro sitio.
+                    -->
+                    <TextBlock
+                        x:Name="_comoVa"
+                        FontSize="12.5"
+                        FontWeight="SemiBold"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}" />
+                    <TextBlock
+                        x:Name="_comoVanLosDocumentos"
+                        FontSize="12"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}" />
+                </StackPanel>
+            </Grid>
+
+            <!--
+                ====================== ASIGNAR SIN SALIR DE AQUI ======================
+
+                Palabras del dueno el 2026-09-04: «debe poder asignarse desde cualquier
+                lugar», y el 2026-09-05: «también permitirme asignarlos a los agentes».
+                Se asigna por la MISMA puerta que la pantalla de Asignar y que la tarjeta
+                de Revisar: Asignar.OperacionDeAsignar (criterio C5-1). Aqui no hay una
+                segunda media operacion.
+            -->
+            <Border
+                Grid.Row="1"
+                Padding="12,8"
+                Background="{x:Bind grupo:PinturaDelGrupo.Papel, Mode=OneTime}"
+                BorderBrush="{x:Bind grupo:PinturaDelGrupo.Linea, Mode=OneTime}"
+                BorderThickness="1">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="12.5"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                        Text="Asignar a" />
+
+                    <ComboBox
+                        x:Name="_companero"
+                        Grid.Column="1"
+                        MinWidth="200"
+                        AutomationProperties.Name="Compañero al que se asigna"
+                        FontSize="12.5"
+                        PlaceholderText="elija un compañero" />
+
+                    <Button
+                        x:Name="_asignarElGrupo"
+                        Grid.Column="2"
+                        Click="AlPedirAsignarElGrupo"
+                        Content="Asignar el grupo entero"
+                        FontSize="12.5" />
+
+                    <TextBlock
+                        x:Name="_loQuePaso"
+                        Grid.Column="3"
+                        VerticalAlignment="Center"
+                        FontSize="12"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.AzulMarca, Mode=OneTime}"
+                        TextTrimming="CharacterEllipsis" />
+                </Grid>
+            </Border>
+
+            <!--  ======================= LAS PERSONAS DEL GRUPO ======================  -->
+            <Border
+                Grid.Row="2"
+                Background="{x:Bind grupo:PinturaDelGrupo.Papel, Mode=OneTime}"
+                BorderBrush="{x:Bind grupo:PinturaDelGrupo.Linea, Mode=OneTime}"
+                BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        Grid.Row="0"
+                        Padding="12,7"
+                        Background="{x:Bind grupo:PinturaDelGrupo.Panel, Mode=OneTime}"
+                        BorderBrush="{x:Bind grupo:PinturaDelGrupo.Linea, Mode=OneTime}"
+                        BorderThickness="0,0,0,1">
+                        <TextBlock
+                            FontSize="13"
+                            FontWeight="Bold"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}"
+                            Text="Quién viaja este día · pulse una persona para verificar su documento" />
+                    </Border>
+
+                    <TextBlock
+                        x:Name="_sinNadie"
+                        Grid.Row="1"
+                        Margin="12,10"
+                        FontSize="12.5"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                        Text="Este día no viaja nadie."
+                        Visibility="Collapsed" />
+
+                    <ScrollView
+                        x:Name="_lista"
+                        Grid.Row="2"
+                        MaxHeight="{StaticResource AltoDeLaLista}"
+                        Margin="4,4,4,8"
+                        ContentOrientation="Vertical"
+                        VerticalScrollBarVisibility="Visible">
+                        <ItemsRepeater x:Name="_renglones" ItemTemplate="{StaticResource RenglonDelGrupoPlantilla}" />
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollView>
+</Page>

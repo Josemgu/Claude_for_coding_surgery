@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Application
+    x:Class="Fichas.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Fichas.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                LA PALETA, con los dos temas. Nace el 2026-09-05, cuando el dueno pidio
+                elegir el tema: hasta ese dia cada pantalla declaraba estos seis colores
+                fijos y en claro, y para que los controles no desentonaran se clavaban
+                enteras con RequestedTheme="Light". Eso hacia que tres de las siete
+                pantallas ignorasen lo que el dueno eligiera.
+
+                ⛔ Los seis pares estan MEDIDOS con la razon de contraste de la WCAG, y hay
+                una prueba que los vuelve a medir en cada compilacion
+                (PruebasDeLosDosTemas.CadaParDeTextoSobreFondoSeLee). El peor de los doce es
+                «Apagado sobre Panel» en claro, con 4,87:1 sobre un minimo de 4,5:1. Quien
+                cambie un color aqui tiene que volver a pasar esa prueba, no mirarlo.
+
+                ⚠️ Inicio NO los usa todavia: sigue con su copia privada porque su carpeta
+                estaba ocupada. Sus claves locales tapan a estas y no hay choque.
+            -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <!--  Salen uno a uno de mockups/mockup-v2-inicio.html.  -->
+                    <SolidColorBrush x:Key="Papel" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="Panel" Color="#F4F5F7" />
+                    <SolidColorBrush x:Key="Linea" Color="#D3D7DE" />
+                    <SolidColorBrush x:Key="Tinta" Color="#1A1D21" />
+                    <SolidColorBrush x:Key="TintaSuave" Color="#46505C" />
+                    <SolidColorBrush x:Key="Apagado" Color="#646C77" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Dark">
+                    <!--
+                        El mismo papel de cada color, en oscuro. «Papel» es mas claro que
+                        «Panel» a proposito, igual que en claro: la tarjeta tiene que
+                        despegarse del fondo de la pagina, y si se invirtiera el orden las
+                        tarjetas se hundirian en vez de levantarse.
+                    -->
+                    <SolidColorBrush x:Key="Papel" Color="#2B2B2B" />
+                    <SolidColorBrush x:Key="Panel" Color="#1F1F1F" />
+                    <SolidColorBrush x:Key="Linea" Color="#40464E" />
+                    <SolidColorBrush x:Key="Tinta" Color="#F2F3F5" />
+                    <SolidColorBrush x:Key="TintaSuave" Color="#C2CAD4" />
+                    <SolidColorBrush x:Key="Apagado" Color="#A7B0BB" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!--  Los tres huecos de la cascara, para que las siete pantallas midan igual.  -->
+            <Thickness x:Key="MargenDePantalla">24,20,24,24</Thickness>
+            <x:Double x:Key="SeparacionEntreBloques">16</x:Double>
+            <x:Double x:Key="AnchoMinimoDeContenido">760</x:Double>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

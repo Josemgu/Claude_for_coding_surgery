@@ -1,0 +1,110 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    La app WinUI 3. Desempaquetada (sin MSIX) y autocontenida: el dueno la abre con
+    doble clic, sin instalacion y sin Python en la maquina (regla permanente 2).
+
+    Las tres propiedades del bloque de abajo salen de la espiga C0
+    (csharp/C0-espiga/Espiga/Espiga.csproj), que es lo unico que ya compilo y publico en
+    esta maquina. Sin WindowsPackageType=None el programa exigiria identidad de paquete,
+    que aqui pide el Modo de desarrollador: NO esta activado y no se activa.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Fichas.App</RootNamespace>
+    <AssemblyName>Fichas</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!--
+      El icono que lleva DENTRO Fichas.exe, que es el que ve el dueno en el explorador
+      cuando va a abrirlo con doble clic. Sin esta linea el ejecutable sale con el icono
+      por defecto de .NET, por muy bonito que sea el .ico del repositorio; medido el
+      2026-09-05 sobre el paquete publicado antes de tocar nada: no estaba.
+
+      El .ico lo dibuja Assets\generar-icono.ps1 con System.Drawing, sin red y sin
+      bibliotecas nuevas, para que se pueda volver a generar.
+    -->
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <PublishProfile Condition="Exists('Properties\PublishProfiles\win-$(Platform).pubxml')">win-$(Platform).pubxml</PublishProfile>
+
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+    <!--
+      Queda en «true» como en la espiga C0, y NO significa que se empaquete: quien decide
+      eso es WindowsPackageType=None, abajo. Medido el 2026-09-04: con «false», «dotnet
+      publish» deja fuera Fichas.pri y los .xbf, y el programa publicado se cae al abrir
+      con 0xC000027B antes de pintar nada. Con «true» publica los 15 archivos que faltaban.
+    -->
+    <EnableMsixTooling>true</EnableMsixTooling>
+
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>true</SelfContained>
+    <!-- Apaga el enganche de "dotnet run" que registra una identidad de depuracion. -->
+    <EnableWinAppRunSupport>false</EnableWinAppRunSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\SplashScreen.scale-200.png" />
+    <Content Include="Assets\LockScreenLogo.scale-200.png" />
+    <Content Include="Assets\Square150x150Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-48_altform-lightunplated.png" />
+    <Content Include="Assets\StoreLogo.png" />
+    <!--
+      Ademas de entrar en el .pri, se copia a la carpeta publicada como archivo suelto.
+      Medido el 2026-09-05: el paquete publicado NO trae carpeta «Assets» —las imagenes
+      quedan dentro de Fichas.pri—, y AppWindow.SetIcon necesita una RUTA de archivo.
+    -->
+    <Content Include="Assets\AppIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <!-- Versiones tomadas de la espiga C0: son las que ya publicaron aqui. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2705" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+
+    <!--
+      Las cuatro implementaciones de verdad. Se enchufaron en el pase de conexion del
+      2026-09-04: hasta ese dia la app arrancaba solo con Fichas.Datos.Falso, o sea que
+      abria con datos inventados, no leia ningun PDF y no escribia ningun Excel ni ningun
+      reporte.
+
+      ⛔ Las nombra UN SOLO archivo: Cascara/Servicios.cs. Si una pantalla llega a escribir
+      «Fichas.Datos» o «Fichas.Lectura» en un `using`, esa pantalla esta mal: las pantallas
+      solo conocen Fichas.Contratos, y eso es lo que permite probarlas sin base.
+    -->
+    <ProjectReference Include="..\Fichas.Datos\Fichas.Datos.csproj" />
+    <ProjectReference Include="..\Fichas.Lectura\Fichas.Lectura.csproj" />
+    <ProjectReference Include="..\Fichas.Paquetes\Fichas.Paquetes.csproj" />
+    <ProjectReference Include="..\Fichas.Reportes\Fichas.Reportes.csproj" />
+
+    <!--
+      Los datos inventados se quedan, y NO son lo que abre el dueno: solo los monta el
+      argumento «falso N», que existe para medir una pantalla con 3 000 documentos sin
+      tener 3 000 documentos. Cuando se usan, el pie de la ventana lo dice.
+    -->
+    <ProjectReference Include="..\Fichas.Datos.Falso\Fichas.Datos.Falso.csproj" />
+  </ItemGroup>
+
+  <!-- Publicacion: sin recorte, por lo mismo que la espiga. XAML resuelve tipos por
+       reflexion y el recorte los quita sin avisar hasta el arranque. -->
+  <PropertyGroup>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <PublishTrimmed>False</PublishTrimmed>
+  </PropertyGroup>
+
+</Project>

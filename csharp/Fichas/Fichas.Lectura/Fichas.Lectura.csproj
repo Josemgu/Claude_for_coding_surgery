@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Leer el papel: rasterizar, anotaciones, OCR, anclas, bandas y validaciones.
+       Terreno de un solo programador: nadie mas escribe aqui (EN-CURSO.md, ciclo 7). -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Lectura</RootNamespace>
+    <AssemblyName>Fichas.Lectura</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      El motor de OCR lo decidio el supervisor el 2026-09-04 (via B del ADR-0004).
+      Apache-2.0, y sus tres .onnx son IDENTICOS por SHA-256 a los de `modelos/`
+      del repositorio (comprobado en la C3a; ver docs/RUNBOOK.md).
+    -->
+    <!--
+      `PrivateAssets` sin `build` a proposito. Por defecto NuGet marca `build` como
+      privado, y entonces el `RapidOcrNet.targets` que copia los cuatro archivos a
+      `models/v5/` solo corre en ESTE proyecto: quien nos referencie —las pruebas, y
+      manana Fichas.App— se queda sin modelos y el OCR no lee nada. Medido: con el valor
+      por defecto, 34 pruebas pasaban y las 6 del criterio daban cero.
+    -->
+    <PackageReference Include="RapidOcrNet" Version="4.1.0" PrivateAssets="contentfiles;analyzers" />
+    <!--
+      Rasterizar. PDFtoImage (MIT) envuelve PDFium (BSD-3-Clause), que es EL MISMO
+      motor que usa `pypdfium2` en el Python de hoy. Ese es el motivo de elegirlo
+      sobre `Windows.Data.Pdf`, que el ADR-0003 §4.1 recomendaba por pesar 0 MB: el
+      ADR-0004 §9.1 avisa de que «`Windows.Data.Pdf` y `pypdfium2` NO producen la
+      misma imagen», y con otra imagen hay que recalibrar todo lo que se midio
+      sobre la del Python — las bandas y, cuando llegue la FASE C3b, el umbral de
+      las casillas. Mismo motor, misma imagen, cero recalibracion.
+    -->
+    <PackageReference Include="PDFtoImage" Version="5.4.0" />
+    <!--
+      Leer las anotaciones. PdfPig, Apache-2.0, gestionado puro. Es el equivalente
+      de `pypdf`: PDFium rasteriza pero no da acceso al diccionario `/C` ni al
+      `/BS /W`, que es justo lo que distingue un tachon de un resaltador.
+    -->
+    <PackageReference Include="PdfPig" Version="0.1.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+  </ItemGroup>
+
+</Project>

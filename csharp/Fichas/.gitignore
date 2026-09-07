@@ -1,0 +1,6 @@
+# Lo que produce el compilador y no se versiona.
+bin/
+obj/
+.vs/
+*.user
+*.suo

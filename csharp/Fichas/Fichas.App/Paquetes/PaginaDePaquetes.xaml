@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<cascara:PaginaDeFichas
+    x:Class="Fichas.App.Paquetes.PaginaDePaquetes"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        Los cinco colores ya NO se declaran aqui: viven en App.xaml con sus dos temas, y
+        entran por {ThemeResource}. Con la copia local en claro y fija, esta pantalla se
+        clavaba entera con RequestedTheme="Light" e ignoraba lo que el dueno eligiera.
+    -->
+
+    <!--
+        Toda pantalla va dentro de un ScrollView (ADR-0003 §6.2), con las dos barras y con
+        ancho minimo, para que a 1100x700 no se recorte nada sin forma de llegar a ello.
+    -->
+    <ScrollView
+        x:Name="_desplazamientoDeLaPantalla"
+        Background="{ThemeResource Panel}"
+        ContentOrientation="Vertical"
+        HorizontalScrollBarVisibility="Auto"
+        VerticalScrollBarVisibility="Auto">
+
+        <StackPanel
+            MinWidth="{StaticResource AnchoMinimoDeContenido}"
+            Margin="{StaticResource MargenDePantalla}"
+            Spacing="{StaticResource SeparacionEntreBloques}">
+
+            <TextBlock
+                FontSize="20"
+                FontWeight="SemiBold"
+                Foreground="{ThemeResource Tinta}"
+                Text="Paquetes" />
+
+            <!--  ─────────  La ida: el Excel que va al companero  ─────────  -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource Papel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource Tinta}"
+                        Text="El paquete que va al compañero" />
+
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{ThemeResource TintaSuave}"
+                        Text="Elija a quién. Se ve lo que lleva antes de generar nada. Salen dos archivos: el Excel y un PDF con todos sus documentos."
+                        TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <ComboBox
+                            x:Name="_aQuien"
+                            Width="240"
+                            AutomationProperties.Name="Compañero al que va el paquete"
+                            DisplayMemberPath="Nombre"
+                            PlaceholderText="Elija un compañero"
+                            SelectionChanged="AlElegirAQuien" />
+                        <TextBlock
+                            x:Name="_loQueLleva"
+                            VerticalAlignment="Center"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource Tinta}"
+                            Text="" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <!--
+                            AutomationProperties.Name porque el contenido es icono mas texto: sin
+                            esto el boton no tiene nombre ni para el lector de pantalla ni para una
+                            comprobacion que lo pulse desde fuera.
+                        -->
+                        <Button
+                            x:Name="_botonDeGenerar"
+                            AutomationProperties.Name="Generar el paquete…"
+                            Click="AlPulsarGenerar"
+                            IsEnabled="False"
+                            Style="{ThemeResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE74E;" />
+                                <TextBlock Text="Generar el paquete…" />
+                            </StackPanel>
+                        </Button>
+                        <Button
+                            x:Name="_botonDeAbrir"
+                            Click="AlPulsarAbrir"
+                            Content="Abrir el Excel"
+                            IsEnabled="False" />
+                        <Button
+                            x:Name="_botonDeLaCarpeta"
+                            Click="AlPulsarAbrirLaCarpeta"
+                            Content="Ver la carpeta"
+                            IsEnabled="False" />
+                        <Button
+                            x:Name="_botonDeQuitarleTodo"
+                            AutomationProperties.Name="Quitarle todos los casos"
+                            Click="AlPulsarQuitarleTodo"
+                            Content="Quitarle todos los casos"
+                            IsEnabled="False" />
+                    </StackPanel>
+
+                    <!--
+                        La franja de quitar: dice el numero ANTES de tocar la base, y el que no
+                        quita esta primero. No es un cuadro modal (requisito 4): quitar una
+                        asignacion no borra nada y se puede volver a asignar, asi que no detiene
+                        el trabajo. Es la misma forma con la que se pregunta antes de firmar en
+                        bloque, unos centimetros mas abajo en esta misma pantalla.
+                    -->
+                    <Border
+                        x:Name="_zonaDeConfirmarElQuitar"
+                        Padding="10,8"
+                        Background="{ThemeResource Papel}"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+                            <TextBlock
+                                x:Name="_lineaDeLoQueSeQuita"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource Tinta}"
+                                Text=""
+                                TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button
+                                    AutomationProperties.Name="No quitar nada"
+                                    Click="AlPulsarNoQuitarNada"
+                                    Content="No quitar nada" />
+                                <Button
+                                    x:Name="_botonDeConfirmarElQuitar"
+                                    AutomationProperties.Name="Quitárselos ahora"
+                                    Click="AlPulsarConfirmarElQuitar"
+                                    Content="Quitárselos ahora" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!--  El resumen de la ida: UNA linea, «ver» abre el detalle debajo, X lo cierra.  -->
+                    <Border
+                        x:Name="_zonaDeLaIda"
+                        Padding="12,10"
+                        Background="{ThemeResource Panel}"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    x:Name="_lineaDeLaIda"
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    Text=""
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <Button
+                                    x:Name="_verDeLaIda"
+                                    Grid.Column="1"
+                                    Click="AlPulsarVerLaIda"
+                                    Content="ver" />
+                                <Button
+                                    Grid.Column="2"
+                                    AutomationProperties.Name="Cerrar este resumen del paquete que va"
+                                    Click="AlPulsarCerrarLaIda"
+                                    Content="✕" />
+                            </Grid>
+                            <Border
+                                x:Name="_detalleDeLaIda"
+                                Padding="10,8"
+                                Background="{ThemeResource Papel}"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    x:Name="_textoDeLaIda"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    IsTextSelectionEnabled="True"
+                                    Text=""
+                                    TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!--  ─────────  La vuelta: el Excel que devolvio el companero  ─────────  -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource Papel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource Tinta}"
+                        Text="El Excel que devolvió el compañero" />
+
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{ThemeResource TintaSuave}"
+                        TextWrapping="Wrap">
+                        Diga de quién viene y elija el archivo. Al terminar sale una línea: cuántas
+                        filas venían, cuántas entraron y cuántas no. El detalle de las que no
+                        entraron está detrás de «ver», y todas quedan guardadas en la base.
+                    </TextBlock>
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <ComboBox
+                            x:Name="_deQuienViene"
+                            Width="240"
+                            AutomationProperties.Name="Compañero del que viene el Excel devuelto"
+                            DisplayMemberPath="Nombre"
+                            PlaceholderText="Elija un compañero"
+                            SelectionChanged="AlElegirDeQuienViene" />
+                        <Button
+                            x:Name="_botonDeLaVuelta"
+                            AutomationProperties.Name="Elegir el Excel devuelto…"
+                            Click="AlPulsarElegirElExcel"
+                            IsEnabled="False">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8E5;" />
+                                <TextBlock Text="Elegir el Excel devuelto…" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!--  El resumen de la vuelta: la linea de tres cifras que pidio el dueno.  -->
+                    <Border
+                        x:Name="_zonaDeLaVuelta"
+                        Padding="12,10"
+                        Background="{ThemeResource Panel}"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    x:Name="_lineaDeLaVuelta"
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    Text=""
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <Button
+                                    x:Name="_verDeLaVuelta"
+                                    Grid.Column="1"
+                                    Click="AlPulsarVerLaVuelta"
+                                    Content="ver" />
+                                <Button
+                                    Grid.Column="2"
+                                    AutomationProperties.Name="Cerrar este resumen del Excel devuelto"
+                                    Click="AlPulsarCerrarLaVuelta"
+                                    Content="✕" />
+                            </Grid>
+                            <Border
+                                x:Name="_detalleDeLaVuelta"
+                                Padding="10,8"
+                                Background="{ThemeResource Papel}"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    x:Name="_textoDeLaVuelta"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    IsTextSelectionEnabled="True"
+                                    Text=""
+                                    TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!--
+                        ─────  Lo que trajo el paquete, y el botón que lo da por bueno  ─────
+
+                        Del dueño, 2026-09-06: «lo que debo revisar son los paquetes de los
+                        agentes. Solo verificar las informaciones. Y ya.» Y: «debe haber botones
+                        donde aplique "todo completo", igual en los paquetes, porque ir uno por uno
+                        si está bien pero no es suficiente».
+
+                        Por eso aquí se pinta una LISTA y no un formulario por documento: lo que él
+                        pidió quitar es tener que recorrerlos uno a uno. Lo que se ve es
+                        exactamente lo que se firma —los mismos siete campos que dibuja la pantalla
+                        de Corrección—, y lo que no casó va en su propia lista, debajo y fuera del
+                        botón.
+
+                        ⛔ Ni un cuadro modal (requisito 4): la confirmación es una franja que
+                        aparece en la propia página, dice el número ANTES de escribir nada y trae
+                        su «Cancelar».
+                    -->
+                    <Border
+                        x:Name="_zonaDeLoQueTrajo"
+                        Padding="12,10"
+                        Background="{ThemeResource Panel}"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+
+                            <TextBlock
+                                x:Name="_lineaDeLoQueTrajo"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource Tinta}"
+                                Text=""
+                                TextWrapping="Wrap" />
+
+                            <TextBlock
+                                x:Name="_loQueFaltaDelPaquete"
+                                FontSize="12"
+                                Foreground="{ThemeResource Tinta}"
+                                Text=""
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+
+                            <ListView
+                                x:Name="_laListaDeLoQueTrajo"
+                                MaxHeight="200"
+                                AutomationProperties.Name="Las informaciones que trajo el paquete"
+                                IsItemClickEnabled="False"
+                                SelectionMode="None" />
+
+                            <TextBlock
+                                x:Name="_lineaDeLoQueQuedaFuera"
+                                FontSize="12"
+                                Foreground="{ThemeResource TintaSuave}"
+                                Text=""
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+
+                            <ListView
+                                x:Name="_laListaDeLoQueQuedaFuera"
+                                MaxHeight="160"
+                                AutomationProperties.Name="Lo que no entró y no se puede dar por bueno"
+                                IsItemClickEnabled="False"
+                                SelectionMode="None"
+                                Visibility="Collapsed" />
+
+                            <Button
+                                x:Name="_botonDeDarPorBueno"
+                                AutomationProperties.Name="Doy por buenas estas informaciones"
+                                Click="AlPulsarDarPorBueno"
+                                IsEnabled="False"
+                                Style="{ThemeResource AccentButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE73E;" />
+                                    <TextBlock Text="Doy por buenas estas informaciones" />
+                                </StackPanel>
+                            </Button>
+
+                            <!--  La franja de confirmar: dice el número antes de escribir nada.  -->
+                            <Border
+                                x:Name="_zonaDeConfirmarLaFirma"
+                                Padding="10,8"
+                                Background="{ThemeResource Papel}"
+                                BorderBrush="{ThemeResource Linea}"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <StackPanel Spacing="8">
+                                    <TextBlock
+                                        x:Name="_lineaDeLaCuenta"
+                                        FontSize="12"
+                                        FontWeight="SemiBold"
+                                        Foreground="{ThemeResource Tinta}"
+                                        Text=""
+                                        TextWrapping="Wrap" />
+                                    <TextBlock
+                                        FontSize="12"
+                                        Foreground="{ThemeResource TintaSuave}"
+                                        TextWrapping="Wrap">
+                                        Esto firma los campos con su nombre. NO cambia el estado de la
+                                        recomendación, que lo escribió el Excel del compañero con el suyo.
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button
+                                            x:Name="_botonDeConfirmarLaFirma"
+                                            AutomationProperties.Name="Firmar ahora"
+                                            Click="AlPulsarConfirmarLaFirma"
+                                            Content="Firmar ahora"
+                                            Style="{ThemeResource AccentButtonStyle}" />
+                                        <Button
+                                            AutomationProperties.Name="Cancelar sin firmar"
+                                            Click="AlPulsarCancelarLaFirma"
+                                            Content="Cancelar sin firmar" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock
+                                x:Name="_lineaDeLaFirmaHecha"
+                                FontSize="12"
+                                Foreground="{ThemeResource Tinta}"
+                                Text=""
+                                TextWrapping="Wrap"
+                                Visibility="Collapsed" />
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{ThemeResource TintaSuave}"
+                        TextWrapping="Wrap">
+                        Una fila que no se pueda emparejar NUNCA se aplica a otra familia: sale con su
+                        motivo, y queda fuera del botón. Lo que el compañero contestó es suyo y lleva su
+                        nombre; lo que usted da por bueno aquí son las informaciones, y lleva el suyo.
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <!--  ─────────  La segunda vuelta: lo que sube un peldano  ─────────  -->
+            <!--
+                Del dueno, 2026-09-05: «si el agente no pudo comunicarse con el lider y faltan
+                cambios, se sube el documento al sistema y yo creo otro paquete para los gerentes,
+                para que ellos puedan comunicarse con los lideres de estaca y distrito». Y luego lo
+                generalizo, que es la forma que manda: «los agentes categoria 1 no pudieron […]
+                debo pasarlo a los agentes de categoria 2». Por eso aqui no se dice «gerente» en
+                ninguna parte: se elige a QUIEN lo recibe, y su categoria es la que decide que sube.
+            -->
+            <Border
+                Padding="16"
+                Background="{ThemeResource Papel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel Spacing="10">
+
+                    <TextBlock
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Foreground="{ThemeResource Tinta}"
+                        Text="La segunda vuelta — lo que el peldaño de abajo no consiguió" />
+
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{ThemeResource TintaSuave}"
+                        Text="Sube un documento cuando su hoja volvió como NO completa y el compañero dijo que no se pudo comunicar con el líder o que el líder no lo hizo. Elija a quién se lo pasa: su categoría decide qué sube. Salen dos archivos: el Excel y un PDF con lo que se intentó y lo que dijo cada agente."
+                        TextWrapping="Wrap" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <ComboBox
+                            x:Name="_aQuienSube"
+                            Width="240"
+                            AutomationProperties.Name="Compañero que recibe la segunda vuelta"
+                            DisplayMemberPath="Nombre"
+                            PlaceholderText="Elija a quién se lo pasa"
+                            SelectionChanged="AlElegirAQuienSube" />
+                        <TextBlock
+                            x:Name="_loQueSube"
+                            VerticalAlignment="Center"
+                            FontSize="13"
+                            FontWeight="SemiBold"
+                            Foreground="{ThemeResource Tinta}"
+                            Text=""
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button
+                            x:Name="_botonDeLaSegundaVuelta"
+                            AutomationProperties.Name="Generar la segunda vuelta…"
+                            Click="AlPulsarGenerarLaSegundaVuelta"
+                            IsEnabled="False">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE72C;" />
+                                <TextBlock Text="Generar la segunda vuelta…" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!--  El resumen: UNA linea, «ver» abre el detalle debajo, X lo cierra.  -->
+                    <Border
+                        x:Name="_zonaDeLaSubida"
+                        Padding="12,10"
+                        Background="{ThemeResource Panel}"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    x:Name="_lineaDeLaSubida"
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    Text=""
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <Button
+                                    x:Name="_verDeLaSubida"
+                                    Grid.Column="1"
+                                    Click="AlPulsarVerLaSubida"
+                                    Content="ver" />
+                                <Button
+                                    Grid.Column="2"
+                                    AutomationProperties.Name="Cerrar este resumen"
+                                    Click="AlPulsarCerrarLaSubida"
+                                    Content="✕" />
+                            </Grid>
+                            <Border
+                                x:Name="_detalleDeLaSubida"
+                                Padding="10,8"
+                                Background="{ThemeResource Papel}"
+                                CornerRadius="3"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    x:Name="_textoDeLaSubida"
+                                    FontSize="12"
+                                    Foreground="{ThemeResource Tinta}"
+                                    IsTextSelectionEnabled="True"
+                                    Text=""
+                                    TextWrapping="Wrap" />
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollView>
+</cascara:PaginaDeFichas>

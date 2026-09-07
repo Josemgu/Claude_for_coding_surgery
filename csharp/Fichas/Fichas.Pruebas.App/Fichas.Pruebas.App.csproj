@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de las seis pantallas. Nace casi vacio a proposito: aqui escribe cada
+    programador las pruebas SIN VENTANA de su pantalla (ADR-0003 §8.1), una clase por
+    pantalla y en su propio archivo, y nadie toca el de otro.
+
+    Medido en este pase, no supuesto: referenciar Fichas.App —que es WinUI, WinExe y
+    WindowsAppSDKSelfContained— NO impide que «dotnet test» corra. Salida del 2026-09-04:
+    «Passed! - Failed: 0, Passed: 1». Lo que SI hace falta comprobar cuando alguien
+    escriba la primera prueba que toque un control es si el hilo de la interfaz arranca:
+    para eso esta [UITestMethod], y eso NO se ha medido aqui.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Pruebas.App</RootNamespace>
+    <AssemblyName>Fichas.Pruebas.App</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+    <ProjectReference Include="..\Fichas.Datos.Falso\Fichas.Datos.Falso.csproj" />
+    <ProjectReference Include="..\Fichas.App\Fichas.App.csproj" />
+  </ItemGroup>
+
+</Project>

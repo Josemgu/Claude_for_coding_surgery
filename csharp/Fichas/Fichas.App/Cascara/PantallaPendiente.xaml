@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Fichas.App.Cascara.PantallaPendiente"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        El relleno de una pantalla que todavia no existe. Cada programador borra esto de
+        SU carpeta y pone la suya; nadie toca la de otro.
+    -->
+    <StackPanel
+        MaxWidth="720"
+        Margin="{StaticResource MargenDePantalla}"
+        HorizontalAlignment="Left"
+        Spacing="10">
+
+        <TextBlock
+            x:Name="_titulo"
+            Style="{ThemeResource TitleTextBlockStyle}"
+            Text=""
+            TextWrapping="Wrap" />
+
+        <TextBlock
+            Style="{ThemeResource SubtitleTextBlockStyle}"
+            Text="pendiente"
+            TextWrapping="Wrap" />
+
+        <TextBlock
+            x:Name="_duena"
+            Opacity="0.8"
+            Text=""
+            TextWrapping="Wrap" />
+
+        <TextBlock
+            x:Name="_cifras"
+            FontFamily="Consolas"
+            IsTextSelectionEnabled="True"
+            Opacity="0.8"
+            Text=""
+            TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas · Inicio con reparto por compañero — especificación visual</title>
+<style>
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21; --tinta-suave:#46505C;
+  --verde-fondo:#E7F5EC; --verde-marca:#1B6E3C; --verde-tinta:#12351F;
+  --gris-marca:#5B6470;
+  --ambar-fondo:#FFF3C4; --ambar-marca:#8A5B00; --ambar-tinta:#3D2A00;
+  --rojo-fondo:#FDE7E7;  --rojo-marca:#B3261E;  --rojo-tinta:#4A0F0B;
+  --rojo-solido:#B3261E; --rojo-fila:#FDE7E7;
+  --marino:#0F2A4A; --marino-medio:#1E4E79; --marino-tinte:#EDF2F7;
+  --pais-a:#00695C; --pais-b:#283593; --pais-c:#6A1B9A; --pais-d:#4E342E; --pais-e:#37474F;
+  --foco:#1A1D21; --foco-claro:#FFFFFF;
+  --r:4px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--panel-hondo);color:var(--tinta);
+     font:14px/1.55 "Segoe UI",system-ui,sans-serif}
+.pagina{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+h1{font-size:23px;margin:0 0 8px}
+h2.seccion{font-size:17px;margin:44px 0 12px;padding-bottom:6px;
+           border-bottom:2px solid var(--marino);color:var(--marino)}
+h3{font-size:14px;margin:22px 0 8px;color:var(--marino)}
+p{margin:0 0 10px;max-width:74ch}
+code{font:12.5px/1.4 Consolas,monospace;background:var(--panel-hondo);padding:1px 4px;border-radius:3px}
+.intro{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--marino);
+       border-radius:var(--r);padding:16px 18px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0 4px;background:var(--papel)}
+th,td{border:1px solid var(--linea);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:var(--marino);color:#fff;font-weight:600}
+tbody tr:nth-child(even) td{background:var(--marino-tinte)}
+.nota{background:var(--ambar-fondo);color:var(--ambar-tinta);border:1px solid var(--ambar-marca);
+      border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+.med{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--marino-medio);
+     border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+.hueco{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--rojo-solido);
+       border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+kbd{font:11.5px/1 Consolas,monospace;background:var(--panel-hondo);border:1px solid var(--linea-fuerte);
+    border-bottom-width:2px;border-radius:3px;padding:2px 5px;white-space:nowrap}
+ul{margin:6px 0 10px;padding-left:20px;max-width:74ch} li{margin-bottom:5px}
+.si{color:var(--verde-marca);font-weight:600} .no{color:var(--rojo-marca);font-weight:600}
+
+/* ------------------------------------------------------------- la ventana */
+.ventana{width:1100px;max-width:100%;background:var(--panel);border:1px solid var(--linea-fuerte);
+         border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(15,42,74,.13);margin:14px 0 6px}
+.barra-titulo{background:var(--marino);color:#fff;font-size:12.5px;padding:7px 12px;
+              display:flex;justify-content:space-between}
+.cuerpo{padding:12px;display:flex;flex-direction:column;gap:11px}
+
+/* --- bloque 1: la franja roja, intocada --- */
+.alerta{background:var(--papel);border:2px solid var(--rojo-solido);border-radius:var(--r);overflow:hidden}
+.alerta-cab{background:var(--rojo-solido);color:#fff;padding:7px 12px;font-weight:700;font-size:14px;
+            display:flex;align-items:center;gap:9px}
+.alerta-cab .cuenta{background:#fff;color:var(--rojo-tinta);border-radius:10px;padding:1px 9px;font-size:12px}
+.fila{display:flex;align-items:center;gap:10px;padding:6px 12px 6px 0;border-top:1px solid var(--linea);font-size:13px}
+.fila:first-of-type{border-top:0}
+.fila.roja{background:var(--rojo-fila)}
+.canalon{width:6px;align-self:stretch;flex:0 0 6px}
+.g-a{background:var(--pais-a)} .g-b{background:var(--pais-b)} .g-c{background:var(--pais-c)}
+.g-d{background:var(--pais-d)} .g-e{background:var(--pais-e)}
+.g-sin{background:repeating-linear-gradient(45deg,transparent,transparent 3px,var(--linea-fuerte) 3px,var(--linea-fuerte) 4px)}
+.cod{font:700 11px/1 Consolas,monospace;letter-spacing:.06em;width:22px;flex:0 0 22px}
+.c-a{color:var(--pais-a)} .c-b{color:var(--pais-b)} .c-c{color:var(--pais-c)}
+.c-d{color:var(--pais-d)} .c-e{color:var(--pais-e)} .c-sin{color:var(--tinta-suave)}
+.caso{font:700 12.5px/1 Consolas,monospace;width:80px;flex:0 0 80px}
+.persona{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dias{font-weight:700;color:var(--rojo-tinta);width:96px;flex:0 0 96px}
+.falta{font-size:12px;color:var(--tinta-suave);width:190px;flex:0 0 190px}
+
+/* --- bloque 2: sin leer, con rayado, sin color nuevo --- */
+.sinleer{display:flex;background:var(--papel);border:1px solid var(--linea-fuerte);
+         border-radius:var(--r);overflow:hidden}
+.sinleer-cuerpo{padding:9px 12px;display:flex;align-items:center;gap:11px;flex:1 1 auto;font-size:13px}
+
+/* --- bloque 3: el reparto por compañero --- */
+.tarjeta{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r);overflow:hidden}
+.tarjeta-cab{background:var(--marino);color:#fff;padding:7px 12px;font-weight:600;font-size:13.5px;
+             display:flex;align-items:center;gap:9px}
+.tarjeta-cab .sub{font-weight:400;font-size:12px;opacity:.9;margin-left:auto}
+.agente{display:grid;grid-template-columns:168px 96px 96px 1fr 170px;gap:0 12px;align-items:center;
+        padding:8px 12px;border-top:1px solid var(--linea);font-size:13px}
+.agente:first-of-type{border-top:0}
+.agente .quien{font-weight:600;display:flex;align-items:center;gap:7px}
+.agente .num{text-align:right}
+.agente .num b{font:700 17px/1 "Segoe UI",sans-serif;display:block}
+.agente .num span{font-size:11px;color:var(--tinta-suave)}
+/* `display:block` no es cosmetico: sin el, `.barra` es un <span> en linea, el
+   ancho no le aplica y el contenedor se queda en 1 px mientras el relleno se sale
+   por fuera. Medido en el navegador sobre este mismo archivo antes de arreglarlo:
+   contenedor 1 px, relleno 390 px. El aviso pintaba y la barra no. */
+.agente > span{min-width:0}
+.barra{display:block;height:16px;background:var(--panel-hondo);border:1px solid var(--linea);
+       border-radius:3px;overflow:hidden;position:relative;min-width:60px}
+.barra i{display:block;height:100%;background:var(--marino)}
+.barra em{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;
+          padding-right:5px;font:11px/1 "Segoe UI",sans-serif;font-style:normal;color:var(--tinta-suave)}
+.agente .acc{display:flex;gap:6px;justify-content:flex-end}
+.agente.sinasignar{background:var(--marino-tinte)}
+.enfocado{outline:2px solid var(--foco);outline-offset:-2px}
+.boton{font:12px/1 "Segoe UI",sans-serif;background:var(--papel);border:1px solid var(--linea-fuerte);
+       border-radius:var(--r);padding:5px 9px;color:var(--tinta);display:inline-flex;align-items:center;gap:6px}
+.boton.primario{background:var(--marino);border-color:var(--marino);color:#fff;font-weight:600}
+.boton.enrojo{background:var(--rojo-solido);border-color:var(--rojo-solido);color:#fff;font-weight:600}
+.tecla{font:10.5px/1 Consolas,monospace;opacity:.85;border:1px solid currentColor;border-radius:2px;padding:1px 3px}
+
+.dos{display:flex;gap:11px;flex-wrap:wrap}
+.dos > *{flex:1 1 330px}
+.mini{padding:7px 12px;font-size:12.5px;border-top:1px solid var(--linea);display:flex;gap:9px;align-items:center}
+.mini:first-of-type{border-top:0}
+.leyenda{font-size:12px;color:var(--tinta-suave);margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<div class="intro">
+  <h1>Especificación visual — Inicio con reparto por compañero</h1>
+  <p><b>Revisa, no tira, <code>mockups/mockup-inicio.html</code>.</b> La franja roja de los 7 días, el
+  calendario del mes y los pendientes de verificar se quedan donde estaban y como estaban. Lo que se
+  añade son dos bloques —<b>«Sin leer»</b> y <b>«Reparto del trabajo»</b>— y un canalón de país en
+  las filas.</p>
+  <p><b>El orden no es negociable en su primer sitio:</b> <code>DECISIONES.md</code> (FASE 5) dice que
+  los casos de los próximos 7 días van <i>«en la pantalla de inicio, arriba de todo, en rojo. No en
+  una pestaña»</i>. Todo lo nuevo va debajo.</p>
+  <p><b>Todos los datos de ejemplo son inventados</b>, incluidos los nombres de compañero —Sandy y
+  Junier salen del ejemplo del propio dueño—, los países y los templos. El esquema no tiene columna
+  de país ni de templo: ver «Huecos».</p>
+</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">1 · La ventana</h2>
+
+<div class="ventana">
+  <div class="barra-titulo"><span>Fichas — Inicio</span><span>2026-09-02 · 41 casos activos · 118 personas</span></div>
+  <div class="cuerpo">
+
+    <!-- ---------- 1. la franja roja, intocada salvo el canalón de país ---------- -->
+    <div class="alerta" role="region" aria-labelledby="in-alerta">
+      <div class="alerta-cab" id="in-alerta">
+        Viajan en los próximos 7 días <span class="cuenta">3 casos · 7 personas</span>
+      </div>
+      <div class="fila roja">
+        <span class="canalon g-e" aria-hidden="true"></span>
+        <span class="cod c-e">SR</span>
+        <span class="caso">CASP2609</span>
+        <span class="persona">ANONIMO, MARIA ELENA · +2 más · Paramaribo Branch</span>
+        <span class="dias">viaja en 6 días</span>
+        <span class="falta">le faltan <b>4</b> campos por confirmar</span>
+      </div>
+      <div class="fila roja">
+        <span class="canalon g-a" aria-hidden="true"></span>
+        <span class="cod c-a">DO</span>
+        <span class="caso">SDOM2609</span>
+        <span class="persona">PEÑA REYES, LUIS · +3 más · Barrio Los Prados</span>
+        <span class="dias">viaja en 3 días</span>
+        <span class="falta"><b class="no">sin MRN</b> en 1 persona</span>
+      </div>
+      <div class="fila roja">
+        <span class="canalon g-sin" aria-hidden="true"></span>
+        <span class="cod c-sin">—</span>
+        <span class="caso">PAPT2609</span>
+        <span class="persona">JEAN BAPTISTE, MARIE · Puerto Príncipe Este</span>
+        <span class="dias">viaja mañana</span>
+        <span class="falta"><b class="no">país sin asignar</b></span>
+      </div>
+    </div>
+
+    <!-- ---------- 2. sin leer: rayado, cero colores nuevos ---------- -->
+    <div class="sinleer">
+      <svg width="16" viewBox="0 0 16 44" preserveAspectRatio="none" aria-hidden="true">
+        <rect width="16" height="44" fill="#FFFFFF"/>
+        <g stroke="#AAB1BC" stroke-width="1.4">
+          <path d="M-16 44 L16 12"/><path d="M-8 44 L24 12"/><path d="M0 44 L32 12"/>
+          <path d="M-16 12 L16 -20"/><path d="M-8 12 L24 -20"/><path d="M0 12 L32 -20"/>
+        </g>
+      </svg>
+      <div class="sinleer-cuerpo">
+        <b>3 documentos no se pudieron leer.</b>
+        <span style="color:var(--tinta-suave)">Están guardados y les falta el número. El más antiguo
+        lleva <b>4 días</b> esperando.</span>
+        <span style="margin-left:auto;display:flex;gap:6px">
+          <span class="boton primario">Ver la lista <span class="tecla">F8</span></span>
+        </span>
+      </div>
+    </div>
+
+    <!-- ---------- 3. el reparto por compañero ---------- -->
+    <div class="tarjeta">
+      <div class="tarjeta-cab">
+        Reparto del trabajo
+        <span class="sub">4 compañeros activos · la barra mide personas por confirmar</span>
+      </div>
+
+      <div class="agente enfocado">
+        <span class="quien">Junier Castillo</span>
+        <span class="num"><b>8</b><span>documentos</span></span>
+        <span class="num"><b>29</b><span>personas</span></span>
+        <span>
+          <span class="barra" role="img" aria-label="Junier: 24 de 29 personas por confirmar, el 83 %">
+            <i style="width:83%"></i><em style="color:#fff;justify-content:flex-start;padding-left:6px">24 por confirmar de 29</em>
+          </span>
+        </span>
+        <span class="acc">
+          <span class="boton">Ver sus casos</span>
+          <span class="boton primario">Generar paquete <span class="tecla">Ctrl+P</span></span>
+        </span>
+      </div>
+
+      <div class="agente">
+        <span class="quien">Sandy Reyes</span>
+        <span class="num"><b>5</b><span>documentos</span></span>
+        <span class="num"><b>18</b><span>personas</span></span>
+        <span>
+          <span class="barra" role="img" aria-label="Sandy: 4 de 18 personas por confirmar, el 22 %">
+            <i style="width:22%"></i><em>4 por confirmar de 18</em>
+          </span>
+        </span>
+        <span class="acc">
+          <span class="boton">Ver sus casos</span>
+          <span class="boton primario">Generar paquete <span class="tecla">Ctrl+P</span></span>
+        </span>
+      </div>
+
+      <div class="agente">
+        <span class="quien">Rosa Medina</span>
+        <span class="num"><b>3</b><span>documentos</span></span>
+        <span class="num"><b>6</b><span>personas</span></span>
+        <span>
+          <span class="barra" role="img" aria-label="Rosa: 0 de 6 personas por confirmar, todo confirmado">
+            <i style="width:0"></i><em>todo confirmado</em>
+          </span>
+        </span>
+        <span class="acc">
+          <span class="boton">Ver sus casos</span>
+          <span class="boton">Generar paquete <span class="tecla">Ctrl+P</span></span>
+        </span>
+      </div>
+
+      <div class="agente">
+        <span class="quien">Elías Fermín</span>
+        <span class="num"><b>0</b><span>documentos</span></span>
+        <span class="num"><b>0</b><span>personas</span></span>
+        <span><span style="font-size:12px;color:var(--tinta-suave)">no lleva ningún caso</span></span>
+        <span class="acc">
+          <span class="boton">Asignarle casos…</span>
+        </span>
+      </div>
+
+      <div class="agente sinasignar">
+        <span class="quien" style="color:var(--marino)">Sin asignar</span>
+        <span class="num"><b>7</b><span>documentos</span></span>
+        <span class="num"><b>21</b><span>personas</span></span>
+        <span>
+          <span class="barra" role="img" aria-label="Sin asignar: 21 de 21 personas por confirmar">
+            <i style="width:100%"></i><em style="color:#fff;justify-content:flex-start;padding-left:6px">21 por confirmar de 21</em>
+          </span>
+        </span>
+        <span class="acc"><span class="boton enrojo">Repartir <span class="tecla">Ctrl+R</span></span></span>
+      </div>
+    </div>
+
+    <!-- ---------- 4 y 5: calendario y pendientes, sin cambios de fondo ---------- -->
+    <div class="dos">
+      <div class="tarjeta">
+        <div class="tarjeta-cab">Septiembre de 2026 <span class="sub">por fecha de viaje</span></div>
+        <div class="mini"><b style="width:52px">8 sep</b><span class="canalon g-e" style="height:14px"></span>
+          <span class="cod c-e">SR</span><span>CASP2609 · 3 personas</span></div>
+        <div class="mini"><b style="width:52px">11 sep</b><span class="canalon g-a" style="height:14px"></span>
+          <span class="cod c-a">DO</span><span>SDOM2609 · 4 personas</span></div>
+        <div class="mini"><b style="width:52px">22 sep</b><span class="canalon g-b" style="height:14px"></span>
+          <span class="cod c-b">HT</span><span>PAPT2609 · 1 persona</span></div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="tarjeta-cab">Pendientes de verificar <span class="sub">14 casos · 39 campos</span></div>
+        <div class="mini"><span class="canalon g-a" style="height:14px"></span><span class="cod c-a">DO</span>
+          <b style="font-family:Consolas,monospace">SDOM2609</b><span style="color:var(--tinta-suave)">se leyó entero · faltan 6 campos por confirmar</span></div>
+        <div class="mini"><span class="canalon g-c" style="height:14px"></span><span class="cod c-c">TT</span>
+          <b style="font-family:Consolas,monospace">PSPN2609</b><span style="color:var(--tinta-suave)">se leyó entero · faltan 11 campos por confirmar</span></div>
+        <div class="mini"><span class="canalon g-d" style="height:14px"></span><span class="cod c-d">JM</span>
+          <b style="font-family:Consolas,monospace">KGNJ2609</b><span style="color:var(--tinta-suave)">se leyó entero · faltan 2 campos por confirmar</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">2 · Los dos números del renglón, y por qué son dos y no uno</h2>
+
+<p>El dueño lo pidió literal: <i>«cuántos documentos tiene Sandy y cuántas personas hay en los
+documentos»</i>. No son el mismo número y la diferencia no es cosmética: <b>un formulario de grupo
+trae hasta seis personas en una hoja, y un caso puede ocupar seis hojas.</b> Ocho documentos pueden
+ser diez personas o cuarenta y ocho.</p>
+
+<table>
+<thead><tr><th style="width:170px">Número</th><th>Qué cuenta exactamente</th><th>De dónde sale</th></tr></thead>
+<tbody>
+<tr><td><b>Documentos</b></td><td>Casos con asignación viva a ese compañero. <b>Un caso = un formulario</b>, aunque ocupe seis hojas del PDF.</td><td><code>asignaciones</code> con <code>activa = 1</code>, unida a <code>casos</code> con <code>archivado = 0</code>.</td></tr>
+<tr><td><b>Personas</b></td><td>Filas de <code>personas</code> de esos casos.</td><td><code>personas.caso_id</code> sobre el mismo conjunto.</td></tr>
+<tr><td><b>Por confirmar</b> <span style="font-weight:400">(el número pequeño de la barra)</span></td><td>Personas de esos casos a las que aún les queda algún campo sin verificar.</td><td>Mismo criterio que <code>datos/pendientes.py</code> ya usa para la lista de pendientes: <i>«un caso está pendiente mientras le quede algún campo sin verificar»</i>, y un caso sin ninguna fila de procedencia también cuenta.</td></tr>
+</tbody></table>
+
+<div class="med"><b>Por qué la barra mide «por confirmar» y no «asignadas».</b> La pregunta del dueño
+es <i>quién va sobrado y quién atascado</i>, y eso no lo contesta el volumen: Rosa lleva 6 personas y
+las tiene todas confirmadas; Junier lleva 29 y le faltan 24. <b>La barra llena es el atasco.</b> Los
+dos números en cifras siguen ahí para el volumen; la barra es para la comparación de un vistazo.
+<br><br><b>Y la barra no lleva color de semáforo.</b> Un relleno rojo o verde según la carga sería una
+<b>tercera</b> familia de colores encima de las otras dos. La barra es marino sólido siempre y lo que
+comunica es la <b>longitud</b>, más el número escrito dentro. Longitud y cifra, sin tono.</div>
+
+<h3>El botón donde está el dato</h3>
+<p>«Generar paquete» va <b>en el renglón del compañero</b>, no en un menú. Es lo que pidió el dueño y
+además es lo correcto: la decisión de generar un paquete se toma mirando los dos números, así que la
+acción tiene que estar donde se leen. Está deshabilitado cuando el compañero no lleva ningún caso, y
+entonces el botón que aparece es <b>«Asignarle casos…»</b>, que es lo único que se puede hacer con él.</p>
+
+<div class="nota"><b>Lo que dice el renglón después de generar el paquete.</b> El botón no cambia de
+sitio ni desaparece. Debajo del nombre aparece una línea pequeña: <b>«paquete generado el 2026-09-02
+a las 14:32 · 18 personas · sin devolver»</b>. Y si el compañero ya devolvió, dice <b>«devuelto el
+2026-09-04 · 14 propuestas aplicadas, 4 descartadas»</b>. Un botón que se pulsa y deja la pantalla
+igual es la forma más fácil de generar el mismo paquete tres veces.
+<br><br><b>Hueco:</b> esa línea necesita saber cuándo se generó el último paquete y cuándo volvió, y
+<b>hoy no hay dónde guardarlo</b>. Ver «Huecos», hueco 3.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">3 · «Sin leer» y «Pendientes de verificar» son dos cosas, y hay que verlo sin leer</h2>
+
+<p>El riesgo de esta pantalla es que las dos listas se confundan, porque las dos dicen «falta algo».
+No es lo mismo:</p>
+
+<table>
+<thead><tr><th style="width:150px"></th><th>Sin leer</th><th>Pendientes de verificar</th></tr></thead>
+<tbody>
+<tr><td><b>Qué pasó</b></td><td>El programa <b>no pudo identificar la hoja</b>.</td><td>El programa <b>la leyó entera</b> y espera que Miguel confirme.</td></tr>
+<tr><td><b>Qué hay guardado</b></td><td><b>Todo menos la identidad.</b> El caso está con <code>numero_caso</code> nulo y sus personas cuelgan de él. Lo que falta es el número.</td><td>Todo, número incluido. Lo que falta es la <b>firma</b> de Miguel.</td></tr>
+<tr><td><b>Qué se cuenta</b></td><td><b>Documentos</b> —hojas de un PDF—.</td><td><b>Casos y campos.</b></td></tr>
+<tr><td><b>Qué hay que hacer</b></td><td><b>Teclear el número</b> mirando el papel, o unir la hoja a un caso. Hasta entonces el caso no aparece en el calendario ni en los reportes: sin número no se le puede llamar.</td><td><b>Confirmar</b> lo que ya está escrito.</td></tr>
+<tr><td><b>Cómo se distingue sin leer</b></td><td><b>Rayado diagonal.</b> Sin fondo de color.</td><td>Fondo blanco de tarjeta, como el calendario.</td></tr>
+<tr><td><b>Dónde está</b></td><td>Un renglón compacto, <b>solo cuando hay alguno</b>. Con cero, no aparece.</td><td>Tarjeta fija abajo, siempre visible.</td></tr>
+</tbody></table>
+
+<div class="med"><b>El rayado no es un adorno ni un color nuevo: es una palabra que el programa ya
+habla.</b> <code>interfaz/tira.py</code> dibuja exactamente ese rayado diagonal cuando no hay imagen
+de una banda, y su comentario explica por qué: <i>«Una tira en blanco parece un escaneo vacío —“el
+papel no tenía nada ahí”— y no lo es: significa que el OCR no encontró la etiqueta»</i>. En este
+programa <b>el rayado ya significa «aquí el lector no llegó»</b>. Reutilizarlo cuesta cero colores
+nuevos y llega con el significado puesto.</div>
+
+<div class="nota"><b>Por qué el rayado y no el ámbar.</b> El ámbar <code>#FFF3C4</code> ya significa
+«revisar / confianza baja» en la pantalla de corrección. Un bloque ámbar en el inicio diría lo mismo
+que un campo ámbar, y no dice lo mismo. Y por qué no marino: el marino es el <b>chrome</b> —cabeceras,
+títulos, botones principales, lo que sale hacia fuera—; en cuanto un bloque marino signifique un
+estado, el marino de las cabeceras empieza a significarlo también.</div>
+
+<h3>La lista completa de no legibles</h3>
+<p><kbd>F8</kbd> o «Ver la lista» abre una ventana propia —<code>tk.Toplevel</code> con
+<code>ttk.Treeview</code>—, no un cuadro que se cierra. Con cientos de documentos, un aviso que
+desaparece no se recupera; eso es lo que pidió el dueño y es lo correcto.</p>
+
+<div class="ventana" style="width:820px">
+  <div class="barra-titulo"><span>Fichas — Documentos sin leer</span><span>3 sin identificar · 1 descartada</span></div>
+  <div class="cuerpo">
+    <table style="margin:0">
+    <thead><tr><th>Archivo</th><th style="width:60px">Hoja</th><th>Qué se leyó</th><th>Por qué no entró</th><th style="width:82px">Llegó</th></tr></thead>
+    <tbody>
+      <tr><td><code>SURB2609_…pdf</code></td><td>4 de 6</td><td>unidad y 2 personas · <b>guardadas</b></td><td><b>No se leyó el número de caso.</b></td><td>hace 4 días</td></tr>
+      <tr><td><code>SURB2609_…pdf</code></td><td>5 de 6</td><td>nada</td><td>La hoja vino en blanco o al revés.</td><td>hace 4 días</td></tr>
+      <tr><td><code>DOM_lote3.pdf</code></td><td>2 de 9</td><td>1 persona</td><td><b>No se leyó el número de caso.</b></td><td>ayer</td></tr>
+      <tr><td colspan="5" style="background:var(--panel);color:var(--tinta-suave)"><b>Descartadas (1)</b> — <code>DOM_lote3.pdf</code> hoja 1 · «es la carátula del lote» · descartada el 2026-09-01. <b>No se borró: se puede recuperar.</b></td></tr>
+    </tbody></table>
+    <p class="leyenda" style="margin:0"><b>Doble clic o <kbd>Intro</kbd> sobre un renglón abre la
+    pantalla partida</b> con esa hoja a la izquierda y los campos vacíos a la derecha.
+    <kbd>Supr</kbd> pide un motivo y la descarta. La ventana no tiene botón de borrar.</p>
+  </div>
+</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">4 · El país en las listas: el canalón, y por qué no un fondo</h2>
+
+<p>Las filas de esta pantalla <b>ya tienen fondo con significado</b>: rojo de alerta, blanco de
+resuelto, ámbar de sin fecha —los tres están en <code>interfaz/tema.py</code> como
+<code>ROJO_DE_FILA</code>, <code>VERDE_DE_FILA</code> y <code>AMBAR_DE_FILA</code>—. Pintar el país
+como fondo de fila borraría ese código. El país va en el <b>canalón izquierdo de 6 px</b>, más su
+<b>código de dos letras</b> en la misma tinta, y ni uno ni otro es un fondo.</p>
+
+<div class="med"><b>Medido: el canalón sobrevive encima de los fondos de fila.</b> El peor par es la
+barra teal <code>#00695C</code> sobre el rojo de fila <code>#FDE7E7</code>: <b>5.59:1</b>. El límite
+que la WCAG 1.4.11 pone a un elemento gráfico no textual es 3:1, así que sobra. El mejor par,
+pizarra sobre ámbar, da <b>8.67:1</b>. Ninguno de los cinco tonos de país es verde, ámbar ni rojo, así
+que un canalón no puede leerse como un estado.</div>
+
+<div class="nota"><b>El país sin asignar se dibuja rayado, no gris.</b> Un canalón gris sería un sexto
+tono y competiría con los cinco. El rayado dice lo mismo que en «Sin leer»: <b>aquí no hay dato</b>.
+Y el código de dos letras se sustituye por <code>—</code>, no por unas letras inventadas.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">5 · El recorrido del teclado</h2>
+<table>
+<thead><tr><th style="width:150px">Tecla</th><th>Qué hace</th><th>Por qué así</th></tr></thead>
+<tbody>
+<tr><td><kbd>Tab</kbd> / <kbd>Mayús+Tab</kbd></td><td>Recorre por bloques en el orden en que se ven: alerta → sin leer → reparto → calendario → pendientes. Dentro del reparto, un compañero es <b>una</b> parada y sus dos botones son las dos siguientes.</td><td>Cinco bloques y catorce filas: si <kbd>Tab</kbd> entrase en cada fila, llegar al último botón serían más de cuarenta pulsaciones.</td></tr>
+<tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Dentro de un bloque, mueve de fila en fila.</td><td>Es lo que hace <code>ttk.Treeview</code> por sí solo; no hay que inventar nada.</td></tr>
+<tr><td><kbd>Intro</kbd></td><td>Abre <b>la pantalla partida</b> del caso o de la hoja de la fila con foco. Vale en la franja roja, en pendientes y en la lista de no legibles.</td><td>Es la puerta que pidió el dueño, y es la misma puerta desde las tres listas. Una sola forma de entrar.</td></tr>
+<tr><td><kbd>F8</kbd></td><td>Abre la lista completa de documentos sin leer.</td><td>Tecla propia porque el bloque de arriba es un resumen de una línea y la lista está en otra ventana.</td></tr>
+<tr><td><kbd>Ctrl+P</kbd></td><td>Genera el paquete del compañero con el foco.</td><td>La acción del renglón, sin ratón.</td></tr>
+<tr><td><kbd>Ctrl+R</kbd></td><td>Abre «Repartir» sobre los casos sin asignar.</td><td>Es la única acción del renglón «Sin asignar».</td></tr>
+<tr><td><kbd>F5</kbd></td><td>Vuelve a contar todo y redibuja.</td><td>El reparto cambia mientras la ventana está abierta: alguien devuelve un Excel, entra un PDF.</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Cierra la ventana de no legibles. <b>En la ventana de inicio no hace nada.</b></td><td>Cerrar el programa con <kbd>Esc</kbd> desde la pantalla principal es una salida accidental.</td></tr>
+</tbody></table>
+
+<div class="med"><b>El anillo de foco sobre el rojo sólido, otra vez.</b> La cabecera de la franja
+roja es <code>#B3261E</code> y sobre ella el anillo oscuro <code>#1A1D21</code> da <b>2.59:1</b>, por
+debajo del 3:1 de la WCAG 1.4.11. Ahí el anillo se pinta blanco: <b>6.54:1</b>. Sobre el marino de
+las cabeceras de tarjeta pasa lo mismo y peor —<b>1.17:1</b> el oscuro— y la solución es la misma:
+anillo blanco, <b>14.48:1</b>.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">6 · Control / qué hace de verdad · y qué dice la pantalla después</h2>
+<table>
+<thead><tr><th style="width:150px">Control</th><th style="width:110px">Widget de Tk</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>Fila de la franja roja</td><td><code>ttk.Treeview</code></td><td>Doble clic o <kbd>Intro</kbd>: abre la pantalla partida de ese caso.</td><td>La ventana de inicio se queda detrás. Al volver, el contador de campos que faltan de esa fila ya está recalculado — <b>no se refresca solo el que se tocó: se recuenta el bloque</b>, o una fila queda diciendo un número viejo.</td></tr>
+<tr><td>Renglón de compañero</td><td><code>ttk.Frame</code> + <code>ttk.Label</code></td><td>Al tomar foco, se marca con el anillo. No abre nada.</td><td>Nada más. Es un contenedor de dos botones, no un enlace: un renglón que se abriera al pulsarlo haría imposible pulsar sus botones sin abrirlo.</td></tr>
+<tr><td>Ver sus casos</td><td><code>ttk.Button</code></td><td>Abre la lista filtrada por ese compañero.</td><td>Título de la ventana: «Casos de Sandy Reyes — 5 documentos, 18 personas». Los dos números repetidos, para que se vea que es el mismo filtro.</td></tr>
+<tr><td>Generar paquete</td><td><code>ttk.Button</code></td><td>Escribe el <code>.xlsx</code> de trabajo de ese compañero y pregunta dónde guardarlo.</td><td>Aparece bajo el nombre: «paquete generado el … · 18 personas · sin devolver». <b>Si el archivo estaba abierto en Excel, el <code>PermissionError</code> se escribe en el renglón, no en un cuadro que se cierra.</b></td></tr>
+<tr><td>Asignarle casos…</td><td><code>tk.Toplevel</code></td><td>Abre la pantalla de asignación con ese compañero preseleccionado.</td><td>Al volver, sus dos números dejan de ser 0 y el botón cambia a «Generar paquete». <b>El cambio del botón es la confirmación de que la asignación entró.</b></td></tr>
+<tr><td>Repartir</td><td><code>tk.Toplevel</code></td><td>Abre la asignación sobre los 7 casos sin asignar.</td><td>El renglón «Sin asignar» baja de 7 y los renglones de los compañeros suben. Si baja a 0, <b>el renglón desaparece</b>.</td></tr>
+<tr><td>Ver la lista (F8)</td><td><code>tk.Toplevel</code> + <code>ttk.Treeview</code></td><td>Abre los documentos sin leer.</td><td>Al cerrarla, el renglón de arriba se recuenta. Si llega a 0, <b>el renglón desaparece de la pantalla</b> — no se queda diciendo «0 documentos».</td></tr>
+<tr><td>Fila de no legible</td><td><code>ttk.Treeview</code></td><td>Abre la pantalla partida con esa hoja.</td><td>Si se identifica, la fila sale de la lista y el caso aparece en «Pendientes de verificar». <b>Se mueve de lista, y las dos cuentas cambian a la vez.</b></td></tr>
+<tr><td>Supr sobre un no legible</td><td>diálogo</td><td>Pide un motivo obligatorio y la marca descartada.</td><td>Baja de «sin identificar» y sube en «Descartadas», con su motivo escrito. Nada se borra.</td></tr>
+<tr><td>Fila de pendiente</td><td><code>ttk.Treeview</code></td><td>Abre la pantalla partida.</td><td>Al volver, si el caso quedó entero confirmado, sale de la lista y el contador de la cabecera baja.</td></tr>
+</tbody></table>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">7 · Los casos incómodos</h2>
+<table>
+<thead><tr><th style="width:280px">Qué pasa</th><th>Qué hace la pantalla</th></tr></thead>
+<tbody>
+<tr><td>La base está vacía</td><td>Los cinco bloques desaparecen menos uno, y en su sitio va una sola frase con la acción: «Todavía no hay ningún documento. <b>Importe un PDF</b> para empezar.» Es el criterio 5 de la FASE 5 y ya estaba resuelto en <code>mockup-inicio.html</code>; no cambia.</td></tr>
+<tr><td>Ningún documento sin leer</td><td><b>El bloque no existe.</b> Ni con un cero ni con un «todo bien». Un bloque permanente que casi siempre dice cero enseña a no mirarlo, y el día que diga 3 tampoco se mira.</td></tr>
+<tr><td>Ningún compañero dado de alta</td><td>El bloque de reparto enseña solo el renglón «Sin asignar» con sus dos números y un botón «Dar de alta un compañero…». No se esconde: los casos sin asignar existen aunque no haya a quién asignárselos.</td></tr>
+<tr><td>Dos compañeros se llaman igual</td><td><code>docs/ARQUITECTURA.md</code> §2.4 lo permite a propósito y lo declara «un problema de interfaz, no de datos». Aquí se resuelve poniendo <b>la fecha de alta</b> en pequeño bajo el nombre repetido, solo en los repetidos. Inventar un «(2)» sería inventar un dato.</td></tr>
+<tr><td>Un compañero con 60 casos</td><td>El bloque de reparto <b>no crece sin fin</b>: enseña los compañeros ordenados por personas por confirmar, de mayor a menor, y a partir del sexto pone «y 4 compañeros más, todos por debajo de 3 personas por confirmar — ver todos». El atasco está arriba por definición.</td></tr>
+<tr><td>Un caso asignado a dos compañeros</td><td><code>DECISIONES.md</code> lo permite avisando, no prohibiendo. Ese caso <b>cuenta en los dos renglones</b>, y la cabecera del bloque lo dice: «3 casos están asignados a más de un compañero, así que la suma de los renglones es mayor que el total». <b>Sin esa frase, los números no cuadran y parece un fallo.</b></td></tr>
+<tr><td>La ventana a 1100 px</td><td>El renglón de compañero reparte 168 + 96 + 96 + barra + 170 y los huecos. La barra se queda con lo que sobre y tiene un mínimo de 60 px; por debajo, se oculta la barra y quedan solo las cifras. <b>La cifra nunca se sacrifica; el adorno sí.</b></td></tr>
+<tr><td>El PDF de un no legible ya no está</td><td>La fila se queda en la lista con el motivo cambiado: «el archivo ya no está en <code>…</code>». <b>No se borra la fila</b>: la hoja siguió existiendo y alguien tiene que decidir qué pasó con ella.</td></tr>
+</tbody></table>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">8 · Huecos: lo que esta pantalla necesita y hoy no existe</h2>
+<table>
+<thead><tr><th style="width:44px">#</th><th style="width:200px">Qué falta</th><th>Comprobado con</th><th>Qué se cae sin ello</th></tr></thead>
+<tbody>
+<tr><td><b>hueco 1</b></td><td><s>No hay dónde guardar un documento que no se pudo leer.</s>
+<b>RESUELTO mientras se escribía esta especificación</b>, por el programador que trabajaba en paralelo.
+Se tacha en el sitio, no se borra: el hueco existió.</td>
+<td><b>Al empezar:</b> esquema versión 6, <code>casos.numero_caso NOT NULL</code>, y
+<code>importacion/guardado.py</code> devolvía una tupla en memoria.<br><b>Al cerrar:</b>
+<code>datos/ilegibles.py</code>, la tabla <code>documentos_ilegibles</code> (versión 8 del esquema) con
+<code>ruta_pdf</code>, <code>pagina_pdf</code>, <code>motivo</code>, <code>detalle</code>,
+<code>lineas_leidas</code>, <code>caso_id</code> y <code>registrado_en</code>, más
+<code>casos_version_7</code>, que hace <code>numero_caso</code> nulable.</td>
+<td><b>Ya nada</b>, y el bloque gana precisión: <code>documentos_ilegibles</code> guarda el
+<b>motivo</b> y las <b>líneas leídas</b>, así que la lista puede decir «se leyeron 94 líneas pero
+ninguna era el número» en vez de un «no se pudo leer» a secas. <b>La columna «Qué se leyó» de la
+lista sale de ahí.</b></td></tr>
+<tr><td><b>hueco 2</b></td><td><b>No hay columna de país ni de templo</b> en ninguna de las 7 tablas.</td><td><code>grep -rn "pais\|templo" --include=*.py</code> → 0 apariciones como campo.</td><td>El canalón y el código de dos letras de todas las listas. El bloque funciona sin ellos —quedaría el canalón rayado en todas las filas— pero la petición del dueño no se cumple.</td></tr>
+<tr><td><b>hueco 3</b></td><td><b>No se guarda cuándo se generó un paquete ni cuándo volvió.</b> <code>asignaciones</code> tiene <code>asignado_en</code> y <code>desactivada_en</code>, y nada más.</td><td>Volcado del esquema: <code>asignaciones(id, caso_id, companero_id, asignado_en, activa, desactivada_en)</code>.</td><td>La línea «paquete generado el … · sin devolver». <b>Sin ella el botón se puede pulsar tres veces sin que la pantalla lo note</b>, que es el defecto que esa línea existe para evitar.</td></tr>
+<tr><td><b>hueco 4</b></td><td>No hay una consulta que devuelva, <b>por compañero</b>, documentos y personas asignadas y por confirmar.</td><td><code>datos/asignaciones.py</code> y <code>datos/pendientes.py</code> existen y traen las piezas: <code>casos_pendientes_de_verificar</code> ya calcula <code>campos</code>, <code>campos_verificados</code> y <code>campos_pendientes</code> por caso.</td><td>Los cinco renglones. <b>No necesita esquema nuevo</b>: es una consulta más sobre tablas que ya están. La única de las cinco que no bloquea nada.</td></tr>
+<tr><td><b>hueco 5</b></td><td><code>docs/ARQUITECTURA.md</code> §2 está atrasado: le faltan <b>11 columnas</b> que el código ya tiene y que este mockup usa (<code>unidad_nombre</code>, <code>pagina_pdf</code> en dos tablas, <code>estado_recomendacion</code>, <code>estado_propuesto</code>, <code>nota_companero</code>, <code>propuesto_por</code>, <code>propuesto_en</code>, <code>pudo_viajar</code>, <code>motivo_no_viajo</code>, <code>contactado_por</code>, <code>respondio</code>) más las 5 de banda de <code>procedencia_campo</code>.</td><td>Volcado del esquema real (versión 6) contra §2 del documento.</td><td>Nada de la pantalla. Lo digo porque el pase mandaba comprobar los nombres ahí. <code>CLAUDE.md</code> §8: gana el código. <b>Corregir el documento es del planificador.</b></td></tr>
+</tbody></table>
+
+<h3>Lo que le devuelvo al dueño</h3>
+<p><b>«Documentos» ¿son formularios o archivos PDF?</b> Lo he leído como <b>formularios</b>, o sea
+casos, porque es la unidad que se asigna, se verifica y se empaqueta. Pero un PDF puede traer seis
+formularios, y si él cuenta «documentos» como archivos que le llegan, el número de Sandy sería otro.
+<b>Recomiendo casos</b> —es lo que se reparte— pero es una palabra suya y la lee él.</p>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">9 · Lo que este mockup NO cubre</h2>
+<ul>
+<li><b>No abrí ningún PDF de <code>pdfs_referencia/</code>.</b></li>
+<li><b>No medí nada dentro de <code>tkinter</code>:</b> no abrí una ventana. Los anchos son aritmética
+sobre constantes del código.</li>
+<li><b>No comprobé que las consultas por compañero rindan.</b> Con 41 casos da igual; con 4000, no lo sé.</li>
+<li><b>No especifico la pantalla de asignación ni la de alta de compañeros</b>: ya existen
+(<code>interfaz/asignacion.py</code>, <code>interfaz/companeros.py</code>) y no las he abierto para
+juzgarlas.</li>
+<li><b>El calendario del mes y los pendientes se dibujan de refilón</b>, solo para enseñar el canalón
+de país. Su especificación es la de <code>mockup-inicio.html</code> y no la toco.</li>
+<li><b>Los nombres de compañero, países y templos son inventados.</b> Sandy y Junier salen del
+ejemplo del dueño; el resto los puse yo.</li>
+</ul>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Fichas.App.Correccion.FichaDeCampo"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        Una fila de la correccion: etiqueta, valor, la PALABRA de su estado, el motivo
+        cuando no vale, y lo que leyo la maquina cuando el campo se quedo vacio.
+
+        La palabra va siempre, y no es adorno: la distincion entre estados no puede
+        depender de percibir un color (interfaz/campo.py). El color solo acelera a quien
+        si lo ve.
+    -->
+    <Border
+        x:Name="_marco"
+        Padding="10,8"
+        BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+        BorderThickness="0,0,0,1">
+        <Grid RowSpacing="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!--  Como se llama aqui, como se llama en el papel, y en que estado esta.  -->
+            <Grid Grid.Row="0" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Name="_etiqueta"
+                    Grid.Column="0"
+                    FontWeight="SemiBold"
+                    Text="" />
+                <TextBlock
+                    x:Name="_enElPapel"
+                    Grid.Column="1"
+                    VerticalAlignment="Bottom"
+                    FontSize="11"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text=""
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+                <TextBlock
+                    x:Name="_palabra"
+                    Grid.Column="2"
+                    VerticalAlignment="Bottom"
+                    FontSize="11"
+                    FontWeight="SemiBold"
+                    Text="" />
+            </Grid>
+
+            <!--  El valor y el boton con el que Miguel lo da por bueno.  -->
+            <Grid Grid.Row="1" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox
+                    x:Name="_valor"
+                    Grid.Column="0"
+                    FontFamily="Consolas"
+                    GotFocus="AlTomarElFoco"
+                    TextChanged="AlTeclear" />
+                <Button
+                    x:Name="_botonDeFirma"
+                    Grid.Column="1"
+                    Click="AlPulsarLaFirma"
+                    Content="Está bien"
+                    ToolTipService.ToolTip="Dar este dato por bueno. Solo lo hace usted." />
+            </Grid>
+
+            <!--
+                La salida para el campo que el formulario NO trae. Va justo debajo del
+                cuadro porque es la alternativa a rellenarlo, no un detalle del pie: lo
+                pidio el dueno como «esta informacion no es necesaria». Marcarla NO es
+                firmar (regla permanente 5) y se puede desmarcar.
+            -->
+            <CheckBox
+                x:Name="_noEstaEnElPapel"
+                Grid.Row="2"
+                MinWidth="0"
+                Checked="AlCambiarSiEstaEnElPapel"
+                Content="No está en el papel"
+                ToolTipService.ToolTip="El formulario no trae este campo. No es una firma."
+                Unchecked="AlCambiarSiEstaEnElPapel" />
+
+            <TextBlock
+                x:Name="_descripcion"
+                Grid.Row="3"
+                FontSize="11"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text=""
+                TextTrimming="CharacterEllipsis"
+                TextWrapping="NoWrap" />
+
+            <!--  El motivo. Va en la linea del campo, no en un parrafo del cuerpo (C4-12).  -->
+            <TextBlock
+                x:Name="_motivo"
+                Grid.Row="4"
+                FontSize="12"
+                Foreground="#B3261E"
+                Text=""
+                TextWrapping="Wrap"
+                Visibility="Collapsed" />
+
+            <!--  Lo que leyo la maquina cuando el campo se quedo vacio; asi nada se pierde.  -->
+            <TextBlock
+                x:Name="_loLeido"
+                Grid.Row="5"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text=""
+                TextWrapping="Wrap"
+                Visibility="Collapsed" />
+        </Grid>
+    </Border>
+</UserControl>

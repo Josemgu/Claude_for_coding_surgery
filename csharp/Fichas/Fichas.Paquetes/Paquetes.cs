@@ -1,0 +1,725 @@
+using Fichas.Contratos.Consultas;
+using Fichas.Contratos.Lectura;
+using Fichas.Contratos.Modelos;
+using Fichas.Contratos.Puertos;
+
+namespace Fichas.Paquetes;
+
+/// <summary>
+/// El Excel que va al companero y el que vuelve firmado por el, escrito de verdad en disco.
+/// </summary>
+/// <remarks>
+/// La regla del dueno (CLAUDE.md, regla permanente 5 precisada el 2026-09-03): el Excel que
+/// devuelve el companero es el que escribe <c>completa</c> / <c>no_completa</c>, con SU
+/// nombre. Eso NO es firmar campos: la firma por campo sigue siendo de Miguel y este
+/// servicio no la toca nunca.
+/// <para>
+/// <b>Como se identifica una fila que vuelve, y en que orden.</b> La clave del Excel es
+/// <c>CASO:MRN:ID</c>, y el id del caso es la tercera parte justamente porque desde la version
+/// 12 del esquema dos casos pueden llevar el MISMO numero: son cuatro letras mas el ano y el
+/// mes, o sea una unidad y un mes, no una familia. <see cref="LeerExcelDevuelto"/> lee la clave
+/// entera y deja el id en <see cref="MarcaDelCompanero.CasoId"/>; <see cref="AplicarMarcas"/>
+/// lo usa como PRIMER criterio. Si el id viene, manda el id.
+/// </para>
+/// <para>
+/// Con el id nulo —una hoja generada antes del 2026-09-03— se resuelve por el camino viejo,
+/// <c>numero_caso</c> + <c>mrn</c>, y ese par puede quedar ambiguo. Entonces la fila se
+/// DESCARTA con su motivo escrito: escribir el trabajo del companero sobre la familia
+/// equivocada es peor que no escribirlo, y un descarte al menos deja su renglon.
+/// </para>
+/// </remarks>
+public sealed class Paquetes : IPaquetes
+{
+    private const int TamanoDelTrozo = 500;
+
+    private readonly ICasos _casos;
+    private readonly IPersonas _personas;
+    private readonly ICompaneros _companeros;
+    private readonly IIlegibles _ilegibles;
+    private readonly IReloj _reloj;
+
+    /// <summary>Se ata a los puertos que necesita; ninguno se inventa dentro.</summary>
+    public Paquetes(ICasos casos, IPersonas personas, ICompaneros companeros, IIlegibles ilegibles, IReloj reloj)
+    {
+        _casos = casos;
+        _personas = personas;
+        _companeros = companeros;
+        _ilegibles = ilegibles;
+        _reloj = reloj;
+    }
+
+    // ─────────────────────────────── la ida ───────────────────────────────
+
+    /// <summary>Genera el Excel de ida de un companero con los casos que lleva.</summary>
+    public ResultadoDeEscritura GenerarExcelDeCompanero(long companeroId, IReadOnlyList<long> casoIds, string rutaDestino)
+    {
+        var companero = _companeros.Obtener(companeroId);
+        if (companero is null)
+            return ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(
+                $"No hay ningún compañero con el número interno {companeroId}.",
+                string.Empty,
+                "Un paquete sin compañero no se puede entregar ni se puede reconciliar al volver."));
+
+        var avisos = new List<Aviso>();
+        var filas = ArmarLasFilas(casoIds, avisos);
+        if (filas.Count == 0)
+        {
+            avisos.Add(Aviso.Problema(
+                $"El compañero «{companero.Nombre}» no tiene ninguna persona en los casos pedidos.",
+                string.Empty,
+                "No hay paquete que generar. Asígnele casos con personas antes."));
+            return new ResultadoDeEscritura(false, 0, avisos);
+        }
+
+        avisos.AddRange(AvisosDeQuienNoTieneMrn(filas));
+
+        try
+        {
+            using var libro = LibroDeTrabajo.Construir(filas, companero.Nombre);
+            libro.SaveAs(rutaDestino);
+        }
+        catch (Exception causa) when (causa is IOException or UnauthorizedAccessException)
+        {
+            // C6-7: Excel abierto y bloqueado. Se avisa en espanol y no se cae; el .xlsx que ya
+            // estuviera ahi se queda intacto porque no se llego a escribir nada.
+            avisos.Add(Aviso.Problema(
+                $"No se pudo escribir «{Path.GetFileName(rutaDestino)}» porque otro programa lo tiene abierto.",
+                string.Empty,
+                $"Casi siempre es el propio Excel. Ciérrelo y vuelva a generar el paquete. "
+                + $"El archivo anterior NO se ha tocado. El sistema dijo: {causa.Message}"));
+            return new ResultadoDeEscritura(false, 0, avisos);
+        }
+
+        avisos.Insert(0, Aviso.Informa(
+            $"Paquete de «{companero.Nombre}»: {filas.Count} persona(s) en {casoIds.Count} caso(s).",
+            string.Empty,
+            $"Escrito en «{rutaDestino}»."));
+        return new ResultadoDeEscritura(true, companeroId, avisos);
+    }
+
+    /// <summary>
+    /// Junta en UN solo PDF las hojas de los documentos del paquete, en el orden del Excel.
+    /// </summary>
+    /// <remarks>
+    /// <para>Lo pidio el dueno: <i>«el Excel normal y tambien un PDF de todos, asignado, en un
+    /// solo PDF»</i>. Antes de esto el companero recibia la hoja de calculo y tenia que ir
+    /// abriendo los escaneos uno a uno.</para>
+    ///
+    /// <para><b>El orden es el del Excel y esa es la mitad del trabajo.</b> Se recorren los
+    /// mismos <paramref name="casoIds"/> en el mismo orden que <see cref="ArmarLasFilas"/>, asi
+    /// que la primera hoja del PDF es la del primer renglon de la hoja de calculo. Un PDF con
+    /// las hojas correctas en otro orden no sirve: el companero no sabria a que fila mirar.</para>
+    ///
+    /// <para><b>Una hoja por CASO, no por persona.</b> El documento es uno aunque viajen cuatro
+    /// hermanos: el Excel lleva cuatro renglones y el PDF una sola hoja. Y un caso sin ninguna
+    /// persona no lleva hoja, porque tampoco tiene renglon — meterla descolocaria la
+    /// correspondencia de todo lo que va debajo.</para>
+    ///
+    /// <para>⚠️ Este metodo NO escribe nada en la base: solo lee <c>ruta_pdf</c> y
+    /// <c>pagina_pdf</c>. La regla permanente 5 sigue intacta.</para>
+    ///
+    /// <para><b>Un documento que no se pueda leer NO deja un hueco.</b> En su sitio va una hoja
+    /// que dice cual falta, quien viaja en el y por que no esta (<see cref="HojaDeAviso"/>), asi
+    /// que salen tantas hojas como renglones tiene el Excel y la correspondencia no se mueve.
+    /// Decidido por el dueno el 2026-09-05: <i>«Sí, mete la hoja de aviso en el hueco»</i>.
+    /// Antes de eso se quedaba fuera, y estaba medido lo que costaba: con los siete escaneos
+    /// del dueno y dos documentos rotos a proposito, de 7 casos salian 5 hojas y solo las 2
+    /// anteriores al primer hueco seguian cuadrando.</para>
+    /// </remarks>
+    public ResultadoDeEscritura GenerarPdfDeCompanero(long companeroId, IReadOnlyList<long> casoIds, string rutaDestino)
+    {
+        ArgumentNullException.ThrowIfNull(casoIds);
+
+        var companero = _companeros.Obtener(companeroId);
+        if (companero is null)
+            return ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(
+                $"No hay ningún compañero con el número interno {companeroId}.",
+                string.Empty,
+                "Un PDF de documentos sin saber de quién es el paquete no se puede entregar."));
+
+        var hojas = HojasDeLosCasos(casoIds);
+        if (hojas.Count == 0)
+            return ResultadoDeEscritura.NoSeEscribio(Aviso.Advierte(
+                $"El paquete de «{companero.Nombre}» no lleva ningún documento que juntar en un PDF.",
+                string.Empty,
+                "Ninguno de los casos pedidos tiene personas dentro, así que tampoco tiene renglón "
+                + "en el Excel. El Excel sale igual."));
+
+        var union = PdfDelPaquete.Unir(hojas, rutaDestino);
+        var avisos = new List<Aviso>();
+
+        foreach (var falta in union.Faltan)
+            avisos.Add(Aviso.Advierte(falta.Motivo, string.Empty, falta.Detalle));
+
+        if (!union.SeEscribio)
+        {
+            avisos.Insert(0, Aviso.Problema(
+                $"No se pudo hacer el PDF de los documentos de «{companero.Nombre}».",
+                string.Empty,
+                $"{union.Fallo} El Excel del paquete NO depende de esto y sale igual."));
+            return new ResultadoDeEscritura(false, 0, avisos);
+        }
+
+        avisos.Insert(0, Aviso.Informa(
+            $"PDF de los documentos de «{companero.Nombre}»: {union.Hojas} hoja(s)"
+            + (union.Faltan.Count == 0
+                ? ", ninguna se quedó fuera."
+                : $", {union.Faltan.Count} con hoja de aviso en vez del documento."),
+            string.Empty,
+            $"Escrito en «{rutaDestino}». Las hojas van en el mismo orden que los renglones del Excel."));
+        return new ResultadoDeEscritura(true, companeroId, avisos);
+    }
+
+    /// <summary>
+    /// La hoja que aporta cada caso al PDF, en el orden en que salen sus renglones en el Excel.
+    /// </summary>
+    /// <remarks>
+    /// Un caso entra si y solo si tiene al menos una persona, que es exactamente la condicion
+    /// con la que <see cref="ArmarLasFilas"/> le da renglon. Las dos listas se recorren igual y
+    /// eso es lo que mantiene la correspondencia; si alguna vez dejaran de hacerlo, el PDF
+    /// seguiria teniendo las hojas correctas en el orden equivocado, que es el fallo mas dificil
+    /// de ver de los dos.
+    /// </remarks>
+    private List<HojaDelPaquete> HojasDeLosCasos(IReadOnlyList<long> casoIds)
+    {
+        var hojas = new List<HojaDelPaquete>();
+        foreach (var casoId in casoIds)
+        {
+            var caso = _casos.Obtener(casoId);
+            if (caso is null) continue;
+
+            var gente = _personas.DeCaso(casoId);
+            if (gente.Count == 0) continue;
+
+            var comoSeLlama = string.IsNullOrWhiteSpace(caso.NumeroCaso)
+                ? $"sin número (interno {caso.Id})"
+                : caso.NumeroCaso;
+
+            // Sin archivo o sin hoja NO se salta en silencio: se mete con una ruta vacia para
+            // que la union le ponga en su sitio una hoja de aviso con el nombre del caso. Un
+            // caso que desaparece sin decir nada es el que nadie echa de menos.
+            //
+            // Los nombres van SIEMPRE aunque casi nunca se usen: solo se escriben cuando la
+            // hoja falla, y entonces son lo que le dice al companero a que renglon del Excel
+            // esta mirando. Leerlos aqui no cuesta una consulta mas —la lista ya esta pedida
+            // para saber si el caso lleva gente— y pedirlos despues obligaria a que el que
+            // junta los PDF supiera lo que es una persona.
+            hojas.Add(new HojaDelPaquete(
+                comoSeLlama,
+                caso.RutaPdf ?? string.Empty,
+                caso.PaginaPdf ?? 0,
+                [.. gente.Select(persona => persona.Nombre ?? string.Empty)]));
+        }
+        return hojas;
+    }
+
+    /// <summary>Una fila por persona de esos casos, con lo que la hoja «Por verificar» pide.</summary>
+    /// <remarks>
+    /// Los seis pasos y la llamada al lider salen VACIOS aunque la persona ya traiga una
+    /// propuesta de una ronda anterior. Es a proposito: lo que se le manda a un companero es
+    /// lo que tiene que mirar, no lo que otro contesto. Rellenarlo de antemano invita a
+    /// confirmarlo sin comprobarlo, que es la averia contra la que existe la regla permanente 5.
+    /// </remarks>
+    private List<FilaDeTrabajo> ArmarLasFilas(IReadOnlyList<long> casoIds, List<Aviso> avisos)
+    {
+        var filas = new List<FilaDeTrabajo>();
+        foreach (var casoId in casoIds)
+        {
+            var caso = _casos.Obtener(casoId);
+            if (caso is null)
+            {
+                avisos.Add(Aviso.Advierte(
+                    $"El caso con el número interno {casoId} ya no está en la base y no va en el paquete.",
+                    string.Empty,
+                    "Puede que se borrara entre la asignación y la generación. El resto del paquete sale igual."));
+                continue;
+            }
+            foreach (var persona in _personas.DeCaso(casoId))
+            {
+                filas.Add(new FilaDeTrabajo
+                {
+                    NumeroCaso = caso.NumeroCaso,
+                    // Aqui se ponian a nulo `fecha_solicitud` y `estaca`, que la base no guarda.
+                    // El dueno las quito de la hoja el 2026-09-06: ya no hay nada que poner.
+                    FechaViaje = caso.FechaViaje,
+                    Templo = caso.TemploNombre,
+                    UnidadNombre = UnidadConSuNumero(caso),
+                    Nombre = persona.Nombre,
+                    Mrn = persona.Mrn,
+                    AQueVa = ResumirOrdenanzas(persona),
+                    // El id del caso va DENTRO de la clave: es lo unico que no se repite.
+                    Clave = Columnas.ArmarLaClave(caso.NumeroCaso, persona.Mrn, caso.Id),
+                });
+            }
+        }
+        return filas;
+    }
+
+    /// <summary>
+    /// El barrio con su numero entre parentesis, o lo que haya de los dos.
+    /// </summary>
+    /// <remarks>
+    /// Si el numero ya esta dentro del nombre no se vuelve a pegar. Es el mismo cuidado que
+    /// tiene el programa viejo, y alli nacio de un caso real: en unos escaneos el nombre sale
+    /// ya con el numero y en otros suelto, y pegarlo siempre dejaba
+    /// «Cuatricentenaria (7000014) (7000014)», que no es lo que dice el papel.
+    /// </remarks>
+    private static string? UnidadConSuNumero(Caso caso)
+    {
+        var nombre = caso.UnidadNombre ?? string.Empty;
+        var numero = caso.UnidadNumero ?? string.Empty;
+        if (numero.Length == 0 || nombre.Contains(numero, StringComparison.Ordinal))
+            return nombre.Length > 0 ? nombre : (numero.Length > 0 ? numero : null);
+        return nombre.Length > 0 ? $"{nombre} ({numero})" : numero;
+    }
+
+    /// <summary>A que va la persona al templo, leido de las seis casillas del formulario.</summary>
+    /// <remarks>Una casilla sin marcar no dice «no»: dice que nadie la leyo, y por eso no aparece.</remarks>
+    private static string? ResumirOrdenanzas(Persona persona)
+    {
+        var partes = new List<string>();
+        if (persona.OrdRecibirPropias == true) partes.Add("Ordenanzas propias");
+        if (persona.OrdObservarSellamiento == true) partes.Add("Observar sellamiento");
+        if (persona.OrdTraductor == true) partes.Add("Traductor");
+        if (persona.OrdInvestidura == true) partes.Add("Investidura");
+        if (persona.OrdSellamientoEsposos == true) partes.Add("Sellamiento esposa a esposo");
+        if (persona.OrdSellamientoHijoPadres == true) partes.Add("Sellamiento hijo a padres");
+        return partes.Count > 0 ? string.Join(", ", partes) : null;
+    }
+
+    /// <summary>
+    /// Nombra a quien va en el paquete sin MRN, o nada si no hay nadie (criterio C6-5).
+    /// </summary>
+    /// <remarks>
+    /// La frase nombra a cada uno, y eso es la mitad de lo que sirve: «hay 1 persona sin MRN»
+    /// obliga a abrir el Excel a buscarla, y entonces no se busca. El compañero hace el
+    /// trabajo, lo devuelve, y al reconciliar se descarta — generar es el único momento en que
+    /// todavía se puede arreglar sin gastar el trabajo de nadie.
+    /// </remarks>
+    private static IEnumerable<Aviso> AvisosDeQuienNoTieneMrn(IReadOnlyList<FilaDeTrabajo> filas)
+    {
+        var sinMrn = filas
+            .Where(fila => string.IsNullOrWhiteSpace(fila.Mrn))
+            .Select(fila => fila.Nombre ?? "— sin nombre leído —")
+            .ToList();
+        if (sinMrn.Count == 0)
+            yield break;
+
+        var varias = sinMrn.Count != 1;
+        yield return Aviso.Advierte(
+            $"{sinMrn.Count} persona{(varias ? "s" : "")} de este paquete {(varias ? "van" : "va")} SIN cédula de miembro: {string.Join(", ", sinMrn)}.",
+            string.Empty,
+            "El compañero puede contestar por " + (varias ? "ellas" : "ella") + ", pero al volver el Excel esas "
+            + "filas NO se pueden emparejar —la vuelta casa por «número de caso + MRN + id» y NUNCA por "
+            + "nombre— y se descartan enteras: se pierden los siete pasos que el compañero haya contestado. "
+            + "Tecléele la cédula en la pantalla de corrección y vuelva a generar el paquete.");
+    }
+
+    // ────────────────────────────── la vuelta ──────────────────────────────
+
+    /// <summary>Lee el Excel devuelto y devuelve lo que caso, lo que no y lo que hay que decir.</summary>
+    /// <remarks>
+    /// ⚠️ Las filas descartadas se ANOTAN aqui, y es el unico sitio donde pueden anotarse:
+    /// <see cref="AplicarMarcas"/> no las recibe. Que la fila no entre esta bien decidido
+    /// —casar por nombre crea registros fantasma— pero si la lista se pierde al cerrar la
+    /// ventana se pierde con ella la unica pista de que un companero hizo un trabajo que nadie
+    /// recogio (criterio C6-4).
+    /// <para>
+    /// Consecuencia dicha, la misma que en el programa en Python: leer dos veces el mismo
+    /// archivo deja los renglones de descarte otra vez, con su fecha y su hora. Es lo correcto:
+    /// son dos cargas distintas del mismo archivo y las dos pasaron.
+    /// </para>
+    /// </remarks>
+    public ResultadoDelExcelDevuelto LeerExcelDevuelto(string rutaExcel, long companeroId)
+    {
+        if (_companeros.Obtener(companeroId) is null)
+            return new ResultadoDelExcelDevuelto([], [], [Aviso.Problema(
+                $"No hay ningún compañero con el número interno {companeroId}.",
+                string.Empty,
+                "No se puede cargar un Excel sin decir de qué compañero viene: la propuesta se guarda con su nombre.")]);
+
+        LibroLeido libro;
+        try
+        {
+            libro = LectorDeExcel.Leer(rutaExcel);
+        }
+        catch (ErrorDeLectura causa)
+        {
+            // No se silencia: se convierte en el aviso que se pinta en la franja (requisito 9).
+            return new ResultadoDelExcelDevuelto([], [], [Aviso.Problema("No se pudo leer el Excel devuelto.", string.Empty, causa.Message)]);
+        }
+
+        var resultado = Reconciliacion.Reconciliar(
+            libro, PersonasQueCasan, companeroId, rutaExcel, _reloj.Ahora());
+
+        foreach (var descartada in resultado.Descartadas)
+            _ilegibles.RegistrarDescartada(descartada);
+
+        var avisos = new List<Aviso>(libro.Avisos);
+        avisos.AddRange(resultado.Avisos);
+        if (resultado.SinNadaQueProponer.Count > 0)
+        {
+            avisos.Add(Aviso.Informa(
+                $"{resultado.SinNadaQueProponer.Count} fila(s) volvieron con las siete casillas en blanco.",
+                string.Empty,
+                "Nadie las miró, que no es lo mismo que un «No». Filas: " + string.Join(", ", resultado.SinNadaQueProponer) + "."));
+        }
+
+        var marcas = ArmarLasMarcas(resultado.Renglones, avisos);
+        return new ResultadoDelExcelDevuelto(marcas, resultado.Descartadas, avisos);
+    }
+
+    /// <summary>
+    /// Convierte los renglones que casaron en marcas, con el estado del documento ya decidido.
+    /// </summary>
+    /// <remarks>
+    /// El estado es del DOCUMENTO y no de la persona, asi que se decide por caso y se estampa
+    /// en todas sus filas. La regla es la de los pasos subida de la persona al documento, con
+    /// los mismos tres valores: si alguna persona trae algun paso en «No», el documento no
+    /// esta completo; si TODAS traen los seis en «Sí», esta completo; en cualquier otro caso
+    /// NO SE SABE — y no se sabe no es «no».
+    /// <para>
+    /// «Todas» son todas las personas del caso EN LA BASE, no solo las que volvieron en la
+    /// hoja: una persona del caso que no volvio deja el documento sin marcar, que es lo
+    /// correcto. Dar por completo un documento del que falta gente es exactamente lo que manda
+    /// a alguien al templo con la recomendacion mal.
+    /// </para>
+    /// </remarks>
+    private List<MarcaDelCompanero> ArmarLasMarcas(
+        IReadOnlyList<RenglonDeLaVuelta> renglones, List<Aviso> avisos)
+    {
+        var estadoPorCaso = new Dictionary<long, EstadoDeRecomendacion>();
+        var motivoPorCaso = MotivoPorCaso(renglones, avisos);
+        foreach (var casoId in renglones.Select(r => r.CasoId).Distinct())
+        {
+            var estado = EstadoDelDocumento(casoId, renglones);
+            var motivo = motivoPorCaso.GetValueOrDefault(casoId, MotivoDeNoCompletar.SinMotivo);
+            AvisarDeLaContradiccion(casoId, estado, motivo, renglones, avisos);
+            estadoPorCaso[casoId] = EstadoConElMotivo(estado, motivo);
+        }
+
+        return [.. renglones.Select(renglon => new MarcaDelCompanero(
+            renglon.NumeroCaso,
+            renglon.Mrn,
+            renglon.Nombre,
+            estadoPorCaso[renglon.CasoId],
+            EstadoPropuestoDe(renglon.Respuestas),
+            renglon.Comentario,
+            renglon.Respuestas["paso_preparacion"],
+            renglon.Respuestas["paso_informacion"],
+            renglon.Respuestas["paso_cita_del_templo"],
+            renglon.Respuestas["paso_acciones_requeridas"],
+            renglon.Respuestas["paso_entrevistas"],
+            renglon.Respuestas["paso_listo_para_el_templo"],
+            renglon.Respuestas[Pasos.ColumnaDeLaLlamada],
+            renglon.FilaExcel,
+            // El id del caso viaja hasta la marca desde el 2026-09-04. Aqui SIEMPRE se sabe
+            // —la clave del Excel es CASO:MRN:ID y la fila ya resolvio a una persona—, y sin
+            // el, aplicar tenia que adivinarlo otra vez por el par numero_caso + mrn.
+            renglon.CasoId,
+            renglon.Motivo))];
+    }
+
+    /// <summary>
+    /// Un motivo dicho es una respuesta: quien dice POR QUE no se completo esta diciendo
+    /// que no esta completa.
+    /// </summary>
+    /// <remarks>
+    /// Solo sube de «sin marcar» a «no completa», nunca al reves. Y hace falta: con el
+    /// estado en «sin marcar» el calendario lee «sin marcar» y NO ensena ningun motivo
+    /// (<c>PalabrasDelEstado.Decir</c>), asi que el caso entero del dueno —«no se pudo
+    /// comunicar con el lider», con las siete casillas en blanco porque no hubo nada que
+    /// mirar— quedaria invisible justo en la pantalla donde lo pidio.
+    /// <para>
+    /// ⚠️ Es lo unico de este pase que el programa DEDUCE en vez de copiar. Se sostiene en
+    /// el rotulo de la columna, que pregunta «¿por que no se completo?»: elegir una opcion
+    /// ahi es afirmar que no lo esta. Si el dueno lo quiere de otra manera, se cambia esta
+    /// funcion y nada mas.
+    /// </para>
+    /// </remarks>
+    private static EstadoDeRecomendacion EstadoConElMotivo(
+        EstadoDeRecomendacion estado, MotivoDeNoCompletar motivo)
+        => estado == EstadoDeRecomendacion.SinMarcar && motivo != MotivoDeNoCompletar.SinMotivo
+            ? EstadoDeRecomendacion.NoCompleta
+            : estado;
+
+    /// <summary>
+    /// El motivo de cada caso: el de su PRIMERA fila que lo diga, con aviso si otra dice otro.
+    /// </summary>
+    /// <remarks>
+    /// La columna del caso admite un solo motivo y la hoja tiene una fila por persona, asi
+    /// que dos personas del mismo documento pueden traer motivos distintos. Se escribe el
+    /// de la primera fila —es lo unico que no depende de en que orden se recorra— y el otro
+    /// NO se pierde en silencio: se dice con su fila. El texto entero de cada uno sigue
+    /// entero en el comentario de SU persona.
+    /// </remarks>
+    private static Dictionary<long, MotivoDeNoCompletar> MotivoPorCaso(
+        IReadOnlyList<RenglonDeLaVuelta> renglones, List<Aviso> avisos)
+    {
+        var motivos = new Dictionary<long, MotivoDeNoCompletar>();
+        var deQueFila = new Dictionary<long, int>();
+        foreach (var renglon in renglones.Where(r => r.Motivo != MotivoDeNoCompletar.SinMotivo)
+                                         .OrderBy(r => r.FilaExcel))
+        {
+            if (motivos.TryAdd(renglon.CasoId, renglon.Motivo))
+            {
+                deQueFila[renglon.CasoId] = renglon.FilaExcel;
+                continue;
+            }
+            if (motivos[renglon.CasoId] == renglon.Motivo)
+                continue;
+
+            avisos.Add(Aviso.Advierte(
+                "Un mismo documento volvió con dos motivos distintos.",
+                MotivosDeLaHoja.ColumnaDelMotivo,
+                $"Se guardó «{MotivosDeLaHoja.Decir(motivos[renglon.CasoId])}», que es el de la "
+                + $"fila {deQueFila[renglon.CasoId]}. La fila {renglon.FilaExcel} decía "
+                + $"«{MotivosDeLaHoja.Decir(renglon.Motivo)}» y el documento solo guarda uno; "
+                + "el comentario de cada persona sí quedó entero."));
+        }
+        return motivos;
+    }
+
+    /// <summary>Dice en voz alta que el documento salio completo Y con un motivo escrito.</summary>
+    /// <remarks>
+    /// Mandan los pasos: seis «Sí» son una afirmacion de que se miro cada uno, y el motivo
+    /// se guarda igual para que quien lo lea decida. Callar la contradiccion seria elegir
+    /// por Miguel.
+    /// </remarks>
+    private static void AvisarDeLaContradiccion(
+        long casoId,
+        EstadoDeRecomendacion estado,
+        MotivoDeNoCompletar motivo,
+        IReadOnlyList<RenglonDeLaVuelta> renglones,
+        List<Aviso> avisos)
+    {
+        if (estado != EstadoDeRecomendacion.Completa || motivo == MotivoDeNoCompletar.SinMotivo)
+            return;
+
+        var filas = renglones
+            .Where(r => r.CasoId == casoId && r.Motivo != MotivoDeNoCompletar.SinMotivo)
+            .Select(r => r.FilaExcel);
+        avisos.Add(Aviso.Advierte(
+            "Un documento volvió completo y con un motivo escrito al mismo tiempo.",
+            MotivosDeLaHoja.ColumnaDelMotivo,
+            $"Manda lo que dicen los pasos —completa—, y el motivo «{MotivosDeLaHoja.Decir(motivo)}» "
+            + $"se guarda igual. Está en la(s) fila(s) {string.Join(", ", filas)}: mírelo antes de "
+            + "dar la ronda por cerrada."));
+    }
+
+    private EstadoDeRecomendacion EstadoDelDocumento(long casoId, IReadOnlyList<RenglonDeLaVuelta> renglones)
+    {
+        var deLaHoja = renglones.Where(r => r.CasoId == casoId).ToDictionary(r => r.PersonaId, r => r.Respuestas);
+        var personas = _personas.DeCaso(casoId);
+        if (personas.Count == 0)
+            return EstadoDeRecomendacion.SinMarcar;
+
+        var estados = personas.Select(persona => deLaHoja.TryGetValue(persona.Id, out var respuestas)
+            ? Pasos.EstadoDeLosPasos(respuestas)
+            : Pasos.EstadoDeLosPasos(RespuestasGuardadas(persona))).ToList();
+
+        if (estados.Any(estado => estado == false))
+            return EstadoDeRecomendacion.NoCompleta;
+        return estados.All(estado => estado == true) ? EstadoDeRecomendacion.Completa : EstadoDeRecomendacion.SinMarcar;
+    }
+
+    private static Dictionary<string, bool?> RespuestasGuardadas(Persona persona) => new()
+    {
+        ["paso_preparacion"] = persona.PasoPreparacion,
+        ["paso_informacion"] = persona.PasoInformacion,
+        ["paso_cita_del_templo"] = persona.PasoCitaDelTemplo,
+        ["paso_acciones_requeridas"] = persona.PasoAccionesRequeridas,
+        ["paso_entrevistas"] = persona.PasoEntrevistas,
+        ["paso_listo_para_el_templo"] = persona.PasoListoParaElTemplo,
+        [Pasos.ColumnaDeLaLlamada] = persona.LlamoAlLider,
+    };
+
+    /// <summary>
+    /// El unico estado que se puede deducir de los seis pasos de UNA persona.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ De «los seis dicen que sí» NO se deduce ningún valor, y no es un olvido: el texto que
+    /// significaría «resuelta» a nivel de persona es uno de los que el dueño todavía no ha
+    /// dicho. Una persona con los seis pasos en «Sí» se guarda con estado propuesto nulo y con
+    /// sus seis columnas puestas, que es donde consta que alguien la miró y que salió bien.
+    /// </remarks>
+    private static string? EstadoPropuestoDe(IReadOnlyDictionary<string, bool?> respuestas)
+        => Pasos.EstadoDeLosPasos(respuestas) == false ? "incompleta" : null;
+
+    // ────────────────────────────── aplicar ──────────────────────────────
+
+    /// <summary>Aplica a la base las marcas leidas; escribe estado, nunca firma campos.</summary>
+    /// <remarks>
+    /// <b>Si el id del caso viene, MANDA el id.</b> Es lo unico que no se repite, y con el la
+    /// resolucion es como mucho una persona. Cuando viene nulo —una hoja generada antes del
+    /// 2026-09-03, sin el id en la clave— se sigue el camino viejo por <c>numero_caso</c> +
+    /// <c>mrn</c>, y ese camino no cambia: si el par apunta a dos familias, la fila se DESCARTA
+    /// con su motivo. No se escoge una al azar.
+    /// </remarks>
+    public ResultadoDeEscritura AplicarMarcas(IReadOnlyList<MarcaDelCompanero> marcas, long companeroId, string rutaExcel)
+    {
+        if (_companeros.Obtener(companeroId) is null)
+            return ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(
+                $"No hay ningún compañero con el número interno {companeroId}.",
+                string.Empty,
+                "Una propuesta sin quien la hace no dice nada, y una marca de estado sin quien la puso tampoco."));
+
+        var avisos = new List<Aviso>();
+        var aplicadas = 0;
+        var descartadas = 0;
+        var estadoPorCaso = new Dictionary<long, EstadoDeRecomendacion>();
+        var motivoPorCaso = new Dictionary<long, MotivoDeNoCompletar>();
+
+        foreach (var marca in marcas)
+        {
+            var casan = PersonasQueCasan(marca.NumeroCaso, marca.Mrn, marca.CasoId);
+            if (casan.Count != 1)
+            {
+                descartadas++;
+                _ilegibles.RegistrarDescartada(new FilaDescartada
+                {
+                    CompaneroId = companeroId,
+                    RutaExcel = rutaExcel,
+                    FilaExcel = marca.FilaExcel,
+                    NumeroCaso = marca.NumeroCaso,
+                    Mrn = marca.Mrn,
+                    Nombre = marca.Nombre,
+                    Motivo = $"Fila {marca.FilaExcel}: "
+                             + (casan.Count == 0 ? Motivos.SinPar : Motivos.ClaveAmbigua(casan.Count)) + ".",
+                    RegistradoEn = _reloj.Ahora(),
+                });
+                continue;
+            }
+
+            var persona = casan[0];
+            var escritura = _personas.AnotarPropuesta(persona.Id, persona with
+            {
+                EstadoPropuesto = marca.EstadoPropuesto,
+                NotaCompanero = marca.NotaCompanero,
+                PasoPreparacion = marca.PasoPreparacion,
+                PasoInformacion = marca.PasoInformacion,
+                PasoCitaDelTemplo = marca.PasoCitaDelTemplo,
+                PasoAccionesRequeridas = marca.PasoAccionesRequeridas,
+                PasoEntrevistas = marca.PasoEntrevistas,
+                PasoListoParaElTemplo = marca.PasoListoParaElTemplo,
+                LlamoAlLider = marca.LlamoAlLider,
+            }, companeroId);
+            avisos.AddRange(escritura.Avisos);
+            if (!escritura.SeEscribio)
+            {
+                descartadas++;
+                continue;
+            }
+
+            aplicadas++;
+            if (marca.Motivo != MotivoDeNoCompletar.SinMotivo)
+                motivoPorCaso.TryAdd(persona.CasoId, marca.Motivo);
+            var estado = EstadoConElMotivo(marca.EstadoDeLaRecomendacion, marca.Motivo);
+            if (estado != EstadoDeRecomendacion.SinMarcar)
+                estadoPorCaso[persona.CasoId] = estado;
+        }
+
+        // El estado del documento se escribe UNA vez por caso, con el nombre del companero y
+        // con la ruta del Excel como origen: «el documento que ellos llenan es el que marca».
+        // Esto NO es firmar campos: la firma por campo sigue exigiendo el clic de Miguel.
+        //
+        // Va por `MarcarEstadoDelCompanero` y no por `MarcarEstado`, y esa es la diferencia
+        // que faltaba: ademas del estado vigente escribe `estado_del_companero`, `_por` y
+        // `_en`, que la migracion 14 creo en su dia y que nadie escribia por ningun camino.
+        // Sin ellas, cuando Miguel corrige encima se pierde lo que dijo el agente, que es
+        // justo el dato del que se alimenta el reporte del gerente.
+        //
+        // ⚠️ El motivo es el que ELIGIO el companero en su hoja (columna
+        // «¿Por qué no se completó?», anadida el 2026-09-05). Va a `motivo_del_companero` y
+        // NUNCA a `motivo_no_completa`, que es el de Miguel: criterio C14-4 de PENDIENTES.md.
+        // Antes de esa fecha aqui iba SinMotivo fijo, y esa columna llevaba desde la
+        // migracion 18 nula en toda la base.
+        var marcados = estadoPorCaso.Keys.Union(motivoPorCaso.Keys).ToList();
+        foreach (var casoId in marcados)
+        {
+            avisos.AddRange(
+                _casos.MarcarEstadoDelCompanero(
+                    casoId,
+                    estadoPorCaso.GetValueOrDefault(casoId, EstadoDeRecomendacion.NoCompleta),
+                    motivoPorCaso.GetValueOrDefault(casoId, MotivoDeNoCompletar.SinMotivo),
+                    companeroId,
+                    rutaExcel).Avisos);
+        }
+
+        avisos.Insert(0, Aviso.Informa(
+            $"Aplicadas {aplicadas} fila(s); descartadas {descartadas}; documentos marcados {marcados.Count}.",
+            string.Empty,
+            "Nada de esto queda verificado: lo que trae el compañero es una propuesta, y los campos "
+            + "los sigue confirmando usted uno a uno."));
+        return new ResultadoDeEscritura(aplicadas > 0 || marcados.Count > 0, companeroId, avisos);
+    }
+
+    // ─────────────────────────── resolver la clave ───────────────────────────
+
+    /// <summary>
+    /// TODAS las personas a las que puede referirse esa clave. Cero, una, o varias.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Devuelve una lista y no una persona a proposito. Mientras el numero de caso fue
+    /// unico, el par «caso + MRN» encadenaba a una fila o a ninguna, nunca a dos. Desde la
+    /// version 12 del esquema no lo es —el numero son cuatro letras mas el ano y el mes:
+    /// identifica una unidad y un mes, no una familia— y ademas un documento duplicado entra
+    /// en vez de rechazarse. Escribir la propuesta del companero sobre «la primera que salga»
+    /// seria escribirla sobre la familia equivocada sin que nadie se entere.
+    /// <para>
+    /// Con el id del caso la respuesta vuelve a ser como mucho una, y entonces el numero de
+    /// caso YA NO SE MIRA: si Miguel corrigio el numero despues de generar el paquete, el
+    /// Excel del companero sigue diciendo el viejo, y exigir que coincidiera tiraria trabajo
+    /// bueno.
+    /// </para>
+    /// <para>
+    /// Un MRN vacio devuelve la lista vacia a proposito: un caso puede tener varias personas
+    /// sin MRN y no hay forma de saber a cual se referia el companero.
+    /// </para>
+    /// </remarks>
+    private IReadOnlyList<Persona> PersonasQueCasan(string? numeroCaso, string? mrn, long? casoId)
+    {
+        if (string.IsNullOrWhiteSpace(mrn))
+            return [];
+
+        if (casoId is long id)
+            return [.. _personas.DeCaso(id).Where(persona => persona.Mrn == mrn)];
+
+        if (string.IsNullOrWhiteSpace(numeroCaso))
+            return [];
+
+        var encontradas = new List<Persona>();
+        foreach (var caso in CasosConEseNumero(numeroCaso))
+            encontradas.AddRange(_personas.DeCaso(caso.Id).Where(persona => persona.Mrn == mrn));
+        return encontradas;
+    }
+
+    /// <summary>
+    /// Los casos que llevan ese numero, archivados incluidos.
+    /// </summary>
+    /// <remarks>
+    /// Los archivados entran a proposito: un caso archivado sigue teniendo personas y el
+    /// companero pudo haberlo recibido antes de que se archivara. Dejarlo fuera convertiria su
+    /// trabajo en un descarte «sin par» que nadie sabria explicar.
+    /// <para>
+    /// El filtro por texto del puerto busca tambien por nombre y por MRN, asi que despues se
+    /// compara el numero LETRA POR LETRA: un filtro que sobra se recorta aqui, uno que falta no
+    /// se puede recuperar.
+    /// </para>
+    /// </remarks>
+    private List<Caso> CasosConEseNumero(string numeroCaso)
+    {
+        var encontrados = new List<Caso>();
+        var filtro = new FiltroDeCasos(Texto: numeroCaso, IncluirArchivados: true);
+        var trozo = Pagina.Primera(TamanoDelTrozo);
+        while (true)
+        {
+            var pagina = _casos.Listar(filtro, trozo);
+            encontrados.AddRange(pagina.Elementos.Where(caso =>
+                string.Equals(caso.NumeroCaso, numeroCaso, StringComparison.OrdinalIgnoreCase)));
+            if (!pagina.HayMas)
+                return encontrados;
+            trozo = trozo.Siguiente();
+        }
+    }
+}

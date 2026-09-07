@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas v2 · Revisar — especificación visual para tkinter</title>
+<style>
+/* ==========================================================================
+   Fichas — v2 · REVISAR. ESPECIFICACIÓN VISUAL PARA tkinter.
+   Una tarjeta por documento, con «Sí, completa» / «No está completa» y el
+   desplegable de asignar. Misma cara y mismos tokens que el Panel v2.
+   100% autocontenido. Cero <use>, cero sprites, cero ids de SVG.
+   TODOS los nombres, cédulas y números de caso son INVENTADOS.
+   ========================================================================== */
+
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21; --tinta-suave:#46505C; --apagado:#646C77;
+  --verde-fondo:#E7F5EC; --verde-marca:#1B6E3C; --verde-tinta:#12351F;
+  --gris-marca:#5B6470;
+  --ambar-fondo:#FFF3C4; --ambar-marca:#8A5B00; --ambar-tinta:#3D2A00;
+  --rojo-fondo:#FDE7E7;  --rojo-marca:#B3261E;  --rojo-tinta:#4A0F0B;
+  --rojo-solido:#B3261E; --rojo-fila:#F8D7D5;
+  /* El azul marca «duplicado de». NO es un color de origen y nunca entra en un campo. */
+  --azul-fondo:#E4EEFB;  --azul-marca:#1B4F9C;  --azul-tinta:#0F2C57;
+  --foco:#1A1D21; --foco-claro:#FFFFFF;
+  /* Misma excepción declarada que en el Panel, y por el mismo motivo: 1–3 px sólo
+     dentro de cajas de línea (`code`, `.marca`, `.pastilla-filtro .n`), donde
+     subir a --sp-1 rompe el interlineado. Más dos valores dichos uno por uno:
+     `padding:0 6px` de la cápsula con la cuenta del filtro —a 4 px la cifra toca
+     el borde, a 8 px la cápsula parece un botón— y `padding-bottom:80px` de
+     `.hoja`, que es el respiro de ESTE documento, no de la ventana. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:#5C6270; color:var(--tinta);
+  font-family:"Segoe UI", system-ui, sans-serif; font-size:14px; line-height:1.45;
+}
+.hoja{ max-width:1360px; margin:0 auto; padding:var(--sp-6) var(--sp-5) 80px; }
+.aviso-doc{
+  background:#111418; color:#E8EAED; border-left:6px solid #E8B931;
+  padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-6); border-radius:2px;
+}
+.aviso-doc h1{ font-size:17px; margin:0 0 var(--sp-2); }
+.aviso-doc p{ margin:0 0 var(--sp-2); max-width:92ch; }
+.aviso-doc p:last-child{ margin-bottom:0; }
+.aviso-doc code{ background:#2A2F36; padding:1px 5px; border-radius:2px; }
+h2.seccion{
+  color:#FFFFFF; font-size:15px; letter-spacing:.06em; text-transform:uppercase;
+  margin:var(--sp-8) 0 var(--sp-3); font-weight:600;
+}
+
+.ventana{
+  width:1280px; max-width:100%; background:var(--panel);
+  border:1px solid #3A4049; border-radius:2px; overflow:hidden;
+  display:grid; grid-template-columns:168px 1fr;
+  /* Filas explícitas: sin ellas `grid-row:1/-1` del rail no abarca nada. */
+  grid-template-rows:auto 1fr;
+}
+.rail{
+  /* Ocupa la columna 1 de arriba abajo: sin esto sólo ocupa la primera fila. */
+  grid-column:1; grid-row:1 / -1;
+  background:var(--panel-hondo); border-right:1px solid var(--linea);
+  padding:var(--sp-3) var(--sp-2); display:flex; flex-direction:column; gap:2px;
+}
+.rail .marca-app{
+  display:flex; align-items:center; gap:var(--sp-2);
+  padding:var(--sp-2) var(--sp-2) var(--sp-4); font-weight:700; font-size:15px;
+}
+.rail .grupo{
+  font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--tinta-suave); padding:var(--sp-3) var(--sp-2) var(--sp-1);
+}
+.item{
+  display:flex; align-items:center; gap:var(--sp-2); padding:var(--sp-2);
+  border-radius:2px; font-size:13.5px; color:var(--tinta); border:1px solid transparent;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.item:hover{ background:#DDE0E6; }
+.item:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.item[aria-current="page"]{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.item[aria-current="page"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.item .tecla{ margin-left:auto; font-size:11px; color:var(--tinta-suave); }
+.item[aria-current="page"] .tecla{ color:#C3C8D0; }
+.icono{ width:18px; height:18px; flex:none; }
+
+.cabecera{
+  grid-column:2; display:flex; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-5); background:var(--panel-hondo);
+  border-bottom:1px solid var(--linea);
+}
+.cabecera h1{ font-size:16px; margin:0; font-weight:600; }
+.cabecera .hoy{ color:var(--tinta-suave); font-size:13px; }
+.buscador{
+  margin-left:auto; display:flex; align-items:center; gap:var(--sp-2);
+  height:30px; width:280px; padding:0 var(--sp-2);
+  background:var(--papel); border:1px solid var(--linea-fuerte); border-radius:2px;
+  color:var(--tinta-suave); font-size:13px;
+}
+.buscador:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.cuerpo{ grid-column:2; padding:var(--sp-3) var(--sp-5) var(--sp-5); }
+
+/* ---- Barra de filtros: pastillas con su cuenta ---------------------------
+   DOS filas explícitas, no una que se parte sola. Medido: las cinco pastillas
+   más los cuatro botones suman más de los 1070 px del cuerpo y se rompían en
+   dos líneas por accidente, con la ruptura cayendo donde tocara. Separadas a
+   propósito, la de arriba es «qué veo» y la de abajo «qué hago». */
+.filtros{ display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2); }
+.acciones-barra{ display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-3); }
+.acciones-barra .cuenta-vista{ margin-left:auto; font-size:12.5px; color:var(--tinta-suave); }
+.acciones-barra .cuenta-vista b{ color:var(--tinta); font-variant-numeric:tabular-nums; }
+.pastilla-filtro{
+  font:inherit; font-size:13px; height:30px; padding:0 var(--sp-3);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:15px; cursor:pointer; display:inline-flex; align-items:center; gap:var(--sp-2);
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.pastilla-filtro:hover{ background:#F0F2F5; }
+.pastilla-filtro:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.pastilla-filtro .n{
+  font-variant-numeric:tabular-nums; font-size:11.5px; font-weight:700;
+  background:var(--panel-hondo); color:var(--tinta-suave); border-radius:9px; padding:0 6px;
+}
+.pastilla-filtro[aria-pressed="true"]{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.pastilla-filtro[aria-pressed="true"] .n{ background:#3A4049; color:#FFFFFF; }
+.pastilla-filtro[aria-pressed="true"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.filtros .sep{ width:1px; height:22px; background:var(--linea); margin:0 var(--sp-1); }
+
+.boton{
+  font:inherit; font-size:13px; height:30px; padding:0 var(--sp-3);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer; display:inline-flex; align-items:center; gap:var(--sp-2);
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.boton:hover{ background:#F0F2F5; }
+.boton:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.boton .tecla{ color:var(--tinta-suave); font-size:11px; }
+.boton-primario{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.boton-primario:hover{ background:#2C323A; }
+.boton-primario .tecla{ color:#C3C8D0; }
+.boton-primario:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+
+/* ---- La franja de avisos: una línea, cerrable ---------------------------- */
+.franja{
+  display:flex; align-items:center; gap:var(--sp-3);
+  background:var(--ambar-fondo); color:var(--ambar-tinta);
+  border-left:5px solid var(--ambar-marca); border-radius:0 2px 2px 0;
+  padding:var(--sp-1) var(--sp-3); font-size:13px; min-height:30px; margin-bottom:var(--sp-3);
+}
+.franja .x, .franja .ver{
+  border:1px solid var(--ambar-marca); background:transparent; color:var(--ambar-tinta);
+  font:inherit; font-size:12px; border-radius:2px; padding:0 var(--sp-2); height:22px; cursor:pointer;
+  transition:background-color 120ms ease;
+}
+.franja .ver{ margin-left:auto; }
+.franja .x{ width:22px; padding:0; }
+.franja .x:hover, .franja .ver:hover{ background:#F7E39A; }
+.franja .x:focus, .franja .ver:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.franja b{ font-variant-numeric:tabular-nums; }
+
+/* ---- La rejilla de tarjetas --------------------------------------------- */
+.rejilla{ display:grid; grid-template-columns:repeat(3,1fr); gap:var(--sp-3); }
+
+.doc{
+  background:var(--papel); border:1px solid var(--linea);
+  border-left:6px solid var(--gris-marca); border-radius:0 2px 2px 0;
+  padding:var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2);
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.doc:hover{ background:#FAFBFC; }
+.doc:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.doc.sin-revisar{ border-left-color:var(--gris-marca); }
+.doc.completa{   border-left-color:var(--verde-marca); }
+.doc.incompleta{ border-left-color:var(--rojo-marca);  background:var(--rojo-fondo); }
+.doc.incompleta:hover{ background:#FBDCDA; }
+.doc.duplicada{  border-left-color:var(--azul-marca); }
+.doc.archivada{  border-left-color:var(--linea-fuerte); background:var(--panel); }
+
+.doc-cab{ display:flex; align-items:center; gap:var(--sp-2); }
+.doc-caso{ font-family:"Consolas","Courier New",monospace; font-weight:700; font-size:15px; }
+.doc-caso.sin-numero{ font-family:"Segoe UI",sans-serif; font-weight:600; font-size:13.5px; color:var(--ambar-marca); font-style:italic; }
+.doc-cab .der{ margin-left:auto; }
+
+.doc-archivo{
+  font-size:12.5px; color:var(--tinta-suave);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.doc-datos{ font-size:12.5px; color:var(--tinta-suave); display:flex; gap:var(--sp-2); flex-wrap:wrap; }
+.doc-datos b{ color:var(--tinta); font-variant-numeric:tabular-nums; }
+.doc-datos .falta{ color:var(--ambar-marca); font-style:italic; }
+
+.marca{
+  display:inline-flex; align-items:center; gap:var(--sp-1);
+  font-size:11px; font-weight:700; letter-spacing:.03em;
+  padding:1px var(--sp-2); border-radius:2px; border:1px solid;
+  text-transform:uppercase; white-space:nowrap;
+}
+.marca.roja{  background:var(--rojo-solido); color:#FFFFFF;          border-color:#8E1B15; }
+.marca.verde{ background:var(--verde-fondo); color:var(--verde-tinta); border-color:var(--verde-marca); }
+.marca.ambar{ background:var(--ambar-fondo); color:var(--ambar-tinta); border-color:var(--ambar-marca); }
+.marca.gris{  background:var(--panel);       color:var(--tinta-suave); border-color:var(--linea-fuerte); }
+.marca.azul{  background:var(--azul-fondo);  color:var(--azul-tinta);  border-color:var(--azul-marca); }
+
+.doc-botones{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); margin-top:var(--sp-1); }
+.b-si, .b-no{
+  font:inherit; font-size:13px; height:34px; border-radius:2px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:var(--sp-1);
+  border:1px solid; transition:background-color 120ms ease, border-color 120ms ease;
+}
+.b-si{ background:var(--papel); border-color:var(--verde-marca); color:var(--verde-marca); }
+.b-si:hover{ background:var(--verde-fondo); }
+.b-no{ background:var(--papel); border-color:var(--rojo-marca);  color:var(--rojo-marca); }
+.b-no:hover{ background:var(--rojo-fondo); }
+.b-si:focus, .b-no:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+/* Pulsado = relleno sólido y palabra. El color solo NO dice el estado. */
+.b-si[aria-pressed="true"]{ background:var(--verde-marca); color:#FFFFFF; }   /* 6.28:1 */
+.b-si[aria-pressed="true"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.b-no[aria-pressed="true"]{ background:var(--rojo-marca);  color:#FFFFFF; }   /* 6.54:1 */
+.b-no[aria-pressed="true"]:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+
+/* Inactivo (tarjeta archivada). «Deshabilitado» se dice con el borde discontinuo
+   y el fondo hundido, NO apagando el texto hasta que no se lea: #5B6470 sobre
+   #E9EBEF da 5.02:1 y sigue leyéndose como apagado frente a los 16.91:1 normales.
+   Y SIGUE tomando el foco a propósito: es la única forma de llegar con Tab y leer
+   por qué no se puede pulsar. En Tk NO se usa `state=['disabled']`, que quita el
+   foco: es un botón normal cuyo `command` sólo enseña el motivo. */
+.b-si[aria-disabled="true"], .b-no[aria-disabled="true"]{
+  background:var(--panel-hondo); color:var(--gris-marca); border-color:var(--linea);
+  border-style:dashed; cursor:not-allowed;
+}
+.b-si[aria-disabled="true"]:hover, .b-no[aria-disabled="true"]:hover{ background:var(--panel-hondo); }
+.b-si[aria-disabled="true"]:focus, .b-no[aria-disabled="true"]:focus{
+  outline:2px solid var(--foco); outline-offset:1px;   /* 14.17:1 sobre #E9EBEF */
+}
+
+.asignar{
+  display:flex; align-items:center; gap:var(--sp-2);
+  height:30px; padding:0 var(--sp-2);
+  border:1px solid var(--linea-fuerte); background:var(--papel);
+  border-radius:2px; font-size:12.5px; color:var(--tinta-suave); cursor:pointer;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.asignar:hover{ background:#F0F2F5; }
+.asignar:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.asignar .flecha{ margin-left:auto; }
+.asignar.puesto{ color:var(--tinta); border-color:var(--tinta-suave); }
+
+.firma{
+  font-size:11.5px; color:var(--tinta-suave);
+  border-top:1px dotted var(--linea); padding-top:var(--sp-1);
+}
+
+/* ------------------------------- anexo ----------------------------------- */
+.papel-anexo{ background:var(--papel); border-radius:2px; padding:var(--sp-5) var(--sp-6); margin-top:var(--sp-3); }
+.papel-anexo h3{ font-size:15px; margin:var(--sp-5) 0 var(--sp-2); }
+.papel-anexo h3:first-child{ margin-top:0; }
+.papel-anexo p{ margin:0 0 var(--sp-3); max-width:96ch; }
+.tabla-envoltorio{ overflow-x:auto; margin-bottom:var(--sp-4); }
+table{ border-collapse:collapse; width:100%; font-size:13px; min-width:640px; }
+th,td{ text-align:left; padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--linea); vertical-align:top; }
+th{ background:var(--panel); font-weight:600; }
+td code, th code, p code, li code{
+  font-family:"Consolas","Courier New",monospace; font-size:12.5px;
+  background:var(--panel); padding:1px 4px; border-radius:2px;
+}
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+<div class="aviso-doc">
+  <h1>Fichas v2 · Revisar — especificación visual para <code>tkinter</code></h1>
+  <p>Una <b>tarjeta por documento</b>, como en el viejo, con la cara del nuevo. Nada de esto
+  guarda: es el plano de una ventana de <code>tkinter</code>.</p>
+  <p><b>Todos los nombres, cédulas, unidades y números de caso son inventados.</b></p>
+</div>
+
+<h2 class="seccion">La ventana · 1280 × 729 (medido)</h2>
+
+<div class="ventana">
+
+  <nav class="rail" aria-label="Secciones">
+    <div class="marca-app">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/>
+      </svg>
+      Fichas
+    </div>
+    <div class="grupo">El trabajo</div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/>
+        <rect x="13" y="10" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/>
+      </svg>
+      Panel <span class="tecla">Alt+1</span>
+    </div>
+    <div class="item" aria-current="page" tabindex="0">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M5 3h11l4 4v14H5z"/><path d="M9 12h7"/><path d="M9 16h4"/>
+      </svg>
+      Revisar <span class="tecla">Alt+2</span>
+    </div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 9h18M9 9v11M15 9v11"/>
+      </svg>
+      Tabla <span class="tecla">Alt+3</span>
+    </div>
+    <div class="grupo">La gente</div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.4 6-5.4s6 2.1 6 5.4"/>
+        <path d="M16 5.6A3.2 3.2 0 0 1 16 12"/><path d="M18 14.9c2 .8 3 2.6 3 5.1"/>
+      </svg>
+      Equipo <span class="tecla">Alt+4</span>
+    </div>
+    <div class="item" tabindex="-1">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/><path d="M12 7v5.3l3.4 2"/>
+      </svg>
+      Historial <span class="tecla">Alt+5</span>
+    </div>
+  </nav>
+
+  <header class="cabecera">
+    <h1>Revisar</h1>
+    <span class="hoy">17 documentos</span>
+    <div class="buscador" tabindex="0">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/>
+      </svg>
+      Buscar caso, unidad o cédula
+    </div>
+  </header>
+
+  <div class="cuerpo">
+
+    <div class="filtros">
+      <button class="pastilla-filtro" aria-pressed="true">Todo <span class="n">17</span></button>
+      <button class="pastilla-filtro" aria-pressed="false">Sin revisar <span class="n">9</span></button>
+      <button class="pastilla-filtro" aria-pressed="false">Incompletas <span class="n">4</span></button>
+      <button class="pastilla-filtro" aria-pressed="false">Completas <span class="n">4</span></button>
+      <button class="pastilla-filtro" aria-pressed="false">Sin asignar <span class="n">5</span></button>
+    </div>
+
+    <div class="acciones-barra">
+      <button class="boton boton-primario">
+        <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M5 3h11l4 4v14H5z"/><path d="M12 10v6M9 13h6"/>
+        </svg>
+        Cargar formularios <span class="tecla">Ctrl+O</span>
+      </button>
+      <button class="boton">Repartir los 5 sin asignar</button>
+      <button class="boton">Informe (PDF) <span class="tecla">Ctrl+I</span></button>
+      <button class="boton">Bajar la base en Excel <span class="tecla">Ctrl+E</span></button>
+      <span class="cuenta-vista">viendo <b>17</b> de <b>17</b></span>
+    </div>
+
+    <div class="franja" role="status">
+      <svg class="icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+        <path d="M12 4.5l8.5 15h-17z"/><path d="M12 10v4"/><circle cx="12" cy="16.8" r=".9" fill="currentColor" stroke="none"/>
+      </svg>
+      <span>Sin número de caso leído &nbsp;<b>&times; 1 documento</b> &middot; Duplicado de otro &nbsp;<b>&times; 1 documento</b></span>
+      <button class="ver">ver &#9662;</button>
+      <button class="x" aria-label="Cerrar los avisos">&times;</button>
+    </div>
+
+    <div class="rejilla">
+
+      <!-- 1 · SIN REVISAR, con cosas por comprobar -->
+      <article class="doc sin-revisar" tabindex="0">
+        <div class="doc-cab">
+          <span class="doc-caso">RVSC2609</span>
+          <span class="der"><span class="marca gris">sin revisar</span></span>
+        </div>
+        <div class="doc-archivo">formulario-ejemplo-01.pdf &middot; hojas 1&ndash;2</div>
+        <div class="doc-datos">
+          <span><b>4</b> personas</span><span>&middot;</span>
+          <span>sale <b>en 2 días</b></span><span>&middot;</span>
+          <span>Rama Ejemplo Norte</span>
+        </div>
+        <div><span class="marca ambar">2 por comprobar</span></div>
+        <div class="doc-botones">
+          <button class="b-si" aria-pressed="false">Sí, completa</button>
+          <button class="b-no" aria-pressed="false">No está completa</button>
+        </div>
+        <div class="asignar" tabindex="0">Sin asignar <span class="flecha">&#9662;</span></div>
+      </article>
+
+      <!-- 2 · COMPLETA, firmada -->
+      <article class="doc completa" tabindex="-1">
+        <div class="doc-cab">
+          <span class="doc-caso">MTRC2609</span>
+          <span class="der"><span class="marca verde">completa</span></span>
+        </div>
+        <div class="doc-archivo">formulario-ejemplo-02.pdf &middot; hoja 1</div>
+        <div class="doc-datos">
+          <span><b>2</b> personas</span><span>&middot;</span>
+          <span>sale <b>el 10 sep</b></span><span>&middot;</span>
+          <span>Rama Ejemplo Sur</span>
+        </div>
+        <div><span class="marca verde">todo comprobado</span></div>
+        <div class="doc-botones">
+          <button class="b-si" aria-pressed="true">Sí, completa</button>
+          <button class="b-no" aria-pressed="false">No está completa</button>
+        </div>
+        <div class="asignar puesto" tabindex="-1">Agente A <span class="flecha">&#9662;</span></div>
+        <div class="firma">Lo marcó Miguel el 2 sep, 09:14</div>
+      </article>
+
+      <!-- 3 · NO ESTÁ COMPLETA -->
+      <article class="doc incompleta" tabindex="-1">
+        <div class="doc-cab">
+          <span class="doc-caso">VLLC2609</span>
+          <span class="der"><span class="marca roja">no está completa</span></span>
+        </div>
+        <div class="doc-archivo">formulario-ejemplo-03.pdf &middot; hojas 1&ndash;3</div>
+        <div class="doc-datos">
+          <span><b>6</b> personas</span><span>&middot;</span>
+          <span>sale <b>el 25 sep</b></span><span>&middot;</span>
+          <span>Rama Ejemplo Este</span>
+        </div>
+        <div><span class="marca ambar">5 por comprobar</span></div>
+        <div class="doc-botones">
+          <button class="b-si" aria-pressed="false">Sí, completa</button>
+          <button class="b-no" aria-pressed="true">No está completa</button>
+        </div>
+        <div class="asignar puesto" tabindex="-1">Agente B <span class="flecha">&#9662;</span></div>
+        <div class="firma">Lo marcó Miguel el 1 sep, 16:40</div>
+      </article>
+
+      <!-- 4 · DUPLICADO -->
+      <article class="doc duplicada" tabindex="-1">
+        <div class="doc-cab">
+          <span class="doc-caso">RVSC2609</span>
+          <span class="der"><span class="marca gris">sin revisar</span></span>
+        </div>
+        <div class="doc-archivo">formulario-ejemplo-01-copia.pdf &middot; hojas 1&ndash;2</div>
+        <div class="doc-datos">
+          <span><b>4</b> personas</span><span>&middot;</span>
+          <span>sale <b>en 2 días</b></span><span>&middot;</span>
+          <span>Rama Ejemplo Norte</span>
+        </div>
+        <div>
+          <span class="marca azul">duplicado de RVSC2609 &middot; hojas 1&ndash;2</span>
+          <span class="marca ambar">2 por comprobar</span>
+        </div>
+        <div class="doc-botones">
+          <button class="b-si" aria-pressed="false">Sí, completa</button>
+          <button class="b-no" aria-pressed="false">No está completa</button>
+        </div>
+        <div class="asignar" tabindex="-1">Sin asignar <span class="flecha">&#9662;</span></div>
+        <div class="firma">Entró igual y no pisó nada. Miguel decide qué hacer con él</div>
+      </article>
+
+      <!-- 5 · SIN NÚMERO DE CASO -->
+      <article class="doc sin-revisar" tabindex="-1">
+        <div class="doc-cab">
+          <span class="doc-caso sin-numero">sin número de caso</span>
+          <span class="der"><span class="marca gris">sin revisar</span></span>
+        </div>
+        <div class="doc-archivo">formulario-ejemplo-04.pdf &middot; hoja 1</div>
+        <div class="doc-datos">
+          <span><b>1</b> persona</span><span>&middot;</span>
+          <span class="falta">sin fecha de viaje</span><span>&middot;</span>
+          <span class="falta">sin unidad</span>
+        </div>
+        <div><span class="marca ambar">7 por comprobar</span></div>
+        <div class="doc-botones">
+          <button class="b-si" aria-pressed="false">Sí, completa</button>
+          <button class="b-no" aria-pressed="false">No está completa</button>
+        </div>
+        <div class="asignar" tabindex="-1">Sin asignar <span class="flecha">&#9662;</span></div>
+        <div class="firma">El número se teclea al abrirlo. <b>No se inventa</b></div>
+      </article>
+
+      <!-- 6 · ARCHIVADO -->
+      <article class="doc archivada" tabindex="-1">
+        <div class="doc-cab">
+          <span class="doc-caso">PLZC2608</span>
+          <span class="der">
+            <span class="marca gris">archivado</span>
+            <span class="marca verde">completa</span>
+          </span>
+        </div>
+        <div class="doc-archivo">formulario-ejemplo-05.pdf &middot; hoja 1</div>
+        <div class="doc-datos">
+          <span><b>3</b> personas</span><span>&middot;</span>
+          <span>salió el <b>8 sep</b></span><span>&middot;</span>
+          <span>Rama Ejemplo Oeste</span>
+        </div>
+        <div><span class="marca verde">todo comprobado</span></div>
+        <div class="doc-botones">
+          <button class="b-si" aria-pressed="true" aria-disabled="true">Sí, completa</button>
+          <button class="b-no" aria-pressed="false" aria-disabled="true">No está completa</button>
+        </div>
+        <div class="asignar" tabindex="-1">Agente A <span class="flecha">&#9662;</span></div>
+        <div class="firma">Archivado el 9 sep. Para cambiarlo, hay que desarchivarlo</div>
+      </article>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== ANEXO ================================== -->
+<h2 class="seccion">El reparto del espacio, medido &mdash; no estimado</h2>
+<div class="papel-anexo">
+<p>Medido abriendo <b>este archivo</b> a 1280 px de ancho y leyendo
+<code>getBoundingClientRect()</code>. La barra de filtros me salió partida en dos líneas de forma
+accidental: se separó en dos filas a propósito y se volvió a medir.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Zona</th><th>Medido</th><th>% de la ventana</th><th>Por qué</th></tr></thead>
+<tbody>
+<tr><td><b>La ventana entera</b></td><td><b>1280 &times; 729 px</b></td><td>&mdash;</td><td>Con seis tarjetas. Con más, crece la rejilla y la ventana desplaza</td></tr>
+<tr><td>Menú de iconos (rail)</td><td>168 &times; 727 px</td><td>13,1 % del ancho · 99,7 % del alto</td><td>Igual que en el Panel: son la misma ventana</td></tr>
+<tr><td>Cabecera</td><td>1110 &times; 55 px</td><td>86,7 % · 7,5 %</td><td>Título, cuenta y buscador en una línea</td></tr>
+<tr><td>Fila de filtros (5 pastillas)</td><td>1070 &times; 30 px</td><td>4,1 % del alto</td><td>«Qué veo». Una línea, medida</td></tr>
+<tr><td>Fila de acciones (4 botones)</td><td>1070 &times; 30 px</td><td>4,1 %</td><td>«Qué hago». Una línea, medida</td></tr>
+<tr><td>Franja de avisos</td><td>1070 &times; 30 px</td><td>4,1 % · 13,2 % máx. abierta</td><td>Una línea, agrupada y cerrable</td></tr>
+<tr><td><b>Rejilla de tarjetas</b></td><td>1070 &times; 518 px</td><td><b>71,1 % del alto</b></td><td>Lo que Miguel viene a hacer manda sobre el espacio</td></tr>
+<tr><td>Una tarjeta</td><td>349 &times; 243 px</td><td>27,2 % del ancho</td><td>Tres por fila. Caben los dos botones grandes lado a lado sin cortar «No está completa»</td></tr>
+<tr><td><b>Párrafos dentro de la ventana</b></td><td><b>0</b> (contados)</td><td><b>0 %</b></td><td>Regla del 2026-09-03</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<h2 class="seccion">Los seis estados de una tarjeta, y qué los separa</h2>
+<div class="papel-anexo">
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Estado</th><th>Borde izquierdo</th><th>Fondo</th><th>Palabra en la tarjeta</th><th>De dónde sale</th></tr></thead>
+<tbody>
+<tr><td>Sin revisar</td><td>gris #5B6470</td><td>papel</td><td>«sin revisar»</td><td><code>estado_recomendacion IS NULL</code></td></tr>
+<tr><td>Completa</td><td>verde #1B6E3C</td><td>papel</td><td>«completa» + botón «Sí, completa» relleno</td><td><code>estado_recomendacion = 'completa'</code> &mdash; <b>este valor todavía no existe en el código</b></td></tr>
+<tr><td>No está completa</td><td>rojo #B3261E</td><td>rojo claro #FDE7E7</td><td>«no está completa» + botón «No está completa» relleno</td><td><code>estado_recomendacion = 'incompleta'</code></td></tr>
+<tr><td>Duplicado</td><td>azul #1B4F9C</td><td>papel</td><td>«duplicado de &lt;caso&gt;»</td><td><code>casos.duplicado_de</code> no nulo</td></tr>
+<tr><td>Sin número de caso</td><td>el que le toque por estado</td><td>ídem</td><td>«sin número de caso», en ámbar y cursiva</td><td><code>numero_caso IS NULL</code></td></tr>
+<tr><td>Archivado</td><td>gris claro #AAB1BC</td><td>panel #F4F5F7</td><td>«archivado» + su estado</td><td><code>archivado = 1</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><b>El color nunca va solo.</b> Cada estado lleva su palabra en español, porque un borde de
+color no se lee si no se distinguen los colores &mdash; y porque en una rejilla de 17 tarjetas
+seis bordes distintos son indistinguibles de memoria.</p>
+
+<h3>El recorrido del teclado</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Tecla</th><th>Dónde</th><th>Qué hace</th></tr></thead>
+<tbody>
+<tr><td><code>Tab</code></td><td>la ventana</td><td>Cinco paradas: rail &rarr; buscador &rarr; barra de filtros &rarr; franja de avisos &rarr; rejilla. La rejilla es <b>una sola</b> parada</td></tr>
+<tr><td><code>&larr;</code> <code>&rarr;</code></td><td>barra de filtros</td><td>Cambia de pastilla. <code>Espacio</code> la aplica</td></tr>
+<tr><td><code>&larr;&uarr;&rarr;&darr;</code></td><td>dentro de la rejilla</td><td>Se mueve de tarjeta en tarjeta, en dos dimensiones</td></tr>
+<tr><td><code>Intro</code></td><td>sobre una tarjeta</td><td>Abre el documento</td></tr>
+<tr><td><code>S</code> / <code>N</code></td><td>sobre una tarjeta</td><td>«Sí, completa» / «No está completa» <b>sin salir de la rejilla</b>. Es el gesto que más se repite: 17 documentos son 17 pulsaciones</td></tr>
+<tr><td><code>A</code></td><td>sobre una tarjeta</td><td>Abre el desplegable de asignar</td></tr>
+<tr><td><code>Alt+1</code>&hellip;<code>Alt+5</code></td><td>la ventana</td><td>Cambia de sección</td></tr>
+<tr><td><code>Esc</code></td><td>la ventana</td><td>Quita el filtro puesto y vuelve a «Todo»</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Control / qué hace de verdad &middot; y qué dice la pantalla después</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Control</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>Pastilla «Todo»</td><td>Quita el filtro</td><td>17 tarjetas. La pastilla queda tinta sobre blanco (16,91:1) y las otras cuatro vuelven a papel</td></tr>
+<tr><td>Pastilla «Sin revisar»</td><td>Deja las de <code>estado_recomendacion IS NULL</code></td><td>9 tarjetas, todas con borde gris. La cabecera pasa a decir «9 de 17 documentos»</td></tr>
+<tr><td>Pastilla «Incompletas»</td><td>Deja las marcadas «no está completa»</td><td>4 tarjetas, todas con fondo rojo claro</td></tr>
+<tr><td>Pastilla «Completas»</td><td>Deja las marcadas «completa»</td><td>4 tarjetas, todas con borde verde</td></tr>
+<tr><td>Pastilla «Sin asignar»</td><td>Deja las que no tienen asignación viva</td><td>5 tarjetas, todas con el desplegable diciendo «Sin asignar». <b>Se cruza con los otros filtros</b>: es un filtro aparte, no excluyente</td></tr>
+<tr><td>Buscador</td><td>Filtra por caso, unidad o cédula</td><td>Pendiente del frontend real. Diseñado: la rejilla se reduce y la cabecera dice «3 de 17»; si no casa nada, un estado vacío con «no hay ningún documento que case con &lt;lo escrito&gt;» y un botón «Quitar la búsqueda»</td></tr>
+<tr><td>«Sí, completa»</td><td>Marca el documento como completa, con la firma de Miguel</td><td>El botón se rellena de verde con texto blanco (6,28:1), el borde de la tarjeta pasa a verde, la marca de arriba dice «completa», y abajo aparece «Lo marcó Miguel el &lt;fecha&gt;». Los contadores de las pastillas cambian: Completas +1, Sin revisar &minus;1</td></tr>
+<tr><td>«No está completa»</td><td>Marca el documento como no completa</td><td>Igual, en rojo, y la tarjeta se tiñe de rojo claro. Volver a pulsar el mismo botón <b>no</b> lo desmarca: para eso está «Deshacer» en la pantalla del documento</td></tr>
+<tr><td>Los dos botones en una tarjeta archivada</td><td>Nada</td><td>Van con borde discontinuo y el texto en #5B6470 (5,02:1, se lee). Al pulsarlos, un aviso de una línea: «archivado el 9 sep &mdash; desarchívalo para cambiarlo». <b>Siguen tomando el foco a propósito</b>, que es la única forma de llegar con <code>Tab</code> y leer por qué no se puede</td></tr>
+<tr><td>Desplegable de asignar</td><td>Asigna el documento a un agente</td><td>Pendiente del frontend real. Diseñado: el desplegable pasa a decir el nombre y el texto sube de #46505C a #1A1D21; el contador «Sin asignar» baja</td></tr>
+<tr><td>Tarjeta entera (clic o <code>Intro</code>)</td><td>Abre el documento</td><td>Pendiente del frontend real</td></tr>
+<tr><td>Franja «ver» / «&times;»</td><td>Despliega dentro de su caja / la cierra</td><td>Lo mismo que en el Panel: alto máximo, desplaza dentro, y al cerrar deja la campana con el número en la cabecera</td></tr>
+<tr><td>«Cargar formularios» · «Repartir&hellip;» · «Informe (PDF)» · «Bajar la base en Excel»</td><td>Las mismas cuatro acciones del Panel</td><td>Pendiente del frontend real. Están aquí <b>además</b> de en el Panel porque es donde Miguel está cuando las necesita</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Qué se copia del viejo, qué se mejora</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Del viejo</th><th>Decisión</th><th>Motivo</th></tr></thead>
+<tbody>
+<tr><td>Una tarjeta por documento</td><td><b>Se copia la función</b></td><td>Es la unidad de trabajo del dueño</td></tr>
+<tr><td>«Sí, completa» / «No está completa»</td><td><b>Se copian, con sus palabras</b></td><td>Son las palabras del dueño, no las mías</td></tr>
+<tr><td>Los cinco filtros</td><td><b>Se copian</b>, con la cuenta dentro de cada pastilla</td><td>El viejo ponía la cuenta suelta al lado; dentro de la pastilla se lee sin buscarla</td></tr>
+<tr><td>Desplegable «Sin asignar»</td><td><b>Se copia</b></td><td>Igual</td></tr>
+<tr><td>El nombre del archivo como título de la tarjeta</td><td><b>Se cambia</b>: manda el <b>número de caso</b>, el archivo va debajo</td><td>El número es lo que el dueño dice en voz alta y lo que sale en el Excel y en el PDF del paquete. El nombre del archivo miente (medido el 2026-09-02)</td></tr>
+<tr><td>«Aplicar reglas», «Copias limpias», «Vaciar todo»</td><td><b>No se traen</b></td><td>No están en ARQUITECTURA ni en DECISIONES. Inventar aquí lo que hacen sería inventar alcance. <b>Van a la lista de abajo, para que lo decida el dueño</b></td></tr>
+<tr><td>Estado sin firma visible</td><td><b>Se mejora</b>: quién lo marcó y cuándo, en la tarjeta</td><td>Regla permanente 5: el sistema propone, Miguel confirma &mdash; y se ve que fue él</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Lo que esta pantalla necesita y hoy NO existe</h3>
+<p>Medido sobre el esquema que construye el código (versión 13), no sobre el documento.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Lo que la pantalla enseña</th><th>Estado real</th><th>Qué falta</th></tr></thead>
+<tbody>
+<tr><td>Marca «completa»</td><td><code>datos/estados.py</code>: <code>ESTADOS_RECOMENDACION = ("no_indicada","incompleta")</code>, <code>ESTADOS_QUE_RESUELVEN = ()</code></td><td><b>El valor <code>completa</code> no existe.</b> Sin él, el botón «Sí, completa» no tiene qué guardar y el filtro «Completas» devuelve siempre 0</td></tr>
+<tr><td>«Lo marcó Miguel el 2 sep, 09:14»</td><td><code>casos</code> no tiene <code>estado_marcado_por</code> ni <code>estado_marcado_en</code>. <code>procedencia_campo</code> sí guarda <code>verificado_por</code> / <code>verificado_en</code>, pero por <b>campo</b></td><td><b>Decisión del dueño:</b> o dos columnas nuevas en <code>casos</code>, o una fila de <code>procedencia_campo</code> con <code>campo='estado_recomendacion'</code>. La segunda no añade columnas; la primera se consulta más barato. <b>No la tomo yo</b></td></tr>
+<tr><td>«duplicado de &lt;caso&gt;»</td><td><code>casos.duplicado_de</code> existe (migración 13)</td><td>Nada. Sólo el texto: hoy la columna apunta a un <code>casos.id</code>, y la tarjeta necesita además su número y sus hojas &mdash; se saca con un <code>JOIN</code>, sin columnas nuevas</td></tr>
+<tr><td>«N por comprobar»</td><td><code>procedencia_campo.verificado</code> existe</td><td>Nada</td></tr>
+<tr><td>«hojas 1&ndash;2» en la tarjeta</td><td><code>casos.pagina_pdf</code> guarda <b>la hoja que abrió el caso</b>; <code>personas.pagina_pdf</code> la de cada persona</td><td>El rango «1&ndash;2» se deriva del mínimo y el máximo de las dos. No hace falta columna, pero <b>hay que decirlo</b>: no existe una columna con el rango</td></tr>
+<tr><td>Filtro «Sin asignar»</td><td><code>asignaciones.activa</code> existe</td><td>Nada. ⚠️ Con dos agentes vivos sobre el mismo caso (el motor lo permite hoy), «Sin asignar» es correcto pero la suma por agente no cuadra. Es la pregunta abierta sobre si un caso puede llevarlo más de un compañero</td></tr>
+<tr><td>«Aplicar reglas» y «Copias limpias» del viejo</td><td>No existen en ningún documento del proyecto nuevo</td><td><b>Pregunta al dueño:</b> ¿qué hacen y hacen falta? No los dibujo hasta que lo diga</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Requisitos para el constructor</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Requisito</th><th>Por qué</th></tr></thead>
+<tbody>
+<tr><td>La rejilla se desplaza con <code>&lt;MouseWheel&gt;</code> <b>y</b> <code>&lt;TouchpadScroll&gt;</code>, acumulando el delta en píxeles</td><td>Tk 9 separa los dos eventos; <code>grep -rn TouchpadScroll interfaz/</code> &rarr; 0 líneas. <b>No comprobado con un trackpad</b></td></tr>
+<tr><td>Con 100 tarjetas, la rejilla dibuja <b>sólo lo visible</b></td><td>Cien <code>Frame</code> con sus hijos es lo que hace que una pantalla de Tk se sienta «tosca». Con 17 no se nota; con la carpeta entera del dueño, sí</td></tr>
+<tr><td>Cambiar de filtro <b>no</b> reconstruye las tarjetas: las oculta y las enseña</td><td>Igual</td></tr>
+<tr><td>Marcar «completa» actualiza <b>esa</b> tarjeta y los cinco contadores, no la rejilla entera</td><td>Igual</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Contraste medido</h3>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Par</th><th>Colores</th><th>Medido</th></tr></thead>
+<tbody>
+<tr><td>«Sí, completa» pulsado</td><td>#FFFFFF / #1B6E3C</td><td>6,28:1</td></tr>
+<tr><td>«No está completa» pulsado</td><td>#FFFFFF / #B3261E</td><td>6,54:1</td></tr>
+<tr><td>«Sí, completa» sin pulsar</td><td>#1B6E3C / #FFFFFF</td><td>6,28:1</td></tr>
+<tr><td>Marca «duplicado de»</td><td>#0F2C57 / #E4EEFB</td><td>11,80:1</td></tr>
+<tr><td>Borde azul de la marca</td><td>#1B4F9C / #E4EEFB</td><td>6,78:1</td></tr>
+<tr><td>«sin número de caso» en ámbar</td><td>#8A5B00 / #FFFFFF</td><td>5,87:1</td></tr>
+<tr><td>Tarjeta roja: texto sobre su fondo</td><td>#1A1D21 / #FDE7E7</td><td>14,30:1</td></tr>
+<tr><td>Botón inactivo de la tarjeta archivada</td><td>#5B6470 / #E9EBEF</td><td>5,02:1</td></tr>
+<tr><td>Pastilla de filtro marcada</td><td>#FFFFFF / #1A1D21</td><td>16,91:1</td></tr>
+<tr><td>Anillo de foco sobre papel / rojo claro / azul claro</td><td>#1A1D21 sobre cada uno</td><td>16,91 · 14,30 · 14,43:1</td></tr>
+<tr><td>Anillo de foco sobre verde y rojo sólidos</td><td>#FFFFFF sobre #1B6E3C y #B3261E</td><td>6,28 · 6,54:1</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+</div>
+</body>
+</html>

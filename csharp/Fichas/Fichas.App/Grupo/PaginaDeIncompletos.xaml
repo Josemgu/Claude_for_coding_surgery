@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<cascara:PaginaDeFichas
+    x:Class="Fichas.App.Grupo.PaginaDeIncompletos"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:grupo="using:Fichas.App.Grupo"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <cascara:PaginaDeFichas.Resources>
+
+        <x:Double x:Key="AltoDeLaLista">520</x:Double>
+
+        <!--
+            Lo que se pulsa es un BOTON, aunque no lo parezca. El motivo entero esta escrito
+            en Inicio/PaginaDeInicio.xaml, donde nacio: un Border se puede pulsar con el
+            raton y con nada mas —ni teclado, ni lector de pantalla, ni una comprobacion
+            automatica—, porque no tiene patron de invocacion.
+        -->
+        <Style x:Key="LoQueSePulsa" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+        </Style>
+
+        <!--
+            UN solo renglon para las dos cosas de la lista: la cabecera de una fecha y un
+            documento. La lista va aplanada por lo mismo que la del grupo: un repetidor
+            dentro de otro no virtualiza, y con 3 000 documentos construiria cientos de
+            renglones de golpe.
+        -->
+        <DataTemplate x:Key="RenglonDeLoIncompletoPlantilla" x:DataType="grupo:RenglonDeLoIncompleto">
+            <Grid Background="Transparent">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!--  ···· la cabecera de una fecha de viaje ····  -->
+                <Border
+                    Grid.Row="0"
+                    Margin="0,8,0,2"
+                    Padding="10,6"
+                    Background="{x:Bind grupo:PinturaDelGrupo.PanelHondo, Mode=OneTime}"
+                    BorderBrush="{x:Bind grupo:PinturaDelGrupo.Linea, Mode=OneTime}"
+                    BorderThickness="0,0,0,1"
+                    Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(EsCabecera), Mode=OneTime}">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock
+                                FontSize="13"
+                                FontWeight="Bold"
+                                Foreground="{x:Bind grupo:PinturaDelGrupo.TintaDelDetalle(EsVencido), Mode=OneTime}"
+                                Text="{x:Bind Titulo, Mode=OneTime}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                FontSize="11.5"
+                                Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                                Text="{x:Bind Detalle, Mode=OneTime}"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <Button
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Click="AlPedirElGrupoDeEseDia"
+                            Content="Ver el grupo de ese día"
+                            FontSize="12"
+                            Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(SePuedeAbrirElGrupo), Mode=OneTime}" />
+                    </Grid>
+                </Border>
+
+                <!--  ···· un documento sin completar ····  -->
+                <Button
+                    Grid.Row="1"
+                    AutomationProperties.Name="{x:Bind ParaElLector, Mode=OneTime}"
+                    Click="AlPulsarUnDocumento"
+                    Style="{StaticResource LoQueSePulsa}"
+                    Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(EsUnDocumento), Mode=OneTime}">
+                <Grid Padding="10,5" ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="86" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="12.5"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaDelDetalle(EsVencido), Mode=OneTime}"
+                        Text="{x:Bind CuandoViaja, Mode=OneTime}" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock
+                            FontFamily="Consolas"
+                            FontSize="12.5"
+                            FontWeight="SemiBold"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}"
+                            Text="{x:Bind Titulo, Mode=OneTime}" />
+                        <TextBlock
+                            FontSize="11.5"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                            Text="{x:Bind Detalle, Mode=OneTime}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Grid>
+                </Button>
+            </Grid>
+        </DataTemplate>
+    </cascara:PaginaDeFichas.Resources>
+
+    <ScrollView
+        x:Name="_desplazamientoDeLaPantalla"
+        Background="{x:Bind grupo:PinturaDelGrupo.Panel, Mode=OneTime}"
+        ContentOrientation="Vertical"
+        HorizontalScrollBarVisibility="Auto"
+        VerticalScrollBarVisibility="Auto">
+
+        <Grid
+            MinWidth="{StaticResource AnchoMinimoDeContenido}"
+            Margin="{StaticResource MargenDePantalla}"
+            RowSpacing="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Button
+                    x:Name="_volver"
+                    VerticalAlignment="Top"
+                    Click="AlPedirVolver"
+                    Content="&#x2039; Volver al inicio"
+                    FontSize="12.5" />
+
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock
+                        FontSize="18"
+                        FontWeight="SemiBold"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}"
+                        Text="Lo que no está completo" />
+                    <TextBlock
+                        x:Name="_denominador"
+                        FontSize="12"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.Apagado, Mode=OneTime}" />
+                    <TextBlock
+                        FontSize="12"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                        Text="Por grupo de fechas, y lo que viaja antes arriba. Los archivados no salen aquí ni en ninguna otra pantalla: se ven en Revisar, con «Ver los archivados», y siguen contando en los reportes." />
+                </StackPanel>
+            </Grid>
+
+            <Border
+                Grid.Row="1"
+                Background="{x:Bind grupo:PinturaDelGrupo.Papel, Mode=OneTime}"
+                BorderBrush="{x:Bind grupo:PinturaDelGrupo.Linea, Mode=OneTime}"
+                BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        Grid.Row="0"
+                        Padding="12,7"
+                        Background="{x:Bind grupo:PinturaDelGrupo.CabeceraRoja, Mode=OneTime}"
+                        BorderBrush="{x:Bind grupo:PinturaDelGrupo.CabeceraRojaOscura, Mode=OneTime}"
+                        BorderThickness="0,0,0,1">
+                        <TextBlock
+                            FontSize="13"
+                            FontWeight="Bold"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.TintaDeCabecera, Mode=OneTime}"
+                            Text="Sin completar · pulse un documento para corregirlo" />
+                    </Border>
+
+                    <TextBlock
+                        x:Name="_noQuedaNada"
+                        Grid.Row="1"
+                        Margin="12,10"
+                        FontSize="12.5"
+                        Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                        Text="No queda ningún documento sin completar."
+                        Visibility="Collapsed" />
+
+                    <ScrollView
+                        x:Name="_lista"
+                        Grid.Row="2"
+                        MaxHeight="{StaticResource AltoDeLaLista}"
+                        Margin="4,4,4,8"
+                        ContentOrientation="Vertical"
+                        VerticalScrollBarVisibility="Visible">
+                        <ItemsRepeater x:Name="_renglones" ItemTemplate="{StaticResource RenglonDeLoIncompletoPlantilla}" />
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+    </ScrollView>
+</cascara:PaginaDeFichas>

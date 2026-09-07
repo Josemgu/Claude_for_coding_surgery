@@ -1,0 +1,386 @@
+using System.Globalization;
+using ClosedXML.Excel;
+
+namespace Fichas.Paquetes;
+
+/// <summary>Una fila de la hoja «Por verificar»: una persona con lo que la hoja pide.</summary>
+/// <remarks>
+/// ⚠️ Aqui vivian <c>FechaSolicitud</c> y <c>Estaca</c>, y salian a nulo SIEMPRE porque la base
+/// no las guarda —el dueno dijo «solo debe leer los campos que yo necesito» y esos dos no
+/// estaban en su lista (DECISIONES.md, 2026-09-03)—. Se escribian igual, con
+/// <see cref="Columnas.SinDato"/>, por fidelidad a la hoja que el aprobo. El 2026-09-06 las
+/// quito de la hoja —«son informaciones que no me pide verificar»— y con ellas se fueron estas
+/// dos propiedades: una fila no lleva un dato que ninguna columna imprime.
+/// </remarks>
+public sealed record FilaDeTrabajo
+{
+    /// <summary>El numero del caso al que pertenece la persona.</summary>
+    public string? NumeroCaso { get; init; }
+
+    /// <summary>La fecha del viaje al templo, ISO-8601.</summary>
+    public string? FechaViaje { get; init; }
+
+    /// <summary>El templo; no va en la tabla, va en la cabecera de la hoja.</summary>
+    public string? Templo { get; init; }
+
+    /// <summary>El barrio o rama, con su numero entre parentesis cuando lo hay.</summary>
+    public string? UnidadNombre { get; init; }
+
+    /// <summary>El nombre de la persona tal como se leyo o se corrigio.</summary>
+    public string? Nombre { get; init; }
+
+    /// <summary>La cedula de miembro. Puede terminar en letra y no se toca.</summary>
+    public string? Mrn { get; init; }
+
+    /// <summary>A que va al templo, resumido de las seis casillas del formulario.</summary>
+    public string? AQueVa { get; init; }
+
+    /// <summary>La clave de fila <c>CASO:MRN:ID</c>, a la vista en la ultima columna.</summary>
+    public string? Clave { get; init; }
+
+    /// <summary>El valor de una columna de esta fila, buscada por el nombre de la columna.</summary>
+    public string? ValorDe(string nombreDeColumna) => nombreDeColumna switch
+    {
+        "numero_caso" => NumeroCaso,
+        "fecha_viaje" => FechaViaje,
+        "unidad_nombre" => UnidadNombre,
+        "nombre" => Nombre,
+        "mrn" => Mrn,
+        "a_que_va" => AQueVa,
+        Columnas.ColumnaDeLaClave => Clave,
+        // Las siete respuestas salen SIEMPRE vacias, aunque la persona ya traiga una
+        // propuesta de una ronda anterior: lo que se le manda a un companero es lo que
+        // tiene que mirar, no lo que otro contesto.
+        _ => null,
+    };
+}
+
+/// <summary>Lo que va arriba de la tabla y es igual para todas sus filas.</summary>
+/// <param name="NumeroDeCaso">Se nombra solo cuando todas las filas son del mismo caso.</param>
+/// <param name="Templo">Se nombra solo cuando todas las filas van al mismo templo.</param>
+/// <param name="FechaDeSalida">La MAS temprana de las que traiga la hoja, ISO-8601.</param>
+/// <param name="Agente">El companero al que se le entrega.</param>
+public sealed record CabeceraDeLaHoja(string NumeroDeCaso, string Templo, string FechaDeSalida, string Agente);
+
+/// <summary>
+/// La hoja «Por verificar» que se le entrega a un companero, construida en memoria.
+/// </summary>
+/// <remarks>
+/// No toca el disco: construye el libro y lo devuelve. Escribirlo es de <see cref="Paquetes"/>.
+/// <para>
+/// Es la hoja del programa viejo, que es la que el dueno llama perfecta (DECISIONES.md,
+/// 2026-09-03). Lo que se copia de alli, y por que cada cosa: cinco filas de cabecera antes
+/// de la tabla —lo que es igual para todas las filas se dice una vez arriba—; la fecha
+/// limite sola y en rojo, una semana antes del viaje, porque si falta algo hace falta
+/// tiempo para hablar con el lider; la clave A LA VISTA en gris pequeno; y fondo en lo que
+/// rellena el companero, con menu de dos opciones.
+/// </para>
+/// <para>
+/// ⚠️ El bloqueo de una celda no hace nada por si solo en OOXML: solo surte efecto cuando
+/// la HOJA esta protegida. Por eso se hacen las dos cosas. Y NO es una barrera contra
+/// alguien que quiera saltarsela —la proteccion se quita desde el menu de Excel—: es una
+/// barrera contra el accidente de teclear encima del MRN creyendo que se corrige. La
+/// defensa de verdad esta en la vuelta: la fila cuya clave no casa no se aplica.
+/// </para>
+/// </remarks>
+public static class LibroDeTrabajo
+{
+    /// <summary>La recomendacion tiene que estar lista antes de que salga el grupo, no el mismo dia.</summary>
+    public const int DiasDeMargen = 7;
+
+    /// <summary>La tinta del titulo y de la fila de titulos.</summary>
+    public const string Tinta = "#16233A";
+
+    /// <summary>El fondo de lo que rellena el companero.</summary>
+    public const string Piel = "#FFF6DC";
+
+    /// <summary>La linea fina que separa las filas de datos.</summary>
+    public const string Linea = "#DBDAD2";
+
+    /// <summary>Solo la fecha limite.</summary>
+    public const string Rojo = "#A62E24";
+
+    /// <summary>El gris del subtitulo de templo y salida.</summary>
+    public const string GrisDelSubtitulo = "#4B5872";
+
+    /// <summary>El gris de la clave, que va a la vista pero sin robar atencion.</summary>
+    public const string GrisDeLaClave = "#8A93A5";
+
+    /// <summary>El titulo de la hoja, en la fila 1.</summary>
+    public const string Titulo = "Preparación para las ordenanzas";
+
+    /// <summary>Lo que decia la instruccion del programa viejo, letra por letra.</summary>
+    /// <remarks>Se guarda aparte para poder seguir comparandola contra la hoja del Python.</remarks>
+    public const string InstruccionDelViejo =
+        "Busca a cada persona en el sistema, entra en «Preparación para las ordenanzas» "
+        + "y marca Sí o No en cada paso, tal como lo veas. Si algo no está completo, llama "
+        + "al líder de su barrio y ayúdalo a terminarlo.";
+
+    /// <summary>
+    /// Lo que se anadio el 2026-09-05: donde decir que NO se pudo.
+    /// </summary>
+    /// <remarks>
+    /// Sin esta frase las dos columnas nuevas estaban en la hoja pero nadie las nombraba, y
+    /// una casilla que no se explica se queda vacia. Es la mitad que le faltaba a la
+    /// instruccion vieja: decia que hacer cuando se consigue, y no decia nada de cuando no.
+    /// </remarks>
+    public const string InstruccionDeCuandoNoSePudo =
+        " Si no lo conseguiste, dilo en «" + MotivosDeLaHoja.RotuloDelMotivo + "» y cuenta "
+        + "lo que pasó en «" + MotivosDeLaHoja.RotuloDelComentario + "»: eso es lo que "
+        + "vuelve al sistema.";
+
+    /// <summary>La instruccion de la fila 5, que la lee una persona que no es Miguel.</summary>
+    public const string Instruccion = InstruccionDelViejo + InstruccionDeCuandoNoSePudo;
+
+    /// <summary>Lo que se escribe cuando la hoja no dice a quien va.</summary>
+    public const string SinAgente = "sin asignar";
+
+    private const string FormatoDeFecha = "yyyy-MM-dd";
+    private const string FormatoQueSeLee = "dd-MM-yyyy";
+    private const string FormatoDeTexto = "@";
+
+    /// <summary>Como se escribe una fecha en la celda; es el que estampa openpyxl.</summary>
+    private const string FormatoDeFechaEnExcel = "yyyy-mm-dd";
+
+    private const int TamanoDelTitulo = 14;
+    private const int TamanoDeLaClave = 8;
+    private const double AltoDeLaInstruccion = 30;
+    private const double AltoDeLaCabecera = 32;
+
+    /// <summary>Una fecha ISO escrita como la lee una persona, o vacio si no se puede.</summary>
+    public static string FechaLegible(string? iso)
+        => DateTime.TryParseExact(iso, FormatoDeFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out var fecha)
+            ? fecha.ToString(FormatoQueSeLee, CultureInfo.InvariantCulture)
+            : string.Empty;
+
+    /// <summary>
+    /// Una semana antes del viaje, escrita como la lee una persona; vacio si la fecha de
+    /// salida no se puede leer. No se inventa un margen sobre una fecha que no se entiende:
+    /// una fecha limite falsa es peor que ninguna, porque el companero se organiza contra ella.
+    /// </summary>
+    public static string FechaLimite(string? fechaDeSalida)
+        => DateTime.TryParseExact(fechaDeSalida, FormatoDeFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out var salida)
+            ? salida.AddDays(-DiasDeMargen).ToString(FormatoQueSeLee, CultureInfo.InvariantCulture)
+            : string.Empty;
+
+    /// <summary>
+    /// Lo que va arriba de la tabla, sacado de las propias filas.
+    /// </summary>
+    /// <remarks>
+    /// El caso se nombra solo cuando todas las filas son del mismo: un titulo que dice un
+    /// caso concreto sobre una hoja que lleva tres es peor que un titulo generico. Y la
+    /// fecha de salida es la MAS temprana, porque una fecha limite calculada sobre el ultimo
+    /// dejaria pasar sin aviso al grupo que sale antes.
+    /// </remarks>
+    public static CabeceraDeLaHoja CabeceraDe(IReadOnlyList<FilaDeTrabajo> filas, string agente)
+    {
+        var casos = filas.Select(f => f.NumeroCaso).Where(v => !string.IsNullOrEmpty(v)).Distinct().ToArray();
+        var templos = filas.Select(f => f.Templo).Where(v => !string.IsNullOrEmpty(v)).Distinct().ToArray();
+        var salidas = filas.Select(f => f.FechaViaje).Where(v => !string.IsNullOrEmpty(v)).OrderBy(v => v, StringComparer.Ordinal).ToArray();
+        return new CabeceraDeLaHoja(
+            casos.Length == 1 ? casos[0]! : string.Empty,
+            templos.Length == 1 ? templos[0]! : string.Empty,
+            salidas.Length > 0 ? salidas[0]! : string.Empty,
+            agente ?? string.Empty);
+    }
+
+    /// <summary>El libro que se le entrega al companero. Quien lo recibe lo cierra.</summary>
+    public static XLWorkbook Construir(IReadOnlyList<FilaDeTrabajo> filas, string agente, CabeceraDeLaHoja? cabecera = null)
+    {
+        var libro = new XLWorkbook();
+        var hoja = libro.AddWorksheet(Columnas.NombreDeLaHoja);
+
+        EscribirLasCincoLineas(hoja, cabecera ?? CabeceraDe(filas, agente));
+        EscribirLosTitulos(hoja);
+        var ultimaFila = EscribirLasFilas(hoja, filas);
+        PonerLosMenus(hoja, ultimaFila);
+        EnsancharLasColumnas(hoja);
+
+        hoja.SheetView.FreezeRows(Columnas.FilaDeLaCabecera);
+        // La proteccion va DESPUES de escribirlo todo: es lo que activa los bloqueos de
+        // celda de arriba. Sin esta linea, marcar una celda como bloqueada no impide nada.
+        hoja.Protect();
+        return libro;
+    }
+
+    private static void EscribirLasCincoLineas(IXLWorksheet hoja, CabeceraDeLaHoja cabecera)
+    {
+        var titulo = Titulo + (cabecera.NumeroDeCaso.Length > 0 ? $" · {cabecera.NumeroDeCaso}" : string.Empty);
+        var celdaDelTitulo = hoja.Cell(1, 1);
+        celdaDelTitulo.Value = titulo;
+        celdaDelTitulo.Style.Font.Bold = true;
+        celdaDelTitulo.Style.Font.FontSize = TamanoDelTitulo;
+        celdaDelTitulo.Style.Font.FontColor = XLColor.FromHtml(Tinta);
+
+        // La linea del templo se arma juntando solo los trozos que existen: sin templo
+        // guardado sale «Sale el ...» a secas, en vez de «Templo:  · Sale el ...», que
+        // parece un dato que se perdio.
+        var trozos = new List<string>();
+        if (cabecera.Templo.Length > 0) trozos.Add($"Templo: {cabecera.Templo}");
+        var salidaLegible = FechaLegible(cabecera.FechaDeSalida);
+        if (salidaLegible.Length > 0) trozos.Add($"Sale el {salidaLegible}");
+        var celdaDelTemplo = hoja.Cell(2, 1);
+        celdaDelTemplo.Value = string.Join(" · ", trozos);
+        celdaDelTemplo.Style.Font.FontColor = XLColor.FromHtml(GrisDelSubtitulo);
+
+        // La fila 3 se escribe SOLO si la fecha limite se puede calcular. Es preferible a
+        // «Todo verificado antes del » sin fecha detras, que no dice nada y ocupa el sitio.
+        var limite = FechaLimite(cabecera.FechaDeSalida);
+        if (limite.Length > 0)
+        {
+            var celdaDelLimite = hoja.Cell(3, 1);
+            celdaDelLimite.Value = $"Todo verificado antes del {limite}";
+            celdaDelLimite.Style.Font.Bold = true;
+            celdaDelLimite.Style.Font.FontColor = XLColor.FromHtml(Rojo);
+        }
+
+        var celdaDelAgente = hoja.Cell(4, 1);
+        celdaDelAgente.Value = $"Agente: {(cabecera.Agente.Length > 0 ? cabecera.Agente : SinAgente)}";
+        celdaDelAgente.Style.Font.Bold = true;
+        celdaDelAgente.Style.Font.FontColor = XLColor.FromHtml(Tinta);
+
+        var celdaDeLaInstruccion = hoja.Cell(5, 1);
+        celdaDeLaInstruccion.Value = Instruccion;
+        celdaDeLaInstruccion.Style.Alignment.WrapText = true;
+        celdaDeLaInstruccion.Style.Alignment.Vertical = XLAlignmentVerticalValues.Top;
+        hoja.Row(5).Height = AltoDeLaInstruccion;
+    }
+
+    private static void EscribirLosTitulos(IXLWorksheet hoja)
+    {
+        var titulos = Columnas.Titulos();
+        for (var numero = 1; numero <= titulos.Count; numero++)
+        {
+            var celda = hoja.Cell(Columnas.FilaDeLaCabecera, numero);
+            celda.Value = titulos[numero - 1];
+            celda.Style.Font.Bold = true;
+            celda.Style.Font.FontColor = XLColor.White;
+            celda.Style.Fill.BackgroundColor = XLColor.FromHtml(Tinta);
+            celda.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+            celda.Style.Alignment.WrapText = true;
+            celda.Style.Protection.Locked = true;
+        }
+        hoja.Row(Columnas.FilaDeLaCabecera).Height = AltoDeLaCabecera;
+    }
+
+    /// <summary>Escribe las filas y devuelve el numero de la ultima; la cabecera si no hay ninguna.</summary>
+    private static int EscribirLasFilas(IXLWorksheet hoja, IReadOnlyList<FilaDeTrabajo> filas)
+    {
+        var numeroDeFila = Columnas.FilaDeLaCabecera;
+        for (var indice = 0; indice < filas.Count; indice++)
+        {
+            numeroDeFila = Columnas.PrimeraFilaDeDatos + indice;
+            for (var numeroDeColumna = 1; numeroDeColumna <= Columnas.Todas.Count; numeroDeColumna++)
+            {
+                var columna = Columnas.Todas[numeroDeColumna - 1];
+                var valor = filas[indice].ValorDe(columna.Nombre);
+                // Lo que el programa no sabe se dice con palabras y no con un hueco. Un hueco
+                // lo lee el companero como «esto lo relleno yo», y las unicas celdas que
+                // rellena el son las de fondo amarillo.
+                if (valor is null && !columna.EsRespuesta)
+                    valor = Columnas.SinDato;
+                EscribirCelda(hoja, numeroDeFila, numeroDeColumna, columna, valor);
+            }
+        }
+        return numeroDeFila;
+    }
+
+    private static void EscribirCelda(IXLWorksheet hoja, int fila, int numeroDeColumna, ColumnaDeLaHoja columna, string? valor)
+    {
+        var celda = hoja.Cell(fila, numeroDeColumna);
+        PonerElValor(celda, columna, valor);
+
+        if (columna.Clase == ClaseDeColumna.Texto)
+            celda.Style.NumberFormat.Format = FormatoDeTexto;
+        // El formato de fecha se escribe a mano y no se deja al que la biblioteca ponga sola:
+        // openpyxl estampa `yyyy-mm-dd` y ClosedXML no estampa ninguno, y entonces la fecha se
+        // ve segun la configuracion regional de la maquina del companero. Medido comparando la
+        // hoja del Python con la del C#: es la unica diferencia de formato que salio.
+        if (columna.Clase == ClaseDeColumna.Temporal && celda.DataType == XLDataType.DateTime)
+            celda.Style.NumberFormat.Format = FormatoDeFechaEnExcel;
+        celda.Style.Protection.Locked = !columna.EsEditable;
+        celda.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
+        celda.Style.Border.BottomBorderColor = XLColor.FromHtml(Linea);
+        if (columna.EsRespuesta)
+            celda.Style.Fill.BackgroundColor = XLColor.FromHtml(Piel);
+        if (columna.Nombre == Columnas.ColumnaDeLaClave)
+        {
+            celda.Style.Font.FontSize = TamanoDeLaClave;
+            celda.Style.Font.FontColor = XLColor.FromHtml(GrisDeLaClave);
+        }
+    }
+
+    /// <summary>
+    /// Mete el valor en la celda segun la clase de su columna.
+    /// </summary>
+    /// <remarks>
+    /// Una fecha que no se puede leer se deja tal cual: no se adivina ni se descarta. La
+    /// regla permanente 1 prohibe inventar un dato, y una fecha inventada en el papel que
+    /// lleva un companero es peor que una fecha fea.
+    /// <para>
+    /// Todo lo demas entra con <c>SetValue(string)</c> y NO con <c>Value =</c>: lo segundo
+    /// deja que ClosedXML adivine el tipo, y un nombre leido por OCR que empiece por «=» se
+    /// convertiria en formula. Un nombre no es una formula.
+    /// </para>
+    /// </remarks>
+    private static void PonerElValor(IXLCell celda, ColumnaDeLaHoja columna, string? valor)
+    {
+        if (valor is null)
+            return;
+        if (columna.Clase == ClaseDeColumna.Temporal
+            && DateTime.TryParseExact(valor, FormatoDeFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out var fecha))
+        {
+            celda.Value = fecha;
+            return;
+        }
+        celda.SetValue(valor);
+    }
+
+    /// <summary>
+    /// Un menu en cada columna que lo tiene: uno por columna y no uno compartido, para que
+    /// el archivo se pueda mirar por dentro cuando una columna deje de ofrecerlo.
+    /// </summary>
+    /// <remarks>
+    /// El menu NO rechaza lo que se escriba a mano, y es a proposito: es una ayuda, no una
+    /// reja. Lo sostiene la vuelta, que lee una respuesta escrita a mano igual y avisa con
+    /// su numero de fila si no la entiende. Bloquear la celda obligaria al companero a
+    /// dejarla vacia cuando la realidad no cabe en dos opciones, y una celda vacia es peor:
+    /// no distingue «no aplica» de «no lo mire».
+    /// <para>
+    /// El comentario NO lleva menu, y esa es toda la diferencia entre las dos columnas
+    /// nuevas: el motivo es una de tres cosas que el dueno nombro, y el comentario es lo
+    /// que no cabe en ninguna lista.
+    /// </para>
+    /// </remarks>
+    private static void PonerLosMenus(IXLWorksheet hoja, int ultimaFila)
+    {
+        if (ultimaFila < Columnas.PrimeraFilaDeDatos)
+            return;
+
+        for (var numero = 1; numero <= Columnas.Todas.Count; numero++)
+        {
+            var lista = ListaDelMenu(Columnas.Todas[numero - 1].Respuesta);
+            if (lista is null)
+                continue;
+            var validacion = hoja.Range(Columnas.PrimeraFilaDeDatos, numero, ultimaFila, numero).CreateDataValidation();
+            validacion.List(lista, inCellDropdown: true);
+            validacion.IgnoreBlanks = true;
+            validacion.ShowErrorMessage = false;
+        }
+    }
+
+    /// <summary>La formula del menu de esa clase de respuesta, o nulo si no lleva menu.</summary>
+    private static string? ListaDelMenu(ClaseDeRespuesta respuesta) => respuesta switch
+    {
+        ClaseDeRespuesta.SiONo => "\"" + string.Join(",", Pasos.Respuestas) + "\"",
+        ClaseDeRespuesta.Motivo => "\"" + string.Join(",", MotivosDeLaHoja.Opciones) + "\"",
+        _ => null,
+    };
+
+    /// <summary>Deja cada columna con el ancho de su contenido. Un MRN estrecho sale «#####».</summary>
+    private static void EnsancharLasColumnas(IXLWorksheet hoja)
+    {
+        for (var numero = 1; numero <= Columnas.Todas.Count; numero++)
+            hoja.Column(numero).Width = Columnas.AnchoDe(Columnas.Todas[numero - 1].Nombre);
+    }
+}

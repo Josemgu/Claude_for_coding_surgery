@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Los reportes en PDF para los jefes y el historico.
+       Terreno de un solo programador: nadie mas escribe aqui (EN-CURSO.md, ciclo 7).
+
+       ⚠️ NINGUN PackageReference, y es una decision medida, no un olvido:
+       el motor de PDF esta portado a mano desde reportes/formato_pdf.py del Python
+       (dos operadores crudos, «re f» y «l S»), que es lo que manda el criterio C8-4
+       de PENDIENTES.md. Ver Formato/EscritorDePdf.cs para el porque y la medida. -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Reportes</RootNamespace>
+    <AssemblyName>Fichas.Reportes</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+  </ItemGroup>
+
+</Project>

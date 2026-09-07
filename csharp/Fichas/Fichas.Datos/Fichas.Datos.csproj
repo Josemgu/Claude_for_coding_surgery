@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- La base SQLite: esquema version 15, migraciones y repositorios.
+       Terreno de un solo programador: nadie mas escribe aqui (EN-CURSO.md, ciclo 7).
+
+       ⚠️ El pase encargaba «esquema version 14». Medido sobre el Python de este
+       mismo arbol el 2026-09-04: `datos.esquema.VERSION_ACTUAL` vale 15 y
+       `MIGRACIONES` declara [2..15]. La 15 es justo el cambio que el pase pide por
+       separado —la cedula que puede terminar en letra—, asi que «version 14» y «el
+       MRN acepta letra» no se pueden cumplir a la vez. Manda el codigo
+       (CLAUDE.md §8) y esto llega a la 15. Queda dicho en la entrega. -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Datos</RootNamespace>
+    <AssemblyName>Fichas.Datos</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- El proveedor oficial de SQLite para .NET. Trae el motor nativo dentro
+         (SQLitePCLRaw), que es lo que permite un solo ejecutable sin instalar nada
+         en la maquina del usuario (regla permanente 2). -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+  </ItemGroup>
+
+</Project>

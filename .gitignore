@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# PyInstaller
+build/
+dist/
+*.manifest
+*.spec
+# ...menos el de la FASE 9. `fichas.spec` no es una salida del constructor: es la
+# receta escrita a mano con la que se construye el ejecutable —`--onedir`, sin
+# consola, con los `.onnx` dentro y sin el `.dll` de ffmpeg— y el criterio 1 de la
+# fase se comprueba leyendolo. Fuera del repositorio, la unica forma de rehacer el
+# paquete seria acordarse.
+!fichas.spec
+
+# Los modelos .onnx (13.7 MB) NO van al repositorio: los baja
+# descargar_modelos.py y sus tres SHA256 estan verificados contra el
+# default_models.yaml de rapidocr. El script es la fuente, no el binario.
+# Anclada a la RAIZ, y por segunda vez en dos dias por el mismo motivo: Windows no
+# distingue mayusculas, asi que sin la barra de delante esta regla se tragaba en
+# silencio CUALQUIER carpeta llamada «Modelos», y en C# hay varias. Comprobado el
+# 2026-09-05 con `git check-ignore -v --no-index`: un archivo nuevo en
+# Fichas.Contratos/Modelos/ desaparecia sin aparecer siquiera en `git status`.
+/modelos/
+
+# Datos reales: nunca al repositorio.
+# La base y el Excel espejo viven en Documentos\Fichas, no aquí, pero si alguna
+# vez aparece una copia suelta no se sube: lleva MRN de personas de verdad.
+*.db
+*.sqlite
+*.sqlite3
+*.xlsx
+# Solo la carpeta de datos en la RAIZ del repositorio. Sin la barra de delante,
+# Windows no distingue mayusculas y esta regla se tragaba `csharp/Fichas/`
+# entera: los archivos nuevos del programa en C# desaparecian sin decir nada
+# (comprobado el 2026-09-04 con `git check-ignore -v`). Lo que protege de los
+# datos reales son las tres reglas de arriba, que valen en cualquier carpeta.
+/fichas/
+
+# Formularios escaneados. Mismo motivo: son datos personales.
+*.pdf
+
+# Windows y OneDrive
+Thumbs.db
+desktop.ini
+
+# La llave del dueño es de su máquina y de un rato: no se versiona.
+LLAVE-DEL-DUENO
+
+# Lo escribe el hook traspaso.sh al cortar la sesión, y él mismo dice que «se
+# sobrescribe en cada corte: aquí no se acumula historia». Es una foto de un
+# momento, no un documento: la del 2026-09-02 listaba dos commits cuando ya
+# había once. Quien quiera saber dónde quedamos, lee ESTADO.md.
+HANDOFF-auto.md

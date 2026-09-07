@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<cascara:PaginaDeFichas
+    x:Class="Fichas.App.Asignar.PaginaDeAsignar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:asignar="using:Fichas.App.Asignar"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        Requisito 8 del dueno: «el programa debe ser libre, no me deja asignar a los
+        agentes». La lista de casos NO depende de haber elegido companero: el desplegable
+        de arriba es el DESTINO, y los casos se leen aparte y enteros.
+    -->
+    <Grid Margin="{StaticResource MargenDePantalla}" RowSpacing="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Titulo y denominador dicho: N en la base, N ofrecidos.  -->
+        <StackPanel Grid.Row="0" Spacing="2">
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="Asignar" />
+            <TextBlock
+                x:Name="_denominador"
+                FontFamily="Consolas"
+                IsTextSelectionEnabled="True"
+                Opacity="0.85"
+                Text="" />
+        </StackPanel>
+
+        <!--  El destino, el buscador y el boton de asignar, en una sola linea.  -->
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Grid.Column="0"
+                VerticalAlignment="Center"
+                Text="Dar a" />
+
+            <ComboBox
+                x:Name="_destinos"
+                Grid.Column="1"
+                AutomationProperties.Name="Compañero al que se dan los casos"
+                HorizontalAlignment="Stretch"
+                DisplayMemberPath="Nombre"
+                PlaceholderText="elige un compañero"
+                SelectionChanged="AlCambiarDeDestino" />
+
+            <!--
+                El equipo se administra JUNTO al desplegable que lo usa: es donde el dueno
+                mira cuando le falta alguien. Abre un flyout, no un cuadro: no detiene nada.
+            -->
+            <Button
+                x:Name="_botonDeEquipo"
+                Grid.Column="2"
+                AutomationProperties.Name="Equipo"
+                Click="AlPulsarEquipo"
+                Content="Equipo…"
+                ToolTipService.ToolTip="Añadir, desactivar, reactivar o quitar compañeros" />
+
+            <TextBox
+                x:Name="_buscador"
+                Grid.Column="3"
+                PlaceholderText="Buscar caso, unidad, nombre o MRN"
+                TextChanged="AlEscribirEnElBuscador" />
+
+            <Button
+                x:Name="_botonDeAsignar"
+                Grid.Column="4"
+                Click="AlPulsarAsignar"
+                Content="Asignar los marcados"
+                Style="{ThemeResource AccentButtonStyle}" />
+
+            <Button
+                x:Name="_botonDeRetirar"
+                Grid.Column="5"
+                Click="AlPulsarRetirar"
+                Content="Retirar" />
+        </Grid>
+
+        <!--  Lo marcado y lo que se puede hacer con ello, en una linea (requisito 4).  -->
+        <TextBlock
+            x:Name="_estadoDeLaSeleccion"
+            Grid.Row="2"
+            Opacity="0.85"
+            Text="" />
+
+        <!--
+            La lista. ItemsView virtualiza y trae su propio desplazamiento con barra
+            visible: con 3 000 casos solo se construyen los renglones que se ven.
+            Seleccion multiple, y Ctrl+A marca todo lo que hay a la vista.
+        -->
+        <ItemsView
+            x:Name="_lista"
+            Grid.Row="3"
+            AutomationProperties.Name="Casos que se pueden asignar"
+            IsTabStop="True"
+            SelectionMode="Multiple">
+            <ItemsView.Layout>
+                <StackLayout Spacing="4" />
+            </ItemsView.Layout>
+            <ItemsView.ItemTemplate>
+                <DataTemplate x:DataType="asignar:RenglonParaAsignar">
+                    <ItemContainer>
+                        <!--
+                            El globo lleva a TODOS los que viajan, uno por linea. La fila dice el
+                            primero y cuantos mas, porque no se puede estirar; los diez de una
+                            familia de diez son diez tickets y no se pueden quedar dentro del
+                            documento.
+                        -->
+                        <StackPanel
+                            Padding="10,6"
+                            Spacing="1"
+                            ToolTipService.ToolTip="{x:Bind QuienesViajan}">
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Text="{x:Bind Titulo}"
+                                TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                                FontSize="12"
+                                Opacity="0.8"
+                                Text="{x:Bind Detalle}"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </ItemContainer>
+                </DataTemplate>
+            </ItemsView.ItemTemplate>
+        </ItemsView>
+    </Grid>
+</cascara:PaginaDeFichas>

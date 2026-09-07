@@ -1,0 +1,213 @@
+{
+  "_comentario": "La tabla de alcance de cada rol. La lee carril.sh. Añadir un rol es editar DATOS, no código. Cada rol declara qué escribe, qué NO escribe, qué herramientas tiene vedadas, y a quién reenvía lo que no le toca.",
+  "supervisor": {
+    "titular_de": "Coordinar · escribir el pase · VERIFICAR EL REPOSITORIO · repetir mediciones · informar al dueño",
+    "escribe": [
+      "ESTADO.md",
+      "EN-CURSO.md",
+      "DECISIONES.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static-nuevo/**",
+      "tests/**",
+      "assets-portal/**",
+      "PENDIENTES.md",
+      "docs/QUE-HACEMOS-Y-QUE-NO.md"
+    ],
+    "reenvia": {
+      "app/**": "programador",
+      "static-nuevo/**": "programador",
+      "tests/**": "programador",
+      "assets-portal/**": "diseñador",
+      "PENDIENTES.md": "planificador",
+      "docs/QUE-HACEMOS-Y-QUE-NO.md": "abogado"
+    },
+    "herramientas_exclusivas": [
+      "mcp__gbrain__*  — el cerebro es del supervisor. Lo vigila solo-supervisor-recuerda.sh"
+    ]
+  },
+  "planificador": {
+    "titular_de": "Investigar fuentes oficiales · comparar · recomendar · escribir especificaciones y criterios de aceptación · registrar deuda",
+    "escribe": [
+      "PENDIENTES.md",
+      "EN-CURSO.md",
+      "docs/fases/**"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static-nuevo/**",
+      "tests/**",
+      "assets-portal/**",
+      "ESTADO.md",
+      "DECISIONES.md"
+    ],
+    "herramientas_vedadas": [],
+    "no_hace": [
+      "Ejecutar la suite de pruebas: eso es de QA",
+      "Auditar una entrega o dictaminar APTA: eso es de QA",
+      "Levantar el estado del repositorio para informar al dueño: eso es del supervisor",
+      "Escribir código",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "si_hace": "Medir lo justo para no responder de memoria. Medir no es probar.",
+    "reenvia": {
+      "estado del repositorio": "supervisor",
+      "ejecutar pruebas": "QA",
+      "auditar": "QA",
+      "atacar": "hacker",
+      "app/**": "programador",
+      "assets-portal/**": "diseñador"
+    }
+  },
+  "disenador": {
+    "titular_de": "Mockups 100% autocontenidos · sistema de diseño · mediciones visuales con su número",
+    "escribe": [
+      "assets-portal/**",
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "tests/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/**"
+    ],
+    "no_hace": [
+      "Tocar el backend o el frontend servido",
+      "Decidir alcance: qué ventana existe lo decide el dueño",
+      "Dictaminar que su propio trabajo está APTA",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "app/**": "programador",
+      "static-nuevo/**": "programador",
+      "alcance": "el dueño",
+      "veredicto": "QA"
+    },
+    "herramientas_vedadas": []
+  },
+  "programador": {
+    "titular_de": "El código · primero la prueba, después el código · migraciones · el capítulo del libro",
+    "escribe": [
+      "app/**",
+      "static-nuevo/**",
+      "tests/**",
+      "scripts/**",
+      "alembic/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "assets-portal/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/QUE-HACEMOS-Y-QUE-NO.md"
+    ],
+    "no_hace": [
+      "Dibujar o modificar un mockup",
+      "Decidir arquitectura sin ADR: eso vuelve al planificador",
+      "Dictaminar APTA su propio trabajo",
+      "Hacer commit o push sin que el dueño lo pida",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "assets-portal/**": "diseñador",
+      "arquitectura": "planificador",
+      "veredicto": "QA",
+      "legal": "abogado"
+    },
+    "herramientas_vedadas": []
+  },
+  "qa": {
+    "caja_negra": true,
+    "titular_de": "Medir a ciegas el artefacto contra su criterio · veredicto APTA o VUELVE AL AGENTE",
+    "escribe": [
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static-nuevo/**",
+      "assets-portal/**",
+      "tests/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/**"
+    ],
+    "herramientas_vedadas": [
+      "WebSearch",
+      "WebFetch"
+    ],
+    "no_hace": [
+      "ARREGLAR lo que encuentra: quien construye es el peor juez de si funciona",
+      "Leer contexto de producto, historia del proyecto o hallazgos de vueltas anteriores",
+      "Aceptar ningún número del pase: un número leído antes de medir cambia dónde se mira",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "arreglar": "el agente que construyó",
+      "contexto": "no lo necesita: mide contra el criterio"
+    }
+  },
+  "hacker": {
+    "caja_negra": true,
+    "titular_de": "Atacar la aplicación CORRIENDO · prueba de concepto reproducible",
+    "escribe": [
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static-nuevo/**",
+      "tests/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/**"
+    ],
+    "no_hace": [
+      "Revisar el código quieto como base de su informe: su trabajo es encontrar el fallo, no confirmar que no lo hay",
+      "ARREGLAR lo que encuentra",
+      "Atacar infraestructura de terceros o los portales de empleo de los que se leen vacantes",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "arreglar": "programador",
+      "revisión de código": "QA"
+    },
+    "herramientas_vedadas": []
+  },
+  "abogado": {
+    "titular_de": "Licencias de todo lo que entra · datos personales · términos · privacidad · retención · marca",
+    "escribe": [
+      "docs/QUE-HACEMOS-Y-QUE-NO.md",
+      "docs/ABOGADO-*.md",
+      "docs/AUDITORIA-LICENCIAS.md",
+      "docs/CREDITOS.md",
+      "**/LICENSE*",
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static-nuevo/**",
+      "tests/**",
+      "assets-portal/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md"
+    ],
+    "no_hace": [
+      "Corregir el código que contradice una afirmación legal: va en su informe",
+      "Dar una conclusión con tono de dictamen sin fuente: esto es preparación, no asesoría",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "app/**": "programador",
+      "corregir anclas de código": "programador",
+      "veredicto": "QA"
+    },
+    "herramientas_vedadas": []
+  }
+}

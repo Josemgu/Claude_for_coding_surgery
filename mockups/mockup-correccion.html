@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas · Pantalla de corrección — especificación visual</title>
+<style>
+/* ==========================================================================
+   Fichas — Pantalla 1 (Corrección). ESPECIFICACIÓN VISUAL PARA tkinter.
+   Esto NO es el programa. Es el reparto del espacio, la jerarquía, los estados
+   y el recorrido del teclado, dibujados para poder discutirlos antes de que
+   nadie escriba un .py.
+   100% autocontenido: cero CDN, cero file://, cero fuentes descargadas.
+   Los ids de SVG van namespaceados con el prefijo `fc-`.
+   ========================================================================== */
+
+:root{
+  /* Superficies. Un solo tema: la ventana es de escritorio y Tk no cambia de
+     tema en caliente. No hay modo oscuro y no se finge que lo haya. */
+  --papel:        #FFFFFF;
+  --panel:        #F4F5F7;
+  --panel-hondo:  #E9EBEF;
+  --linea:        #D3D7DE;
+  --linea-fuerte: #AAB1BC;
+  --tinta:        #1A1D21;   /* 16.91:1 sobre papel · 15.50:1 sobre panel */
+  --tinta-suave:  #46505C;   /*  7.51:1 sobre panel */
+
+  /* Los CUATRO estados de origen. El color NUNCA va solo: cada uno lleva su
+     palabra en español (FASE 3, criterio 2 reescrito). */
+  --verde-fondo:  #E7F5EC;  --verde-marca:  #1B6E3C;  --verde-tinta:  #12351F;
+  --gris-marca:   #5B6470;
+  --ambar-fondo:  #FFF3C4;  --ambar-marca:  #8A5B00;  --ambar-tinta:  #3D2A00;
+  --rojo-fondo:   #FDE7E7;  --rojo-marca:   #B3261E;  --rojo-tinta:   #4A0F0B;
+
+  --foco:         #1A1D21;   /* medido: ≥12.62:1 contra TODOS los fondos de esta pantalla */
+
+  /* Escala de espaciado. Todo valor de separación sale de aquí.
+     EXCEPCIÓN DECLARADA, con su motivo: los recuadros de texto en línea
+     (`code`, `kbd`, `.motivo`, `.marca`) llevan insets de 1–3 px, por debajo de
+     --sp-1. No son espaciado: son ajuste óptico dentro de una caja de línea.
+     Subirlos a 4 px rompe el interlineado del párrafo que los contiene, que es
+     un defecto peor que el que la regla evita. Se dicen aquí en vez de
+     convertirlos a la fuerza. */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+  /* Alto de la tira de escaneo. El pase pide 40–50 px; se fija en 44. */
+  --alto-banda: 44px;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin:0;
+  background:#5C6270;
+  color:var(--tinta);
+  /* Segoe UI es lo que Tk devuelve de verdad en esta máquina: se midió
+     `tkfont.nametofont("TkDefaultFont").actual()` → family 'Segoe UI', size 9. */
+  font-family:"Segoe UI", system-ui, sans-serif;
+  font-size:14px;
+  line-height:1.45;
+}
+
+/* ---------- envoltorio de documento (no forma parte de la ventana) -------- */
+.hoja{ max-width:1360px; margin:0 auto; padding:var(--sp-6) var(--sp-5) 80px; }
+
+.aviso-doc{
+  background:#111418; color:#E8EAED; border-left:6px solid #E8B931;
+  padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-6); border-radius:2px;
+}
+.aviso-doc h1{ font-size:17px; margin:0 0 var(--sp-2); }
+.aviso-doc p{ margin:0 0 var(--sp-2); max-width:88ch; }
+.aviso-doc p:last-child{ margin-bottom:0; }
+.aviso-doc code{ background:#2A2F36; padding:1px 5px; border-radius:2px; }
+
+h2.seccion{
+  color:#FFFFFF; font-size:15px; letter-spacing:.06em; text-transform:uppercase;
+  margin:var(--sp-8) 0 var(--sp-3); font-weight:600;
+}
+
+/* ---------------------------- LA VENTANA --------------------------------- */
+.ventana{
+  width:1280px; max-width:100%; background:var(--panel);
+  border:1px solid #3A4049; border-radius:2px; overflow:hidden;
+}
+.barra-titulo{
+  background:var(--panel-hondo); border-bottom:1px solid var(--linea);
+  padding:var(--sp-2) var(--sp-4); font-size:13px; color:var(--tinta-suave);
+  display:flex; justify-content:space-between;
+}
+
+/* ---- Cabecera del caso: lo primero que se lee, y no se desplaza ---------- */
+.cabecera{
+  background:var(--papel); border-bottom:1px solid var(--linea-fuerte);
+  padding:var(--sp-4) var(--sp-5) var(--sp-3);
+}
+.cabecera-fila{ display:flex; align-items:baseline; gap:var(--sp-4); flex-wrap:wrap; }
+.caso-numero{ font-size:26px; font-weight:600; letter-spacing:.01em; }
+.caso-meta{ color:var(--tinta-suave); font-size:13px; }
+.cabecera-acciones{ margin-left:auto; display:flex; gap:var(--sp-2); }
+
+/* Banda de avisos del caso: los que el código YA produce. */
+.avisos{ margin-top:var(--sp-3); display:flex; flex-direction:column; gap:var(--sp-2); }
+.aviso{
+  display:flex; gap:var(--sp-3); padding:var(--sp-2) var(--sp-3);
+  border-left:5px solid var(--ambar-marca); background:var(--ambar-fondo);
+  color:var(--ambar-tinta); font-size:13px; border-radius:0 2px 2px 0;
+}
+.aviso.rojo{ border-left-color:var(--rojo-marca); background:var(--rojo-fondo); color:var(--rojo-tinta); }
+.aviso b{ white-space:nowrap; }
+
+/* ---- Región central desplazable ----------------------------------------- */
+.lienzo{
+  height:470px; overflow-y:auto; background:var(--panel);
+  padding:var(--sp-4) var(--sp-5); position:relative;
+  scrollbar-color:#9AA2AE var(--panel-hondo);
+}
+.grupo-titulo{
+  font-size:12px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--tinta-suave); margin:0 0 var(--sp-2); display:flex; gap:var(--sp-3);
+  align-items:center;
+}
+.grupo-titulo::after{ content:""; flex:1; height:1px; background:var(--linea); }
+
+.bloque{
+  background:var(--papel); border:1px solid var(--linea); border-radius:2px;
+  padding:var(--sp-3) var(--sp-4) var(--sp-4); margin-bottom:var(--sp-4);
+}
+.bloque-persona > .persona-cab{
+  display:flex; align-items:center; gap:var(--sp-3);
+  margin:0 0 var(--sp-3); padding-bottom:var(--sp-2);
+  border-bottom:1px solid var(--linea);
+}
+.persona-num{
+  width:26px; height:26px; flex:none; border-radius:2px;
+  background:var(--panel-hondo); color:var(--tinta);
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px;
+}
+.persona-nom{ font-weight:600; font-size:15px; }
+.persona-fila{ color:var(--tinta-suave); font-size:12px; margin-left:auto; }
+
+/* ---- La fila de campo: etiqueta · banda · campo · estado ----------------- */
+.campo{
+  display:grid;
+  grid-template-columns:126px 468px 268px 1fr;
+  gap:var(--sp-3);
+  align-items:center;
+  padding:var(--sp-2) 0;
+}
+.campo + .campo{ border-top:1px solid #EEF0F3; }
+.campo > .etiqueta{
+  font-size:13px; color:var(--tinta-suave); text-align:right; padding-right:var(--sp-1);
+}
+
+/* La tira recortada del escaneo. Sin ella hay que buscar el dato en la página
+   entera, y corregir se vuelve lento. */
+.banda{
+  height:var(--alto-banda); border:1px solid var(--linea-fuerte);
+  background:#F2F1EE; overflow:hidden; border-radius:1px; position:relative;
+}
+.banda svg{ display:block; width:100%; height:100%; }
+.banda-vacia{
+  height:var(--alto-banda); border:1px dashed var(--linea-fuerte);
+  background:repeating-linear-gradient(45deg,#F2F1EE,#F2F1EE 6px,#E7E5E1 6px,#E7E5E1 12px);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; color:var(--tinta-suave); border-radius:1px;
+}
+
+/* El campo editable. Su fondo ES el estado. */
+.entrada{
+  height:32px; border:1px solid var(--linea-fuerte); background:var(--papel);
+  color:var(--tinta); font:inherit; font-size:14px; padding:0 var(--sp-2);
+  width:100%; border-radius:1px;
+  /* Nunca `transition:all`. Solo lo que de verdad cambia en una interacción. */
+  transition:border-color 120ms ease, background-color 120ms ease;
+}
+.entrada.mono{ font-family:"Consolas","Courier New",monospace; letter-spacing:.02em; }
+.entrada:focus{ outline:2px solid var(--foco); outline-offset:1px; border-color:var(--foco); }
+
+.es-anotacion .entrada{ background:var(--verde-fondo); border-color:var(--verde-marca); color:var(--verde-tinta); }
+.es-ocr       .entrada{ background:var(--papel);       border-color:var(--linea-fuerte); }
+.es-revisar   .entrada{ background:var(--ambar-fondo); border-color:var(--ambar-marca); color:var(--ambar-tinta); }
+.es-invalido  .entrada{ background:var(--rojo-fondo);  border-color:var(--rojo-marca); color:var(--rojo-tinta); border-width:2px; }
+
+/* La marca de estado: PUNTO + PALABRA. La palabra es la que cumple el criterio;
+   el punto solo ayuda a quien sí distingue los colores. */
+.estado{ display:flex; align-items:center; gap:var(--sp-2); font-size:13px; flex-wrap:wrap; }
+.punto{ width:11px; height:11px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.25); }
+.es-anotacion .punto{ background:var(--verde-marca); }
+.es-ocr       .punto{ background:var(--gris-marca); }
+.es-revisar   .punto{ background:var(--ambar-marca); }
+.es-invalido  .punto{ background:var(--rojo-marca); }
+.palabra{ font-weight:600; }
+.es-anotacion .palabra{ color:var(--verde-marca); }
+.es-ocr       .palabra{ color:var(--gris-marca); }
+.es-revisar   .palabra{ color:var(--ambar-marca); }
+.es-invalido  .palabra{ color:var(--rojo-marca); }
+.confianza{ color:var(--tinta-suave); font-size:12px; font-variant-numeric:tabular-nums; }
+.motivo{
+  flex-basis:100%; font-size:12px; color:var(--rojo-tinta); background:var(--rojo-fondo);
+  border-left:3px solid var(--rojo-marca); padding:2px var(--sp-2); border-radius:0 2px 2px 0;
+}
+
+/* ---- Las seis casillas de ordenanzas, con TRES estados ------------------- */
+.ordenanzas{ grid-column:2 / -1; display:flex; flex-wrap:wrap; gap:var(--sp-2) var(--sp-3); }
+.casilla{
+  display:inline-flex; align-items:center; gap:var(--sp-2);
+  border:1px solid var(--linea); background:var(--papel);
+  padding:var(--sp-1) var(--sp-2) var(--sp-1) var(--sp-1);
+  border-radius:2px; font-size:13px; cursor:default;
+}
+.casilla:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.caja{
+  width:18px; height:18px; flex:none; border:2px solid var(--tinta-suave);
+  background:var(--papel); border-radius:2px; position:relative;
+}
+/* marcada */
+.casilla.marcada .caja{ border-color:var(--verde-marca); background:var(--verde-marca); }
+.casilla.marcada .caja::after{
+  content:""; position:absolute; left:4px; top:0px; width:6px; height:11px;
+  border:solid #FFFFFF; border-width:0 2.5px 2.5px 0; transform:rotate(42deg);
+}
+/* no marcada: caja vacía, y NADA más */
+.casilla.no-marcada .caja{ border-color:var(--tinta-suave); }
+/* NO LEÍDA: ni vacía ni marcada. Rayada, ámbar, y con su palabra. */
+.casilla.no-leida{ background:var(--ambar-fondo); border-color:var(--ambar-marca); color:var(--ambar-tinta); }
+.casilla.no-leida .caja{
+  border-color:var(--ambar-marca);
+  background:repeating-linear-gradient(45deg,#FFFFFF,#FFFFFF 3px,var(--ambar-marca) 3px,var(--ambar-marca) 5px);
+}
+.casilla .etiq-ord{ max-width:210px; }
+.casilla .sufijo{ font-weight:700; font-size:11px; letter-spacing:.05em; color:var(--ambar-marca); }
+
+/* ---- Barra de acción, fija abajo ---------------------------------------- */
+.pie{
+  background:var(--panel-hondo); border-top:1px solid var(--linea-fuerte);
+  padding:var(--sp-3) var(--sp-5); display:flex; align-items:center; gap:var(--sp-3);
+}
+.contador{ font-size:13px; color:var(--tinta-suave); }
+.contador b{ color:var(--tinta); font-variant-numeric:tabular-nums; }
+.pie-derecha{ margin-left:auto; display:flex; gap:var(--sp-2); align-items:center; }
+
+.boton{
+  font:inherit; font-size:13px; height:32px; padding:0 var(--sp-4);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.boton:hover{ background:#F0F2F5; }
+.boton:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.boton .tecla{ color:var(--tinta-suave); font-size:11px; margin-left:var(--sp-2); }
+.boton-primario{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.boton-primario:hover{ background:#2C323A; }
+.boton-primario .tecla{ color:#C3C8D0; }
+/* REGLA: sobre superficie oscura el anillo de foco es BLANCO. El anillo oscuro
+   sobre este botón medía 1.00:1 — invisible. Es el mismo caso que el botón
+   sobre la franja roja de la pantalla de inicio, y se resuelve igual. */
+.boton-primario:focus{ outline-color:#FFFFFF; outline-offset:-3px; }
+/* «Deshabilitado» se dice con el borde discontinuo, el fondo hundido y la razón
+   escrita al lado — NO apagando el texto hasta que no se lea. La WCAG exime a los
+   controles inactivos, pero este botón existe para explicar por qué no se puede
+   pulsar, y un motivo ilegible no explica nada. #8A929D medía 2.63:1 y su tecla
+   2.16:1; #5B6470 da 5.02:1 y sigue leyéndose apagado frente a los 16.91:1 del
+   botón normal. */
+.boton[aria-disabled="true"]{
+  background:var(--panel-hondo); color:#5B6470; border-color:var(--linea);
+  border-style:dashed; cursor:not-allowed;
+}
+.boton[aria-disabled="true"] .tecla{ color:#5B6470; }
+/* El botón deshabilitado SIGUE tomando el foco a propósito: es la única forma de
+   que Miguel llegue a él con Tab y lea por qué no puede pulsarlo. Y si toma el
+   foco, tiene que verse tomándolo. Sin esta regla el anillo heredaba el gris del
+   texto deshabilitado y medía 2.63:1, por debajo del 3:1 de la WCAG 1.4.11.
+   En Tk: `state=['disabled']` NO se usa aquí, porque quita el foco. Se usa un
+   botón normal con `command` que no hace nada y mueve el foco al primer campo
+   no válido. */
+.boton[aria-disabled="true"]:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.razon-bloqueo{
+  font-size:12px; color:var(--rojo-tinta); background:var(--rojo-fondo);
+  border-left:3px solid var(--rojo-marca); padding:var(--sp-1) var(--sp-2);
+  border-radius:0 2px 2px 0; max-width:330px;
+}
+
+/* ---------------------------- tablas del anexo --------------------------- */
+.papel-anexo{
+  background:var(--papel); border-radius:2px; padding:var(--sp-5) var(--sp-6);
+  margin-top:var(--sp-3);
+}
+.papel-anexo h3{ font-size:15px; margin:var(--sp-5) 0 var(--sp-2); }
+.papel-anexo h3:first-child{ margin-top:0; }
+.papel-anexo p{ max-width:96ch; margin:0 0 var(--sp-3); }
+.tabla-envoltorio{ overflow-x:auto; margin-bottom:var(--sp-4); }
+table{ border-collapse:collapse; width:100%; font-size:13px; min-width:640px; }
+th,td{ text-align:left; padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--linea); vertical-align:top; }
+th{ background:var(--panel); font-weight:600; }
+td code, th code, p code, li code{
+  font-family:"Consolas","Courier New",monospace; font-size:12.5px;
+  background:var(--panel); padding:1px 4px; border-radius:2px;
+}
+kbd{
+  font-family:"Consolas","Courier New",monospace; font-size:12px;
+  border:1px solid var(--linea-fuerte); border-bottom-width:2px;
+  background:var(--papel); padding:1px 6px; border-radius:3px; white-space:nowrap;
+}
+ul{ margin:0 0 var(--sp-3); padding-left:var(--sp-5); max-width:96ch; }
+li{ margin-bottom:var(--sp-1); }
+.bloqueado{ color:var(--rojo-marca); font-weight:600; }
+.medido{ color:var(--verde-marca); font-weight:600; }
+
+@media (prefers-reduced-motion: reduce){
+  *{ transition-duration:1ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="hoja">
+
+<div class="aviso-doc">
+  <h1>Especificación visual — Pantalla 1 · Corrección</h1>
+  <p><b>Esto no es el programa y no es una página web.</b> Es el reparto del espacio, la jerarquía,
+  los estados de color y el recorrido del teclado de una ventana que se construye con
+  <code>tkinter</code>, que viene en la biblioteca estándar y empaqueta en el <code>.exe</code> sin
+  añadir nada. Cada elemento de abajo tiene su widget de Tk anotado en la tabla del anexo.</p>
+  <p><b>Los datos de ejemplo son inventados salvo tres,</b> que salen de mediciones ya hechas sobre
+  los PDF reales y están en <code>DECISIONES.md</code>: el número <code>CASP2609</code>, la unidad
+  <code>7000011</code> (siete dígitos) y la corrección a mano de <code>September 7</code> a
+  <code>8 Sept 2026</code>. No se abrió ningún PDF de <code>pdfs_referencia/</code>. Las tiras de
+  escaneo son dibujos, no recortes de nadie.</p>
+</div>
+
+<h2 class="seccion">La ventana</h2>
+
+<div class="ventana">
+
+  <div class="barra-titulo">
+    <span>Fichas — Corrección</span>
+    <span>Caso 2 de 6 del documento <code>SURB2609_…pdf</code></span>
+  </div>
+
+  <!-- ================= CABECERA: lo primero que se lee ================= -->
+  <div class="cabecera">
+    <div class="cabecera-fila">
+      <span class="caso-numero">CASP2609</span>
+      <span class="caso-meta">página 2 de 6 · importado el 2026-09-02 · <b>sin verificar</b></span>
+      <span class="cabecera-acciones">
+        <button class="boton" type="button">Abrir el PDF completo<span class="tecla">F2</span></button>
+      </span>
+    </div>
+
+    <div class="avisos">
+      <div class="aviso">
+        <b>Mes cruzado</b>
+        <span>La <code>fecha_viaje</code> 2026-10-08 cae en el periodo 2610, pero el
+        <code>numero_caso</code> CASP2609 dice 2609. Puede ser un viaje reprogramado: el dato se
+        guarda igual y hay que confirmarlo a mano.</span>
+      </div>
+      <div class="aviso rojo">
+        <b>2 anclas no encontradas</b>
+        <span>El OCR no localizó «Ward/Branch Name and Unit Number» ni «Member Record Number».
+        Los campos que cuelgan de esas etiquetas vienen vacíos: hay que teclearlos mirando la imagen.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= REGIÓN CENTRAL, DESPLAZABLE ================= -->
+  <div class="lienzo">
+
+    <p class="grupo-titulo">Datos del caso</p>
+    <div class="bloque">
+
+      <!-- CAMPO: número de caso — vino de una anotación del PDF -->
+      <div class="campo es-anotacion">
+        <label class="etiqueta" for="fc-num">N.º de caso</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: la banda del número de caso">
+            <rect width="468" height="44" fill="#F2F1EE"/>
+            <rect x="0" y="30" width="468" height="1" fill="#DAD7D1"/>
+            <text x="10" y="17" font-family="Georgia,serif" font-size="9.5" fill="#7C7770">Case Number</text>
+            <text x="10" y="30" font-family="Georgia,serif" font-size="13" fill="#2E2B27">CASP2609</text>
+            <rect x="86" y="19" width="74" height="14" fill="#2B57C4" opacity=".10"/>
+          </svg>
+        </div>
+        <input id="fc-num" class="entrada mono" type="text" value="CASP2609" readonly>
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">anotación</span>
+          <span class="confianza">confianza 1.00 · dato exacto del PDF</span>
+        </div>
+      </div>
+
+      <!-- CAMPO: fecha de viaje — tachón rojo + FreeText de corrección -->
+      <div class="campo es-anotacion">
+        <label class="etiqueta" for="fc-fecha">Fecha de viaje</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: fecha impresa tachada y corregida a mano">
+            <rect width="468" height="44" fill="#F2F1EE"/>
+            <text x="10" y="16" font-family="Georgia,serif" font-size="9.5" fill="#7C7770">Date traveling to the temple</text>
+            <text x="10" y="33" font-family="Georgia,serif" font-size="13" fill="#2E2B27">September 7, 2026</text>
+            <!-- el tachón medido: rgb(0.8902,0.0941,0.1765), grosor 1.65 -->
+            <path d="M8 32 L128 24" stroke="#E31829" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            <path d="M8 25 L128 33" stroke="#E31829" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+            <text x="146" y="31" font-family="Segoe Script, Georgia, serif" font-size="13.5" fill="#1B3FA8">8 Sept 2026</text>
+          </svg>
+        </div>
+        <input id="fc-fecha" class="entrada mono" type="text" value="2026-10-08">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">anotación</span>
+          <span class="confianza">confianza 1.00 · corrige un tachón</span>
+        </div>
+      </div>
+
+      <!-- CAMPO: unidad número — el OCR lo leyó bien y la VALIDACIÓN lo rechaza -->
+      <div class="campo es-invalido">
+        <label class="etiqueta" for="fc-unidad">N.º de unidad</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: nombre y número de unidad">
+            <rect width="468" height="44" fill="#F2F1EE"/>
+            <text x="10" y="16" font-family="Georgia,serif" font-size="9.5" fill="#7C7770">Ward/Branch Name and Unit Number</text>
+            <text x="10" y="33" font-family="Georgia,serif" font-size="13" fill="#2E2B27">Paramaribo Branch - 7000011</text>
+          </svg>
+        </div>
+        <input id="fc-unidad" class="entrada mono" type="text" value="7000011" aria-describedby="fc-motivo-unidad">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">no válido</span>
+          <span class="confianza">OCR 0.97</span>
+          <span class="motivo" id="fc-motivo-unidad">El campo «n.º de unidad» no vale: se recibió
+          «7000011» y se esperaban 6 dígitos.</span>
+        </div>
+      </div>
+
+      <!-- CAMPO: nombre de la unidad — SIN COLUMNA en la base. Ver anexo. -->
+      <div class="campo es-revisar">
+        <label class="etiqueta" for="fc-unidadnom">Unidad</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: la misma banda, leída como nombre">
+            <rect width="468" height="44" fill="#F2F1EE"/>
+            <text x="10" y="16" font-family="Georgia,serif" font-size="9.5" fill="#7C7770">Ward/Branch Name and Unit Number</text>
+            <text x="10" y="33" font-family="Georgia,serif" font-size="13" fill="#2E2B27">Paramaribo Branch - 7000011</text>
+            <rect x="6" y="21" width="118" height="15" fill="#7CC400" opacity=".22"/>
+          </svg>
+        </div>
+        <input id="fc-unidadnom" class="entrada" type="text" value="Paramaribo Branch">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">revisar</span>
+          <span class="confianza">OCR 0.58 · <b class="bloqueado">no hay dónde guardarlo</b></span>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="grupo-titulo">Personas — 3 filas leídas de 6, 0 descartadas</p>
+
+    <!-- PERSONA 1: el camino feliz -->
+    <div class="bloque bloque-persona">
+      <div class="persona-cab">
+        <span class="persona-num">1</span>
+        <span class="persona-nom">ANONIMO, MARIA ELENA</span>
+        <span class="persona-fila">fila 1 del formulario</span>
+      </div>
+
+      <div class="campo es-ocr">
+        <label class="etiqueta" for="fc-p1-nom">Nombre</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: la fila del nombre">
+            <rect width="468" height="44" fill="#F2F1EE"/>
+            <rect x="0" y="0" width="468" height="1" fill="#DAD7D1"/>
+            <rect x="0" y="43" width="468" height="1" fill="#DAD7D1"/>
+            <text x="10" y="28" font-family="Georgia,serif" font-size="13" fill="#2E2B27">ANONIMO, MARIA ELENA</text>
+            <rect x="300" y="6" width="1" height="32" fill="#DAD7D1"/>
+            <text x="312" y="28" font-family="Georgia,serif" font-size="13" fill="#2E2B27">055-1111-3853</text>
+          </svg>
+        </div>
+        <input id="fc-p1-nom" class="entrada" type="text" value="ANONIMO, MARIA ELENA">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">OCR</span>
+          <span class="confianza">confianza 0.94 · <b>el nombre siempre se confirma</b></span>
+        </div>
+      </div>
+
+      <div class="campo es-ocr">
+        <label class="etiqueta" for="fc-p1-mrn">MRN</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: la casilla del MRN">
+            <rect width="468" height="44" fill="#F2F1EE"/>
+            <rect x="0" y="0" width="468" height="1" fill="#DAD7D1"/>
+            <rect x="0" y="43" width="468" height="1" fill="#DAD7D1"/>
+            <text x="10" y="28" font-family="Georgia,serif" font-size="13" fill="#2E2B27">055-1111-3853</text>
+          </svg>
+        </div>
+        <input id="fc-p1-mrn" class="entrada mono" type="text" value="055-1111-3853">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">OCR</span>
+          <span class="confianza">confianza 0.91</span>
+        </div>
+      </div>
+
+      <div class="campo">
+        <span class="etiqueta">Ordenanzas</span>
+        <div class="ordenanzas">
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span>
+            <span class="etiq-ord">Recibir ordenanzas propias</span>
+            <span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span>
+            <span class="etiq-ord">Observar ordenanza de sellamiento</span>
+            <span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla marcada" tabindex="0" role="checkbox" aria-checked="true">
+            <span class="caja" aria-hidden="true"></span>
+            <span class="etiq-ord">Traductor</span>
+          </span>
+          <span class="casilla no-marcada" tabindex="0" role="checkbox" aria-checked="false">
+            <span class="caja" aria-hidden="true"></span>
+            <span class="etiq-ord">Investidura</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span>
+            <span class="etiq-ord">Sellamiento esposa a esposo</span>
+            <span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span>
+            <span class="etiq-ord">Sellamiento hijo a padres</span>
+            <span class="sufijo">NO LEÍDA</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERSONA 2: confianza baja + MRN que no valida -->
+    <div class="bloque bloque-persona">
+      <div class="persona-cab">
+        <span class="persona-num">2</span>
+        <span class="persona-nom">ANONIMO, J0SE M1GUEL</span>
+        <span class="persona-fila">fila 2 del formulario</span>
+      </div>
+
+      <div class="campo es-revisar">
+        <label class="etiqueta" for="fc-p2-nom">Nombre</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: fila del nombre, escaneo flojo">
+            <rect width="468" height="44" fill="#EFEDE8"/>
+            <rect x="0" y="0" width="468" height="1" fill="#DAD7D1"/>
+            <rect x="0" y="43" width="468" height="1" fill="#DAD7D1"/>
+            <text x="10" y="28" font-family="Georgia,serif" font-size="13" fill="#54504A" opacity=".78">ANONIMO, JOSE MIGUEL</text>
+            <rect x="8" y="14" width="196" height="18" fill="#A9A49B" opacity=".16"/>
+          </svg>
+        </div>
+        <input id="fc-p2-nom" class="entrada" type="text" value="ANONIMO, J0SE M1GUEL">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">revisar</span>
+          <span class="confianza">confianza 0.41</span>
+        </div>
+      </div>
+
+      <div class="campo es-invalido">
+        <label class="etiqueta" for="fc-p2-mrn">MRN</label>
+        <div class="banda">
+          <svg viewBox="0 0 468 44" role="img" aria-label="Recorte del escaneo: MRN sin guiones">
+            <rect width="468" height="44" fill="#EFEDE8"/>
+            <rect x="0" y="0" width="468" height="1" fill="#DAD7D1"/>
+            <rect x="0" y="43" width="468" height="1" fill="#DAD7D1"/>
+            <text x="10" y="28" font-family="Georgia,serif" font-size="13" fill="#54504A">05511113854</text>
+          </svg>
+        </div>
+        <input id="fc-p2-mrn" class="entrada mono" type="text" value="05511113854" aria-describedby="fc-motivo-mrn">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">no válido</span>
+          <span class="confianza">OCR 0.88</span>
+          <span class="motivo" id="fc-motivo-mrn">El campo «MRN» no vale: se recibió «05511113854»
+          y se esperaba el patrón 3-4-4 con guiones, como «055-1111-3853».</span>
+        </div>
+      </div>
+
+      <div class="campo">
+        <span class="etiqueta">Ordenanzas</span>
+        <div class="ordenanzas">
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Recibir ordenanzas propias</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Observar ordenanza de sellamiento</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Traductor</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Investidura</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Sellamiento esposa a esposo</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Sellamiento hijo a padres</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERSONA 3: el ancla no se encontró — no hay banda que recortar -->
+    <div class="bloque bloque-persona">
+      <div class="persona-cab">
+        <span class="persona-num">3</span>
+        <span class="persona-nom">— sin nombre leído —</span>
+        <span class="persona-fila">fila 3 del formulario</span>
+      </div>
+
+      <div class="campo es-revisar">
+        <label class="etiqueta" for="fc-p3-nom">Nombre</label>
+        <div class="banda-vacia">No hay recorte: el OCR no encontró el ancla de esta fila</div>
+        <input id="fc-p3-nom" class="entrada" type="text" value="" placeholder="teclear mirando el PDF (F2)">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">revisar</span>
+          <span class="confianza">vacío · el OCR no leyó nada aquí</span>
+        </div>
+      </div>
+
+      <div class="campo es-revisar">
+        <label class="etiqueta" for="fc-p3-mrn">MRN</label>
+        <div class="banda-vacia">No hay recorte: el OCR no encontró el ancla de esta fila</div>
+        <input id="fc-p3-mrn" class="entrada mono" type="text" value="" placeholder="000-0000-0000">
+        <div class="estado">
+          <span class="punto" aria-hidden="true"></span>
+          <span class="palabra">revisar</span>
+          <span class="confianza">vacío</span>
+        </div>
+      </div>
+
+      <div class="campo">
+        <span class="etiqueta">Ordenanzas</span>
+        <div class="ordenanzas">
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Recibir ordenanzas propias</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Observar ordenanza de sellamiento</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Traductor</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Investidura</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Sellamiento esposa a esposo</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+          <span class="casilla no-leida" tabindex="0" role="checkbox" aria-checked="mixed">
+            <span class="caja" aria-hidden="true"></span><span class="etiq-ord">Sellamiento hijo a padres</span><span class="sufijo">NO LEÍDA</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /lienzo -->
+
+  <!-- ================= PIE DE ACCIÓN, FIJO ================= -->
+  <div class="pie">
+    <span class="contador">Verificados <b>0</b> de <b>10</b> campos · <b>2</b> no válidos ·
+    <b>16</b> casillas no leídas</span>
+    <span class="pie-derecha">
+      <span class="razon-bloqueo">2 campos no válidos y 16 casillas sin resolver</span>
+      <button class="boton" type="button" aria-disabled="true">Verificar caso<span class="tecla">Ctrl+Intro</span></button>
+      <button class="boton" type="button">Guardar<span class="tecla">Ctrl+G</span></button>
+      <button class="boton boton-primario" type="button">Siguiente caso<span class="tecla">Alt+→</span></button>
+    </span>
+  </div>
+
+</div><!-- /ventana -->
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Los cuatro estados, con su significado y su medición</h2>
+<div class="papel-anexo">
+<p>El color <b>nunca va solo</b>. Cada estado lleva una palabra en español al lado del campo, porque
+la FASE 3 criterio 2 (reescrito el 2026-09-02) prohíbe que la distinción dependa de percibir un
+color. La palabra es lo que cumple el criterio; el punto de color solo acelera a quien sí lo ve.</p>
+
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Estado</th><th>Palabra que se lee</th><th>De dónde sale</th><th>Fondo · texto</th><th>Contraste medido</th></tr></thead>
+<tbody>
+<tr><td><b style="color:#1B6E3C">● verde</b></td><td>anotación</td>
+    <td><code>origen='anotacion'</code>, confianza 1.00. Alguien lo escribió en el PDF: no es una lectura</td>
+    <td><code>#E7F5EC</code> · <code>#12351F</code></td><td class="medido">12.01:1</td></tr>
+<tr><td><b style="color:#5B6470">● gris</b></td><td>OCR</td>
+    <td><code>origen='ocr'</code> con confianza ≥ 0.60</td>
+    <td><code>#FFFFFF</code> · <code>#1A1D21</code></td><td class="medido">16.91:1</td></tr>
+<tr><td><b style="color:#8A5B00">● ámbar</b></td><td>revisar</td>
+    <td>confianza &lt; 0.60, o <code>origen='vacio'</code>, o <code>necesita_revision=True</code></td>
+    <td><code>#FFF3C4</code> · <code>#3D2A00</code></td><td class="medido">12.34:1</td></tr>
+<tr><td><b style="color:#B3261E">● rojo</b></td><td>no válido</td>
+    <td>el valor no pasa <code>datos/validacion.py</code>. Lleva SIEMPRE el motivo escrito debajo</td>
+    <td><code>#FDE7E7</code> · <code>#4A0F0B</code></td><td class="medido">13.02:1</td></tr>
+</tbody>
+</table>
+</div>
+
+<p><b>El foco es un anillo de 2 px en <code>#1A1D21</code>.</b> Medido contra los cinco fondos de esta
+pantalla: 16.91 · 15.50 · 15.04 · 15.20 · 14.30 a 1. El mínimo de la WCAG 1.4.11 para un indicador
+no textual es 3:1; el peor caso de aquí lo pasa <b class="medido">4,7 veces</b>. Se eligió un anillo
+oscuro y no el azul de sistema <code>#0B5FFF</code> porque ese azul cae a <b>1.27:1</b> sobre el rojo
+sólido de la pantalla de inicio, y el mismo anillo tiene que valer en las dos ventanas.</p>
+
+<h3>El estado que el pase no nombra y el material sí produce</h3>
+<p>El extractor devuelve <code>anulado_por_tachon=True</code> cuando hay un tachón rojo sobre la banda
+y <b>nadie escribió la corrección</b>. Eso no es «no válido» —no ha fallado ninguna validación— y no
+es «vacío» sin más: es <b>un dato que una persona marcó como equivocado a propósito</b>. Se pinta
+ámbar con su propia palabra: <b>«tachado, sin corrección»</b>. Meterlo en cualquiera de los cuatro
+cubos le quita a Miguel la única pista de que el papel ya decía que ese dato estaba mal.</p>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Las casillas de ordenanzas · por qué «no leída» no usa la casilla de Tk</h2>
+<div class="papel-anexo">
+<p>El tercer estado es el que decide si esta pantalla sirve. Tk trae dos formas nativas de pintar una
+casilla en tres estados. <b>Las dos se probaron en esta máquina</b> (Tk 9.0.4, Windows 11), tomando
+capturas de pantalla reales y contando los píxeles que cambian entre un estado y otro, con un control
+que compara un estado <i>consigo mismo</i> para saber cuánto ruido tiene la medición:</p>
+
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Widget</th><th>Control (mismo estado dos veces)</th><th>marcada vs no marcada</th><th>no leída vs no marcada</th><th>no leída vs <b>marcada</b></th><th>Veredicto</th></tr></thead>
+<tbody>
+<tr>
+  <td><code>tk.Checkbutton</code> con <code>tristatevalue</code></td>
+  <td>146 px</td><td>185 px</td><td>185 px</td>
+  <td class="bloqueado">0 px</td>
+  <td class="bloqueado">INSERVIBLE</td>
+</tr>
+<tr>
+  <td><code>ttk.Checkbutton</code> tema <code>clam</code>, estado <code>alternate</code></td>
+  <td>70 px</td><td>118 px</td><td>266 px</td><td>266 px</td>
+  <td>Distingue, pero por poco margen</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p><b>La primera fila es el hallazgo.</b> Con <code>tristatevalue</code>, «no leída» se dibuja
+<b>exactamente igual que «marcada»</b> —cero píxeles de diferencia, contra un ruido de 146— y encima
+en la dirección peligrosa: un dato que el sistema nunca leyó aparecería en pantalla como una ordenanza
+confirmada. Es la confusión concreta que el tercer estado existe para impedir, según
+<code>docs/ARQUITECTURA.md</code> §2.3 y la FASE 2 criterio 11b.</p>
+
+<p><b>Por eso «no leída» no se delega en ningún indicador nativo.</b> Se dibuja como un control propio:
+caja rayada en diagonal, fondo ámbar, y la palabra <b>NO LEÍDA</b> escrita al lado. Un
+<code>ttk.Frame</code> con un <code>tk.Canvas</code> de 18×18 px dentro y una <code>ttk.Label</code>;
+el <code>Canvas</code> pinta las tres formas y no depende del motor de temas de Windows.</p>
+
+<p><b>Y una decisión de comportamiento, que devuelvo al dueño.</b> Hoy las seis casillas de las seis
+personas llegan <b>todas</b> en «no leída»: <code>casillas_por_persona</code> se rellena con
+<code>casillas_no_leidas()</code> porque <code>UMBRAL_DE_PIXEL_OSCURO</code> sigue en <code>None</code>
+a falta de calibrar. Eso son <b>36 controles en ámbar por formulario</b>, y un formulario donde todo
+grita no señala nada. Propongo, para que él elija:</p>
+<ul>
+  <li><b>Opción A (la dibujada):</b> las 6 casillas de cada persona, siempre visibles. Sincera y
+  uniforme, pero satura la pantalla mientras el umbral no se calibre.</li>
+  <li><b>Opción B (mi recomendación):</b> mientras <b>las seis</b> de una persona estén sin leer, se
+  colapsan en <b>una sola línea</b> ámbar —«Ordenanzas: las 6 sin leer · <kbd>O</kbd> para abrirlas»—
+  y se despliegan al pulsar. En cuanto una se resuelve, el bloque queda abierto para siempre. Reduce
+  36 controles a 6 sin esconder nada, y el día que el umbral se calibre la pantalla se llena sola.</li>
+</ul>
+<p>La <b>barra espaciadora alterna solo entre marcada y no marcada</b>. No vuelve a «no leída»: ese
+estado se puede <i>abandonar</i> pero no se alcanza con un resbalón del pulgar, porque volver a él
+borraría, sin aviso, algo que una persona ya había mirado. Para devolverlo a «no leída» hay
+<kbd>Ctrl</kbd>+<kbd>Espacio</kbd>, y pregunta antes.</p>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">El recorrido del teclado, tecla por tecla</h2>
+<div class="papel-anexo">
+<p>El objetivo del pase es medible: <b>un formulario de tres personas en menos de un minuto sin tocar
+el ratón</b>. Ese objetivo manda sobre la estética. Nada de lo que se recorre con el teclado es un
+adorno: todo lo que no es editable lleva <code>takefocus=0</code> —las tiras de escaneo, las
+etiquetas, los puntos de color— para que <kbd>Tab</kbd> no pase por ellos ni una vez.</p>
+
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Tecla</th><th>Qué hace</th><th>Por qué así</th></tr></thead>
+<tbody>
+<tr><td><kbd>Tab</kbd> / <kbd>Mayús</kbd>+<kbd>Tab</kbd></td>
+    <td>Al siguiente / anterior control editable, en orden de lectura: los 4 campos del caso, luego
+    por cada persona nombre → MRN → las 6 casillas.</td>
+    <td>Es el orden en que está el papel. Tk toma el orden de apilado, así que se crean en ese orden.</td></tr>
+<tr><td><kbd>Intro</kbd></td>
+    <td><b>Confirma el bloque de la persona actual</b> y salta al <b>primer campo de la persona
+    siguiente</b>. En la última persona, salta al botón «Verificar caso».</td>
+    <td>Es el camino del minuto: tres <kbd>Intro</kbd> recorren tres personas. <kbd>Tab</kbd> es para
+    cuando hay que corregir dentro de un bloque; <kbd>Intro</kbd> para cuando no hay nada que corregir.</td></tr>
+<tr><td><kbd>Espacio</kbd></td>
+    <td>Sobre una casilla: alterna <b>marcada ↔ no marcada</b>. Nunca lleva a «no leída».</td>
+    <td>Un resbalón no puede borrar lo que una persona ya miró.</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Espacio</kbd></td>
+    <td>Devuelve la casilla a «no leída». <b>Pregunta antes.</b></td>
+    <td>Es una marcha atrás legítima, pero rara: se paga con una confirmación.</td></tr>
+<tr><td><kbd>Esc</kbd></td>
+    <td>Deshace lo tecleado en el campo con el foco y devuelve el valor anterior. <b>No cierra la
+    ventana.</b></td>
+    <td>Cerrar con <kbd>Esc</kbd> es la forma más barata de perder diez minutos de tecleo.</td></tr>
+<tr><td><kbd>F2</kbd></td>
+    <td>Abre el PDF completo en el visor del sistema, <b>en la página de este caso</b>.</td>
+    <td>Un PDF puede traer seis formularios (medido: <code>SURB2609</code>). Abrirlo por la página 1
+    obliga a buscar a mano el formulario que se está corrigiendo.</td></tr>
+<tr><td><kbd>F6</kbd></td>
+    <td>Salta entre las tres regiones: cabecera → lista → pie. <kbd>Mayús</kbd>+<kbd>F6</kbd> al revés.</td>
+    <td>Convención de Windows. Sin ella, llegar al botón «Guardar» desde la persona 1 son 20
+    <kbd>Tab</kbd>.</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>G</kbd></td><td>Guardar.</td>
+    <td>Guardar y salir no son la misma tecla, nunca.</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Intro</kbd></td>
+    <td>Verificar el caso. <b>Sin efecto mientras el botón esté deshabilitado</b>, y entonces el
+    foco se mueve al primer campo no válido.</td>
+    <td>Un atajo que no hace nada y no dice por qué es peor que no tenerlo.</td></tr>
+<tr><td><kbd>Alt</kbd>+<kbd>→</kbd> / <kbd>Alt</kbd>+<kbd>←</kbd></td>
+    <td>Caso siguiente / anterior. Si hay cambios sin guardar, pregunta.</td>
+    <td>Un PDF de seis formularios se recorre sin volver a la pantalla de inicio.</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>Inicio</kbd></td><td>Vuelve a la pantalla de inicio.</td><td>Salida siempre disponible.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Control / qué hace de verdad · y qué dice la pantalla después</h2>
+<div class="papel-anexo">
+<p>Todos los controles interactivos de esta ventana. La tercera columna es lo que el control provoca
+en el programa terminado; la cuarta es <b>lo que la pantalla dice inmediatamente después</b>, que es
+donde se cazan los arreglos que funcionan y dejan la pantalla mintiendo.</p>
+
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Control</th><th>Widget de Tk</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>Campo <b>N.º de caso</b></td><td><code>ttk.Entry</code> (solo lectura)</td>
+    <td><b>Nada: no se edita.</b> Es la clave <code>UNIQUE</code> de <code>casos</code> y la mitad de
+    la reconciliación del Excel. Cambiarlo aquí rompería el par <code>numero_caso</code>+<code>mrn</code>.</td>
+    <td>No toma el foco al tabular y el cursor no entra. <b>Decisión que devuelvo al dueño</b>: si
+    quiere poder corregirlo, hace falta decidir antes qué pasa con lo ya reconciliado.</td></tr>
+<tr><td>Campo <b>Fecha de viaje</b></td><td><code>ttk.Entry</code></td>
+    <td>Al salir del campo llama a <code>validar_fecha_viaje</code> y a <code>avisos_de_caso</code>.
+    Guarda con <code>actualizar_datos_del_caso</code>.</td>
+    <td>El fondo cambia al estado nuevo y la palabra cambia con él. Si cruza de mes, <b>aparece o
+    desaparece el aviso ámbar de la cabecera en el acto</b>, sin esperar a Guardar.</td></tr>
+<tr><td>Campo <b>N.º de unidad</b></td><td><code>ttk.Entry</code></td>
+    <td>Llama a <code>validar_unidad_numero</code>.</td>
+    <td>Estado y motivo escrito bajo el campo. <b class="bloqueado">Hoy este campo pinta rojo un dato
+    verdadero</b>: ver la tabla de defectos.</td></tr>
+<tr><td>Campo <b>Unidad</b> (nombre)</td><td><code>ttk.Entry</code></td>
+    <td class="bloqueado">Nada. <b>No hay columna donde guardarlo</b> y <code>alta_de_caso</code> no
+    lo acepta.</td>
+    <td>Se dibuja deshabilitado y con la razón escrita, o <b>no se dibuja</b>. Un campo que acepta
+    tecleo y luego lo tira es peor que su ausencia.</td></tr>
+<tr><td>Campos <b>Nombre</b> y <b>MRN</b></td><td><code>ttk.Entry</code></td>
+    <td><code>actualizar_datos_de_persona</code>. El MRN pasa por <code>validar_mrn</code>.</td>
+    <td>Estado y motivo. Al guardar un MRN mal, <b>lo demás de la pantalla no se pierde</b>
+    (FASE 3 criterio 5).</td></tr>
+<tr><td>Las <b>6 casillas</b></td><td><code>tk.Canvas</code> 18×18 + <code>ttk.Label</code></td>
+    <td class="bloqueado">Nada todavía: <code>actualizar_datos_de_persona</code> <b>no acepta las
+    casillas</b>. Solo <code>alta_de_persona</code> las escribe, y solo al importar.</td>
+    <td>Cambian de forma y de palabra al pulsar y <b>el contador del pie baja</b>. La escritura es
+    trabajo declarado del programador.</td></tr>
+<tr><td>Botón <b>Abrir el PDF completo</b></td><td><code>ttk.Button</code></td>
+    <td><code>os.startfile(ruta_pdf)</code> sobre <code>casos.ruta_pdf</code>.</td>
+    <td>Se abre el visor del sistema. <b class="bloqueado">No en la página del caso</b>: no hay
+    columna de página. Ver defectos.</td></tr>
+<tr><td>Botón <b>Guardar</b></td><td><code>ttk.Button</code></td>
+    <td>Escribe caso y personas en una transacción.</td>
+    <td>La barra de título deja de decir «sin guardar» y el contador de verificados se refresca.</td></tr>
+<tr><td>Botón <b>Verificar caso</b></td><td><code>ttk.Button</code></td>
+    <td>Marca <code>verificado=1</code> en <code>procedencia_campo</code>, con
+    <code>verificado_por</code> y <code>verificado_en</code>, que el <code>CHECK</code> exige.
+    <b>Habilitado solo cuando ningún campo está en rojo y ninguna casilla sigue «no leída».</b></td>
+    <td>Deshabilitado, <b>lleva su razón escrita al lado</b> —«2 campos no válidos y 16 casillas sin
+    resolver»—, no solo un botón gris. Un botón apagado sin motivo es un callejón. Sigue tomando el
+    foco con <kbd>Tab</kbd> a propósito: si no, no hay forma de llegar a leer su motivo sin ratón.
+    <b class="medido">Ya tiene dónde escribir</b>: <code>marcar_campo_verificado</code> en
+    <code>datos/procedencia.py</code>.</td></tr>
+<tr><td>Botón <b>Siguiente caso</b></td><td><code>ttk.Button</code></td>
+    <td>Carga el siguiente caso sin verificar.</td>
+    <td><b>Cambian el número de la cabecera y las tiras de escaneo.</b> Es la comprobación literal del
+    criterio 6 de la FASE 3: la imagen del segundo caso no es la del primero.</td></tr>
+<tr><td>Barra de desplazamiento</td><td><code>ttk.Scrollbar</code> + <code>tk.Canvas</code></td>
+    <td>Desplaza <b>solo la región central</b>. Cabecera y pie no se mueven.</td>
+    <td>Con seis personas, «Verificar caso» sigue en pantalla sin desplazar.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Los casos incómodos</h2>
+<div class="papel-anexo">
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Situación</th><th>Qué se ve</th></tr></thead>
+<tbody>
+<tr><td><b>Un caso con seis personas</b></td>
+    <td>Seis bloques de ~186 px = 1 116 px, más 190 px de datos del caso. La región central mide
+    470 px, así que <b>se desplaza</b>: <code>tk.Canvas</code> con <code>Frame</code> dentro y
+    <code>ttk.Scrollbar</code>. Cabecera y pie quedan fijos, y por eso «Verificar caso» y su razón de
+    bloqueo se leen siempre. El título del grupo dice «3 filas leídas de 6», con las dos cifras: sin
+    denominador, nadie sabe si faltan personas o el formulario venía a medias.</td></tr>
+<tr><td><b>Un campo que no pasó validación</b></td>
+    <td>Fondo <code>#FDE7E7</code>, borde rojo de <b>2 px</b> (los otros estados llevan 1: la
+    distinción sobrevive en escala de grises), la palabra <b>«no válido»</b>, y <b>el motivo escrito
+    debajo nombrando el campo</b>, no un código. El caso <b>se guarda igual</b>: la regla es enseñar
+    lo raro, no negarse a registrarlo. Lo que no se puede es <i>verificarlo</i>, y el pie dice cuántos
+    faltan.</td></tr>
+<tr><td><b>Una casilla «no leída»</b></td>
+    <td>Caja rayada en diagonal sobre ámbar, más la palabra <b>NO LEÍDA</b>. No usa el indicador
+    nativo de Tk porque se midió que dibuja «no leída» idéntica a «marcada». Cuenta como campo sin
+    resolver y bloquea «Verificar caso».</td></tr>
+<tr><td><b>Un caso sin fecha de viaje</b></td>
+    <td>Campo vacío, estado <b>ámbar «revisar»</b> —no rojo: <code>NULL</code> es un valor legal en
+    <code>casos.fecha_viaje</code>, y pintarlo de rojo diría que hay un error donde solo hay un hueco.
+    En la cabecera, donde va la cuenta atrás, se lee <b>«sin fecha de viaje»</b> en ámbar. El caso
+    <b>se puede verificar igual</b>; lo que pierde es su sitio en el bloque rojo de la pantalla de
+    inicio, y eso se avisa con esa misma frase.</td></tr>
+<tr><td><b>Un formulario manuscrito</b> (<code>captura_manual=1</code>)</td>
+    <td>El extractor <b>vacía los campos a propósito</b>. Banda ámbar a todo el ancho de la cabecera:
+    «Formulario ilegible: los campos vienen vacíos a propósito. Teclee mirando la imagen (F2)». Las
+    tiras de escaneo <b>se siguen viendo</b>: son justo lo que hace falta para teclear.</td></tr>
+<tr><td><b>Un ancla que el OCR no encontró</b></td>
+    <td>No hay banda que recortar: en su hueco va un rectángulo rayado que lo dice, en vez de una tira
+    en blanco que parecería un escaneo vacío. La cabecera lista las anclas perdidas por su nombre.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Lo que esta pantalla necesita y hoy no existe</h2>
+<div class="papel-anexo">
+<p>Cinco cosas dibujadas arriba <b>no se pueden construir con el código de hoy</b>. No son opiniones:
+cada una se comprobó abriendo el archivo. Van aquí para que no se descubran a mitad de la FASE 3.</p>
+
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>#</th><th>Qué falta</th><th>Comprobado en</th><th>Qué se cae sin ello</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><b>El recorte de la banda no llega a ninguna parte.</b>
+    <code>_campo_de_la_banda</code> calcula el rectángulo y lo devuelve, pero <b>las tres llamadas de
+    <code>_campos_del_caso</code> lo tiran</b> (<code>fecha_viaje, _ = …</code>), y en
+    <code>extraer_personas</code> la <code>banda</code> es una variable local. Ni
+    <code>FormularioExtraido</code> ni el esquema tienen dónde ponerlo.</td>
+    <td><code>extraccion/formulario.py</code> líneas 112-128 y 192-209; <code>extraccion/personas.py</code> 158</td>
+    <td class="bloqueado">La tira de escaneo, que es <b>la mitad de esta pantalla</b></td></tr>
+<tr><td>2</td><td><b><s>Nada escribe <code>procedencia_campo</code>.</s></b>
+    <b class="medido">RESUELTO mientras se escribía esta especificación.</b> Al empezar, la tabla
+    estaba en el DDL y <code>datos/repositorio.py</code> no la mencionaba. Al terminar existe
+    <code>datos/procedencia.py</code> con <code>guardar_procedencia_de_campo</code>,
+    <code>leer_procedencia_del_registro</code> y <code>marcar_campo_verificado</code>. Se tacha en el
+    sitio en vez de borrarlo, porque el hueco existió y la fecha importa.</td>
+    <td>Al empezar: <code>grep -n procedencia_campo datos/repositorio.py</code> → sin salida.
+    Al cerrar: <code>datos/procedencia.py</code>, 9 funciones</td>
+    <td class="medido">Ya nada. Los cuatro colores y «Verificar caso» tienen de dónde leer y dónde
+    escribir</td></tr>
+<tr><td>3</td><td><b>No hay columna de página.</b> <code>FormularioExtraido</code> trae
+    <code>indice_de_pagina</code>; <code>casos</code> solo tiene <code>ruta_pdf</code> y
+    <code>alta_de_caso</code> no acepta la página.</td>
+    <td><code>datos/esquema.py</code> 45-66; <code>datos/repositorio.py</code> 51-58</td>
+    <td>F2 abre el PDF por la página 1 aunque el caso sea el sexto formulario. Y sin página no se
+    puede volver a rasterizar la banda</td></tr>
+<tr><td>4</td><td><b>No hay columna para el nombre de la unidad.</b> El extractor lo lee
+    (<code>unidad_nombre</code>) y se pierde.</td>
+    <td><code>datos/esquema.py</code>: <code>casos</code> tiene <code>unidad_numero</code> y no
+    <code>unidad</code></td>
+    <td>El campo «Unidad» de arriba, y la vista de mes de la pantalla de inicio</td></tr>
+<tr><td>5</td><td><b><code>actualizar_datos_de_persona</code> no acepta las casillas.</b> Su firma es
+    <code>(conexion, persona_id, nombre, mrn)</code>.</td>
+    <td><code>datos/repositorio.py</code> 188</td>
+    <td>Marcar una ordenanza a mano, que es la única forma que hay hoy de resolver las 36 «no leídas»</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>El campo rojo de arriba: por qué se deja dibujado aunque ya esté arreglado</h3>
+<p>Cuando empezó esta especificación, <code>validar_unidad_numero</code> exigía <b>6 dígitos</b>
+mientras <code>DECISIONES.md</code> del 2026-09-02 ya había decidido <b>6 o 7</b> —se midió que
+<b>4 de las 9 páginas reales</b> traen <code>7000011</code>, de siete dígitos, verificado contra la
+imagen—. Al cerrarla, <b class="medido">ya está corregido</b>: <code>_PATRON_UNIDAD</code> es
+<code>^[0-9]{6,7}$</code>, y la migración a la versión 2 del esquema reconstruye <code>casos</code>
+con el <code>CHECK</code> de 6 <b>o</b> 7 dígitos. Comprobado contra un motor SQLite real: con el DDL
+de la versión 1, <code>7000011</code> pasa la validación de Python y <b>el motor lo rechaza</b>; con
+la migración aplicada, entra.</p>
+<p><b>La fila se deja dibujada en rojo a propósito</b>, porque sigue siendo el mejor ejemplo que hay
+del estado «no válido»: enseña dónde va el motivo escrito, cómo se ve un borde de 2 px y qué dice el
+pie cuando un campo bloquea «Verificar caso». Lo que ya no es, es un defecto abierto.</p>
+</div>
+
+</div><!-- /hoja -->
+</body>
+</html>

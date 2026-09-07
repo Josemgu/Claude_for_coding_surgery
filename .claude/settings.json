@@ -1,0 +1,372 @@
+{
+  "_comentario": "Hooks de Bitácora. Va en .claude/settings.json (se commitea) — NO en settings.local.json. Verificado contra code.claude.com/docs/en/hooks el 2026-08-24. Requiere jq en el PATH. Comprobar con /hooks que cada uno aparece con origen 'Project Settings': un hook mal escrito NO da error, simplemente no existe.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact|fork",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/contexto-arranque.sh"
+            ],
+            "timeout": 20,
+            "statusMessage": "Cargando estado real del proyecto"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "_comentario": "Lo primero que ve un agente al nacer es su puesto. Llega ANTES que el pase, que lo escribe el supervisor — justo de quien hay que ser independiente.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/ficha-del-rol.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "_comentario": "Pone delante del agente, en CADA turno, la regla que gobierna lo que se acaba de pedir. Corto a propósito: repetir un texto largo cada turno degrada el contexto que intenta proteger.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/recordatorio-continuo.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "_comentario": "CANDADO DEL DUEÑO (2026-08-27): ningún agente —supervisor incluido— modifica las barandillas: hooks, este cableado, fichas de rol, mandamientos, PROCESOS.md. Se abre solo con .claude/LLAVE-DEL-DUENO, que el dueño crea A MANO. Va PRIMERO a propósito. PowerShell también, o los cmdlets serían la puerta de atrás.",
+        "matcher": "Edit|Write|NotebookEdit|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/candado-del-dueno.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "El cerebro es del SUPERVISOR. agent_id solo viene cuando el hook dispara dentro de un subagente, así que su presencia = deniega. No depende de que el frontmatter tools: esté bien escrito en seis archivos.",
+        "matcher": "mcp__gbrain__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/solo-supervisor-recuerda.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "EL CARRIL. Mantiene a cada subagente dentro de su puesto y, al denegar, nombra al titular — el reenvío es lo que separa un rechazo válido de una excusa. La tabla vive en .claude/agents/alcance-por-rol.json: añadir un rol es editar datos, no código.",
+        "matcher": "Write|Edit|NotebookEdit|WebSearch|WebFetch|Bash|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/carril.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Lista blanca de documentos (.md y .txt). El problema del dueño: 'genera un documento siempre y al fin y al cabo no lo lee'. ⛔ 2026-08-27: se quitó el \"if\": \"Write(**/*.md)\" — ese glob POSIX no casa jamás contra la ruta Windows con contrabarras y la puerta NUNCA disparó (medido con sonda: cero invocaciones mientras carril y propiedad capturaban el mismo Write). El filtro vive dentro del guion.",
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/no-crear-documentos.sh"
+            ],
+            "timeout": 10,
+            "statusMessage": "Comprobando la lista blanca de documentos"
+          }
+        ]
+      },
+      {
+        "_comentario": "Mandamiento XVII: congelar el entregable antes de una auditoría a ciegas.",
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/entregable-congelado.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Mandamientos I y I-bis: el supervisor no toca el producto de ningún rol.",
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/propiedad-por-rol.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Documentos que viajan con su código (2026-08-27, dueño: 'no se están actualizando los .md tampoco'). Medido: EN-CURSO.md llevaba 19 commits sin tocarse. Un push de trabajo sin ninguno de los cuatro documentos en el lote no sube.",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/docs-al-dia.sh"
+            ],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "_comentario": "git add -A con agentes trabajando. Caso real: el commit 41d6263 metió 22 archivos, 21 del trabajo en curso de otro agente.",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git add *)",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/sin-add-all.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Borrado de carpetas. Caso real: se perdieron 13.626 archivos de material tratando static/ como código.",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(rm *)",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/cuenta-antes-de-borrar.sh"
+            ],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "_comentario": "Leer antes de lanzar (2026-08-28, dueño: 'aunque el supervisor no escriba los documentos, debe estar obligado a leerlos, porque puede enviar a hacer pruebas que ya se hicieron'). Mandamiento XVI con puerta: lanzar QA exige haber leído INFORMES-QA.md en esta sesión; lanzar al programador, RUNBOOK.md.",
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/leer-antes-de-lanzar.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Cada encargo a su puesto (2026-08-27, dueño: 'el supervisor pone mucho a verificar al planificador… lo hace con todos los subagentes'). Un pase que pide trabajo de otro rol no lanza: los patrones viven en alcance-por-rol.json, clave encargos_vedados.",
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pase-en-su-puesto.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Mandamiento I, forma nueva medida el 2026-08-27: meter la solución DENTRO del pase es dictar sin tocar el teclado. El dueño: 'no le puedes dar tanto de la solución a los subagentes'. El pase lleva objeto, pregunta y criterio de cierre — nunca la causa, el método ni lo que se espera encontrar.",
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pase-sin-sesgo.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Mandamiento VIII: el pase lleva sus cuatro piezas. Y XVI: buscar antes de lanzar un agente.",
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/pase-completo.sh"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "_comentario": "Mandamiento XIX: las letras A-Z son del plan. Y detección de cifras dentro del artefacto (XVIII). ⛔ 2026-08-27: se quitó async:true — el guion corría (medido con sonda) pero su aviso jamás llegaba a la conversación; en síncrono el mismo guion entrega. Tarda <1s: no bloquea nada que importe.",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/avisos-de-escritura.sh"
+            ],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "_comentario": "Mandamiento III y XVI: un grep devuelve una lista de sitios donde mirar, no una respuesta.",
+        "matcher": "Grep|Glob",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/abre-lo-que-encuentres.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "_comentario": "Reencarrila antes de que el informe llegue al supervisor: sin premisa verificada y sin 'qué NO cubre', no cierra.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/reencarrilar.sh"
+            ],
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "_comentario": "Ficha de rol: todo informe cierra con 'qué NO cubre esto y por qué'.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/informe-completo.sh"
+            ],
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "_comentario": "Mandamiento XIII (2026-08-27, dueño: 'el supervisor no verifica informaciones, dice lo que cree'): un turno que AFIRMA sin marca de fuente no cierra. Los subagentes ya tenían reencarrilar.sh; esta es la misma medicina para el hilo principal.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/afirmacion-con-fuente.sh"
+            ],
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "_comentario": "Mandamiento 0-bis: 'Sítame los mandamientos en cada cosa que hagas'. SOLO el número.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/cita-el-mandamiento.sh"
+            ],
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/traspaso.sh"
+            ],
+            "timeout": 60,
+            "statusMessage": "Escribiendo el traspaso antes de comprimir"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "_comentario": "EL MÁS IMPORTANTE. Al comprimir, las reglas se van con el resumen: es el momento exacto en que un agente empieza a volar solo, y nadie lo ve ocurrir.",
+        "matcher": "auto|manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/recordatorio-continuo.sh"
+            ],
+            "timeout": 10,
+            "statusMessage": "Reponiendo las reglas tras comprimir"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "clear|logout|prompt_input_exit|other",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:/Program Files/Git/bin/bash.exe",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/traspaso.sh"
+            ],
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

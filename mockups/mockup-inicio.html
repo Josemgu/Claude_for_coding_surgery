@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas · Pantalla de inicio — especificación visual</title>
+<style>
+/* ==========================================================================
+   Fichas — Pantalla 2 (Inicio). ESPECIFICACIÓN VISUAL PARA tkinter.
+   Mismo sistema de color y mismo anillo de foco que la pantalla de corrección:
+   son dos ventanas del mismo programa y no pueden hablar idiomas distintos.
+   100% autocontenido. Ids de SVG namespaceados con el prefijo `in-`.
+   ========================================================================== */
+
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21; --tinta-suave:#46505C;
+
+  --verde-fondo:#E7F5EC; --verde-marca:#1B6E3C; --verde-tinta:#12351F;
+  --gris-marca:#5B6470;
+  --ambar-fondo:#FFF3C4; --ambar-marca:#8A5B00; --ambar-tinta:#3D2A00;
+  --rojo-fondo:#FDE7E7;  --rojo-marca:#B3261E;  --rojo-tinta:#4A0F0B;
+  --rojo-solido:#B3261E; --rojo-fila:#F8D7D5;
+
+  --foco:#1A1D21;         /* 12.62:1 sobre la fila rosa, 16.91:1 sobre papel */
+  --foco-claro:#FFFFFF;   /* 6.54:1 sobre el rojo sólido, donde el oscuro cae a 2.59:1 */
+
+  /* Escala de espaciado. EXCEPCIÓN DECLARADA, con su motivo: los recuadros en
+     línea (`code`, `kbd`, `.marca`, `.pastilla`) y las separaciones de la rejilla
+     del calendario usan 1–3 px, por debajo de --sp-1. No son espaciado: los
+     primeros son ajuste óptico dentro de una caja de línea —a 4 px se rompe el
+     interlineado—, y `gap:2px` del calendario es una línea de separación entre
+     celdas, no una separación de bloques. Se dicen en vez de forzarlos. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+}
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:#5C6270; color:var(--tinta);
+  font-family:"Segoe UI", system-ui, sans-serif; font-size:14px; line-height:1.45;
+}
+.hoja{ max-width:1360px; margin:0 auto; padding:var(--sp-6) var(--sp-5) 80px; }
+
+.aviso-doc{
+  background:#111418; color:#E8EAED; border-left:6px solid #E8B931;
+  padding:var(--sp-4) var(--sp-5); margin-bottom:var(--sp-6); border-radius:2px;
+}
+.aviso-doc h1{ font-size:17px; margin:0 0 var(--sp-2); }
+.aviso-doc p{ margin:0 0 var(--sp-2); max-width:88ch; }
+.aviso-doc p:last-child{ margin-bottom:0; }
+.aviso-doc code{ background:#2A2F36; padding:1px 5px; border-radius:2px; }
+h2.seccion{
+  color:#FFFFFF; font-size:15px; letter-spacing:.06em; text-transform:uppercase;
+  margin:var(--sp-8) 0 var(--sp-3); font-weight:600;
+}
+
+/* ------------------------------ LA VENTANA -------------------------------- */
+.ventana{
+  width:1280px; max-width:100%; background:var(--panel);
+  border:1px solid #3A4049; border-radius:2px; overflow:hidden;
+}
+.barra-titulo{
+  background:var(--panel-hondo); border-bottom:1px solid var(--linea);
+  padding:var(--sp-2) var(--sp-4); font-size:13px; color:var(--tinta-suave);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.barra-titulo .acciones{ display:flex; gap:var(--sp-2); }
+
+/* ===== BLOQUE 1 · VIAJES PRÓXIMOS. Arriba del todo, sin pestañas ========== */
+.alerta{ background:var(--rojo-solido); }
+.alerta-cab{
+  display:flex; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-5); color:#FFFFFF;   /* 6.54:1 */
+}
+.alerta-cab .icono{ width:26px; height:26px; flex:none; }
+.alerta-cab h2{ font-size:17px; margin:0; font-weight:700; letter-spacing:.01em; }
+.alerta-cab .resumen{ margin-left:auto; font-size:13px; }
+.alerta-cab .resumen b{ font-variant-numeric:tabular-nums; }
+
+.alerta-cuerpo{ background:var(--rojo-fila); padding:var(--sp-2) var(--sp-3) var(--sp-3); }
+
+/* subtítulo de nivel dentro del bloque rojo */
+.nivel{
+  font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--rojo-tinta); padding:var(--sp-2) var(--sp-2) var(--sp-1);
+  display:flex; align-items:center; gap:var(--sp-2);
+}
+.nivel.suave{ color:var(--tinta-suave); }
+.nivel::after{ content:""; flex:1; height:1px; background:rgba(0,0,0,.14); }
+
+/* Una fila de caso en el bloque rojo */
+.fila{
+  display:grid;
+  grid-template-columns:88px 108px 1fr 190px 240px 26px;
+  gap:var(--sp-3); align-items:center;
+  background:var(--papel); border:1px solid var(--linea);
+  border-left:6px solid var(--linea-fuerte);
+  padding:var(--sp-2) var(--sp-3); margin-bottom:var(--sp-2);
+  border-radius:0 2px 2px 0;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.fila:hover{ background:#FAFBFC; }
+.fila:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.fila.grave{ border-left-color:var(--rojo-marca); background:var(--rojo-fondo); }
+.fila.grave:hover{ background:#FBDCDA; }
+.fila.leve{  border-left-color:var(--verde-marca); }
+.fila.vencido{ border-left-color:#6E1B15; background:var(--rojo-fondo); }
+.fila.sinfecha{ border-left-color:var(--ambar-marca); background:var(--ambar-fondo); }
+
+.cuenta{
+  font-weight:700; font-size:15px; font-variant-numeric:tabular-nums;
+  display:flex; flex-direction:column; line-height:1.15;
+}
+.cuenta small{ font-weight:400; font-size:11px; color:var(--tinta-suave); letter-spacing:.02em; }
+.grave .cuenta{ color:var(--rojo-tinta); }
+.vencido .cuenta{ color:#4A0F0B; }
+.sinfecha .cuenta{ color:var(--ambar-tinta); font-size:13px; }
+
+.numero-caso{ font-weight:600; font-family:"Consolas","Courier New",monospace; font-size:14px; }
+.unidad{ color:var(--tinta-suave); font-size:13px; }
+.unidad .sin-dato{ color:var(--ambar-marca); font-style:italic; }
+.personas{ font-size:13px; }
+.personas b{ font-variant-numeric:tabular-nums; }
+
+/* La etiqueta de estado: color + PALABRA, nunca solo color */
+.marca{
+  display:inline-flex; align-items:center; gap:var(--sp-2);
+  font-size:12px; font-weight:700; letter-spacing:.03em;
+  padding:2px var(--sp-2); border-radius:2px; border:1px solid;
+  text-transform:uppercase; white-space:nowrap;
+}
+.marca.roja{ background:var(--rojo-solido); color:#FFFFFF; border-color:#8E1B15; }
+.marca.verde{ background:var(--verde-fondo); color:var(--verde-tinta); border-color:var(--verde-marca); }
+.marca.ambar{ background:var(--ambar-fondo); color:var(--ambar-tinta); border-color:var(--ambar-marca); }
+.marca.gris{ background:var(--panel); color:var(--tinta-suave); border-color:var(--linea-fuerte); }
+.flecha{ color:var(--tinta-suave); text-align:center; font-size:15px; }
+
+/* ===== BLOQUE 2 y 3, lado a lado ========================================= */
+.dos-columnas{
+  display:grid; grid-template-columns:1fr 468px; gap:var(--sp-4);
+  padding:var(--sp-4) var(--sp-5) var(--sp-5);
+}
+.tarjeta{ background:var(--papel); border:1px solid var(--linea); border-radius:2px; }
+.tarjeta-cab{
+  display:flex; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-4); border-bottom:1px solid var(--linea);
+  background:var(--panel);
+}
+.tarjeta-cab h3{ font-size:14px; margin:0; font-weight:600; }
+.tarjeta-cab .der{ margin-left:auto; display:flex; gap:var(--sp-2); align-items:center; }
+.tarjeta-cuerpo{ padding:var(--sp-3) var(--sp-4) var(--sp-4); }
+
+/* --- Vista de mes --- */
+.mes{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.dia-cab{
+  font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--tinta-suave); text-align:center; padding:var(--sp-1) 0;
+}
+.dia{
+  min-height:80px; border:1px solid var(--linea); background:var(--papel);
+  padding:3px 4px; font-size:11px; border-radius:1px; overflow:hidden;
+}
+.dia:focus{ outline:2px solid var(--foco); outline-offset:-1px; }
+.dia .n{ font-weight:700; font-size:11.5px; color:var(--tinta-suave); font-variant-numeric:tabular-nums; }
+.dia.fuera{ background:var(--panel); }
+/* Los días del mes vecino van apagados, pero apagado no es ilegible: #A6ADB8
+   medía 2.07:1 sobre el panel. #646C77 da 4.87:1 y se sigue leyendo como
+   secundario frente al #1A1D21 de los días de este mes. */
+.dia.fuera .n{ color:#646C77; }
+.dia.hoy{ border:2px solid var(--tinta); }
+.dia.hoy .n{ color:var(--tinta); }
+.dia.en-ventana{ background:#FFF7F7; }
+.pastilla{
+  display:block; margin-top:2px; padding:2px 4px; border-radius:1px;
+  border-left:3px solid var(--gris-marca); background:var(--panel);
+  line-height:1.25; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.pastilla b{ font-family:"Consolas","Courier New",monospace; font-size:10.5px; }
+.pastilla .u{ color:var(--tinta-suave); }
+.pastilla .p{ font-weight:700; font-variant-numeric:tabular-nums; }
+.pastilla.grave{ border-left-color:var(--rojo-marca); background:var(--rojo-fondo); color:var(--rojo-tinta); }
+.pastilla.leve{ border-left-color:var(--verde-marca); background:var(--verde-fondo); color:var(--verde-tinta); }
+.pastilla.ambar{ border-left-color:var(--ambar-marca); background:var(--ambar-fondo); color:var(--ambar-tinta); }
+.mas{ display:block; margin-top:2px; color:var(--tinta-suave); font-size:10.5px; }
+
+/* --- Lista de pendientes --- */
+.pend{
+  display:grid; grid-template-columns:84px 1fr 56px 22px; gap:var(--sp-2);
+  align-items:center; padding:var(--sp-2) var(--sp-2);
+  border-bottom:1px solid #EEF0F3; font-size:13px;
+  transition:background-color 120ms ease;
+}
+.pend:hover{ background:#F7F8FA; }
+.pend:focus{ outline:2px solid var(--foco); outline-offset:-1px; }
+.pend .f{ font-variant-numeric:tabular-nums; color:var(--tinta-suave); font-size:12px; }
+.pend .f b{ color:var(--tinta); }
+.pend .c{ font-family:"Consolas","Courier New",monospace; font-weight:600; }
+.pend .c small{ display:block; font-family:"Segoe UI",sans-serif; font-weight:400; color:var(--tinta-suave); font-size:11.5px; }
+.pend .n{ text-align:right; font-variant-numeric:tabular-nums; font-size:12px; color:var(--tinta-suave); }
+.pend.urgente .f b{ color:var(--rojo-marca); }
+.pend.sinfecha .f{ color:var(--ambar-marca); font-style:italic; }
+
+/* --- Estado vacío --- */
+.vacio{
+  padding:var(--sp-8) var(--sp-5); text-align:center; color:var(--tinta-suave);
+  background:var(--verde-fondo); border:1px solid var(--verde-marca); border-radius:2px;
+  margin:var(--sp-4) var(--sp-5);
+}
+.vacio svg{ width:44px; height:44px; margin-bottom:var(--sp-2); }
+.vacio p{ margin:0; font-size:15px; color:var(--verde-tinta); font-weight:600; }
+.vacio small{ display:block; margin-top:var(--sp-1); color:var(--tinta-suave); font-weight:400; }
+
+.boton{
+  font:inherit; font-size:13px; height:30px; padding:0 var(--sp-3);
+  border:1px solid var(--linea-fuerte); background:var(--papel); color:var(--tinta);
+  border-radius:2px; cursor:pointer;
+  transition:background-color 120ms ease, border-color 120ms ease;
+}
+.boton:hover{ background:#F0F2F5; }
+.boton:focus{ outline:2px solid var(--foco); outline-offset:1px; }
+.boton-primario{ background:var(--tinta); color:#FFFFFF; border-color:var(--tinta); }
+.boton-primario:hover{ background:#2C323A; }
+/* REGLA: sobre superficie oscura el anillo de foco es BLANCO. El oscuro sobre
+   este botón mide 1.00:1 — invisible. Misma regla que en la franja roja. */
+.boton-primario:focus{ outline-color:var(--foco-claro); outline-offset:-3px; }
+.boton .tecla{ color:var(--tinta-suave); font-size:11px; margin-left:var(--sp-2); }
+.boton-primario .tecla{ color:#C3C8D0; }
+/* En el rojo sólido el anillo oscuro cae a 2.59:1. Ahí el foco es blanco. */
+.alerta-cab .boton{ background:transparent; color:#FFFFFF; border-color:#F0B8B4; }
+/* La etiqueta de la tecla hereda el gris de `.boton .tecla`, que sobre el rojo
+   sólido mide 1.25:1 — ilegible. Sobre esta franja va en rosa claro: 5.39:1. */
+.alerta-cab .boton .tecla{ color:#FFE3E0; }
+.alerta-cab .boton:hover{ background:rgba(255,255,255,.14); }
+.alerta-cab .boton:focus{ outline:2px solid var(--foco-claro); outline-offset:1px; }
+
+/* ------------------------------ anexo ------------------------------------ */
+.papel-anexo{ background:var(--papel); border-radius:2px; padding:var(--sp-5) var(--sp-6); margin-top:var(--sp-3); }
+.papel-anexo h3{ font-size:15px; margin:var(--sp-5) 0 var(--sp-2); }
+.papel-anexo h3:first-child{ margin-top:0; }
+.papel-anexo p{ max-width:96ch; margin:0 0 var(--sp-3); }
+.tabla-envoltorio{ overflow-x:auto; margin-bottom:var(--sp-4); }
+table{ border-collapse:collapse; width:100%; font-size:13px; min-width:640px; }
+th,td{ text-align:left; padding:var(--sp-2) var(--sp-3); border-bottom:1px solid var(--linea); vertical-align:top; }
+th{ background:var(--panel); font-weight:600; }
+code{ font-family:"Consolas","Courier New",monospace; font-size:12.5px; background:var(--panel); padding:1px 4px; border-radius:2px; }
+kbd{ font-family:"Consolas","Courier New",monospace; font-size:12px; border:1px solid var(--linea-fuerte); border-bottom-width:2px; background:var(--papel); padding:1px 6px; border-radius:3px; white-space:nowrap; }
+ul{ margin:0 0 var(--sp-3); padding-left:var(--sp-5); max-width:96ch; }
+li{ margin-bottom:var(--sp-1); }
+.bloqueado{ color:var(--rojo-marca); font-weight:600; }
+.medido{ color:var(--verde-marca); font-weight:600; }
+
+@media (prefers-reduced-motion: reduce){ *{ transition-duration:1ms !important; } }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+<div class="aviso-doc">
+  <h1>Especificación visual — Pantalla 2 · Inicio</h1>
+  <p><b>Esto no es el programa.</b> Es el reparto del espacio, la jerarquía y el recorrido del teclado
+  de una ventana de <code>tkinter</code>. Comparte con la pantalla de corrección el mismo sistema de
+  color, el mismo anillo de foco y la misma escala de espaciado: son dos ventanas del mismo programa.</p>
+  <p>Fecha simulada: <b>lunes 2026-09-02</b>. Los casos son inventados; los formatos
+  (<code>CASP2609</code>, <code>7000011</code>) salen de mediciones reales de
+  <code>DECISIONES.md</code>. No se abrió ningún PDF de <code>pdfs_referencia/</code>.</p>
+</div>
+
+<h2 class="seccion">La ventana</h2>
+
+<div class="ventana">
+  <div class="barra-titulo">
+    <span>Fichas — Inicio · <b>lunes, 2 de septiembre de 2026</b></span>
+    <span class="acciones">
+      <button class="boton" type="button">Importar PDF…<span class="tecla">Ctrl+I</span></button>
+      <button class="boton" type="button">Exportar Excel<span class="tecla">Ctrl+E</span></button>
+    </span>
+  </div>
+
+  <!-- ============ BLOQUE 1 · ARRIBA DEL TODO, EN ROJO, SIN UN CLIC ======== -->
+  <section class="alerta" aria-labelledby="in-titulo-alerta">
+    <div class="alerta-cab">
+      <svg class="icono" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.6 1.8 20.4h20.4L12 2.6z" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+        <rect x="11" y="9" width="2" height="6" fill="#FFFFFF"/>
+        <rect x="11" y="16.6" width="2" height="2" fill="#FFFFFF"/>
+      </svg>
+      <h2 id="in-titulo-alerta">Viajan en los próximos 7 días</h2>
+      <!-- Las cifras de esta línea son la SUMA de las filas de abajo y se comprueban
+           contra ellas. Decía «14 personas» cuando las filas suman 16, y «3 sin
+           resolver» detrás de «personas» cuando el 3 contaba casos y las personas
+           sin resolver son 9. Cada magnitud lleva ahora su sustantivo pegado. -->
+      <span class="resumen"><b>5</b> casos · <b>16</b> personas · <b>3</b> casos con <b>9</b> personas sin resolver</span>
+      <button class="boton" type="button" style="margin-left:var(--sp-4)">Ver todos<span class="tecla">F5</span></button>
+    </div>
+
+    <div class="alerta-cuerpo">
+
+      <p class="nivel">Viajan pronto Y tienen personas sin resolver — atender primero</p>
+
+      <div class="fila grave vencido" tabindex="0" role="button">
+        <span class="cuenta">−1 día<small>VENCIDO</small></span>
+        <span class="numero-caso">PARB2609</span>
+        <span class="unidad">Paramaribo Branch · 7000011</span>
+        <span class="personas"><b>4</b> personas · <b>2</b> sin resolver</span>
+        <span><span class="marca roja">Ya viajó · incompleta</span></span>
+        <span class="flecha" aria-hidden="true">›</span>
+      </div>
+
+      <div class="fila grave" tabindex="0" role="button">
+        <span class="cuenta">1 día<small>MIÉ 03 SEP</small></span>
+        <span class="numero-caso">CASP2609</span>
+        <span class="unidad">Castries Branch · 700001</span>
+        <span class="personas"><b>3</b> personas · <b>1</b> sin resolver</span>
+        <span><span class="marca roja">Incompleta</span></span>
+        <span class="flecha" aria-hidden="true">›</span>
+      </div>
+
+      <div class="fila grave" tabindex="0" role="button">
+        <span class="cuenta">6 días<small>DOM 08 SEP</small></span>
+        <span class="numero-caso">SURB2609</span>
+        <span class="unidad"><span class="sin-dato">unidad no guardada</span> · 7000011</span>
+        <span class="personas"><b>6</b> personas · <b>6</b> sin resolver</span>
+        <span><span class="marca roja">Sin verificar</span></span>
+        <span class="flecha" aria-hidden="true">›</span>
+      </div>
+
+      <p class="nivel suave">Viajan pronto y están resueltos</p>
+
+      <div class="fila leve" tabindex="0" role="button">
+        <span class="cuenta">3 días<small>VIE 05 SEP</small></span>
+        <span class="numero-caso">GEOR2609</span>
+        <span class="unidad">Georgetown Ward · 434120</span>
+        <span class="personas"><b>1</b> persona · <b>0</b> sin resolver</span>
+        <span><span class="marca verde">Completa · verificada</span></span>
+        <span class="flecha" aria-hidden="true">›</span>
+      </div>
+
+      <div class="fila leve" tabindex="0" role="button">
+        <span class="cuenta">7 días<small>LUN 09 SEP</small></span>
+        <span class="numero-caso">NICK2609</span>
+        <span class="unidad">Nickerie Branch · 2122099</span>
+        <span class="personas"><b>2</b> personas · <b>0</b> sin resolver</span>
+        <span><span class="marca verde">Completa · verificada</span></span>
+        <span class="flecha" aria-hidden="true">›</span>
+      </div>
+
+      <p class="nivel suave">Sin fecha de viaje — no se puede saber si son urgentes</p>
+
+      <div class="fila sinfecha" tabindex="0" role="button">
+        <span class="cuenta">— <small>SIN FECHA</small></span>
+        <span class="numero-caso">ALBI2609</span>
+        <span class="unidad">Albina Branch · 2122301</span>
+        <span class="personas"><b>2</b> personas · <b>2</b> sin resolver</span>
+        <span><span class="marca ambar">Sin fecha de viaje</span></span>
+        <span class="flecha" aria-hidden="true">›</span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ BLOQUES 2 y 3 ========================================== -->
+  <div class="dos-columnas">
+
+    <!-- ---- Vista de mes ---- -->
+    <div class="tarjeta">
+      <div class="tarjeta-cab">
+        <h3>Septiembre de 2026</h3>
+        <span class="der">
+          <button class="boton" type="button" aria-label="Mes anterior">‹</button>
+          <button class="boton" type="button" aria-label="Mes siguiente">›</button>
+        </span>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="mes">
+          <span class="dia-cab">lun</span><span class="dia-cab">mar</span><span class="dia-cab">mié</span>
+          <span class="dia-cab">jue</span><span class="dia-cab">vie</span><span class="dia-cab">sáb</span>
+          <span class="dia-cab">dom</span>
+
+          <div class="dia fuera"><span class="n">31</span></div>
+          <div class="dia en-ventana" tabindex="0"><span class="n">1</span>
+            <span class="pastilla grave"><b>PARB2609</b><span class="u"> Paramaribo</span> · <span class="p">4</span></span>
+          </div>
+          <div class="dia hoy en-ventana" tabindex="0"><span class="n">2 · hoy</span></div>
+          <div class="dia en-ventana" tabindex="0"><span class="n">3</span>
+            <span class="pastilla grave"><b>CASP2609</b><span class="u"> Castries</span> · <span class="p">3</span></span>
+          </div>
+          <div class="dia en-ventana" tabindex="0"><span class="n">4</span></div>
+          <div class="dia en-ventana" tabindex="0"><span class="n">5</span>
+            <span class="pastilla leve"><b>GEOR2609</b><span class="u"> Georgetown</span> · <span class="p">1</span></span>
+          </div>
+          <div class="dia en-ventana" tabindex="0"><span class="n">6</span></div>
+
+          <div class="dia en-ventana" tabindex="0"><span class="n">7</span></div>
+          <div class="dia en-ventana" tabindex="0"><span class="n">8</span>
+            <span class="pastilla grave"><b>SURB2609</b><span class="u"> —</span> · <span class="p">6</span></span>
+          </div>
+          <div class="dia en-ventana" tabindex="0"><span class="n">9</span>
+            <span class="pastilla leve"><b>NICK2609</b><span class="u"> Nickerie</span> · <span class="p">2</span></span>
+          </div>
+          <div class="dia" tabindex="0"><span class="n">10</span></div>
+          <div class="dia" tabindex="0"><span class="n">11</span>
+            <span class="pastilla"><b>MOEN2609</b><span class="u"> Moengo</span> · <span class="p">2</span></span>
+          </div>
+          <div class="dia" tabindex="0"><span class="n">12</span></div>
+          <div class="dia" tabindex="0"><span class="n">13</span></div>
+
+          <div class="dia" tabindex="0"><span class="n">14</span></div>
+          <div class="dia" tabindex="0"><span class="n">15</span>
+            <span class="pastilla"><b>WANI2609</b><span class="u"> Wanica</span> · <span class="p">3</span></span>
+            <span class="pastilla"><b>LELY2609</b><span class="u"> Lelydorp</span> · <span class="p">1</span></span>
+            <span class="mas">+2 casos más</span>
+          </div>
+          <div class="dia" tabindex="0"><span class="n">16</span></div>
+          <div class="dia" tabindex="0"><span class="n">17</span></div>
+          <div class="dia" tabindex="0"><span class="n">18</span>
+            <span class="pastilla"><b>TAMA2609</b><span class="u"> Tamanredjo</span> · <span class="p">5</span></span>
+          </div>
+          <div class="dia" tabindex="0"><span class="n">19</span></div>
+          <div class="dia" tabindex="0"><span class="n">20</span></div>
+
+          <div class="dia" tabindex="0"><span class="n">21</span></div>
+          <div class="dia" tabindex="0"><span class="n">22</span></div>
+          <div class="dia" tabindex="0"><span class="n">23</span>
+            <span class="pastilla"><b>BROK2609</b><span class="u"> Brokopondo</span> · <span class="p">2</span></span>
+          </div>
+          <div class="dia" tabindex="0"><span class="n">24</span></div>
+          <div class="dia" tabindex="0"><span class="n">25</span></div>
+          <div class="dia" tabindex="0"><span class="n">26</span></div>
+          <div class="dia" tabindex="0"><span class="n">27</span></div>
+
+          <div class="dia" tabindex="0"><span class="n">28</span></div>
+          <div class="dia" tabindex="0"><span class="n">29</span></div>
+          <div class="dia" tabindex="0"><span class="n">30</span>
+            <span class="pastilla ambar"><b>ALBI2609</b><span class="u"> Albina</span> · <span class="p">2</span></span>
+          </div>
+          <div class="dia fuera"><span class="n">1</span></div>
+          <div class="dia fuera"><span class="n">2</span></div>
+          <div class="dia fuera"><span class="n">3</span></div>
+          <div class="dia fuera"><span class="n">4</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- Lista de pendientes ---- -->
+    <div class="tarjeta">
+      <div class="tarjeta-cab">
+        <h3>Pendientes de verificar</h3>
+        <span class="der"><span style="font-size:12px;color:var(--tinta-suave)">9 casos · el que viaja antes, primero</span></span>
+      </div>
+      <div class="tarjeta-cuerpo" style="padding-top:0">
+        <div class="pend urgente" tabindex="0" role="button">
+          <span class="f"><b>−1 d</b><br>01 sep</span>
+          <span class="c">PARB2609<small>Paramaribo Branch</small></span>
+          <span class="n">4 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend urgente" tabindex="0" role="button">
+          <span class="f"><b>1 d</b><br>03 sep</span>
+          <span class="c">CASP2609<small>Castries Branch</small></span>
+          <span class="n">3 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend urgente" tabindex="0" role="button">
+          <span class="f"><b>6 d</b><br>08 sep</span>
+          <span class="c">SURB2609<small style="color:var(--ambar-marca);font-style:italic">unidad no guardada</small></span>
+          <span class="n">6 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend" tabindex="0" role="button">
+          <span class="f"><b>9 d</b><br>11 sep</span>
+          <span class="c">MOEN2609<small>Moengo Branch</small></span>
+          <span class="n">2 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend" tabindex="0" role="button">
+          <span class="f"><b>13 d</b><br>15 sep</span>
+          <span class="c">WANI2609<small>Wanica Ward</small></span>
+          <span class="n">3 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend" tabindex="0" role="button">
+          <span class="f"><b>13 d</b><br>15 sep</span>
+          <span class="c">LELY2609<small>Lelydorp Branch</small></span>
+          <span class="n">1 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend" tabindex="0" role="button">
+          <span class="f"><b>16 d</b><br>18 sep</span>
+          <span class="c">TAMA2609<small>Tamanredjo Branch</small></span>
+          <span class="n">5 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend" tabindex="0" role="button">
+          <span class="f"><b>21 d</b><br>23 sep</span>
+          <span class="c">BROK2609<small>Brokopondo Branch</small></span>
+          <span class="n">2 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+        <div class="pend sinfecha" tabindex="0" role="button" style="border-bottom:none">
+          <span class="f">sin fecha</span>
+          <span class="c">ALBI2609<small>Albina Branch</small></span>
+          <span class="n">2 pers.</span><span class="flecha" aria-hidden="true">›</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /ventana -->
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">La misma ventana con la base vacía (FASE 5, criterio 5)</h2>
+<div class="ventana" style="margin-bottom:var(--sp-3)">
+  <div class="barra-titulo">
+    <span>Fichas — Inicio · <b>lunes, 2 de septiembre de 2026</b></span>
+    <span class="acciones">
+      <button class="boton boton-primario" type="button">Importar PDF…<span class="tecla">Ctrl+I</span></button>
+    </span>
+  </div>
+  <div class="vacio">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.2" fill="none" stroke="#1B6E3C" stroke-width="1.8"/>
+      <path d="M7.6 12.4l3 3 5.8-6.4" fill="none" stroke="#1B6E3C" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <p>No hay viajes en los próximos 7 días.</p>
+    <small>Tampoco hay casos pendientes de verificar. Use «Importar PDF…» para añadir formularios.</small>
+  </div>
+  <div class="dos-columnas">
+    <div class="tarjeta">
+      <div class="tarjeta-cab"><h3>Septiembre de 2026</h3></div>
+      <div class="tarjeta-cuerpo" style="color:var(--tinta-suave);text-align:center;padding:var(--sp-8) var(--sp-4)">
+        Ningún caso en este mes.
+      </div>
+    </div>
+    <div class="tarjeta">
+      <div class="tarjeta-cab"><h3>Pendientes de verificar</h3></div>
+      <div class="tarjeta-cuerpo" style="color:var(--tinta-suave);text-align:center;padding:var(--sp-8) var(--sp-4)">
+        Nada pendiente.
+      </div>
+    </div>
+  </div>
+</div>
+<p style="color:#E8EAED;max-width:96ch;margin:0">El bloque rojo <b>no se dibuja vacío</b>: se sustituye
+por el verde. Una barra roja titulada «Viajan en los próximos 7 días» con nada debajo enseña a Miguel
+a ignorar el rojo, y la única defensa del programa es que ese rojo signifique siempre algo.</p>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Jerarquía: qué se ve primero, y por qué en ese orden</h2>
+<div class="papel-anexo">
+<p>La pantalla se lee de arriba abajo <b>en orden de daño</b>. Nada de lo importante está detrás de una
+pestaña ni de un clic, porque —lo dice la propia FASE 5— <i>si hay que dar un clic para enterarse,
+algún día no se da ese clic</i>.</p>
+
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Orden</th><th>Bloque</th><th>Alto</th><th>Por qué ahí</th></tr></thead>
+<tbody>
+<tr><td>1.º</td><td><b>Viajan pronto Y sin resolver</b><br>franja roja sólida + filas rosas</td><td>~52 + 44·n px</td>
+    <td>Es el escenario que hace perder el viaje. Es lo primero que hay en la ventana después de la
+    barra de título: la mirada cae ahí sin buscar.</td></tr>
+<tr><td>2.º</td><td>Viajan pronto y resueltos</td><td>44 px por caso</td>
+    <td>Dentro del mismo bloque rojo, bajo su propio subtítulo. Están porque hay que saber quién viaja;
+    no están arriba porque ya no hacen daño.</td></tr>
+<tr><td>3.º</td><td><b>Sin fecha de viaje</b>, en ámbar</td><td>44 px por caso</td>
+    <td>Un caso sin fecha <b>no puede</b> aparecer en «próximos 7 días» —no hay con qué compararlo— y
+    si no sale aquí no sale en ninguna parte de la mitad de arriba. Un caso invisible es exactamente
+    el que se pierde.</td></tr>
+<tr><td>4.º</td><td>Vista de mes</td><td>~430 px</td>
+    <td>Es contexto, no alarma. Contesta «¿cómo viene el mes?», que es una pregunta que se hace
+    sentado, no de pie.</td></tr>
+<tr><td>5.º</td><td>Pendientes de verificar</td><td>~430 px</td>
+    <td>Es la cola de trabajo, ordenada por fecha de viaje ascendente: lo que viaja primero se atiende
+    primero. A la derecha del calendario porque se usan juntos.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Los tres niveles del bloque rojo, y qué los separa</h3>
+<p>El criterio 4 de la FASE 5 (reescrito el 2026-09-02) exige que la distinción <b>no dependa de
+percibir un color</b> y que se pueda contar. Por eso cada fila lleva una <b>etiqueta con palabra</b> a
+la derecha, y el resumen de la cabecera trae el <b>numerador y el denominador</b> —«5 casos · 14
+personas · 3 con la recomendación sin resolver»— que es lo que se compara, elemento a elemento, con el
+<code>SELECT</code> equivalente.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Nivel</th><th>Palabra</th><th>Barra izquierda · fondo</th><th>Contraste medido</th></tr></thead>
+<tbody>
+<tr><td>Viajó y sigue sin resolver</td><td>YA VIAJÓ · INCOMPLETA</td><td><code>#6E1B15</code> · <code>#FDE7E7</code></td><td class="medido">13.02:1</td></tr>
+<tr><td>Viaja pronto y sin resolver</td><td>INCOMPLETA / SIN VERIFICAR</td><td><code>#B3261E</code> · <code>#FDE7E7</code></td><td class="medido">13.02:1</td></tr>
+<tr><td>Viaja pronto, resuelto</td><td>COMPLETA · VERIFICADA</td><td><code>#1B6E3C</code> · <code>#FFFFFF</code></td><td class="medido">16.91:1</td></tr>
+<tr><td>Sin fecha</td><td>SIN FECHA DE VIAJE</td><td><code>#8A5B00</code> · <code>#FFF3C4</code></td><td class="medido">12.34:1</td></tr>
+<tr><td>Franja de cabecera</td><td>—</td><td>blanco sobre <code>#B3261E</code></td><td class="medido">6.54:1</td></tr>
+</tbody>
+</table>
+</div>
+<p><b>El anillo de foco cambia de color dentro de la franja roja, y es medido, no estético.</b> El
+anillo oscuro <code>#1A1D21</code> da 12.62:1 sobre la fila rosa y <b class="bloqueado">2.59:1</b>
+sobre el rojo sólido — por debajo del 3:1 que pide la WCAG 1.4.11. Sobre el rojo sólido el anillo es
+<b>blanco</b>: 6.54:1. Se probó también el azul de sistema <code>#0B5FFF</code>: <b>1.27:1</b> sobre
+ese rojo. Prácticamente invisible.</p>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">El recorrido del teclado</h2>
+<div class="papel-anexo">
+<p>Esta pantalla se mira más de lo que se teclea, pero tiene que poder recorrerse entera sin ratón,
+porque desde aquí se entra a corregir y ahí el ratón cuesta tiempo.</p>
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Tecla</th><th>Qué hace</th><th>Por qué así</th></tr></thead>
+<tbody>
+<tr><td><kbd>Tab</kbd></td><td>Entre las cuatro regiones: barra superior → bloque rojo → calendario →
+    pendientes. <b>No entra fila a fila.</b></td>
+    <td>Con 40 días y 9 pendientes, <kbd>Tab</kbd> fila a fila serían 50 pulsaciones para cruzar la
+    pantalla. Dentro de cada región se anda con las flechas.</td></tr>
+<tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Dentro del bloque rojo o de pendientes, de fila en fila. El
+    foco arranca <b>en la primera fila del bloque rojo</b> al abrir el programa.</td>
+    <td>Lo más urgente ya tiene el foco: <kbd>Intro</kbd> nada más abrir lleva al caso que más corre.</td></tr>
+<tr><td><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></td><td>En el calendario, de día en día.
+    <kbd>RePág</kbd> / <kbd>AvPág</kbd> cambian de mes.</td>
+    <td>Es una rejilla; se recorre como una rejilla.</td></tr>
+<tr><td><kbd>Intro</kbd></td><td>Abre el caso con el foco en la <b>pantalla de corrección</b>. En un día
+    del calendario con varios casos, abre una lista de ese día.</td><td>Un solo verbo para «entrar».</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>I</kbd></td><td>Importar PDF.</td><td>La única acción que crea datos.</td></tr>
+<tr><td><kbd>Ctrl</kbd>+<kbd>E</kbd></td><td>Exportar el Excel espejo.</td><td>FASE 4.</td></tr>
+<tr><td><kbd>F5</kbd></td><td>Recarga las tres listas desde la base.</td>
+    <td>Miguel deja el programa abierto días. Sin recargar, el bloque de «próximos 7 días» sigue
+    contando desde el día que lo abrió, y eso es exactamente la mentira que la pantalla existe para
+    no decir.</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Nada en esta pantalla.</td>
+    <td>Es la pantalla raíz. <kbd>Esc</kbd> aquí solo podría cerrar el programa, y no se cierra un
+    programa por reflejo.</td></tr>
+</tbody>
+</table>
+</div>
+<p><b>El reloj no se consulta una sola vez.</b> Lo que cambia de bloque un caso es
+<code>fecha_viaje − hoy</code>, y «hoy» tiene que releerse: al recargar con <kbd>F5</kbd>, al volver de
+la pantalla de corrección, y con un temporizador de <code>after()</code> que compruebe el cambio de
+día. Un programa abierto desde el lunes que el jueves siga pintando el lunes es la avería silenciosa
+de esta pantalla.</p>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Control / qué hace de verdad · y qué dice la pantalla después</h2>
+<div class="papel-anexo">
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Control</th><th>Widget de Tk</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>Fila del bloque rojo</td><td><code>ttk.Frame</code> con <code>bind</code> de
+    <code>&lt;Button-1&gt;</code>, <code>&lt;Return&gt;</code> y <code>takefocus=1</code></td>
+    <td>Abre ese caso en la pantalla de corrección.</td>
+    <td>Cambia la ventana. Al volver, <b>la fila se ha recalculado</b>: si se resolvió, baja al nivel
+    verde y el contador de la cabecera pierde uno.</td></tr>
+<tr><td><b>Ver todos</b> / <kbd>F5</kbd></td><td><code>ttk.Button</code></td>
+    <td>Relee la base con la fecha de hoy y repinta las tres listas.</td>
+    <td>Los contadores y los días restantes se recalculan. Si cambió el día, <b>las cuentas atrás
+    bajan en uno</b>. Es la comprobación de que el número no está congelado.</td></tr>
+<tr><td><b>Importar PDF…</b></td><td><code>ttk.Button</code> + <code>filedialog</code></td>
+    <td>Recorre <b>todas las páginas</b> del PDF y da de alta un caso por página.</td>
+    <td>Los nuevos aparecen en «Pendientes» ya ordenados, y en el bloque rojo si viajan pronto.
+    <b>El resumen dice cuántos casos salieron de cuántas páginas</b>: un PDF de 6 hojas que produce 1
+    caso es un fallo, y sin las dos cifras no se ve.</td></tr>
+<tr><td><b>Exportar Excel</b></td><td><code>ttk.Button</code></td><td>FASE 4. Escribe el Excel espejo.</td>
+    <td>Mensaje con la ruta del archivo escrito. <b class="bloqueado">No construido.</b></td></tr>
+<tr><td>Día del calendario</td><td><code>tk.Canvas</code> o rejilla de <code>ttk.Frame</code></td>
+    <td>Con un caso, lo abre. Con varios, despliega la lista del día.</td>
+    <td>Un día con más casos de los que caben dice <b>«+2 casos más»</b>, no los oculta en silencio.</td></tr>
+<tr><td>‹ ›  del mes</td><td><code>ttk.Button</code></td><td>Mes anterior / siguiente.</td>
+    <td>Cambian el título y la rejilla. <b>El bloque rojo NO cambia</b>: siempre son los próximos 7
+    días desde hoy, se mire el mes que se mire.</td></tr>
+<tr><td>Fila de «Pendientes»</td><td><code>ttk.Treeview</code> o <code>Frame</code> con foco</td>
+    <td>Abre ese caso.</td>
+    <td>Al volver verificado, <b>desaparece de la lista</b> y el contador de la cabecera baja. Si sigue
+    ahí después de verificar, el filtro está mal.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Los casos incómodos</h2>
+<div class="papel-anexo">
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Situación</th><th>Qué se ve</th></tr></thead>
+<tbody>
+<tr><td><b>Un caso sin fecha de viaje</b></td>
+    <td>Tiene su propio nivel, en ámbar, dentro del bloque de arriba —no en el rojo, que significa
+    «viaja pronto», y de este no se sabe—. En el calendario no puede salir, y en «Pendientes» va
+    <b>al final</b>, con «sin fecha» en cursiva: la lista se ordena por fecha ascendente y
+    <code>NULL</code> no tiene sitio en ese orden. <b>Nunca se le inventa una fecha.</b></td></tr>
+<tr><td><b>El caso ya viajó y sigue sin resolver</b></td>
+    <td>Se queda arriba, con la cuenta en negativo (<b>−1 día</b>) y la palabra <b>VENCIDO</b>. Lo pide
+    el criterio 3 de la FASE 5: aparece, y distinguido de los futuros. Sacarlo de la lista el día
+    después sería borrar la única prueba de que algo salió mal.</td></tr>
+<tr><td><b>El borde de los 7 días</b></td>
+    <td>7 días <b>entra</b> (NICK2609, 09 sep), 8 días <b>no</b>. El límite se dibuja: la ventana está
+    sombreada en el calendario del 1 al 9, y el 10 ya no.</td></tr>
+<tr><td><b>Un día con cuatro casos</b></td>
+    <td>Cada día muestra <b>hasta 2</b> y luego «+2 casos más». La celda mide 80 px y tres pastillas no
+    caben sin encoger la letra por debajo de lo legible. El día sigue siendo pulsable y despliega la
+    lista completa.</td></tr>
+<tr><td><b>Un caso con 6 personas</b></td>
+    <td>La fila dice <b>«6 personas · 6 sin resolver»</b>. Nunca se listan las personas aquí: esta
+    pantalla es de casos. Las dos cifras juntas son las que hacen visible el peor escenario.</td></tr>
+<tr><td><b>La base vacía</b></td>
+    <td>Se sustituye el bloque rojo por uno verde con «No hay viajes en los próximos 7 días».
+    <b>El rojo no se dibuja vacío.</b></td></tr>
+<tr><td><b>Un caso archivado</b> (FASE 8)</td>
+    <td>No sale en ningún bloque. La consulta <b>filtra por <code>archivado = 0</code> desde el primer
+    día</b>, aunque todavía no exista forma de archivar: es la obligación de diseño de la FASE 5
+    criterio 6. El índice <code>idx_casos_viaje_activos</code> ya está definido como parcial
+    <code>WHERE archivado = 0</code> por lo mismo.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+<!-- ======================================================================= -->
+<h2 class="seccion">Lo que esta pantalla necesita y hoy no existe</h2>
+<div class="papel-anexo">
+<div class="tabla-envoltorio">
+<table>
+<thead><tr><th>Qué falta</th><th>Comprobado en</th><th>Qué se cae sin ello</th></tr></thead>
+<tbody>
+<tr><td><b>El nombre de la unidad no se guarda.</b> <code>casos</code> tiene
+    <code>unidad_numero</code> y <b>no tiene <code>unidad</code></b>; <code>alta_de_caso</code> no
+    acepta el nombre, aunque el extractor lo lee.</td>
+    <td><code>datos/esquema.py</code> 45-66 · <code>datos/repositorio.py</code> 51-58 ·
+    <code>extraccion/formulario.py</code> 209</td>
+    <td class="bloqueado">La «unidad» que el pase pide en la vista de mes y en las filas. Arriba se
+    dibuja como <i>«unidad no guardada»</i> en SURB2609 para que se vea el hueco, no para taparlo.</td></tr>
+<tr><td><b>«Sin resolver» no está definido.</b> <code>estado_recomendacion</code> existe como columna
+    sin <code>CHECK</code>, y hoy solo admite dos valores —<code>no_indicada</code> e
+    <code>incompleta</code>—; <code>DECISIONES.md</code> deja <b>pendientes del dueño los otros dos</b>.
+    No hay ningún valor que signifique «completa».</td>
+    <td><code>datos/estados.py</code>: <code>ESTADOS_RECOMENDACION = ("no_indicada", "incompleta")</code></td>
+    <td class="bloqueado">La etiqueta «COMPLETA · VERIFICADA» de arriba <b>no tiene hoy valor que la
+    respalde</b>. Ver la pregunta al dueño, abajo.</td></tr>
+<tr><td><b>No hay consultas.</b> <code>datos/repositorio.py</code> tiene
+    <code>leer_caso_por_numero</code> y <code>leer_personas_del_caso</code>, y ninguna función que
+    devuelva los casos de una ventana de fechas, ni el conteo por día, ni los pendientes.</td>
+    <td><code>grep -n "^def " datos/repositorio.py</code> → 9 funciones, ninguna de listado</td>
+    <td>Los tres bloques. Es trabajo declarado de la FASE 5, no un defecto.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>La pregunta que le devuelvo al dueño</h3>
+<p>Para pintar en rojo lo que viaja pronto <b>e incompleto</b> hace falta saber qué es «completo», y
+hoy no hay forma de decirlo. Le planteo las dos que el material admite, con lo que cuesta cada una:</p>
+<ul>
+  <li><b>Opción A — que lo diga la columna.</b> Se añade a <code>ESTADOS_RECOMENDACION</code> un valor
+  como <code>completa</code>, y el caso es completo cuando alguien lo escribe ahí. <b>A favor:</b> es
+  lo que la FASE 6 espera —el compañero rellena una desplegable— y admite matices que el programa no
+  puede deducir. <b>En contra:</b> el estado se queda viejo. Si Miguel corrige el campo que faltaba y
+  no vuelve a tocar la desplegable, <b>la pantalla sigue en rojo mintiendo</b> — y el planificador ya
+  avisó de exactamente eso.</li>
+  <li><b>Opción B — que lo deduzca el programa.</b> Completo = ningún campo en rojo y ninguna casilla
+  sin leer, es decir, lo mismo que habilita «Verificar caso» en la otra pantalla. <b>A favor:</b> no
+  se puede desincronizar, y las dos pantallas dirían siempre lo mismo. <b>En contra:</b> no admite que
+  alguien marque a mano un caso como problemático por un motivo que el programa no ve.</li>
+</ul>
+<p><b>Recomiendo las dos a la vez, y en este orden:</b> el rojo se enciende si <b>A o B</b> dicen que
+falta algo. B nunca deja pasar un caso al que le falta un dato; A deja marcar a mano lo que solo una
+persona sabe. Lo que no se puede es que A por sí sola apague el rojo, porque entonces basta con
+olvidar una desplegable para que el aviso desaparezca — y ese aviso es el motivo por el que existe
+el programa entero. <b>La decisión es del dueño</b>, y con ella vienen los dos valores que faltan.</p>
+</div>
+
+</div><!-- /hoja -->
+</body>
+</html>

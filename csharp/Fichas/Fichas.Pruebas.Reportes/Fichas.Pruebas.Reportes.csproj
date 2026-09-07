@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de Fichas.Reportes. MSTest por el ADR-0003 §8.2: es el marco de la plantilla
+    oficial de WinUI y el unico donde [UITestMethod] esta documentado; tener dos marcos en
+    el mismo arbol es peor que tener uno.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Pruebas.Reportes</RootNamespace>
+    <AssemblyName>Fichas.Pruebas.Reportes</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+    <ProjectReference Include="..\Fichas.Reportes\Fichas.Reportes.csproj" />
+    <!-- La base inventada con la que se mide el criterio de la C8: 3 000 casos sin
+         tocar ningun archivo ni ninguna base real (CLAUDE.md, DATOS del pase). -->
+    <ProjectReference Include="..\Fichas.Datos.Falso\Fichas.Datos.Falso.csproj" />
+  </ItemGroup>
+
+</Project>

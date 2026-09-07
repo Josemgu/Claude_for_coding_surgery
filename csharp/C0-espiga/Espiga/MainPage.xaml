@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="Espiga.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:Espiga"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  Los botones que disparan cada medicion de la FASE C0.  -->
+        <StackPanel
+            Grid.Row="0"
+            Orientation="Horizontal"
+            Spacing="8">
+            <Button x:Name="_botonDeCarga" Click="AlPedirLasFilas" Content="Cargar 3 000 filas" />
+            <Button x:Name="_botonDeConteo" Click="AlContarElementos" Content="Contar elementos vivos" />
+            <Button x:Name="_botonDeOcr" Click="AlLeerLosPdf" Content="Leer los PDF con OCR" />
+        </StackPanel>
+
+        <!--  El cuaderno de las cifras. Se copia tal cual al informe.  -->
+        <TextBlock
+            x:Name="_cuadernoDeCifras"
+            Grid.Row="1"
+            FontFamily="Consolas"
+            IsTextSelectionEnabled="True"
+            Text="Sin medir todavia."
+            TextWrapping="Wrap" />
+
+        <!--
+            ItemsView trae su propio ScrollView en la plantilla (ADR-0003 §6.1), que es
+            justo lo que ItemsRepeater NO trae. La barra se pone visible en el codigo,
+            porque el requisito 1 del dueno pide barra visible, no solo rueda.
+        -->
+        <ItemsView
+            x:Name="_vistaDeFilas"
+            Grid.Row="2"
+            SelectionChanged="AlElegirUnaFila"
+            SelectionMode="Single">
+            <ItemsView.Layout>
+                <StackLayout Orientation="Vertical" Spacing="2" />
+            </ItemsView.Layout>
+            <ItemsView.ItemTemplate>
+                <DataTemplate x:DataType="local:Fila">
+                    <ItemContainer>
+                        <Grid Padding="12,8" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="70" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="130" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{x:Bind Numero}" />
+                            <TextBlock Grid.Column="1" Text="{x:Bind NumeroDeCaso}" />
+                            <TextBlock Grid.Column="2" Text="{x:Bind Nombre}" />
+                            <TextBlock Grid.Column="3" Text="{x:Bind FechaDeViaje}" />
+                            <TextBlock Grid.Column="4" Text="{x:Bind Estado}" />
+                        </Grid>
+                    </ItemContainer>
+                </DataTemplate>
+            </ItemsView.ItemTemplate>
+        </ItemsView>
+    </Grid>
+</Page>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Fichas.App.Correccion.VisorDelDocumento"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        El documento al lado de los campos. Requisito del dueno, con sus palabras:
+        «Debo poder ver el pdf completo al lado para confirmar» y «que pueda hacer zoom a
+        cualquier parte y con el mouse desplazarme libremente».
+
+        El zoom y el desplazamiento los hace el ScrollView, que es lo que pide el criterio
+        C4-4: ZoomMode="Enabled" y ContentOrientation="None". Con ContentOrientation="None"
+        la hoja NO se estira a lo ancho del panel: conserva su tamano y se puede mover en
+        las dos direcciones, que es justo lo que el dueno echaba en falta.
+    -->
+    <Grid RowSpacing="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  La barra del visor. Todo en una linea; ni un parrafo (requisito 4).  -->
+        <Border
+            Grid.Row="0"
+            Padding="8,6"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button
+                    x:Name="_botonDeAlejar"
+                    AutomationProperties.Name="Alejar"
+                    Click="AlPulsarAlejar"
+                    Content="&#xE71F;"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    ToolTipService.ToolTip="Alejar (Ctrl y la rueda hacia abajo)" />
+                <TextBlock
+                    x:Name="_cuantoZoom"
+                    MinWidth="52"
+                    VerticalAlignment="Center"
+                    Text="—"
+                    TextAlignment="Center" />
+                <Button
+                    x:Name="_botonDeAcercar"
+                    AutomationProperties.Name="Acercar"
+                    Click="AlPulsarAcercar"
+                    Content="&#xE8A3;"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    ToolTipService.ToolTip="Acercar (Ctrl y la rueda hacia arriba)" />
+
+                <Button
+                    x:Name="_botonDeAncho"
+                    Click="AlPulsarAncho"
+                    Content="Ancho"
+                    ToolTipService.ToolTip="La hoja entera a lo ancho del panel (doble clic)" />
+                <Button
+                    x:Name="_botonDeCien"
+                    Click="AlPulsarCien"
+                    Content="100 %" />
+
+                <Button
+                    x:Name="_botonDeHojaAnterior"
+                    AutomationProperties.Name="Hoja anterior"
+                    Click="AlPulsarHojaAnterior"
+                    Content="&#xE76B;"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    ToolTipService.ToolTip="Hoja anterior" />
+                <TextBlock
+                    x:Name="_queHoja"
+                    MinWidth="56"
+                    VerticalAlignment="Center"
+                    Text="hoja 1"
+                    TextAlignment="Center" />
+                <Button
+                    x:Name="_botonDeHojaSiguiente"
+                    AutomationProperties.Name="Hoja siguiente"
+                    Click="AlPulsarHojaSiguiente"
+                    Content="&#xE76C;"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    ToolTipService.ToolTip="Hoja siguiente" />
+
+                <TextBlock
+                    x:Name="_pista"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="arrastre para mover · Ctrl y la rueda para el zoom"
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+            </StackPanel>
+        </Border>
+
+        <!--
+            ContentOrientation="None" es lo que deja la hoja a su tamano y permite moverse
+            en las dos direcciones. Con "Vertical" —el valor por defecto— la hoja se
+            estiraria al ancho del panel y no habria nada que arrastrar a lo ancho.
+        -->
+        <!--
+            ⛔ Los sucesos del raton NO se atan aqui: se atan en VisorDelDocumento.Raton.cs
+            con «handledEventsToo», porque el ScrollPresenter de dentro marca como atendidos
+            la mayoria de los movimientos y un manejador puesto en el XAML no los ve.
+            Medido con la ventana abierta: de ocho movimientos llegaban dos.
+
+            Y las barras van SIEMPRE a la vista, no «Auto». Medido con la ventana abierta
+            sobre el paquete publicado, al 200 %: no aparecia ninguna. Una barra es la otra
+            forma de llegar al borde de la hoja, y ademas dice DONDE se esta dentro del
+            papel, que a lo ancho no se adivina.
+        -->
+        <ScrollView
+            x:Name="_lienzo"
+            Grid.Row="1"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            ContentOrientation="None"
+            DoubleTapped="AlDoblePulsacion"
+            HorizontalScrollBarVisibility="Visible"
+            MaxZoomFactor="6"
+            MinZoomFactor="0.1"
+            SizeChanged="AlCambiarDeTamano"
+            VerticalScrollBarVisibility="Visible"
+            ViewChanged="AlCambiarLaVista"
+            ZoomMode="Enabled">
+
+            <Grid
+                x:Name="_hoja"
+                Width="850"
+                Height="1100"
+                Background="White">
+                <Image x:Name="_imagen" Stretch="Fill" />
+
+                <!--
+                    La banda del campo que tiene el foco. Es la idea de Rossum que el
+                    planificador encontro: al poner el foco en un campo, se ilumina su
+                    renglon en la imagen del documento.
+                -->
+                <Rectangle
+                    x:Name="_resalte"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Fill="#33FFC400"
+                    RadiusX="2"
+                    RadiusY="2"
+                    Stroke="#D97706"
+                    StrokeThickness="2"
+                    Visibility="Collapsed" />
+            </Grid>
+        </ScrollView>
+
+        <!--
+            El motivo, cuando no hay imagen que pintar.
+
+            ⚠️ Va FUERA del ScrollView y encima de el, no sobre la hoja. Estaba dentro,
+            centrado en una hoja de 1700 px de alto, y al 94 % ese centro cae por debajo de
+            lo que se ve: medido con la ventana abierta sobre un PDF roto, el panel salia en
+            blanco y el motivo no aparecia por ningun lado. Un motivo que hay que buscar
+            desplazandose es un motivo que no se lee.
+        -->
+        <Border
+            x:Name="_marcoDelMotivo"
+            Grid.Row="1"
+            MaxWidth="560"
+            Margin="24"
+            Padding="16,12"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Visibility="Collapsed">
+            <TextBlock
+                x:Name="_sinImagen"
+                Text=""
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
+        </Border>
+    </Grid>
+</UserControl>

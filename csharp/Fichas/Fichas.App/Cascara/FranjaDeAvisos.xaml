@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Fichas.App.Cascara.FranjaDeAvisos"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <!--
+            El fondo de la franja segun lo grave que sea el aviso, CON SUS DOS TEMAS.
+
+            ⛔ Estan aqui y no se leen de Application.Current.Resources. Medido el 2026-09-05
+            sobre el paquete publicado: con el tema claro la franja daba 1,70:1 —texto casi
+            negro (#070603) sobre marron oscuro (#433519)—, porque el fondo salia del tema de
+            la APLICACION y la letra seguia el del ELEMENTO. Dos temas peleando dentro del
+            mismo control, y la franja es lo que el dueno lee cuando algo va mal.
+
+            Los valores son los del sistema (SystemFillColor*Background), copiados aqui para
+            poder resolverlos con el tema del elemento. Los seis pares estan medidos: el peor
+            da 11,31:1.
+        -->
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="FondoDeProblema" Color="#FDE7E9" />
+                    <SolidColorBrush x:Key="FondoDeAdvertencia" Color="#FFF4CE" />
+                    <SolidColorBrush x:Key="FondoDeAviso" Color="#DFF6DD" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="FondoDeProblema" Color="#442726" />
+                    <SolidColorBrush x:Key="FondoDeAdvertencia" Color="#433519" />
+                    <SolidColorBrush x:Key="FondoDeAviso" Color="#393D1B" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <!--
+        Una linea, su cuenta, «ver» y una X. Requisito 4 del dueno: ni un parrafo en
+        pantalla. Y ningun cuadro modal: «ver» abre el detalle DEBAJO, en la misma franja.
+    -->
+    <Grid x:Name="_franja" Visibility="Collapsed">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border
+            x:Name="_barra"
+            Grid.Row="0"
+            Padding="16,8"
+            Background="{ThemeResource FondoDeAdvertencia}"
+            BorderThickness="0,0,0,1">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    x:Name="_cuenta"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontWeight="SemiBold"
+                    Text="" />
+
+                <!--  Una sola linea: si no cabe, se corta con puntos suspensivos y el resto va en «ver».  -->
+                <TextBlock
+                    x:Name="_linea"
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Text=""
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+
+                <Button
+                    x:Name="_botonDeVer"
+                    Grid.Column="2"
+                    Click="AlPulsarVer"
+                    Content="ver" />
+
+                <Button
+                    x:Name="_botonDeCerrarTodo"
+                    Grid.Column="3"
+                    Click="AlPulsarCerrarTodo"
+                    Content="cerrar todo"
+                    Visibility="Collapsed" />
+
+                <!--
+                    El nombre va escrito y no solo en el ToolTip: el ToolTip sale al posar
+                    el raton, que es justo lo que no hace quien navega con teclado y lector
+                    de pantalla. Sin el, este boton se anunciaba como «botón» y nada mas, y
+                    solo existe cuando hay un aviso puesto, que es el estado que nadie mira.
+                -->
+                <Button
+                    Grid.Column="4"
+                    AutomationProperties.Name="Cerrar este aviso"
+                    Click="AlPulsarCerrar"
+                    Content="&#xE711;"
+                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                    ToolTipService.ToolTip="Cerrar este aviso" />
+            </Grid>
+        </Border>
+
+        <!--  El detalle. NO es un cuadro modal: se abre aqui y no bloquea nada.  -->
+        <Border
+            x:Name="_detalle"
+            Grid.Row="1"
+            Padding="16,10"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            BorderThickness="0,0,0,1"
+            Visibility="Collapsed">
+            <TextBlock
+                x:Name="_textoDelDetalle"
+                IsTextSelectionEnabled="True"
+                Text=""
+                TextWrapping="Wrap" />
+        </Border>
+    </Grid>
+</UserControl>

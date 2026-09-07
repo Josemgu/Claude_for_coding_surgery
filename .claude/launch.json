@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "proyecto-viejo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-X", "utf8", "C:\\Users\\josem\\Desktop\\proyecto\\pdf-a-excel\\servidor.py", "--puerto", "8761", "--sin-abrir"],
+      "port": 8761
+    }
+  ]
+}

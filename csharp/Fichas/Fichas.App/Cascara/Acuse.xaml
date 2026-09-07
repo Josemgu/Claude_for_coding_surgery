@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UserControl
+    x:Class="Fichas.App.Cascara.Acuse"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        El acuse de recibo del pie: una linea que aparece unos segundos y se va sola.
+        Requisito 3 del dueno: Guardar tiene que acusar recibo. No es un cuadro modal
+        y no hay que cerrarlo.
+    -->
+    <Border
+        Padding="24,6"
+        BorderThickness="0,1,0,0"
+        BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}">
+        <TextBlock
+            x:Name="_texto"
+            Opacity="0"
+            Text=""
+            TextTrimming="CharacterEllipsis"
+            TextWrapping="NoWrap">
+            <TextBlock.OpacityTransition>
+                <ScalarTransition Duration="0:0:0.25" />
+            </TextBlock.OpacityTransition>
+        </TextBlock>
+    </Border>
+</UserControl>

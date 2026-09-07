@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Espiga (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Espiga (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

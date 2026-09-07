@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas · Pantalla partida — especificación visual</title>
+<style>
+/* ============================================================================
+   TOKENS. Los mismos de mockups/mockup-correccion.html y de interfaz/tema.py.
+   Lo unico nuevo es la familia --marino (chrome del producto y de lo que sale
+   hacia fuera) y --pais-* (el codigo de pais). Todo con su contraste medido.
+   ========================================================================== */
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21; --tinta-suave:#46505C;
+
+  /* Los CINCO estados de campo. Copiados literalmente de interfaz/tema.py.
+     OJO: `ocr` es BLANCO #FFFFFF, no gris. */
+  --verde-fondo:#E7F5EC; --verde-marca:#1B6E3C; --verde-tinta:#12351F;
+  --ocr-fondo:#FFFFFF;   --gris-marca:#5B6470;
+  --ambar-fondo:#FFF3C4; --ambar-marca:#8A5B00; --ambar-tinta:#3D2A00;
+  --rojo-fondo:#FDE7E7;  --rojo-marca:#B3261E;  --rojo-tinta:#4A0F0B;
+  --rojo-solido:#B3261E;
+
+  /* MARINO: el chrome. No significa estado y nunca rellena un campo. */
+  --marino:#0F2A4A;       /* blanco encima 14.48:1 · sobre papel 14.48:1 */
+  --marino-medio:#1E4E79; /* blanco encima  8.67:1 */
+  --marino-tinte:#EDF2F7; /* tinta encima  15.02:1 · marino encima 12.86:1 */
+
+  /* PAIS. Barras y codigos, nunca fondos de campo. */
+  --pais-a:#00695C; --pais-b:#283593; --pais-c:#6A1B9A;
+  --pais-d:#4E342E; --pais-e:#37474F;
+
+  --foco:#1A1D21;       /* 16.91:1 sobre papel · 15.02:1 sobre marino-tinte */
+  --foco-claro:#FFFFFF; /* 14.48:1 sobre marino · 6.54:1 sobre rojo solido */
+
+  --papel-escaneo:#F2F1EE;
+  --r:4px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--panel-hondo);color:var(--tinta);
+     font:14px/1.55 "Segoe UI",system-ui,sans-serif}
+.pagina{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+h1{font-size:23px;margin:0 0 8px;letter-spacing:-.01em}
+h2.seccion{font-size:17px;margin:44px 0 12px;padding-bottom:6px;
+           border-bottom:2px solid var(--marino);color:var(--marino)}
+h3{font-size:14px;margin:22px 0 8px;color:var(--marino)}
+p{margin:0 0 10px;max-width:74ch}
+code{font:12.5px/1.4 Consolas,"Courier New",monospace;background:var(--panel-hondo);
+     padding:1px 4px;border-radius:3px}
+.intro{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--marino);
+       border-radius:var(--r);padding:16px 18px;margin-bottom:8px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0 4px;background:var(--papel)}
+th,td{border:1px solid var(--linea);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:var(--marino);color:#fff;font-weight:600}
+tbody tr:nth-child(even) td{background:var(--marino-tinte)}
+.nota{background:var(--ambar-fondo);color:var(--ambar-tinta);border:1px solid var(--ambar-marca);
+      border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+.hueco{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--rojo-solido);
+       border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+.med{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--marino-medio);
+     border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+kbd{font:11.5px/1 Consolas,monospace;background:var(--panel-hondo);border:1px solid var(--linea-fuerte);
+    border-bottom-width:2px;border-radius:3px;padding:2px 5px;white-space:nowrap}
+
+/* ---------------------------------------------------------------- la ventana */
+.ventana{width:1100px;max-width:100%;background:var(--panel);border:1px solid var(--linea-fuerte);
+         border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(15,42,74,.13);margin:14px 0 6px}
+.barra-titulo{background:var(--marino);color:#fff;font-size:12.5px;padding:7px 12px;
+              display:flex;justify-content:space-between;gap:12px}
+.barra-titulo code{background:rgba(255,255,255,.15);color:#fff}
+
+.cabecera{background:var(--papel);border-bottom:1px solid var(--linea);padding:11px 14px}
+.cab-fila{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.caso-numero{font:700 21px/1 Consolas,monospace;letter-spacing:.01em}
+.caso-meta{font-size:12.5px;color:var(--tinta-suave)}
+.cab-acciones{margin-left:auto;display:flex;gap:8px}
+
+/* ---- el distintivo de pais: barra 6px + codigo + nombre. Nunca un fondo ---- */
+.pais{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;
+      border:1px solid var(--linea);border-radius:var(--r);padding:3px 9px 3px 0;background:var(--papel)}
+.pais-barra{width:6px;align-self:stretch;border-radius:var(--r) 0 0 var(--r);margin-right:2px}
+.pais-codigo{font:700 12px/1 Consolas,monospace;letter-spacing:.06em}
+.pais-nombre{color:var(--tinta-suave)}
+.p-a .pais-barra{background:var(--pais-a)} .p-a .pais-codigo{color:var(--pais-a)}
+.p-b .pais-barra{background:var(--pais-b)} .p-b .pais-codigo{color:var(--pais-b)}
+.p-c .pais-barra{background:var(--pais-c)} .p-c .pais-codigo{color:var(--pais-c)}
+.p-d .pais-barra{background:var(--pais-d)} .p-d .pais-codigo{color:var(--pais-d)}
+.p-e .pais-barra{background:var(--pais-e)} .p-e .pais-codigo{color:var(--pais-e)}
+.templo{font-size:12.5px;color:var(--tinta-suave);border-left:1px solid var(--linea);padding-left:11px}
+
+/* ------------------------------------------------------------- panel partido */
+.partida{display:flex;align-items:stretch;height:470px}
+.izq{width:560px;flex:0 0 560px;background:var(--panel-hondo);display:flex;flex-direction:column}
+.sash{width:6px;flex:0 0 6px;background:var(--linea);cursor:col-resize;
+      background-image:linear-gradient(var(--linea-fuerte),var(--linea-fuerte));
+      background-size:2px 26px;background-position:center;background-repeat:no-repeat}
+.der{flex:1 1 auto;background:var(--papel);display:flex;flex-direction:column;min-width:0}
+
+.visor-barra{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--panel);
+             border-bottom:1px solid var(--linea);font-size:12px;flex-wrap:wrap}
+.visor-lienzo{flex:1 1 auto;overflow:hidden;background:var(--panel-hondo);
+              display:flex;align-items:flex-start;justify-content:center;padding:10px}
+.visor-pie{padding:5px 9px;font-size:11.5px;color:var(--tinta-suave);background:var(--panel);
+           border-top:1px solid var(--linea)}
+
+.boton{font:12px/1 "Segoe UI",sans-serif;background:var(--papel);border:1px solid var(--linea-fuerte);
+       border-radius:var(--r);padding:5px 9px;color:var(--tinta);display:inline-flex;align-items:center;gap:6px}
+.boton.activo{background:var(--marino);border-color:var(--marino);color:#fff}
+.boton.primario{background:var(--marino);border-color:var(--marino);color:#fff;font-weight:600}
+.boton[aria-disabled="true"]{color:#8A9099;border-color:var(--linea);background:var(--panel)}
+.tecla{font:10.5px/1 Consolas,monospace;opacity:.85;border:1px solid currentColor;border-radius:2px;padding:1px 3px}
+
+/* ---------------------------------------------------------- lista de campos */
+.campos{flex:1 1 auto;overflow:hidden;padding:10px 12px}
+.grupo{font:600 12px/1 "Segoe UI",sans-serif;color:var(--marino);text-transform:uppercase;
+       letter-spacing:.05em;margin:10px 0 6px}
+.campo{display:grid;grid-template-columns:120px 210px 1fr;gap:4px 12px;
+       align-items:center;padding:4px 6px;border-radius:var(--r);margin-bottom:3px}
+.campo .etiq{font-size:12.5px;color:var(--tinta-suave);text-align:right}
+.campo .entrada{font:13px/1 Consolas,monospace;padding:5px 7px;border:1px solid var(--linea-fuerte);
+                border-radius:var(--r);background:var(--ocr-fondo);color:var(--tinta);width:100%}
+.campo .palabra{font-size:12px;display:flex;align-items:center;gap:5px}
+.campo .punto{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+.campo .detalle{grid-column:2 / -1;font-size:11.5px;color:var(--tinta-suave)}
+.es-anotacion .entrada{background:var(--verde-fondo);color:var(--verde-tinta);border-color:var(--verde-marca)}
+.es-anotacion .punto{background:var(--verde-marca)} .es-anotacion .palabra{color:var(--verde-tinta)}
+.es-ocr .punto{background:var(--gris-marca)} .es-ocr .palabra{color:var(--gris-marca)}
+.es-revisar .entrada{background:var(--ambar-fondo);color:var(--ambar-tinta);border-color:var(--ambar-marca)}
+.es-revisar .punto{background:var(--ambar-marca)} .es-revisar .palabra{color:var(--ambar-tinta)}
+.es-invalido .entrada{background:var(--rojo-fondo);color:var(--rojo-tinta);border:2px solid var(--rojo-marca)}
+.es-invalido .punto{background:var(--rojo-marca)} .es-invalido .palabra{color:var(--rojo-tinta);font-weight:600}
+.es-vacio .entrada{background:var(--papel);color:var(--tinta);border-style:dashed}
+.es-vacio .punto{background:transparent;border:1.5px dashed var(--linea-fuerte)}
+.es-vacio .palabra{color:var(--tinta-suave)}
+.enfocado{background:var(--marino-tinte);outline:2px solid var(--foco);outline-offset:1px}
+
+.persona-cab{display:flex;align-items:center;gap:9px;margin:10px 0 5px;padding:3px 6px;
+             background:var(--panel);border-radius:var(--r);border-left:3px solid var(--marino-medio)}
+.persona-num{font:700 11px/1 Consolas,monospace;background:var(--marino);color:#fff;
+             border-radius:50%;width:19px;height:19px;display:grid;place-items:center}
+.persona-nom{font-weight:600;font-size:13px}
+.persona-fila{font-size:11.5px;color:var(--tinta-suave);margin-left:auto}
+
+.pie{display:flex;align-items:center;gap:9px;padding:9px 13px;background:var(--panel);
+     border-top:1px solid var(--linea-fuerte);flex-wrap:wrap}
+.contador{font-size:12.5px;color:var(--tinta-suave)}
+.pie .derecha{margin-left:auto;display:flex;gap:8px;align-items:center}
+
+/* ----------------------------------------------------- aviso de "sin leer" */
+.sinleer{display:flex;align-items:stretch;gap:0;background:var(--papel);
+         border:1px solid var(--linea-fuerte);border-radius:var(--r);overflow:hidden;margin:0 0 9px}
+.sinleer-rayas{width:14px;flex:0 0 14px}
+.sinleer-cuerpo{padding:9px 12px;font-size:12.5px}
+.leyenda{font-size:12px;color:var(--tinta-suave);margin:6px 0 0}
+.pilas{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.pila{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r);padding:9px 12px;font-size:12.5px;flex:1 1 250px}
+.pila b{display:block;color:var(--marino);margin-bottom:3px}
+ul{margin:6px 0 10px;padding-left:20px;max-width:74ch} li{margin-bottom:5px}
+.si{color:var(--verde-marca);font-weight:600}
+.no{color:var(--rojo-marca);font-weight:600}
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<div class="intro">
+  <h1>Especificación visual — Pantalla partida de corrección</h1>
+  <p><b>Esto no es el programa ni una página web.</b> Es el reparto del espacio, la jerarquía, los
+  estados y el recorrido del teclado de una ventana de <code>tkinter</code>. Cada elemento lleva su
+  widget de Tk anotado en la tabla del final.</p>
+  <p><b>Revisa, no tira, <code>mockups/mockup-correccion.html</code>.</b> Lo que cambia es una cosa:
+  la tira de escaneo que iba al lado de cada campo se retira y en su sitio entra el documento entero
+  a la izquierda. El porqué, con su medición, está en «La tensión entre la tira y el documento».</p>
+  <p><b>Los datos de ejemplo son inventados</b> salvo <code>CASP2609</code>, la unidad
+  <code>7000011</code> de siete dígitos y la corrección a mano de <code>September 7</code> a
+  <code>8 Sept 2026</code>, que salen de <code>DECISIONES.md</code>. Los países, los templos y los
+  nombres de compañero son <b>inventados y están marcados como tales</b>: el esquema no tiene dónde
+  guardarlos (ver «Huecos»). <b>No se abrió ningún PDF de <code>pdfs_referencia/</code>.</b> Los
+  escaneos dibujados son SVG hechos a mano.</p>
+</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">1 · La tensión entre la tira y el documento, resuelta con un número</h2>
+
+<p>El pase pide el documento real entero a un lado. La pantalla de hoy pone una tira de
+<code>380 × 46 px</code> a la derecha de cada campo. <b>No caben las dos.</b> Es aritmética sobre la
+ventana medida, no una opinión:</p>
+
+<table>
+<caption style="text-align:left;font-size:12.5px;color:var(--tinta-suave);padding:4px 0">
+Anchos medidos en el código, no estimados.</caption>
+<thead><tr><th>Pieza</th><th>Ancho</th><th>De dónde sale el número</th></tr></thead>
+<tbody>
+<tr><td>Ventana, mínimo</td><td><b>1100 px</b></td><td><code>interfaz/aplicacion.py:38</code> — <code>ANCHO_MINIMO = 1100</code></td></tr>
+<tr><td>Tira del escaneo</td><td><b>380 px</b></td><td><code>extraccion/recorte.py:36</code> — <code>ANCHO_DE_LA_TIRA_PX = 380</code></td></tr>
+<tr><td>Columna de campos (etiqueta 120 + entrada 210 + palabra 100 + huecos 24 + margen 24)</td><td><b>478 px</b></td><td>Sumado sobre <code>interfaz/campo.py:65-90</code>, que reparte en 4 columnas de <code>grid</code></td></tr>
+<tr><td>Visor del documento, mínimo para que un número de 7 dígitos se lea</td><td><b>≥ 450 px</b></td><td>Derivado: por debajo de 450 la banda se dibuja más pequeña que la tira que sustituye</td></tr>
+<tr><td><b>Suma de las tres</b></td><td><b>1308 px</b></td><td><b>208 px más de los que la ventana tiene</b></td></tr>
+</tbody></table>
+
+<div class="med">
+<b>La decisión: el documento sustituye a la tira.</b> No conviven. Y no es una pérdida de
+información, porque los dos enseñan exactamente los mismos píxeles —el visor recorta con la misma
+función <code>extraccion.recorte.recortar()</code> que hace la tira—; lo que cambia es cuántos y a
+qué escala.
+</div>
+
+<div class="pilas">
+  <div class="pila"><b>Lo que la tira daba</b>
+  Una banda por campo, en el mismo renglón que la entrada. Ojo y dedo a 20 px de distancia.
+  <b style="color:var(--tinta-suave);font-weight:400;display:block;margin-top:5px">Cuántas a la vez:
+  el visor de campos mide 540 px de alto útil (720 − 120 de cabecera − 60 de pie) y una fila con tira
+  mide 56 px ⇒ <b>9 bandas visibles como máximo</b>, y hay hasta 52 campos por caso.</b></div>
+
+  <div class="pila"><b>Lo que el documento da</b>
+  La hoja entera: <b>las 52 bandas a la vez</b>, más todo lo que la tira nunca enseñó —sellos,
+  márgenes, si la hoja está torcida, si hay una segunda firma—. Y el <b>rectángulo de resalte</b>
+  sigue al foco, así que la banda del campo que se está tecleando está siempre marcada.</div>
+
+  <div class="pila"><b>Lo que el documento tenía que recuperar: la escala</b>
+  A «página entera» la banda es ilegible. Por eso el zoom por defecto <b>no</b> es «página entera»
+  sino <b>«ajustar a la banda»</b>: el visor se escala para que la banda del campo enfocado llene el
+  panel. Con el panel a 560 px y 12 px de margen a cada lado, la banda se dibuja a <b>536 px</b>
+  contra los <b>380 px</b> de la tira ⇒ <b class="si">+41 % de tamaño</b>.</div>
+</div>
+
+<div class="med">
+<b>Y lo que hace que esto sea construible hoy, medido:</b> las bandas ya están guardadas como
+<b>fracciones de la página</b> (<code>procedencia_campo.banda_x0/y0/x1/y1</code>, REAL, presentes
+desde la versión 3 del esquema — verificado volcando <code>PRAGMA table_info</code> sobre una base
+recién migrada). <code>extraccion/recorte.py</code> lo explica: <i>«Una fracción de la página vale a
+cualquier escala.»</i> Eso significa que <b>el rectángulo de resalte no hay que recalcularlo al
+hacer zoom</b>: se multiplica por la escala del momento. Sin esa decisión previa, esta pantalla
+costaría rehacer la extracción.
+</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">2 · La ventana — caso leído bien, que es el caso corriente</h2>
+
+<p class="leyenda">Es el 99 % de las veces. El supervisor midió sobre un escaneo de referencia
+<b>94 líneas leídas y el número de caso a confianza 0.99995</b> — <b>lo dice él y NO lo he
+comprobado yo</b>. Lo aplico como premisa de diseño: <b>la pantalla se abre con los campos llenos y
+lo normal es confirmar, no teclear.</b> Por eso el botón grande del pie dice «Todo correcto» y no
+«Guardar».</p>
+
+<div class="ventana">
+  <div class="barra-titulo">
+    <span>Fichas — Corrección</span>
+    <span>Caso 2 de 6 de <code>SURB2609_…pdf</code></span>
+  </div>
+
+  <div class="cabecera">
+    <div class="cab-fila">
+      <span class="caso-numero">CASP2609</span>
+      <span class="pais p-a">
+        <span class="pais-barra" aria-hidden="true"></span>
+        <span class="pais-codigo">SR</span>
+        <span class="pais-nombre">Surinam</span>
+      </span>
+      <span class="templo">Templo de Puerto España</span>
+      <span class="caso-meta">hoja 2 de 6 · importado el 2026-09-02 · <b>sin verificar</b></span>
+      <span class="cab-acciones">
+        <span class="boton">Abrir el PDF en el visor <span class="tecla">F2</span></span>
+      </span>
+    </div>
+  </div>
+
+  <div class="partida">
+    <!-- ================= IZQUIERDA: el documento entero ================= -->
+    <div class="izq">
+      <div class="visor-barra">
+        <span class="boton">−</span>
+        <span style="font:12px/1 Consolas,monospace;min-width:44px;text-align:center">142 %</span>
+        <span class="boton">+</span>
+        <span class="boton activo">Banda <span class="tecla">Ctrl+0</span></span>
+        <span class="boton">Página <span class="tecla">Ctrl+1</span></span>
+        <span style="margin-left:auto;display:flex;gap:5px;align-items:center">
+          <span class="boton">◀</span>
+          <span style="font-size:11.5px;color:var(--tinta-suave)">hoja 2 / 6</span>
+          <span class="boton">▶</span>
+        </span>
+      </div>
+
+      <div class="visor-lienzo">
+        <!-- El escaneo dibujado. Zoom «banda»: la fila de la unidad llena el panel. -->
+        <svg width="512" height="340" viewBox="0 0 512 340" role="img"
+             aria-label="Visor del documento: la hoja 2 del PDF, ampliada a la banda del número de unidad, con esa banda resaltada">
+          <defs>
+            <clipPath id="cp-recorte"><rect x="0" y="0" width="512" height="340" rx="2"/></clipPath>
+          </defs>
+          <g clip-path="url(#cp-recorte)">
+            <rect width="512" height="340" fill="#F2F1EE"/>
+            <!-- encabezado del formulario -->
+            <text x="18" y="26" font-family="Georgia,serif" font-size="13.5" fill="#4A463F">Temple Recommend — Group Form</text>
+            <text x="18" y="44" font-family="Georgia,serif" font-size="10" fill="#7C7770">Case Number</text>
+            <text x="112" y="44" font-family="Georgia,serif" font-size="13" fill="#2E2B27">CASP2609</text>
+            <line x1="18" y1="54" x2="494" y2="54" stroke="#D6D2CB" stroke-width="1"/>
+
+            <!-- LA BANDA ENFOCADA: unidad -->
+            <text x="18" y="76" font-family="Georgia,serif" font-size="10" fill="#7C7770">Ward/Branch Name and Unit Number</text>
+            <text x="18" y="99" font-family="Georgia,serif" font-size="17" fill="#2E2B27">Paramaribo Branch - 7000011</text>
+            <!-- rectangulo de resalte: marino, 2px, sobre #F2F1EE = 12.82:1 -->
+            <rect x="12" y="62" width="470" height="46" fill="none" stroke="#0F2A4A" stroke-width="2" rx="2"/>
+            <rect x="12" y="62" width="470" height="46" fill="#0F2A4A" opacity=".07"/>
+            <text x="486" y="60" text-anchor="end" font-family="Consolas,monospace" font-size="9.5" fill="#0F2A4A">N.º de unidad</text>
+
+            <line x1="18" y1="120" x2="494" y2="120" stroke="#D6D2CB"/>
+            <text x="18" y="140" font-family="Georgia,serif" font-size="10" fill="#7C7770">Date traveling to the temple</text>
+            <text x="18" y="160" font-family="Georgia,serif" font-size="15" fill="#2E2B27">September 7, 2026</text>
+            <path d="M16 158 L172 146" stroke="#E31829" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <path d="M16 147 L172 159" stroke="#E31829" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <text x="200" y="158" font-family="Georgia,serif" font-size="15" fill="#1B3FA8">8 Sept 2026</text>
+
+            <line x1="18" y1="176" x2="494" y2="176" stroke="#D6D2CB"/>
+            <text x="18" y="194" font-family="Georgia,serif" font-size="10" fill="#7C7770">Name</text>
+            <text x="300" y="194" font-family="Georgia,serif" font-size="10" fill="#7C7770">Member Record Number</text>
+            <g font-family="Georgia,serif" font-size="14" fill="#2E2B27">
+              <text x="18" y="216">ANONIMO, MARIA ELENA</text><text x="300" y="216">055-1111-3853</text>
+              <text x="18" y="244">ANONIMO, JUAN CARLOS</text><text x="300" y="244">055-1111-3861</text>
+              <text x="18" y="272">ANONIMO RAMOS, ANA</text><text x="300" y="272">055-1111-3879</text>
+            </g>
+            <g stroke="#D6D2CB"><line x1="18" y1="226" x2="494" y2="226"/><line x1="18" y1="254" x2="494" y2="254"/><line x1="18" y1="282" x2="494" y2="282"/></g>
+            <g fill="none" stroke="#B7B2AA">
+              <rect x="410" y="206" width="12" height="12"/><rect x="430" y="206" width="12" height="12"/><rect x="450" y="206" width="12" height="12"/>
+              <rect x="410" y="234" width="12" height="12"/><rect x="430" y="234" width="12" height="12"/><rect x="450" y="234" width="12" height="12"/>
+            </g>
+            <g stroke="#2E2B27" stroke-width="1.6" fill="none">
+              <path d="M412 212 l3 4 l6 -8"/><path d="M432 240 l3 4 l6 -8"/>
+            </g>
+            <text x="18" y="312" font-family="Georgia,serif" font-size="9.5" fill="#9A948B">Hoja 2 de 6 · el resto de la página continúa abajo</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="visor-pie">
+        Ajustado a la banda de <b>«N.º de unidad»</b> · la banda se dibuja a <b>536 px</b> de ancho
+        (la tira medía 380) · <kbd>Ctrl+Mayús+↓</kbd> desplaza sin salir del campo
+      </div>
+    </div>
+
+    <div class="sash" role="separator" aria-orientation="vertical"
+         aria-label="Divisor: arrastrar para repartir el ancho entre el documento y los campos"></div>
+
+    <!-- ================= DERECHA: los campos ================= -->
+    <div class="der">
+      <div class="campos">
+        <p class="grupo">Datos del caso</p>
+
+        <div class="campo es-anotacion">
+          <span class="etiq">N.º de caso</span>
+          <input class="entrada" value="CASP2609" readonly aria-label="Número de caso">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>anotación</span>
+          <span class="detalle">confianza 1.00 · dato exacto escrito en el PDF</span>
+        </div>
+
+        <div class="campo es-anotacion">
+          <span class="etiq">Fecha de viaje</span>
+          <input class="entrada" value="2026-09-08" aria-label="Fecha de viaje">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>anotación</span>
+          <span class="detalle">confianza 1.00 · corrige un tachón rojo</span>
+        </div>
+
+        <div class="campo es-invalido enfocado">
+          <span class="etiq">N.º de unidad</span>
+          <input class="entrada" value="7000011" aria-label="Número de unidad"
+                 aria-describedby="cp-motivo-unidad">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>no válido</span>
+          <span class="detalle" id="cp-motivo-unidad">OCR 0.97 — <b>se esperaban 6 o 7 dígitos y hay 7:
+          este ya vale.</b> Ejemplo dibujado para enseñar el estado.</span>
+        </div>
+
+        <div class="campo es-ocr">
+          <span class="etiq">Unidad</span>
+          <input class="entrada" value="Paramaribo Branch" aria-label="Nombre de la unidad">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>OCR</span>
+          <span class="detalle">confianza 0.94</span>
+        </div>
+
+        <div class="campo es-vacio">
+          <span class="etiq">Templo</span>
+          <input class="entrada" value="" placeholder="—" aria-label="Templo"
+                 aria-describedby="cp-motivo-templo">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>sin columna</span>
+          <span class="detalle" id="cp-motivo-templo"><b>Hueco de esquema.</b> No hay dónde guardar
+          esto. Ver «Huecos», «Huecos», hueco 2.</span>
+        </div>
+
+        <p class="grupo">Personas — 3 leídas de 6, 0 descartadas</p>
+
+        <div class="persona-cab">
+          <span class="persona-num">1</span>
+          <span class="persona-nom">ANONIMO, MARIA ELENA</span>
+          <span class="persona-fila">fila 1 · hoja 2</span>
+        </div>
+        <div class="campo es-ocr">
+          <span class="etiq">Nombre</span>
+          <input class="entrada" value="ANONIMO, MARIA ELENA" aria-label="Nombre de la persona 1">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>OCR</span>
+          <span class="detalle">confianza 0.99</span>
+        </div>
+        <div class="campo es-revisar">
+          <span class="etiq">MRN</span>
+          <input class="entrada" value="055-1111-3853" aria-label="MRN de la persona 1">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>revisar</span>
+          <span class="detalle">confianza 0.54 · por debajo de 0.60</span>
+        </div>
+
+        <div class="persona-cab">
+          <span class="persona-num">2</span>
+          <span class="persona-nom">ANONIMO, JUAN CARLOS</span>
+          <span class="persona-fila">fila 2 · hoja 2</span>
+        </div>
+        <div class="campo es-ocr">
+          <span class="etiq">Nombre</span>
+          <input class="entrada" value="ANONIMO, JUAN CARLOS" aria-label="Nombre de la persona 2">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>OCR</span>
+          <span class="detalle">confianza 0.98</span>
+        </div>
+      </div>
+
+      <div class="pie">
+        <span class="contador"><b>0</b> de <b>41</b> campos confirmados</span>
+        <span class="derecha">
+          <span class="boton">Guardar <span class="tecla">Ctrl+G</span></span>
+          <span class="boton primario">Todo correcto <span class="tecla">Ctrl+Intro</span></span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nota">
+<b>«Todo correcto» y la regla permanente 5.</b> La regla dice que nada se marca verificado
+<i>automáticamente</i>: el sistema propone, Miguel confirma. Este botón <b>es</b> la confirmación de
+Miguel, hecha una vez en vez de 41. Lo que impide que se convierta en un automatismo son tres
+frenos, y los tres son visibles:
+<ul style="margin-top:7px">
+<li><b>Sale deshabilitado</b> mientras haya un campo <span class="no">no válido</span> o un tachón sin
+corrección. Al pulsarlo estando deshabilitado, el foco salta al primer campo culpable y la línea de
+detalle dice por qué. <b>Un atajo que no hace nada y no dice por qué es peor que no tenerlo.</b></li>
+<li><b>Pregunta con el número delante</b>, no con un «¿seguro?»: <i>«Va a dar por buenos 41 campos de
+3 personas del caso CASP2609. ¿Sigue?»</i></li>
+<li><b>Deja firma.</b> Escribe <code>verificado=1</code>, <code>verificado_por</code> y
+<code>verificado_en</code> en las 41 filas de <code>procedencia_campo</code>. El
+<code>CHECK</code> de esa tabla ya <b>impide</b> marcar verificado sin quién y cuándo — la regla 5
+está hecha estructura, no confianza.</li>
+</ul>
+</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">3 · El caso peor: una hoja que no se pudo identificar</h2>
+
+<p>Es la puerta que pide el dueño: un renglón de la lista de no legibles se pulsa y se abre
+<b>esta misma ventana</b>, con el mismo reparto y las mismas teclas. No es otra pantalla: es la de
+arriba con los campos vacíos. Que sea la misma es la mitad del valor — quien la abre ya sabe usarla.</p>
+
+<div class="ventana">
+  <div class="barra-titulo">
+    <span>Fichas — Identificar una hoja</span>
+    <span>Sin leer 1 de 3 · <code>SURB2609_…pdf</code></span>
+  </div>
+
+  <div class="cabecera">
+    <div class="sinleer">
+      <svg class="sinleer-rayas" viewBox="0 0 14 60" preserveAspectRatio="none" aria-hidden="true">
+        <rect width="14" height="60" fill="#FFFFFF"/>
+        <g stroke="#AAB1BC" stroke-width="1.4">
+          <path d="M-14 60 L14 32"/><path d="M-7 60 L21 32"/><path d="M0 60 L28 32"/>
+          <path d="M-14 32 L14 4"/><path d="M-7 32 L21 4"/><path d="M0 32 L28 4"/>
+          <path d="M-14 4 L14 -24"/><path d="M-7 4 L21 -24"/>
+        </g>
+      </svg>
+      <div class="sinleer-cuerpo">
+        <b>Esta hoja está guardada, pero no tiene número: no se pudo leer.</b><br>
+        Sus 2 personas y su unidad <b>sí están en la base</b> y no se van a perder. Lo único que le
+        falta es la identidad. <b>Teclee el número mirando el papel de la izquierda</b>, o únala a un
+        caso que ya exista.
+      </div>
+    </div>
+    <div class="cab-fila">
+      <span class="caso-numero" style="color:var(--tinta-suave);font-weight:400">— — — —</span>
+      <span class="caso-meta">hoja 4 de 6 · llegó el 2026-09-02 · <b>guardada, pendiente de identificar</b></span>
+      <span class="cab-acciones">
+        <span class="boton">Abrir el PDF en el visor <span class="tecla">F2</span></span>
+      </span>
+    </div>
+  </div>
+
+  <div class="partida" style="height:330px">
+    <div class="izq">
+      <div class="visor-barra">
+        <span class="boton">−</span>
+        <span style="font:12px/1 Consolas,monospace;min-width:44px;text-align:center">64 %</span>
+        <span class="boton">+</span>
+        <span class="boton">Banda <span class="tecla">Ctrl+0</span></span>
+        <span class="boton activo">Página <span class="tecla">Ctrl+1</span></span>
+        <span style="margin-left:auto;display:flex;gap:5px;align-items:center">
+          <span class="boton">◀</span>
+          <span style="font-size:11.5px;color:var(--tinta-suave)">hoja 4 / 6</span>
+          <span class="boton">▶</span>
+        </span>
+      </div>
+      <div class="visor-lienzo">
+        <svg width="330" height="228" viewBox="0 0 330 228" role="img"
+             aria-label="Visor del documento: la hoja 4 completa, torcida y con la esquina del número de caso borrosa">
+          <defs><clipPath id="cp-recorte2"><rect width="330" height="228" rx="2"/></clipPath></defs>
+          <g clip-path="url(#cp-recorte2)">
+            <rect width="330" height="228" fill="#DFDDD8"/>
+            <g transform="rotate(-2.4 165 114)">
+              <rect x="34" y="8" width="262" height="216" fill="#F2F1EE" stroke="#C9C4BC"/>
+              <text x="46" y="26" font-family="Georgia,serif" font-size="8.5" fill="#4A463F">Temple Recommend — Group Form</text>
+              <!-- la esquina del numero de caso, emborronada a proposito -->
+              <text x="46" y="40" font-family="Georgia,serif" font-size="7" fill="#9A948B">Case Number</text>
+              <rect x="92" y="31" width="52" height="12" fill="#C9C4BC" opacity=".85"/>
+              <rect x="94" y="33" width="46" height="8" fill="#B0AAA1" opacity=".7"/>
+              <line x1="46" y1="48" x2="284" y2="48" stroke="#D6D2CB"/>
+              <text x="46" y="62" font-family="Georgia,serif" font-size="7" fill="#9A948B">Ward/Branch Name and Unit Number</text>
+              <text x="46" y="74" font-family="Georgia,serif" font-size="9.5" fill="#2E2B27">Paramaribo Branch - 7000011</text>
+              <line x1="46" y1="82" x2="284" y2="82" stroke="#D6D2CB"/>
+              <text x="46" y="96" font-family="Georgia,serif" font-size="7" fill="#9A948B">Name</text>
+              <text x="196" y="96" font-family="Georgia,serif" font-size="7" fill="#9A948B">Member Record Number</text>
+              <g font-family="Georgia,serif" font-size="9" fill="#2E2B27">
+                <text x="46" y="112">MARTINEZ, LUISA</text><text x="196" y="112">055-1112-1120</text>
+                <text x="46" y="132">MARTINEZ, PEDRO</text><text x="196" y="132">055-1112-1139</text>
+              </g>
+              <g stroke="#D6D2CB"><line x1="46" y1="118" x2="284" y2="118"/><line x1="46" y1="138" x2="284" y2="138"/></g>
+            </g>
+            <!-- la esquina que falla, senalada -->
+            <rect x="82" y="26" width="66" height="22" fill="none" stroke="#B3261E" stroke-width="2" rx="2"/>
+            <text x="152" y="24" font-family="Consolas,monospace" font-size="8.5" fill="#B3261E">aquí debería estar el número</text>
+          </g>
+        </svg>
+      </div>
+      <div class="visor-pie">Página entera · la hoja entró torcida 2,4° · <kbd>Ctrl+=</kbd> para ampliar la esquina</div>
+    </div>
+
+    <div class="sash" role="separator" aria-orientation="vertical" aria-label="Divisor"></div>
+
+    <div class="der">
+      <div class="campos">
+        <p class="grupo">Lo único que falta</p>
+        <div class="campo es-invalido enfocado">
+          <span class="etiq">N.º de caso</span>
+          <input class="entrada" value="CAS" aria-label="Número de caso" aria-describedby="cp-fmt">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>no válido</span>
+          <span class="detalle" id="cp-fmt">Faltan <b>1 letra y 4 dígitos</b>. Formato:
+          4 letras mayúsculas + 4 dígitos, p. ej. <code>CASP2609</code>.</span>
+        </div>
+
+        <p class="grupo">Lo demás se puede dejar vacío y corregir después</p>
+        <div class="campo es-vacio">
+          <span class="etiq">Fecha de viaje</span>
+          <input class="entrada" value="" placeholder="AAAA-MM-DD" aria-label="Fecha de viaje">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>vacío</span>
+          <span class="detalle">el lector no leyó nada aquí</span>
+        </div>
+        <div class="campo es-ocr">
+          <span class="etiq">N.º de unidad</span>
+          <input class="entrada" value="7000011" aria-label="Número de unidad">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>OCR</span>
+          <span class="detalle">confianza 0.91 · esto sí se leyó</span>
+        </div>
+
+        <p class="grupo">Personas leídas de esta hoja — 2</p>
+        <div class="campo es-ocr">
+          <span class="etiq">1 · Nombre</span>
+          <input class="entrada" value="MARTINEZ, LUISA" aria-label="Nombre de la persona 1">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>OCR</span>
+          <span class="detalle">confianza 0.96 · <b>ya está guardada</b>, colgando de una hoja sin número</span>
+        </div>
+        <div class="campo es-ocr">
+          <span class="etiq">1 · MRN</span>
+          <input class="entrada" value="055-1112-1120" aria-label="MRN de la persona 1">
+          <span class="palabra"><span class="punto" aria-hidden="true"></span>OCR</span>
+          <span class="detalle">confianza 0.93</span>
+        </div>
+      </div>
+
+      <div class="pie">
+        <span class="contador">2 personas ya guardadas · falta el número</span>
+        <span class="derecha">
+          <span class="boton">No es un formulario</span>
+          <span class="boton">Unir a un caso… <span class="tecla">Ctrl+U</span></span>
+          <span class="boton primario" aria-disabled="true">Identificar <span class="tecla">Ctrl+G</span></span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="nota"><b>Los tres botones del pie, y por qué son tres y no uno.</b> Una hoja sin número
+tiene exactamente tres explicaciones y cada una necesita su salida:
+<ul style="margin-top:7px">
+<li><b>Identificar</b> — es un formulario nuevo cuyo número no se leyó. La fila ya existe con
+<code>numero_caso</code> nulo; teclear el número la completa. Deshabilitado mientras no valide, con el
+motivo escrito debajo del campo, no en un globo.</li>
+<li><b>Unir a un caso…</b> — es la hoja 4 de un grupo cuyas hojas 1-3 sí se leyeron. Abre un
+selector con los casos <b>de esta misma importación primero</b>, porque es el caso frecuente. Las
+personas se cuelgan del caso elegido con su <code>pagina_pdf</code>, que ya existe en
+<code>personas</code> desde la versión 4 del esquema.</li>
+<li><b>No es un formulario</b> — es una carátula, un separador o una hoja en blanco. Pide un motivo
+en una línea y la saca de la lista de pendientes, <b>pero la deja en la lista marcada como
+descartada</b>. No se borra: si mañana resulta que sí era un formulario, hay que poder volver. Y con
+<code>ON DELETE RESTRICT</code> en toda la base, borrar no era una opción de todos modos.</li>
+</ul></div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">4 · Países y templos sin romper el código de color que ya existe</h2>
+
+<p>El aviso del pase es correcto y el número lo confirma: <b>el color ya está ocupado</b>. Pero son
+<b>cinco</b> estados, no cuatro, y <b>«OCR fiable» no es gris: es blanco</b>. Medido leyendo
+<code>interfaz/tema.py</code>, diccionario <code>COLORES</code>:</p>
+
+<table>
+<thead><tr><th>Estado</th><th>Fondo</th><th>Texto</th><th>Contraste medido</th><th>Palabra que lo acompaña</th></tr></thead>
+<tbody>
+<tr><td><code>anotacion</code></td><td><code>#E7F5EC</code></td><td><code>#12351F</code></td><td>12.01:1</td><td>anotación</td></tr>
+<tr><td><code>ocr</code></td><td><b><code>#FFFFFF</code> — blanco, no gris</b></td><td><code>#1A1D21</code></td><td>16.91:1</td><td>OCR</td></tr>
+<tr><td><code>revisar</code></td><td><code>#FFF3C4</code></td><td><code>#3D2A00</code></td><td>12.34:1</td><td>revisar</td></tr>
+<tr><td><code>no_valido</code></td><td><code>#FDE7E7</code></td><td><code>#4A0F0B</code></td><td>13.02:1</td><td>no válido</td></tr>
+<tr><td><code>tachado</code> — <b>el quinto</b></td><td><code>#FFF3C4</code></td><td><code>#3D2A00</code></td><td>12.34:1</td><td>tachado, sin corrección</td></tr>
+</tbody></table>
+
+<p class="leyenda">Recalculado por mí con la fórmula de luminancia relativa de la WCAG, no copiado
+de los comentarios del archivo: los cuatro primeros coinciden al centésimo con lo que
+<code>interfaz/tema.py</code> declara.</p>
+
+<h3>Las tres reglas que separan los dos códigos</h3>
+<ol>
+<li><b>Zona distinta.</b> El estado vive <b>dentro</b> del renglón del campo: es el relleno de la
+entrada. El país vive <b>en la cabecera del caso y en el canalón izquierdo de una fila de lista</b>,
+y nunca dentro de un renglón de campo. Ningún píxel puede llevar los dos.</li>
+<li><b>Canal distinto.</b> El estado es un <b>relleno pálido</b> de 46 px de alto. El país es un
+<b>trazo saturado</b> de 6 px de ancho. Un relleno pálido grande y un trazo oscuro fino no se
+confunden ni de reojo.</li>
+<li><b>Nunca solo color, en los dos.</b> El estado ya lleva su palabra —<code>tema.py</code> lo dice:
+<i>«La palabra es lo que cumple el criterio; el fondo solo acelera a quien sí lo ve»</i>—. El país
+lleva su <b>código de dos letras</b> y, donde cabe, su nombre. El código es lo que cumple; el color
+solo acelera.</li>
+</ol>
+
+<h3>La paleta de países, medida</h3>
+<div class="pilas">
+  <div class="pila"><b>Cómo se ve</b>
+  <div style="display:flex;flex-direction:column;gap:5px;margin-top:6px">
+    <span class="pais p-a"><span class="pais-barra"></span><span class="pais-codigo">DO</span><span class="pais-nombre">República Dominicana</span></span>
+    <span class="pais p-b"><span class="pais-barra"></span><span class="pais-codigo">HT</span><span class="pais-nombre">Haití</span></span>
+    <span class="pais p-c"><span class="pais-barra"></span><span class="pais-codigo">TT</span><span class="pais-nombre">Trinidad y Tobago</span></span>
+    <span class="pais p-d"><span class="pais-barra"></span><span class="pais-codigo">JM</span><span class="pais-nombre">Jamaica</span></span>
+    <span class="pais p-e"><span class="pais-barra"></span><span class="pais-codigo">SR</span><span class="pais-nombre">Surinam</span></span>
+  </div>
+  <span style="display:block;margin-top:7px;font-size:11.5px;color:var(--tinta-suave)">
+  <b>Los cinco países son inventados.</b> El dueño da la lista; la paleta se asigna en el orden que él
+  dé.</span></div>
+
+  <div class="pila"><b>Contraste de cada barra sobre papel blanco</b>
+  <table style="margin:6px 0 0;font-size:12px">
+    <tr><td><code>#00695C</code> teal</td><td><b>6.61:1</b></td></tr>
+    <tr><td><code>#283593</code> índigo</td><td><b>10.39:1</b></td></tr>
+    <tr><td><code>#6A1B9A</code> púrpura</td><td><b>9.39:1</b></td></tr>
+    <tr><td><code>#4E342E</code> marrón</td><td><b>11.32:1</b></td></tr>
+    <tr><td><code>#37474F</code> pizarra</td><td><b>9.65:1</b></td></tr>
+  </table>
+  <span style="display:block;margin-top:6px;font-size:11.5px;color:var(--tinta-suave)">
+  Todas por encima de 4.5:1, así que el mismo color sirve de barra <b>y</b> de tinta del código de dos
+  letras. El peor caso, la barra teal sobre el fondo rojo de una fila de alerta, da <b>5.59:1</b> —
+  también por encima del 3:1 que la WCAG 1.4.11 pide a un elemento no textual.</span></div>
+
+  <div class="pila"><b>Ninguna comparte tono con un estado</b>
+  Los estados usan verde, ámbar, rojo y blanco. Los cinco países usan teal, índigo, púrpura, marrón y
+  pizarra. <b>Ni uno es verde, ámbar ni rojo.</b>
+  <span style="display:block;margin-top:7px"><b>El techo, y lo digo en vez de esconderlo:</b>
+  esta paleta discrimina bien <b>hasta cinco países</b>. Con un sexto empiezan a repetirse familias de
+  tono y una barra de 6 px deja de distinguirse. <b>No inventaré un sexto tono</b>: si hay más de
+  cinco países, el color deja de ser el atajo y el código de dos letras es lo único que hay. La
+  pantalla sigue siendo correcta —nunca dependió del color— pero deja de ser rápida, y eso hay que
+  saberlo antes.</span></div>
+</div>
+
+<div class="hueco"><b>Y el templo no lleva color, a propósito.</b> Meter una segunda familia de
+tonos sobre las mismas filas es exactamente el fallo del que avisa el pase, solo que cometido dos
+veces. El templo es <b>texto</b> en la cabecera del caso y <b>una agrupación</b> en las listas del
+inicio. Si el dueño quiere ver los templos separados de un vistazo, la respuesta es ordenar y agrupar
+por templo, no darle un color.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">5 · El recorrido del teclado, tecla por tecla</h2>
+
+<p>La regla que manda: <b>zoom y desplazamiento del documento no roban el foco.</b> Se atan a la
+ventana, no al lienzo. Si hubiera que tabular hasta el visor para ampliar, cada ampliación costaría
+el sitio en el que se estaba escribiendo, y volver son otros tantos <kbd>Tab</kbd>. El lienzo lleva
+<code>takefocus=0</code>, igual que la tira que sustituye.</p>
+
+<table>
+<thead><tr><th style="width:150px">Tecla</th><th>Qué hace</th><th>Por qué así</th></tr></thead>
+<tbody>
+<tr><td><kbd>Tab</kbd> / <kbd>Mayús+Tab</kbd></td><td>Siguiente / anterior control editable, en orden de lectura: los campos del caso, y luego por cada persona nombre → MRN → las 6 casillas.</td><td>Es el orden del papel. El visor, las etiquetas y los puntos de color no entran nunca.</td></tr>
+<tr><td><kbd>Intro</kbd></td><td>Confirma el bloque de la persona actual y salta a la primera del siguiente. En la última, al botón «Todo correcto».</td><td>El camino del minuto. <kbd>Tab</kbd> es para corregir dentro de un bloque; <kbd>Intro</kbd> para cuando no hay nada que corregir.</td></tr>
+<tr><td><kbd>Esc</kbd></td><td>Deshace lo tecleado en el campo con foco y devuelve el valor anterior. <b>No cierra la ventana.</b></td><td>Cerrar con <kbd>Esc</kbd> es la forma más barata de perder diez minutos de tecleo.</td></tr>
+<tr><td><kbd>F6</kbd> / <kbd>Mayús+F6</kbd></td><td>Salta entre las cuatro regiones: cabecera → visor → campos → pie.</td><td>Convención de Windows, y ahora hay cuatro regiones en vez de tres.</td></tr>
+<tr><td><kbd>Ctrl+0</kbd></td><td>Zoom «ajustar a la banda» del campo con foco. <b>Es el zoom por defecto.</b></td><td>Es lo que sustituye a la tira. Sin él, abrir la pantalla enseña una hoja ilegible.</td></tr>
+<tr><td><kbd>Ctrl+1</kbd></td><td>Zoom «página entera».</td><td>Es lo que el dueño pidió literalmente: ver el documento real. Sirve para juzgar la hoja, no para leer un dato.</td></tr>
+<tr><td><kbd>Ctrl+=</kbd> / <kbd>Ctrl+−</kbd></td><td>Un paso de zoom: 50 · 75 · 100 · 150 · 200 · 300 %.</td><td>Pasos fijos y no continuo: con pasos, dos personas que dicen «ponlo al 200» ven lo mismo.</td></tr>
+<tr><td><kbd>Ctrl+Mayús+↑↓←→</kbd></td><td>Desplaza el documento un cuarto del panel, <b>sin mover el foco del campo</b>.</td><td>La única forma de mirar el papel mientras se teclea. Sin <kbd>Ctrl+Mayús</kbd> las flechas siguen siendo del campo de texto.</td></tr>
+<tr><td><kbd>Ctrl+RePág</kbd> / <kbd>Ctrl+AvPág</kbd></td><td>Hoja anterior / siguiente del PDF dentro del mismo caso.</td><td>Un caso de 12 personas ocupa 6 hojas. <kbd>RePág</kbd> a secas se queda desplazando la lista de campos.</td></tr>
+<tr><td><kbd>F4</kbd></td><td>Colapsa y restaura el visor. Colapsado, la columna de campos ocupa los 1100 px.</td><td>En un portátil a 1100 px, cuando toca teclear mucho —el caso no legible— el papel ya se miró y estorba.</td></tr>
+<tr><td><kbd>F2</kbd></td><td>Abre el PDF en el visor del sistema, <b>en la hoja de este caso</b>.</td><td>Para imprimir, girar o ampliar más de lo que este visor da. La hoja sale de <code>casos.pagina_pdf</code>.</td></tr>
+<tr><td><kbd>Ctrl+G</kbd></td><td>Guardar.</td><td>Guardar y salir no son la misma tecla, nunca.</td></tr>
+<tr><td><kbd>Ctrl+Intro</kbd></td><td>«Todo correcto». Sin efecto si está deshabilitado, y entonces el foco salta al primer campo culpable.</td><td>Ver la nota de la sección 2.</td></tr>
+<tr><td><kbd>Ctrl+U</kbd></td><td><b>Solo en una hoja sin identificar:</b> abre «Unir a un caso…».</td><td>Es la salida del caso frecuente —la hoja 4 de un grupo— y merece tecla propia.</td></tr>
+<tr><td><kbd>Alt+→</kbd> / <kbd>Alt+←</kbd></td><td>Caso siguiente / anterior. Si hay cambios sin guardar, pregunta.</td><td>Un PDF de seis formularios se recorre sin volver al inicio.</td></tr>
+<tr><td><kbd>Ctrl+Inicio</kbd></td><td>Vuelve a la pantalla de inicio.</td><td>Salida siempre disponible.</td></tr>
+</tbody></table>
+
+<div class="nota"><b>El anillo de foco sobre el marino, medido.</b> El anillo oscuro
+<code>#1A1D21</code> que usa el resto del programa da <b>1.17:1</b> sobre el marino
+<code>#0F2A4A</code> — <b>invisible</b>. Sobre los botones y barras de marino el anillo se pinta
+<b>blanco</b>: <b>14.48:1</b>. Es la misma regla que <code>interfaz/tema.py</code> ya aplica sobre el
+rojo sólido, extendida a un fondo nuevo. Sobre el tinte <code>#EDF2F7</code> el oscuro vale de sobra:
+<b>15.02:1</b>.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">6 · Control / qué hace de verdad · y qué dice la pantalla después</h2>
+
+<p>Todos los controles interactivos de las dos ventanas. La tercera columna es lo que provoca en el
+programa terminado; la cuarta es <b>lo que la pantalla dice inmediatamente después</b>, que es donde
+se cazan los arreglos que funcionan y dejan la pantalla mintiendo.</p>
+
+<table>
+<thead><tr><th style="width:150px">Control</th><th style="width:110px">Widget de Tk</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>Entrada de un campo</td><td><code>ttk.Entry</code></td><td>Cambia el valor en memoria y marca el caso como sucio. Al perder el foco revalida.</td><td>El relleno pasa a blanco (<code>ocr</code>) y la palabra a <b>«corregido a mano»</b>. Si no valida, pasa a rojo con borde de 2 px y el motivo escrito debajo. El contador del pie <b>no</b> sube: corregir no es confirmar.</td></tr>
+<tr><td>Casilla de ordenanza</td><td><code>tk.Canvas</code> propia</td><td>Alterna marcada ↔ no marcada. Nunca vuelve sola a «no leída».</td><td>Dibuja el aspa o la vacía y escribe la palabra al lado. «No leída» se dibuja rayada, distinta de las otras dos.</td></tr>
+<tr><td>Zoom − / % / +</td><td><code>ttk.Button</code>, <code>ttk.Label</code></td><td>Reescala <b>solo la región visible</b> del <code>numpy</code> ya rasterizado y la vuelve a pintar.</td><td>El porcentaje del centro cambia. El pie del visor dice a cuántos px se está dibujando la banda. <b>El foco no se mueve.</b></td></tr>
+<tr><td>Banda / Página</td><td><code>ttk.Button</code></td><td>Fija el modo de zoom. «Banda» recalcula la escala en cada cambio de foco; «Página» la deja quieta.</td><td>El botón activo se pinta en marino sólido. El pie dice cuál está puesto y sobre qué campo.</td></tr>
+<tr><td>◀ / ▶ de hoja</td><td><code>ttk.Button</code></td><td>Rasteriza y muestra otra hoja del mismo PDF. La caché de <code>PaginasDelPdf</code> ya evita rasterizar dos veces.</td><td>El contador «hoja 2 / 6» cambia. <b>Si la hoja mostrada no es la del campo enfocado, el pie lo dice</b>: «está viendo la hoja 3; el campo enfocado está en la 2».</td></tr>
+<tr><td>Divisor</td><td><code>ttk.PanedWindow</code></td><td>Reparte el ancho. La posición se recuerda entre casos.</td><td>Los dos paneles se redibujan. Si el visor baja de 450 px, el pie avisa: «por debajo de este ancho la banda se ve más pequeña que la tira que sustituye».</td></tr>
+<tr><td>Guardar</td><td><code>ttk.Button</code></td><td>Escribe los campos cambiados y regenera el Excel espejo completo.</td><td>«Guardado a las 14:32 · 6 campos cambiados». Si el Excel está abierto en otro programa, el <code>PermissionError</code> se atrapa y se escribe en pantalla — <b>nunca falla callado</b>.</td></tr>
+<tr><td>Todo correcto</td><td><code>ttk.Button</code></td><td>Pregunta con el número; si se acepta, marca las 41 filas de <code>procedencia_campo</code> con quién y cuándo.</td><td>El contador pasa a «41 de 41 confirmados», el botón se deshabilita y aparece <b>«Deshacer»</b>. La cabecera pasa de «sin verificar» a «verificado por Miguel el 2026-09-02».</td></tr>
+<tr><td>Deshacer «todo correcto»</td><td><code>ttk.Button</code></td><td><b class="no">Hoy no se puede.</b> <code>datos/procedencia.py</code> tiene <code>marcar_campo_verificado</code> y <b>no tiene la inversa</b> — comprobado listando sus 13 funciones.</td><td>Nada, porque el botón no puede existir todavía. Ver «Huecos», «Huecos», hueco 6.</td></tr>
+<tr><td>Identificar (hoja sin número)</td><td><code>ttk.Button</code></td><td>Escribe el número tecleado en la fila de <code>casos</code> que ya existe con <code>numero_caso</code> nulo, y cierra su renglón de <code>documentos_ilegibles</code>.</td><td>La ventana pasa a ser la de corrección normal, con el número en la cabecera. La lista de no legibles baja de 3 a 2 y lo dice.</td></tr>
+<tr><td>Unir a un caso…</td><td><code>tk.Toplevel</code> + <code>ttk.Treeview</code></td><td>Cuelga las personas de la hoja de un caso ya existente, con su <code>pagina_pdf</code>.</td><td>«2 personas añadidas al caso CASP2609, que ahora tiene 5». Y abre ese caso.</td></tr>
+<tr><td>No es un formulario</td><td><code>ttk.Button</code> + diálogo</td><td>Pide un motivo obligatorio y marca la hoja como descartada. <b>No borra nada.</b></td><td>La hoja sale de «sin leer» y aparece en «descartadas» con su motivo y su fecha, desde donde se puede recuperar.</td></tr>
+<tr><td>Abrir el PDF (F2)</td><td><code>ttk.Button</code></td><td>Lanza el visor del sistema en la hoja del caso.</td><td>Nada cambia en esta ventana. Si el archivo se movió, se escribe el motivo en la cabecera, no en un cuadro que se cierra.</td></tr>
+</tbody></table>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">7 · Los casos incómodos</h2>
+<table>
+<thead><tr><th style="width:280px">Qué pasa</th><th>Qué hace la pantalla</th></tr></thead>
+<tbody>
+<tr><td>El PDF se movió o se borró</td><td>El visor dibuja el <b>rectángulo rayado</b> con el motivo escrito dentro —el mismo dibujo que <code>TiraDelEscaneo._dibujar_hueco</code> ya usa—. Los campos siguen siendo editables: el caso no se vuelve inaccesible por no tener su papel.</td></tr>
+<tr><td>Un campo no tiene banda guardada</td><td><b>No se resalta nada, y se dice con palabras.</b> El pie del visor escribe «este campo no tiene sitio marcado en la hoja» y el modo de zoom cae a «página entera». Un rectángulo que no aparece parece un defecto; una frase, no.</td></tr>
+<tr><td>La banda apunta fuera de la hoja</td><td><code>banda_en_fracciones</code> ya recorta a los bordes. Si aun así queda de área cero, se trata como «sin banda».</td></tr>
+<tr><td>Un caso de 12 personas en 6 hojas</td><td>Al mover el foco a una persona de otra hoja, <b>el visor cambia de hoja solo</b> y el pie lo dice: «saltó a la hoja 3 porque ahí está esta persona».</td></tr>
+<tr><td>Ventana a 1100 px justos</td><td>Visor 560 + divisor 6 + campos <b>532</b> (medido en el navegador sobre este mismo archivo, no estimado). La columna de campos necesita 478 ⇒ sobran <b>54 px</b>. <b>Cabe.</b> Por debajo de 1100 no se puede: es el mínimo que la ventana impone.</td></tr>
+<tr><td>Zoom al 300 % de una hoja grande</td><td><b>Solo se reescala la región visible</b>, no la hoja entera. La razón es un número: una hoja rasterizada al tope de 3500 px del lado largo son ~9,5 MB de PGM, y <code>tk.PhotoImage</code> guarda además su copia interna. Reescalar la hoja completa a cada paso de zoom es la vía directa a una pantalla que tarda segundos en responder.</td></tr>
+<tr><td>Se hizo «Todo correcto» por error</td><td>Aparece «Deshacer» — <b>y hoy no se puede construir</b>. Mientras no exista la inversa de <code>marcar_campo_verificado</code>, la confirmación pregunta con el número delante y no hay marcha atrás. <b>Está dicho aquí para que no se descubra al final.</b></td></tr>
+<tr><td>La hoja sin identificar es un duplicado</td><td>Se teclea un número que ya está en la base: el botón se deshabilita y el motivo dice «el caso CASP2609 ya existe con 3 personas. ¿Quiso decir “Unir a un caso”?». Es la misma regla que <code>importacion/guardado.py</code> ya aplica: volver a importar no pisa lo corregido a mano.</td></tr>
+<tr><td>El programa no sabe de qué país es</td><td>La cabecera dice <b>«país sin asignar»</b> con el canalón vacío y un borde punteado. No se adivina por el número de unidad: <b>nada en el material relaciona los dígitos de <code>unidad_numero</code> con un país</b>, y adivinarlo sería inventar un dato.</td></tr>
+</tbody></table>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">8 · Huecos: lo que esta pantalla necesita y hoy no existe</h2>
+<p>Cada uno comprobado abriendo el archivo o volcando el esquema, no razonado.</p>
+
+<table>
+<thead><tr><th style="width:44px">#</th><th style="width:200px">Qué falta</th><th>Comprobado con</th><th>Qué se cae sin ello</th></tr></thead>
+<tbody>
+<tr><td><b>hueco 1</b></td><td><s>No hay dónde guardar una hoja que no se pudo identificar.</s>
+<b>RESUELTO mientras se escribía esta especificación</b>, por el programador que trabajaba en paralelo.
+Se tacha en el sitio en vez de borrarlo, porque el hueco existió y la fecha importa.</td>
+<td><b>Al empezar:</b> <code>importacion/guardado.py:267-273</code> devolvía <code>_no_importada(...)</code>,
+una tupla en memoria, y <code>casos.numero_caso</code> era <code>NOT NULL UNIQUE</code> con un
+<code>CHECK GLOB</code> que ningún relleno pasaba (esquema versión 6, volcado con
+<code>PRAGMA table_info</code>).<br><b>Al cerrar:</b> existen <code>datos/ilegibles.py</code>,
+<code>documentos_ilegibles</code> (versión 8) y <code>casos_version_7</code>, que hace
+<code>numero_caso</code> <b>nulable</b>. <code>guardado.py</code> devuelve
+<code>pendiente_de_identificar=numero_caso is None</code>.</td>
+<td><b>Ya nada.</b> La hoja se guarda con su unidad y sus personas, y le falta solo el número — que es
+justo lo que esta ventana existe para teclear. <b>Y cambia el texto de la pantalla:</b> donde decía
+«no hay nada suyo guardado» ahora dice «está guardada y le falta el número», que es lo cierto.</td></tr>
+<tr><td><b>hueco 2</b></td><td><b>No hay columna de país ni de templo.</b> Ni una ni otra en ninguna de las 7 tablas.</td><td><code>grep -rn "pais\|templo" --include=*.py</code> → 0 apariciones como campo. Volcado del esquema: 7 tablas, ninguna las trae.</td><td>El distintivo de país de la cabecera y de las listas, y la agrupación por templo. <b>Y hay una pregunta antes que la columna:</b> el país es propiedad de la <b>unidad</b>, y hoy la unidad son dos columnas sueltas de <code>casos</code> (<code>unidad_numero</code>, <code>unidad_nombre</code>) sin tabla propia. El templo es propiedad del <b>viaje</b>. Son dos decisiones distintas.</td></tr>
+<tr><td><b>hueco 3</b></td><td><code>docs/ARQUITECTURA.md</code> §2 <b>está atrasado respecto al código</b>: no menciona <code>unidad_nombre</code>, <code>pagina_pdf</code>, <code>estado_recomendacion</code>, <code>estado_propuesto</code>, <code>nota_companero</code>, <code>propuesto_por</code>, <code>propuesto_en</code>, <code>pudo_viajar</code>, <code>motivo_no_viajo</code>, <code>contactado_por</code>, <code>respondio</code>, ni las cinco columnas de banda de <code>procedencia_campo</code>.</td><td>Volcado del esquema real (versión 6) contra §2 del documento. <b>11 columnas de más en el código.</b></td><td>Nada de esta pantalla, pero <b>el pase me mandó comprobar los nombres ahí</b> y ahí no están. <code>CLAUDE.md</code> §8: gana el código. <b>Corregir el documento es del planificador.</b></td></tr>
+<tr><td><b>hueco 4</b></td><td>No hay función para <b>unir una hoja a un caso ya existente</b> fuera de la propia importación. <code>_unir_a_un_caso_de_esta_tanda</code> solo vale dentro de la misma tanda.</td><td><code>importacion/guardado.py:274-279</code>. <code>datos/repositorio.py</code> sí tiene <code>alta_de_persona(conexion, caso_id, …)</code>, así que la pieza de abajo existe.</td><td>El botón «Unir a un caso…». Es la única de estas cinco que <b>no</b> necesita esquema nuevo.</td></tr>
+<tr><td><b>hueco 5</b></td><td>El visor necesita <b>rasterizar una región a una escala pedida</b>. Hoy <code>escalar_para_caber</code> escala a un alto fijo de tira.</td><td><code>extraccion/recorte.py:98</code>. <code>recortar()</code> y <code>a_pgm()</code> ya existen y sirven tal cual.</td><td>El zoom. Es un parámetro más en una función que ya está, <b>no una dependencia nueva</b>: sigue sin haber Pillow y sin tocar <code>requirements.txt</code>.</td></tr>
+<tr><td><b>hueco 6</b></td><td>No existe la inversa de <code>marcar_campo_verificado</code>.</td><td>Las 13 funciones de <code>datos/procedencia.py</code>, listadas. Ninguna desmarca.</td><td>«Deshacer todo correcto». Mientras no exista, la confirmación es irreversible y hay que decirlo en el diálogo.</td></tr>
+</tbody></table>
+
+<h3>La pregunta que le devuelvo al dueño</h3>
+<p><b>¿El país es del barrio o de la persona?</b> Lo pregunto porque cambia dónde va la columna y
+porque el material no lo dice. Si el país es del barrio —una unidad está en un país y ya está—, con
+una tabla de unidades basta y el país sale solo. Si una persona puede vivir en un país distinto al de
+su barrio, la columna va en <code>personas</code> y hay que teclearla una por una. <b>Recomiendo el
+barrio</b>, porque es lo que el formulario trae impreso y porque el propio dueño lo dijo así
+—«están varios templos y son varios países»—, pero <b>es su decisión, no mía</b>.</p>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">9 · Lo que este mockup NO cubre</h2>
+<ul>
+<li><b>No abrí ni un PDF de <code>pdfs_referencia/</code>.</b> Los escaneos dibujados son SVG hechos a
+mano; no sé cómo se ve un escaneo real de este proyecto y no lo he mirado.</li>
+<li><b>No medí nada dentro de <code>tkinter</code>.</b> No abrí una ventana. Los anchos salen de
+constantes del código y de aritmética sobre ellas; el reparto real puede desviarse por el
+<i>padding</i> que Tk aplica y eso se comprueba con la ventana construida, no aquí.</li>
+<li><b>El «94 líneas, confianza 0.99995» no es mío.</b> Lo dice el supervisor y no lo he comprobado.</li>
+<li><b>No verifiqué que el visor rinda.</b> El cálculo de los ~9,5 MB por hoja es aritmética sobre el
+tope de 3500 px; nadie ha cronometrado un zoom.</li>
+<li><b>Las casillas de ordenanzas se dibujan de refilón</b>, sin cambios: se especificaron en
+<code>mockup-correccion.html</code> y no las toco.</li>
+<li><b>El estado <code>tachado</code> no aparece dibujado</b> en ninguna de las dos ventanas de arriba,
+aunque está en la tabla de estados. Es una omisión del ejemplo, no del diseño.</li>
+</ul>
+
+</div>
+</body>
+</html>

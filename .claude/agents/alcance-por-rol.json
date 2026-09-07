@@ -1,0 +1,384 @@
+{
+  "_comentario": "La tabla de alcance de cada rol. La lee carril.sh. Añadir un rol es editar DATOS, no código. Cada rol declara qué escribe, qué NO escribe, qué herramientas tiene vedadas, y a quién reenvía lo que no le toca.",
+  "supervisor": {
+    "titular_de": "Coordinar · escribir el pase · VERIFICAR EL REPOSITORIO · repetir mediciones · informar al dueño",
+    "escribe": [
+      "ESTADO.md",
+      "EN-CURSO.md",
+      "DECISIONES.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static/**",
+      "tests/**",
+      "assets-portal/**",
+      "PENDIENTES.md",
+      "docs/QUE-HACEMOS-Y-QUE-NO.md",
+      "CLAUDE.md",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md",
+      "docs/INFORMES-QA.md"
+    ],
+    "reenvia": {
+      "app/**": "programador",
+      "static/**": "programador",
+      "tests/**": "programador",
+      "assets-portal/**": "diseñador",
+      "PENDIENTES.md": "planificador",
+      "docs/QUE-HACEMOS-Y-QUE-NO.md": "abogado"
+    },
+    "herramientas_exclusivas": [
+      "mcp__gbrain__*  — el cerebro es del supervisor. Lo vigila solo-supervisor-recuerda.sh"
+    ]
+  },
+  "planificador": {
+    "titular_de": "Investigar fuentes oficiales · comparar · recomendar · escribir especificaciones y criterios de aceptación · registrar deuda",
+    "escribe": [
+      "PENDIENTES.md",
+      "EN-CURSO.md",
+      "docs/PlAN MESTRO/**",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static/**",
+      "tests/**",
+      "assets-portal/**",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/fases/**",
+      "CLAUDE.md",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md",
+      "docs/INFORMES-QA.md"
+    ],
+    "herramientas_vedadas": [],
+    "no_hace": [
+      "Ejecutar la suite de pruebas: eso es de QA",
+      "Auditar una entrega o dictaminar APTA: eso es de QA",
+      "Levantar el estado del repositorio para informar al dueño: eso es del supervisor",
+      "Escribir código",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "si_hace": "Medir lo justo para no responder de memoria. Medir no es probar.",
+    "reenvia": {
+      "estado del repositorio": "supervisor",
+      "ejecutar pruebas": "QA",
+      "auditar": "QA",
+      "atacar": "hacker",
+      "app/**": "programador",
+      "assets-portal/**": "diseñador"
+    },
+    "encargos_vedados": [
+      {
+        "patron": "escanea[a-z]* (el |del )?(proyecto|repositorio|arbol)|levanta(r)? el estado|(estado|inventario) del (proyecto|repositorio|arbol)|cuenta (los |cuantos |cu.antos )?archivos|haz (un )?barrido (del|de el|del) (proyecto|repositorio)",
+        "titular": "el SUPERVISOR — mandamiento II: el estado lo mide él, no lo delega"
+      },
+      {
+        "patron": "ejecuta (la suite|las pruebas|pytest)|audita (la|el|a ciegas)",
+        "titular": "QA — el planificador especifica, no dictamina"
+      },
+      {
+        "patron": "escribe (el )?c.digo|implementa (la|el)",
+        "titular": "el PROGRAMADOR — el planificador investiga en internet la opción más segura, compara y dice CÓMO construir; no construye"
+      }
+    ]
+  },
+  "disenador": {
+    "titular_de": "Mockups 100% autocontenidos · sistema de diseño · mediciones visuales con su número",
+    "escribe": [
+      "assets-portal/**",
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "tests/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/**",
+      "CLAUDE.md",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md",
+      "docs/INFORMES-QA.md"
+    ],
+    "no_hace": [
+      "Tocar el backend o el frontend servido",
+      "Decidir alcance: qué ventana existe lo decide el dueño",
+      "Dictaminar que su propio trabajo está APTA",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "app/**": "programador",
+      "static/**": "programador",
+      "alcance": "el dueño",
+      "veredicto": "QA"
+    },
+    "herramientas_vedadas": [],
+    "encargos_vedados": [
+      {
+        "patron": "escanea[a-z]* (el |del )?(proyecto|repositorio|arbol)|levanta(r)? el estado|(estado|inventario) del (proyecto|repositorio|arbol)|cuenta (los |cuantos |cu.antos )?archivos|haz (un )?barrido (del|de el|del) (proyecto|repositorio)",
+        "titular": "el SUPERVISOR — mandamiento II: el estado lo mide él, no lo delega"
+      },
+      {
+        "patron": "dictamina|veredicto apta|da el apta",
+        "titular": "QA — nada se cierra sin QA, y el diseñador no se audita a sí mismo"
+      },
+      {
+        "patron": "escribe (el )?(backend|endpoint|servicio)|implementa (el|la) (ruta|endpoint|servicio)",
+        "titular": "el PROGRAMADOR"
+      }
+    ]
+  },
+  "programador": {
+    "titular_de": "El código · primero la prueba, después el código · migraciones · el capítulo del libro",
+    "escribe": [
+      "app/**",
+      "static/**",
+      "tests/**",
+      "scripts/**",
+      "alembic/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "EN-CURSO.md",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md"
+    ],
+    "no_escribe": [
+      "assets-portal/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/QUE-HACEMOS-Y-QUE-NO.md",
+      "CLAUDE.md",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**",
+      "docs/INFORMES-QA.md"
+    ],
+    "no_hace": [
+      "Dibujar o modificar un mockup",
+      "Decidir arquitectura sin ADR: eso vuelve al planificador",
+      "Dictaminar APTA su propio trabajo",
+      "Hacer commit o push sin que el dueño lo pida",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "assets-portal/**": "diseñador",
+      "arquitectura": "planificador",
+      "veredicto": "QA",
+      "legal": "abogado"
+    },
+    "herramientas_vedadas": [],
+    "encargos_vedados": [
+      {
+        "patron": "escanea[a-z]* (el |del )?(proyecto|repositorio|arbol)|levanta(r)? el estado|(estado|inventario) del (proyecto|repositorio|arbol)|cuenta (los |cuantos |cu.antos )?archivos|haz (un )?barrido (del|de el|del) (proyecto|repositorio)",
+        "titular": "el SUPERVISOR — mandamiento II: el estado lo mide él, no lo delega"
+      },
+      {
+        "patron": "compara alternativas|elige la arquitectura|escribe la spec",
+        "titular": "el PLANIFICADOR — investiga en internet, compara y especifica; el programador construye sobre la spec"
+      },
+      {
+        "patron": "audita a ciegas|dictamina|veredicto apta",
+        "titular": "QA — quien construye es el peor juez de si funciona"
+      },
+      {
+        "patron": "haz (el|un) mockup|dise.a (la|el) (pantalla|vista|mockup)",
+        "titular": "el DISEÑADOR"
+      }
+    ]
+  },
+  "qa": {
+    "caja_negra": true,
+    "titular_de": "Medir a ciegas el artefacto contra su criterio · veredicto APTA o VUELVE AL AGENTE",
+    "escribe": [
+      "EN-CURSO.md",
+      "docs/INFORMES-QA.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static/**",
+      "assets-portal/**",
+      "tests/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/**",
+      "CLAUDE.md",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md"
+    ],
+    "herramientas_vedadas": [
+      "WebSearch",
+      "WebFetch"
+    ],
+    "no_hace": [
+      "ARREGLAR lo que encuentra: quien construye es el peor juez de si funciona",
+      "Leer contexto de producto, historia del proyecto o hallazgos de vueltas anteriores",
+      "Aceptar ningún número del pase: un número leído antes de medir cambia dónde se mira",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "arreglar": "el agente que construyó",
+      "contexto": "no lo necesita: mide contra el criterio"
+    },
+    "encargos_vedados": [
+      {
+        "patron": "escanea[a-z]* (el |del )?(proyecto|repositorio|arbol)|levanta(r)? el estado|(estado|inventario) del (proyecto|repositorio|arbol)|cuenta (los |cuantos |cu.antos )?archivos|haz (un )?barrido (del|de el|del) (proyecto|repositorio)",
+        "titular": "el SUPERVISOR — mandamiento II: el estado lo mide él, no lo delega"
+      },
+      {
+        "patron": "arregla|corrige (el|la|los|las)|implementa",
+        "titular": "el PROGRAMADOR o el DISEÑADOR — QA mide y dictamina, jamás toca el entregable"
+      },
+      {
+        "patron": "escribe (la spec|los criterios)",
+        "titular": "el PLANIFICADOR — los criterios llegan a QA escritos; QA los mide"
+      }
+    ]
+  },
+  "hacker": {
+    "caja_negra": true,
+    "titular_de": "Atacar la aplicación CORRIENDO · prueba de concepto reproducible",
+    "escribe": [
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static/**",
+      "tests/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/**",
+      "CLAUDE.md",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md",
+      "docs/INFORMES-QA.md"
+    ],
+    "no_hace": [
+      "Revisar el código quieto como base de su informe: su trabajo es encontrar el fallo, no confirmar que no lo hay",
+      "ARREGLAR lo que encuentra",
+      "Atacar infraestructura de terceros o los portales de empleo de los que se leen vacantes",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "arreglar": "programador",
+      "revisión de código": "QA"
+    },
+    "herramientas_vedadas": [],
+    "encargos_vedados": [
+      {
+        "patron": "escanea[a-z]* (el |del )?(proyecto|repositorio|arbol)|levanta(r)? el estado|(estado|inventario) del (proyecto|repositorio|arbol)|cuenta (los |cuantos |cu.antos )?archivos|haz (un )?barrido (del|de el|del) (proyecto|repositorio)",
+        "titular": "el SUPERVISOR — mandamiento II: el estado lo mide él, no lo delega"
+      },
+      {
+        "patron": "arregla|corrige (el|la|los|las)|parchea",
+        "titular": "el PROGRAMADOR — el hacker encuentra el fallo y entrega la prueba de concepto; no lo tapa"
+      }
+    ]
+  },
+  "abogado": {
+    "titular_de": "Licencias de todo lo que entra · datos personales · términos · privacidad · retención · marca",
+    "escribe": [
+      "docs/QUE-HACEMOS-Y-QUE-NO.md",
+      "docs/ABOGADO-*.md",
+      "docs/AUDITORIA-LICENCIAS.md",
+      "docs/CREDITOS.md",
+      "**/LICENSE*",
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static/**",
+      "tests/**",
+      "assets-portal/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "CLAUDE.md",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md",
+      "docs/INFORMES-QA.md"
+    ],
+    "no_hace": [
+      "Corregir el código que contradice una afirmación legal: va en su informe",
+      "Dar una conclusión con tono de dictamen sin fuente: esto es preparación, no asesoría",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "app/**": "programador",
+      "corregir anclas de código": "programador",
+      "veredicto": "QA"
+    },
+    "herramientas_vedadas": [],
+    "encargos_vedados": [
+      {
+        "patron": "escanea[a-z]* (el |del )?(proyecto|repositorio|arbol)|levanta(r)? el estado|(estado|inventario) del (proyecto|repositorio|arbol)|cuenta (los |cuantos |cu.antos )?archivos|haz (un )?barrido (del|de el|del) (proyecto|repositorio)",
+        "titular": "el SUPERVISOR — mandamiento II: el estado lo mide él, no lo delega"
+      },
+      {
+        "patron": "escribe (el )?c.digo|implementa (la|el)",
+        "titular": "el PROGRAMADOR — el abogado cita fuentes legales, no construye"
+      }
+    ]
+  },
+  "hacker-seguridad": {
+    "caja_negra": true,
+    "titular_de": "Atacar la aplicación CORRIENDO · prueba de concepto reproducible",
+    "escribe": [
+      "EN-CURSO.md"
+    ],
+    "no_escribe": [
+      "app/**",
+      "static/**",
+      "tests/**",
+      "PENDIENTES.md",
+      "ESTADO.md",
+      "DECISIONES.md",
+      "docs/**",
+      "CLAUDE.md",
+      "docs/ARQUITECTURA.md",
+      "docs/adr/**",
+      "docs/GUIA-TECNOLOGIAS-BITACORA.md",
+      "docs/RUNBOOK.md",
+      "docs/INFORMES-QA.md"
+    ],
+    "no_hace": [
+      "Revisar el código quieto como base de su informe: su trabajo es encontrar el fallo, no confirmar que no lo hay",
+      "ARREGLAR lo que encuentra",
+      "Atacar infraestructura de terceros o los portales de empleo de los que se leen vacantes",
+      "Usar el cerebro (mcp__gbrain__*): es del supervisor. Lo que necesites viene en el pase, o el pase venia incompleto"
+    ],
+    "reenvia": {
+      "arreglar": "programador",
+      "revisión de código": "QA"
+    },
+    "herramientas_vedadas": [],
+    "_alias_de": "hacker — la ficha .claude/agents/hacker-seguridad.md declara name: hacker-seguridad, y carril.sh busca la clave EXACTA. Sin esta entrada el hacker quedaba sin carril (medido 2026-08-25). Si cambias .hacker, cambia tambien esta.",
+    "encargos_vedados": [
+      {
+        "patron": "escanea[a-z]* (el |del )?(proyecto|repositorio|arbol)|levanta(r)? el estado|(estado|inventario) del (proyecto|repositorio|arbol)|cuenta (los |cuantos |cu.antos )?archivos|haz (un )?barrido (del|de el|del) (proyecto|repositorio)",
+        "titular": "el SUPERVISOR — mandamiento II: el estado lo mide él, no lo delega"
+      },
+      {
+        "patron": "arregla|corrige (el|la|los|las)|parchea",
+        "titular": "el PROGRAMADOR — el hacker encuentra el fallo y entrega la prueba de concepto; no lo tapa"
+      }
+    ]
+  },
+  "_alias": {
+    "_comentario": "carril.sh empareja por CLAVE EXACTA. Un rol renombrado queda sin puerta EN SILENCIO - ya paso con hacker-seguridad (medido 2026-08-25: con la tabla anterior, agent_type=hacker-seguridad escribia en app/ sin que nadie lo parara). Si renombras un rol, anade su clave aqui Y su entrada completa arriba.",
+    "hacker-seguridad": "hacker"
+  }
+}

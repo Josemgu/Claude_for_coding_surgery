@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de Fichas.Paquetes. MSTest por el ADR-0003 §8.2: es el marco de la plantilla
+    oficial de WinUI y el unico donde [UITestMethod] esta documentado; tener dos marcos en
+    el mismo arbol es peor que tener uno.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Pruebas.Paquetes</RootNamespace>
+    <AssemblyName>Fichas.Pruebas.Paquetes</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+    <!--
+      PdfPig aqui NO es para el producto: es para FABRICAR los PDF de prueba y para volver a
+      abrir el que se genera y contarle las hojas. Comprobar la union leyendo el codigo que la
+      hace no comprueba nada; hay que abrir el archivo.
+    -->
+    <PackageReference Include="PdfPig" Version="0.1.11" />
+  </ItemGroup>
+
+  <!--
+    La huella estructural de la hoja que produce HOY el Python, sacada con el script que va al
+    lado. Se compara columna a columna contra la que produce el C#. Va como archivo para que la
+    prueba corra en una maquina sin Python.
+  -->
+  <ItemGroup>
+    <None Update="HuellaDelPython.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+    <ProjectReference Include="..\Fichas.Paquetes\Fichas.Paquetes.csproj" />
+    <!-- Los datos inventados: ninguna prueba toca la base real del dueno. -->
+    <ProjectReference Include="..\Fichas.Datos.Falso\Fichas.Datos.Falso.csproj" />
+  </ItemGroup>
+
+</Project>

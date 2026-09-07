@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas · Lo que sale hacia fuera — especificación visual</title>
+<style>
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21; --tinta-suave:#46505C;
+  --marino:#0F2A4A; --marino-medio:#1E4E79; --marino-tinte:#EDF2F7;
+  --verde-marca:#1B6E3C; --rojo-marca:#B3261E; --rojo-solido:#B3261E;
+  --ambar-fondo:#FFF3C4; --ambar-marca:#8A5B00; --ambar-tinta:#3D2A00;
+  --excel-rejilla:#D0D7DE; --excel-cab:#F1F3F5;
+  --r:4px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--panel-hondo);color:var(--tinta);
+     font:14px/1.55 "Segoe UI",system-ui,sans-serif}
+.pagina{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+h1{font-size:23px;margin:0 0 8px}
+h2.seccion{font-size:17px;margin:44px 0 12px;padding-bottom:6px;
+           border-bottom:2px solid var(--marino);color:var(--marino)}
+h3{font-size:14px;margin:22px 0 8px;color:var(--marino)}
+p{margin:0 0 10px;max-width:74ch}
+code{font:12.5px/1.4 Consolas,monospace;background:var(--panel-hondo);padding:1px 4px;border-radius:3px}
+.intro{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--marino);
+       border-radius:var(--r);padding:16px 18px}
+table.doc{border-collapse:collapse;width:100%;font-size:13px;margin:10px 0 4px;background:var(--papel)}
+table.doc th,table.doc td{border:1px solid var(--linea);padding:7px 9px;text-align:left;vertical-align:top}
+table.doc th{background:var(--marino);color:#fff;font-weight:600}
+table.doc tbody tr:nth-child(even) td{background:var(--marino-tinte)}
+.nota{background:var(--ambar-fondo);color:var(--ambar-tinta);border:1px solid var(--ambar-marca);
+      border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+.med{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--marino-medio);
+     border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+.hueco{background:var(--papel);border:1px solid var(--linea);border-left:5px solid var(--rojo-solido);
+       border-radius:var(--r);padding:11px 14px;margin:12px 0;font-size:13px}
+ul{margin:6px 0 10px;padding-left:20px;max-width:74ch} li{margin-bottom:5px}
+.si{color:var(--verde-marca);font-weight:600} .no{color:var(--rojo-marca);font-weight:600}
+.leyenda{font-size:12px;color:var(--tinta-suave);margin:6px 0 14px}
+
+/* --------------------------------------------- simulacion de una hoja de Excel */
+.libro{background:var(--papel);border:1px solid var(--linea-fuerte);border-radius:var(--r);
+       overflow:hidden;margin:12px 0 4px;box-shadow:0 2px 8px rgba(15,42,74,.10)}
+.libro-barra{background:#217346;color:#fff;font-size:12px;padding:5px 11px;display:flex;
+             justify-content:space-between}
+.hoja{width:100%;border-collapse:collapse;font:12px/1.4 Calibri,"Segoe UI",sans-serif;table-layout:fixed}
+.hoja th,.hoja td{border:1px solid var(--excel-rejilla);padding:3px 6px;overflow:hidden;
+                  text-overflow:ellipsis;white-space:nowrap}
+.hoja .rot{background:var(--excel-cab);color:var(--tinta-suave);text-align:center;width:26px;
+           font-size:10.5px;border-color:var(--linea-fuerte)}
+.hoja thead .col{background:var(--excel-cab);color:var(--tinta-suave);text-align:center;
+                 font-weight:400;font-size:10.5px;border-color:var(--linea-fuerte)}
+.hoja .titulo{background:var(--marino);color:#fff;font-weight:700}
+.hoja .bloqueada{background:var(--marino-tinte)}
+.hoja .rellenar{background:#FFFFFF}
+.hoja .banda{background:var(--marino);color:#fff;font-weight:700}
+.hoja .repetido{background:var(--marino-tinte);color:var(--tinta-suave)}
+.hoja .cortebarrio td{border-top:3px solid var(--marino)}
+.hoja .mono{font-family:Consolas,monospace}
+.pestanas{display:flex;gap:2px;background:var(--excel-cab);padding:4px 6px;
+          border-top:1px solid var(--linea-fuerte);font-size:11.5px}
+.pestanas span{padding:3px 11px;border:1px solid var(--linea-fuerte);border-bottom:0;
+               border-radius:3px 3px 0 0;background:var(--panel-hondo);color:var(--tinta-suave)}
+.pestanas span.viva{background:var(--papel);color:var(--marino);font-weight:700;
+                    border-bottom:2px solid var(--marino)}
+
+/* --------------------------------------------------- simulacion de una hoja PDF */
+.folio{background:var(--papel);border:1px solid var(--linea-fuerte);border-radius:2px;
+       box-shadow:0 2px 10px rgba(15,42,74,.14);margin:12px 0 4px;overflow:hidden}
+.muestras{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0}
+.muestra{background:var(--papel);border:1px solid var(--linea);border-radius:var(--r);
+         padding:10px 12px;font-size:12.5px;flex:1 1 240px}
+.chip{display:inline-block;width:100%;height:26px;border-radius:3px;margin-bottom:5px}
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<div class="intro">
+  <h1>Especificación visual — Lo que sale hacia fuera</h1>
+  <p>Los cuatro documentos que el programa entrega a otras personas: el <b>Excel del paquete</b> para
+  los compañeros, el <b>Excel espejo</b>, el <b>reporte en Excel</b> y el <b>reporte en PDF</b> para
+  los jefes. El encargo del dueño: <i>«estética limpia empresarial con azul marino»</i> y el Excel
+  del paquete <i>«bien bonito»</i>, con <i>«nombre, barrio, cédula de miembro y fecha de viaje»</i>,
+  y el barrio dividiendo.</p>
+  <p><b>Las tablas de abajo son simulaciones en HTML de lo que openpyxl escribiría.</b> No abrí
+  Excel; lo que se especifica es qué propiedad de openpyxl produce cada cosa, y todas las que uso ya
+  están en el proyecto (<code>Font</code>, <code>PatternFill</code>, <code>Border</code>,
+  <code>Alignment</code>, <code>Protection</code>, <code>freeze_panes</code>,
+  <code>auto_filter</code>, <code>column_dimensions</code>). <b>Ninguna dependencia nueva.</b></p>
+  <p><b>Los datos son inventados</b> salvo el formato del MRN <code>055-1111-3853</code>, el número
+  de unidad <code>7000011</code> y el caso <code>CASP2609</code>.</p>
+</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">0 · El punto de partida medido: hoy no hay estética ninguna</h2>
+
+<p>Antes de proponer nada, cuánto hay. Contado con <code>grep</code> de
+<code>PatternFill|Font(|Border|Alignment|freeze_panes|auto_filter</code>:</p>
+
+<table class="doc">
+<thead><tr><th>Archivo</th><th style="width:120px">Estilos hoy</th><th>Qué significa</th></tr></thead>
+<tbody>
+<tr><td><code>espejo/escritura.py</code></td><td><b>0</b></td><td>El espejo sale sin cabecera distinguible, sin filtro y sin anchos.</td></tr>
+<tr><td><code>paquete/exportacion.py</code></td><td><b>0</b></td><td>—</td></tr>
+<tr><td><code>paquete/trabajo.py</code></td><td>solo <code>Protection</code> y <code>freeze_panes</code></td><td>Las columnas clave ya van bloqueadas y la cabecera ya se congela. <b>Eso es todo.</b></td></tr>
+<tr><td><code>reportes/excel.py</code></td><td><b>1</b> coincidencia</td><td>Prácticamente sin formato.</td></tr>
+<tr><td><code>reportes/formato_pdf.py</code></td><td><b>0 operadores de color</b></td><td>Ver abajo. Es el hallazgo que más trabajo implica.</td></tr>
+</tbody></table>
+
+<div class="med"><b>El PDF no sabe pintar.</b> Leí <code>_flujo_de_una_pagina</code> entero: emite
+<code>BT</code>, <code>Tf</code>, <code>Tm</code>, <code>Tj</code> y <code>ET</code>, y nada más.
+<b>No hay ni un operador gráfico</b> —ni <code>rg</code> de color, ni <code>re</code>/<code>f</code>
+de rectángulo, ni <code>RG</code>/<code>S</code> de línea—. El reporte en PDF de hoy es texto negro
+sobre blanco y no puede ser otra cosa. Para que lleve marino hay que <b>añadir tres operadores</b> a
+ese módulo, y eso es trabajo de programación, no de configuración. Lo digo antes de dibujarlo para
+que no se descubra al final.
+<br><br>Y lo que sí está resuelto y no hay que tocar: la página es <b>apaisada a propósito</b>
+(<code>ANCHO_PAGINA = 792</code>, <code>ALTO_PAGINA = 612</code>), porque las tablas del reporte
+llegan a ocho columnas. El marino no cambia eso.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">1 · La paleta marino, medida</h2>
+
+<div class="muestras">
+  <div class="muestra"><span class="chip" style="background:#0F2A4A"></span>
+  <b><code>#0F2A4A</code> · marino</b><br>Bandas de título y cabeceras de tabla.<br>
+  Blanco encima: <b>14.48:1</b> · como tinta sobre papel: <b>14.48:1</b></div>
+
+  <div class="muestra"><span class="chip" style="background:#1E4E79"></span>
+  <b><code>#1E4E79</code> · marino medio</b><br>Subtítulos de sección y bordes gruesos.<br>
+  Blanco encima: <b>8.67:1</b> · como tinta sobre papel: <b>8.67:1</b></div>
+
+  <div class="muestra"><span class="chip" style="background:#EDF2F7;border:1px solid #D3D7DE"></span>
+  <b><code>#EDF2F7</code> · tinte marino</b><br>Bandas alternas y celdas bloqueadas.<br>
+  Tinta <code>#1A1D21</code> encima: <b>15.02:1</b> · marino encima: <b>12.86:1</b></div>
+
+  <div class="muestra"><span class="chip" style="background:#FFFFFF;border:1px solid #D3D7DE"></span>
+  <b><code>#FFFFFF</code> · papel</b><br>Todo lo que hay que rellenar.<br>
+  Tinta encima: <b>16.91:1</b></div>
+</div>
+
+<p class="leyenda">Calculado con la fórmula de luminancia relativa de la WCAG. <b>Cuatro valores y
+ninguno más.</b> Un documento empresarial con seis azules parece hecho por seis personas.</p>
+
+<div class="nota"><b>El marino no significa nada, y por eso puede estar en todas partes.</b> En la
+aplicación el color <b>sí</b> significa: verde anotación, blanco OCR fiable, ámbar revisar, rojo no
+válido. El marino es <b>chrome</b> —cabecera, título, borde, banda de sección— y nunca rellena una
+celda de dato. La regla que lo mantiene sano: <b>si alguna vez un fondo marino quisiera decir «este
+dato está mal», la respuesta es no.</b> En cuanto el marino signifique un estado, el marino de las
+cabeceras empieza a significarlo también.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">2 · El Excel del paquete — y el choque que hay que resolver</h2>
+
+<p>Es el que va a los compañeros y el que <b>vuelve</b>. El dueño lo quiere agrupado por barrio. La
+restricción que lo complica está medida y es dura:</p>
+
+<div class="hueco"><b>Una fila de encabezado de barrio dentro de la hoja que vuelve produce un
+descarte falso. Medido, con línea.</b>
+<ul style="margin-top:7px">
+<li><code>paquete/lectura.py:132</code> — el lector recorre <b>todas</b> las filas desde la 2.</li>
+<li><code>paquete/lectura.py:142</code> — solo se salta la fila <b>completamente</b> vacía
+(<code>if not any(limpios): continue</code>). Una fila con el nombre del barrio <b>no está vacía</b>
+y entra.</li>
+<li><code>paquete/reconciliacion.py:100-101</code> — una fila sin <code>numero_caso</code> o sin
+<code>mrn</code> se devuelve como <code>FilaDescartada(…, MOTIVO_SIN_CLAVE)</code>.</li>
+<li><code>paquete/reconciliacion.py:186-189</code> — si hay aplicadas <b>y</b> descartadas, se emite
+el aviso «las descartadas NO están en la base: revíselas».</li>
+</ul>
+<b>Resultado:</b> con 3 barrios, cada devolución traería <b>3 descartados falsos y su aviso</b>.
+Y ese aviso es el sitio donde aparece la pérdida real —la fila cuyo MRN el compañero cambió—.
+<b>Un aviso que casi siempre miente enseña a no leerlo, y el día que dice la verdad tampoco se lee.</b>
+</div>
+
+<h3>Lo que descarté, y por qué</h3>
+<table class="doc">
+<thead><tr><th style="width:230px">Salida</th><th>Por qué no</th></tr></thead>
+<tbody>
+<tr><td><b>Filas de encabezado de barrio</b> en la hoja <code>trabajo</code></td><td>Lo de arriba: 3 descartes falsos por devolución.</td></tr>
+<tr><td><b>Filas de encabezado + enseñar al lector a saltárselas</b></td><td>La regla tendría que ser «ignora la fila sin <code>numero_caso</code>». Pero entonces <b>una fila real cuyo número el compañero borró sin querer también se ignoraría, y en silencio</b>. Se cambia un ruido visible por una pérdida invisible. Es exactamente lo que el pase declara no negociable.</td></tr>
+<tr><td><b>Celdas combinadas</b> para el nombre del barrio</td><td>Una celda combinada rompe el <code>auto_filter</code> y el <code>sort</code> de Excel, que es lo que el compañero va a usar. Y openpyxl las lee de vuelta como valor en la primera celda y <code>None</code> en el resto.</td></tr>
+<tr><td><b>Vaciar el barrio en las filas repetidas</b></td><td>Es lo más parecido al dibujo del dueño y <b>es seguro para la vuelta</b> —<code>unidad_nombre</code> no es clave ni editable y la reconciliación no lo mira—. Lo descarto por otra cosa: <b>en cuanto el compañero ordena por fecha, los huecos se dispersan y el barrio se pierde</b>. Y ordenar es justo lo que se le pide que haga.</td></tr>
+</tbody></table>
+
+<h3>Lo que decido</h3>
+<div class="med"><b>La hoja que vuelve se queda plana. La división por barrio se hace con formato,
+no con filas: el valor está en todas las filas y la primera de cada barrio lleva la banda marino y un
+borde grueso arriba.</b> Se lee «barrio, nombres, barrio, nombres» bajando por la columna —que es lo
+que el dueño describió— y <b>la estructura que el lector recorre no cambia ni un renglón</b>.
+<br><br>Y la presentación agrupada de verdad, con encabezados y subtotales, <b>va al reporte en
+PDF</b>, que es un documento que se lee y no vuelve. Ahí no hay nada que romper.</div>
+
+<h3>La hoja <code>trabajo</code>, tal como sale</h3>
+
+<div class="libro">
+  <div class="libro-barra"><span>Fichas — paquete de Sandy Reyes — 2026-09-02.xlsx</span><span>Excel</span></div>
+  <table class="hoja">
+    <colgroup><col style="width:26px"><col style="width:86px"><col style="width:104px"><col style="width:174px">
+      <col style="width:92px"><col style="width:150px"><col style="width:40px"><col style="width:150px"><col></colgroup>
+    <thead>
+      <tr><th class="rot"></th><th class="col">A</th><th class="col">B</th><th class="col">C</th>
+          <th class="col">D</th><th class="col">E</th><th class="col">F</th><th class="col">G</th><th class="col">H</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="rot">1</td>
+        <td class="titulo">N.º de caso</td><td class="titulo">MRN</td><td class="titulo">Nombre</td>
+        <td class="titulo">Fecha de viaje</td><td class="titulo">Barrio (unidad)</td><td class="titulo">Fila</td>
+        <td class="titulo">Estado de la recomendación</td><td class="titulo">Nota del compañero</td></tr>
+
+      <tr class="cortebarrio"><td class="rot">2</td>
+        <td class="bloqueada mono">CASP2609</td><td class="bloqueada mono">055-1111-3853</td>
+        <td class="rellenar">ANONIMO, MARIA ELENA</td><td class="bloqueada">08/09/2026</td>
+        <td class="banda">Paramaribo Branch</td><td class="bloqueada">1</td>
+        <td class="rellenar"></td><td class="rellenar"></td></tr>
+      <tr><td class="rot">3</td>
+        <td class="bloqueada mono">CASP2609</td><td class="bloqueada mono">055-1111-3861</td>
+        <td class="rellenar">ANONIMO, JUAN CARLOS</td><td class="bloqueada">08/09/2026</td>
+        <td class="repetido">Paramaribo Branch</td><td class="bloqueada">2</td>
+        <td class="rellenar"></td><td class="rellenar"></td></tr>
+      <tr><td class="rot">4</td>
+        <td class="bloqueada mono">CASP2609</td><td class="bloqueada mono">055-1111-3879</td>
+        <td class="rellenar">ANONIMO RAMOS, ANA</td><td class="bloqueada">08/09/2026</td>
+        <td class="repetido">Paramaribo Branch</td><td class="bloqueada">3</td>
+        <td class="rellenar"></td><td class="rellenar"></td></tr>
+
+      <tr class="cortebarrio"><td class="rot">5</td>
+        <td class="bloqueada mono">SURB2610</td><td class="bloqueada mono">055-1112-1120</td>
+        <td class="rellenar">MARTINEZ, LUISA</td><td class="bloqueada">15/10/2026</td>
+        <td class="banda">Nickerie Branch</td><td class="bloqueada">1</td>
+        <td class="rellenar"></td><td class="rellenar"></td></tr>
+      <tr><td class="rot">6</td>
+        <td class="bloqueada mono">SURB2610</td><td class="bloqueada mono">055-1112-1139</td>
+        <td class="rellenar">MARTINEZ, PEDRO</td><td class="bloqueada">15/10/2026</td>
+        <td class="repetido">Nickerie Branch</td><td class="bloqueada">2</td>
+        <td class="rellenar"></td><td class="rellenar"></td></tr>
+
+      <tr class="cortebarrio"><td class="rot">7</td>
+        <td class="bloqueada mono">SDOM2609</td><td class="bloqueada mono">055-1113-2201</td>
+        <td class="rellenar">PEÑA REYES, LUIS</td><td class="bloqueada">11/09/2026</td>
+        <td class="banda">Barrio Los Prados</td><td class="bloqueada">1</td>
+        <td class="rellenar"></td><td class="rellenar"></td></tr>
+      <tr><td class="rot">8</td>
+        <td class="bloqueada mono">SDOM2609</td><td class="bloqueada mono">055-1113-2210</td>
+        <td class="rellenar">PEÑA REYES, CARMEN</td><td class="bloqueada">11/09/2026</td>
+        <td class="repetido">Barrio Los Prados</td><td class="bloqueada">2</td>
+        <td class="rellenar"></td><td class="rellenar"></td></tr>
+    </tbody>
+  </table>
+  <div class="pestanas"><span class="viva">trabajo</span><span>Resumen</span></div>
+</div>
+
+<table class="doc">
+<thead><tr><th style="width:200px">Lo que se ve</th><th>Cómo se hace</th><th>Por qué</th></tr></thead>
+<tbody>
+<tr><td>Fila 1 en marino, texto blanco</td><td><code>PatternFill('solid', fgColor='0F2A4A')</code> + <code>Font(bold=True, color='FFFFFF')</code></td><td>14.48:1. Es la cabecera y se tiene que ver que lo es aunque se desplace.</td></tr>
+<tr><td>Cabecera congelada</td><td><code>freeze_panes</code> — <b>ya está</b> en <code>paquete/trabajo.py:203</code></td><td>No cambia nada. Se anota para que nadie lo quite.</td></tr>
+<tr><td>Filtro en la fila 1</td><td><code>hoja.auto_filter.ref = "A1:H{n}"</code></td><td>El compañero va a querer «solo los que viajan esta semana». Sin filtro se lo tiene que montar él.</td></tr>
+<tr><td><b>Banda de barrio</b> en la primera fila de cada grupo</td><td>La celda de <code>Barrio</code> con relleno marino y texto blanco; toda la fila con <code>Border(top=Side('medium', color='0F2A4A'))</code></td><td>Es la división que pidió el dueño, hecha sin añadir ni una fila.</td></tr>
+<tr><td>Repeticiones del barrio en tinte</td><td>Relleno <code>EDF2F7</code>, tinta <code>46505C</code> — <b>7.28:1</b></td><td>El valor <b>sigue estando</b> en todas las filas. Se atenúa, no se borra: así el barrio sobrevive a que el compañero reordene.</td></tr>
+<tr><td>Columnas bloqueadas en tinte, editables en blanco</td><td><code>Protection(locked=…)</code> —<b>ya está</b>— y el relleno <code>EDF2F7</code> en las bloqueadas</td><td><b>El blanco es «escriba aquí».</b> Se usa el tinte marino y no un amarillo para no repetir en Excel un color que en la aplicación significa «revisar».</td></tr>
+<tr><td>Orden de las filas</td><td><code>ORDER BY unidad_nombre, numero_caso, fila_formulario</code></td><td>Sin este orden las bandas de barrio se alternarían fila sí fila no y no dividirían nada.</td></tr>
+<tr><td><code>MRN</code> y <code>N.º de caso</code> como texto</td><td><code>number_format = '@'</code> — <b>ya está</b></td><td>Sin él Excel se come los ceros de <code>055-1111-3853</code>, y un MRN sin sus ceros no reconcilia. Es la defensa que ya existe y no se toca.</td></tr>
+<tr><td>Fecha como fecha</td><td>objeto <code>date</code> de Python, no cadena — <b>ya está</b></td><td>Para poder ordenar por mes.</td></tr>
+</tbody></table>
+
+<h3>El título de la columna: «Barrio (unidad)»</h3>
+<div class="med">El dueño dice <b>barrio</b>; el proyecto lo llama <code>unidad_nombre</code> y hoy
+escribe <b>«Unidad»</b> (<code>paquete/columnas.py:56</code>). Propongo <b>«Barrio (unidad)»</b>,
+que lleva las dos palabras.
+<br><br><b>Y el cambio es seguro para los paquetes que ya estén fuera. Medido:</b>
+<code>paquete/reconciliacion.py:137</code> solo exige que estén los títulos de
+<code>numero_caso</code> y <code>mrn</code>; ningún otro título faltante detiene la lectura, y
+<code>unidad_nombre</code> ni es clave (<code>clave=False</code>) ni lo lee
+<code>_clasificar_fila</code>. Un Excel devuelto con el título viejo «Unidad» se reconcilia igual.
+<b>Los dos títulos que NO se pueden tocar nunca son «N.º de caso» y «MRN».</b></div>
+
+<h3>La pestaña <code>Resumen</code>, y por qué va la última</h3>
+
+<div class="libro" style="max-width:640px">
+  <div class="libro-barra"><span>Resumen</span><span>Excel</span></div>
+  <table class="hoja">
+    <colgroup><col style="width:26px"><col style="width:210px"><col style="width:110px"><col></colgroup>
+    <tbody>
+      <tr><td class="rot">1</td><td class="titulo" colspan="3">Fichas — Paquete de verificación</td></tr>
+      <tr><td class="rot">2</td><td colspan="3" style="background:#1E4E79;color:#fff">Sandy Reyes · generado el 2026-09-02 · <b>devuélvalo antes del 2026-09-05</b></td></tr>
+      <tr><td class="rot">3</td><td colspan="3"></td></tr>
+      <tr><td class="rot">4</td><td class="bloqueada"><b>Documentos</b></td><td class="bloqueada">5</td><td></td></tr>
+      <tr><td class="rot">5</td><td><b>Personas</b></td><td>18</td><td></td></tr>
+      <tr><td class="rot">6</td><td class="bloqueada"><b>Barrios</b></td><td class="bloqueada">3</td><td></td></tr>
+      <tr><td class="rot">7</td><td><b>Viajan entre</b></td><td>08/09/2026</td><td>y 15/10/2026</td></tr>
+      <tr><td class="rot">8</td><td colspan="3"></td></tr>
+      <tr><td class="rot">9</td><td class="titulo">Barrio</td><td class="titulo">Personas</td><td class="titulo">Primer viaje</td></tr>
+      <tr><td class="rot">10</td><td class="bloqueada">Paramaribo Branch</td><td class="bloqueada">8</td><td class="bloqueada">08/09/2026</td></tr>
+      <tr><td class="rot">11</td><td>Nickerie Branch</td><td>4</td><td>15/10/2026</td></tr>
+      <tr><td class="rot">12</td><td class="bloqueada">Barrio Los Prados</td><td class="bloqueada">6</td><td class="bloqueada">11/09/2026</td></tr>
+      <tr><td class="rot">13</td><td colspan="3"></td></tr>
+      <tr><td class="rot">14</td><td colspan="3" style="background:#FFF3C4;color:#3D2A00"><b>Rellene solo las dos columnas blancas de la hoja «trabajo».</b> No cambie el N.º de caso ni el MRN: son lo que empareja cada fila con su persona.</td></tr>
+    </tbody>
+  </table>
+  <div class="pestanas"><span class="viva">trabajo</span><span>Resumen</span></div>
+</div>
+
+<div class="med"><b><code>trabajo</code> se queda la primera y la activa, y <code>Resumen</code>
+detrás. Es una decisión de seguridad, no de estilo.</b> <code>paquete/lectura.py:71-83</code>: el
+lector busca la hoja por nombre y, si no la encuentra, <b>cae a la hoja activa</b>. Si
+<code>Resumen</code> fuese la activa y alguien renombrara <code>trabajo</code>, el lector leería el
+resumen, no encontraría ni un MRN y descartaría <b>todo</b>. Con <code>trabajo</code> activa, la
+caída va siempre a la hoja correcta. <b>La portada bonita delante habría costado exactamente eso.</b>
+<br><br>Y el resumen <b>es</b> la vista agrupada por barrio que el dueño pidió, puesta donde no
+puede hacer daño: una hoja que nadie rellena y que el lector nunca abre.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">3 · El Excel espejo — y lo que le devuelvo al dueño</h2>
+
+<div class="hueco"><b>Aquí hay una decisión ya tomada y no la cambio por mi cuenta.</b>
+<code>DECISIONES.md</code>, FASE 4, literal: <i>«Sin celdas combinadas y sin colores que signifiquen
+algo.»</i> El motivo escrito es que el espejo <b>es una base de datos que se filtra y se ordena, no
+un reporte</b>. Lo que sigue es una propuesta con su argumento; <b>la firma el dueño</b>.</div>
+
+<table class="doc">
+<thead><tr><th style="width:210px">Qué propongo</th><th style="width:110px">¿Choca con la decisión?</th><th>Argumento</th></tr></thead>
+<tbody>
+<tr><td>Fila 1 en marino con texto blanco</td><td><b class="si">No</b></td><td>La decisión prohíbe <b>colores que signifiquen algo</b>. Este no significa nada sobre el dato: dice «esto es la cabecera», que es una información sobre la <b>hoja</b>, no sobre las filas. Y Excel ya lo sabe por el <code>freeze_panes</code>.</td></tr>
+<tr><td><code>freeze_panes = "A2"</code></td><td><b class="si">No</b></td><td><b>Sirve al motivo de la decisión.</b> Una tabla de 400 filas sin cabecera congelada no se puede leer desplazada, y desplazarse es lo que se hace en una base de datos.</td></tr>
+<tr><td><code>auto_filter</code> sobre el rango usado</td><td><b class="si">No</b></td><td>Igual: la decisión dice que el espejo <b>se filtra</b>. Poner el filtro es hacer literalmente lo que la decisión dice que se hace con él.</td></tr>
+<tr><td>Anchos de columna</td><td><b class="si">No</b></td><td>Un MRN cortado a <code>###</code> es un dato que no se ve.</td></tr>
+<tr><td>Bandas alternas en tinte marino</td><td><b class="no">Sí, un poco</b></td><td><b>No lo propongo.</b> Una banda alterna es un color sobre las filas, y aunque no signifique nada, en cuanto se ordena la hoja las bandas se recolocan y parecen agrupar cosas que no van juntas. <b>El motivo de la decisión gana.</b></td></tr>
+<tr><td>Cualquier color por valor</td><td><b class="no">Sí</b></td><td><b>No lo propongo, y en el espejo nunca.</b> Un rojo en una fila del espejo sería una segunda verdad al lado de la base.</td></tr>
+<tr><td>Celdas combinadas</td><td><b class="no">Sí</b></td><td><b>Ninguna, en ninguna de las cuatro hojas.</b> Rompen ordenar y filtrar, que es para lo que existe.</td></tr>
+</tbody></table>
+
+<div class="med"><b>Resumen de lo que pido al dueño:</b> cabecera marino, congelada, con filtro y
+anchos. Cero color en los datos, cero combinadas, cero bandas. <b>Recomiendo que sí</b>, porque las
+cuatro cosas sirven al motivo por el que la decisión se tomó en vez de contradecirlo. <b>Pero es una
+decisión escrita y suya.</b> Si dice que no, el espejo se queda exactamente como está y lo único que
+se pierde es legibilidad, no dato.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">4 · El reporte en Excel para los jefes</h2>
+
+<p>Este no vuelve y nadie lo rellena: aquí sí se puede ser generoso. Sus tres secciones y sus
+columnas ya están decididas en <code>reportes/documento.py</code> y no las toco.</p>
+
+<div class="libro">
+  <div class="libro-barra"><span>Fichas — Reporte de recomendaciones al templo — 2026-09.xlsx</span><span>Excel</span></div>
+  <table class="hoja">
+    <colgroup><col style="width:26px"><col style="width:92px"><col style="width:168px"><col style="width:112px">
+      <col style="width:140px"><col style="width:96px"><col style="width:74px"><col></colgroup>
+    <tbody>
+      <tr><td class="rot">1</td><td class="titulo" colspan="7">Fichas — Reporte de recomendaciones al templo</td></tr>
+      <tr><td class="rot">2</td><td colspan="7" style="background:#1E4E79;color:#fff">Del 01/09/2026 al 30/09/2026 · generado el 02/10/2026 a las 09:14</td></tr>
+      <tr><td class="rot">3</td><td colspan="7" style="background:#FFF3C4;color:#3D2A00"><b>Aviso:</b> 4 personas no tienen estado de recomendación, así que «¿recomendación completa?» dice «no se puede saber» en 4 filas.</td></tr>
+      <tr><td class="rot">4</td><td colspan="7"></td></tr>
+      <tr><td class="rot">5</td><td colspan="7" style="background:#1E4E79;color:#fff"><b>Quién viajó</b> — 31 personas</td></tr>
+      <tr><td class="rot">6</td><td class="titulo">N.º de caso</td><td class="titulo">Persona</td><td class="titulo">MRN</td>
+          <td class="titulo">Barrio (unidad)</td><td class="titulo">Fecha de viaje</td><td class="titulo">¿Viajó?</td><td class="titulo">Estado</td></tr>
+      <tr><td class="rot">7</td><td class="mono">CASP2609</td><td>ANONIMO, MARIA ELENA</td><td class="mono">055-1111-3853</td>
+          <td>Paramaribo Branch</td><td>08/09/2026</td><td>sí</td><td>no consta</td></tr>
+      <tr><td class="rot">8</td><td class="bloqueada mono">CASP2609</td><td class="bloqueada">ANONIMO, JUAN CARLOS</td><td class="bloqueada mono">055-1111-3861</td>
+          <td class="bloqueada">Paramaribo Branch</td><td class="bloqueada">08/09/2026</td><td class="bloqueada">sí</td><td class="bloqueada">no consta</td></tr>
+      <tr><td class="rot">9</td><td class="mono">SDOM2609</td><td>PEÑA REYES, LUIS</td><td class="mono">055-1113-2201</td>
+          <td>Barrio Los Prados</td><td>11/09/2026</td><td>sí</td><td>no consta</td></tr>
+      <tr><td class="rot">10</td><td colspan="7"></td></tr>
+      <tr><td class="rot">11</td><td colspan="7" style="background:#1E4E79;color:#fff"><b>Quién no pudo viajar</b> — 2 personas</td></tr>
+      <tr><td class="rot">12</td><td class="titulo">N.º de caso</td><td class="titulo">Persona</td><td class="titulo">MRN</td>
+          <td class="titulo">Barrio (unidad)</td><td class="titulo">Fecha de viaje</td><td class="titulo" colspan="2">Motivo</td></tr>
+      <tr><td class="rot">13</td><td class="mono">PSPN2609</td><td>GRANT, MICHAEL</td><td class="mono">055-1114-7702</td>
+          <td>Arima Ward</td><td>19/09/2026</td><td colspan="2">Recomendación vencida, se detectó el mismo día</td></tr>
+    </tbody>
+  </table>
+  <div class="pestanas"><span class="viva">Reporte</span></div>
+</div>
+
+<table class="doc">
+<thead><tr><th style="width:200px">Lo que se ve</th><th>Cómo se hace</th><th>Por qué</th></tr></thead>
+<tbody>
+<tr><td>Banda de título en marino</td><td><code>PatternFill</code> + <code>Font(bold, size=14, color='FFFFFF')</code>, altura de fila 24</td><td>El documento se identifica en la primera línea, impreso o en pantalla.</td></tr>
+<tr><td>Banda de periodo en marino medio</td><td>Mismo relleno con <code>1E4E79</code> — <b>8.67:1</b></td><td>Un reporte sin periodo visible es un reporte que alguien va a citar mal.</td></tr>
+<tr><td>Avisos en ámbar</td><td>Relleno <code>FFF3C4</code>, tinta <code>3D2A00</code> — <b>12.34:1</b></td><td>Los avisos de <code>reportes/avisos.py</code> dicen de qué no se fía el número que hay debajo. <b>Aquí el ámbar sí significa algo y está bien que lo signifique:</b> es un reporte, no una base de datos.</td></tr>
+<tr><td>Cabecera de sección en marino medio</td><td>Fila propia, negrita, blanca</td><td>Tres secciones en una hoja necesitan separarse sin contar filas.</td></tr>
+<tr><td>Bandas alternas en tinte</td><td><code>EDF2F7</code> en las filas pares de cada tabla</td><td>Ocho columnas apaisadas: sin banda se salta de fila al leer. <b>Aquí sí, porque este documento no se ordena.</b></td></tr>
+<tr><td>Combinadas en las bandas de título</td><td><code>merge_cells</code> en las filas 1, 2, 3, 5 y 11</td><td><b>Permitido aquí y prohibido en el espejo</b>, y la diferencia es el motivo: la prohibición existe porque el espejo se ordena y se filtra. Este no.</td></tr>
+<tr><td>Sin <code>freeze_panes</code></td><td>—</td><td>Con tres tablas en una hoja no hay una sola fila de cabecera que congelar. Congelar la primera dejaría fija una cabecera que no es la de la tabla que se está leyendo, y <b>eso es peor que no congelar</b>.</td></tr>
+</tbody></table>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">5 · El reporte en PDF</h2>
+
+<p class="leyenda">Apaisado, 792 × 612 puntos, como ya está. Lo dibujado abajo <b>necesita tres
+operadores que hoy no existen</b> en <code>reportes/formato_pdf.py</code>.</p>
+
+<div class="folio">
+  <svg viewBox="0 0 792 340" width="100%" role="img"
+       aria-label="Primera parte de una página del reporte en PDF: banda de título marino, banda de periodo, cabecera de tabla y tres filas">
+    <rect width="792" height="340" fill="#FFFFFF"/>
+    <!-- banda de titulo -->
+    <rect x="0" y="0" width="792" height="46" fill="#0F2A4A"/>
+    <text x="36" y="30" font-family="Helvetica,Arial,sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">Fichas — Reporte de recomendaciones al templo</text>
+    <!-- banda de periodo -->
+    <rect x="0" y="46" width="792" height="24" fill="#1E4E79"/>
+    <text x="36" y="63" font-family="Helvetica,Arial,sans-serif" font-size="11" fill="#FFFFFF">Del 01/09/2026 al 30/09/2026 · generado el 02/10/2026 a las 09:14 · página 1 de 3</text>
+    <!-- aviso -->
+    <rect x="36" y="84" width="720" height="22" fill="#FFF3C4"/>
+    <rect x="36" y="84" width="4" height="22" fill="#8A5B00"/>
+    <text x="48" y="99" font-family="Helvetica,Arial,sans-serif" font-size="10" fill="#3D2A00">Aviso: 4 personas no tienen estado de recomendación, así que «¿recomendación completa?» dice «no se puede saber» en 4 filas.</text>
+    <!-- seccion agrupada por barrio -->
+    <text x="36" y="132" font-family="Helvetica,Arial,sans-serif" font-size="13" font-weight="bold" fill="#0F2A4A">Quién viajó — 31 personas, agrupadas por barrio</text>
+    <!-- cabecera de tabla -->
+    <rect x="36" y="142" width="720" height="20" fill="#0F2A4A"/>
+    <g font-family="Helvetica,Arial,sans-serif" font-size="9.5" font-weight="bold" fill="#FFFFFF">
+      <text x="44" y="156">N.º de caso</text><text x="140" y="156">Persona</text>
+      <text x="330" y="156">MRN</text><text x="440" y="156">Fecha de viaje</text>
+      <text x="546" y="156">¿Viajó?</text><text x="620" y="156">Estado</text>
+    </g>
+    <!-- encabezado de barrio: AQUI SI, porque este documento no vuelve -->
+    <rect x="36" y="166" width="720" height="18" fill="#EDF2F7"/>
+    <rect x="36" y="166" width="4" height="18" fill="#0F2A4A"/>
+    <text x="48" y="179" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="bold" fill="#0F2A4A">Paramaribo Branch — 8 personas</text>
+    <g font-family="Helvetica,Arial,sans-serif" font-size="9.5" fill="#1A1D21">
+      <text x="44" y="199">CASP2609</text><text x="140" y="199">ANONIMO, MARIA ELENA</text><text x="330" y="199">055-1111-3853</text>
+      <text x="440" y="199">08/09/2026</text><text x="546" y="199">sí</text><text x="620" y="199">no consta</text>
+    </g>
+    <rect x="36" y="204" width="720" height="17" fill="#EDF2F7"/>
+    <g font-family="Helvetica,Arial,sans-serif" font-size="9.5" fill="#1A1D21">
+      <text x="44" y="216">CASP2609</text><text x="140" y="216">ANONIMO, JUAN CARLOS</text><text x="330" y="216">055-1111-3861</text>
+      <text x="440" y="216">08/09/2026</text><text x="546" y="216">sí</text><text x="620" y="216">no consta</text>
+    </g>
+    <g font-family="Helvetica,Arial,sans-serif" font-size="9.5" fill="#1A1D21">
+      <text x="44" y="233">CASP2609</text><text x="140" y="233">ANONIMO RAMOS, ANA</text><text x="330" y="233">055-1111-3879</text>
+      <text x="440" y="233">08/09/2026</text><text x="546" y="233">sí</text><text x="620" y="233">no consta</text>
+    </g>
+    <!-- siguiente barrio -->
+    <rect x="36" y="242" width="720" height="18" fill="#EDF2F7"/>
+    <rect x="36" y="242" width="4" height="18" fill="#0F2A4A"/>
+    <text x="48" y="255" font-family="Helvetica,Arial,sans-serif" font-size="10" font-weight="bold" fill="#0F2A4A">Barrio Los Prados — 6 personas</text>
+    <g font-family="Helvetica,Arial,sans-serif" font-size="9.5" fill="#1A1D21">
+      <text x="44" y="275">SDOM2609</text><text x="140" y="275">PEÑA REYES, LUIS</text><text x="330" y="275">055-1113-2201</text>
+      <text x="440" y="275">11/09/2026</text><text x="546" y="275">sí</text><text x="620" y="275">no consta</text>
+    </g>
+    <!-- pie -->
+    <line x1="36" y1="308" x2="756" y2="308" stroke="#0F2A4A" stroke-width="1"/>
+    <text x="36" y="322" font-family="Helvetica,Arial,sans-serif" font-size="8.5" fill="#46505C">Fichas · generado el 02/10/2026 09:14</text>
+    <text x="756" y="322" text-anchor="end" font-family="Helvetica,Arial,sans-serif" font-size="8.5" fill="#46505C">página 1 de 3</text>
+  </svg>
+</div>
+
+<table class="doc">
+<thead><tr><th style="width:200px">Lo que se ve</th><th style="width:230px">Qué operador de PDF hace falta</th><th>Estado hoy</th></tr></thead>
+<tbody>
+<tr><td>Bandas de color</td><td><code>r g b rg</code> (color de relleno) + <code>x y w h re</code> + <code>f</code></td><td><b class="no">No existe.</b> <code>_flujo_de_una_pagina</code> solo emite texto.</td></tr>
+<tr><td>Texto blanco sobre la banda</td><td><code>1 1 1 rg</code> dentro del <code>BT…ET</code>, y volver a <code>0 0 0 rg</code> después</td><td><b class="no">No existe.</b> Si se olvida el retorno a negro, <b>el resto de la página sale en blanco sobre blanco</b>. Es el fallo típico y hay que probarlo.</td></tr>
+<tr><td>Línea del pie</td><td><code>RG</code> + <code>m</code>/<code>l</code>/<code>S</code></td><td><b class="no">No existe.</b></td></tr>
+<tr><td>El texto, las fuentes, la paginación, la tabla <code>xref</code></td><td>—</td><td><b class="si">Ya está y funciona.</b> Helvetica y Helvetica-Bold con <code>/WinAnsiEncoding</code>, sin incrustar nada. <b>El PDF sigue sin ninguna biblioteca.</b></td></tr>
+<tr><td>Repetición de la cabecera al cambiar de página</td><td>—</td><td><b class="si">Ya está.</b> <code>Linea</code> tiene el campo <code>repetir</code>.</td></tr>
+</tbody></table>
+
+<div class="med"><b>Aquí sí van los encabezados de barrio como renglón propio</b>, con su nombre y su
+cuenta. Es el mismo agrupamiento que el dueño dibujó, puesto en el único de los cuatro documentos
+donde no rompe nada: <b>un PDF no vuelve, no se ordena y nadie lo lee con un programa</b>.</div>
+
+<div class="nota"><b>El orden de los colores en un PDF apaisado, medido en el contraste y no en el
+gusto:</b> la banda marino con blanco da <b>14.48:1</b>; el tinte con tinta negra, <b>15.02:1</b>; el
+encabezado de barrio en marino sobre el tinte, <b>12.86:1</b>; el aviso ámbar, <b>12.34:1</b>. El
+peor de los cuatro está tres veces por encima del 4.5:1 que la WCAG pide. <b>Y todos siguen siendo
+legibles impresos en blanco y negro</b>, porque cada banda además cambia de peso de letra o lleva su
+barra de 4 px a la izquierda.</div>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">6 · Control / qué hace de verdad · y qué dice la pantalla después</h2>
+<table class="doc">
+<thead><tr><th style="width:170px">Control</th><th>Qué hace de verdad</th><th>Qué dice la pantalla después</th></tr></thead>
+<tbody>
+<tr><td>Generar paquete (desde el renglón del compañero)</td><td>Escribe el <code>.xlsx</code> con las dos hojas, pregunta dónde guardarlo.</td><td>Bajo el nombre del compañero: «paquete generado el 2026-09-02 · 18 personas · 3 barrios · sin devolver». Si el archivo estaba abierto, el <code>PermissionError</code> se escribe ahí mismo, <b>no en un cuadro que se cierra</b>.</td></tr>
+<tr><td>Cargar un paquete devuelto</td><td>Lee, reconcilia por <code>numero_caso</code>+<code>mrn</code> y aplica las propuestas.</td><td>«14 filas aplicadas, 4 descartadas». Y <b>si hay descartadas, se enseña la lista, no el número</b>: un cuatro no dice a quién se perdió. <b>Con esta especificación las descartadas falsas deberían ser 0</b>, y ese cero es lo que hace creíble a las que salgan.</td></tr>
+<tr><td>Guardar cualquier cambio</td><td>Regenera el espejo completo.</td><td>«Espejo actualizado a las 14:32». Si Excel lo tiene abierto: «El espejo no se pudo escribir porque está abierto en Excel. Ciérrelo y vuelva a guardar.» <b>Nunca falla callado.</b></td></tr>
+<tr><td>Generar reporte (Excel)</td><td>Escribe el <code>.xlsx</code> de las tres secciones.</td><td>Ruta completa escrita en pantalla, más los avisos que lleva dentro, para que no haya que abrirlo para saber que trae avisos.</td></tr>
+<tr><td>Generar reporte (PDF)</td><td>Escribe los bytes del PDF.</td><td>Ruta y número de páginas. Y <b>si algún carácter no cupo en WinAnsi, lo dice con su cuenta</b>: <code>a_winansi</code> ya los cuenta, y un nombre alterado en silencio es exactamente lo que este proyecto no hace.</td></tr>
+</tbody></table>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">7 · Los casos incómodos</h2>
+<table class="doc">
+<thead><tr><th style="width:280px">Qué pasa</th><th>Qué hace el documento</th></tr></thead>
+<tbody>
+<tr><td>Una persona sin barrio (<code>unidad_nombre</code> nulo)</td><td>Va en su propio grupo al <b>final</b>, con la banda diciendo <b>«Sin barrio — 2 personas»</b>. No se cuela dentro de otro barrio ni se deja la celda vacía sin explicar.</td></tr>
+<tr><td>Un barrio con una sola persona</td><td>Lleva su banda igual. Una banda que solo aparece con dos o más haría que unos barrios se vieran y otros no.</td></tr>
+<tr><td>Un barrio escrito de dos formas por el OCR («Paramaribo Branch» y «Paramaribo branch»)</td><td><b>Salen como dos grupos, y está bien que salgan así.</b> Unificarlos sería el programa decidiendo que dos textos distintos son el mismo, que es exactamente lo que la regla permanente 1 prohíbe. Lo que sí hace es <b>avisar</b>: «2 barrios se parecen mucho y pueden ser el mismo».</td></tr>
+<tr><td>El compañero reordena la hoja por fecha</td><td>Las bandas de barrio se dispersan y dejan de dividir. <b>El dato no se pierde</b> —el barrio está en todas las filas— y la vuelta funciona igual. Es el precio de que el formato viva en las celdas, y es el motivo de que el agrupamiento de verdad esté en el PDF.</td></tr>
+<tr><td>El compañero borra una fila entera</td><td>Esa persona no vuelve con propuesta. <b>No se pierde nada</b>: sigue en la base tal cual. El resumen de la vuelta lo dice: «18 personas salieron, 17 volvieron».</td></tr>
+<tr><td>El compañero cambia un MRN</td><td>Su fila no casa y va a descartados <b>con su nombre escrito</b>, para que se pueda buscar a quién corresponde. Es lo que <code>reconciliacion.py</code> ya hace, y lo que este formato no puede estropear.</td></tr>
+<tr><td>El compañero renombra la pestaña</td><td>El lector cae a la hoja activa, que es <code>trabajo</code>, y lo dice en un aviso. <b>Por eso el resumen va detrás.</b></td></tr>
+<tr><td>El compañero borra la hoja <code>trabajo</code> y deja solo <code>Resumen</code></td><td>El lector lee el resumen, no encuentra los títulos de <code>numero_caso</code> ni de <code>mrn</code> y <b>se detiene con el motivo escrito</b> (<code>reconciliacion.py:137</code>). Falla ruidoso, que es lo que hay que pedirle.</td></tr>
+<tr><td>Un reporte de 900 filas</td><td>El Excel no tiene tope. El PDF pagina y repite la cabecera de tabla, que ya sabe hacerlo. <b>Los encabezados de barrio también se repiten</b> al cortar un grupo, con «(continúa)» detrás del nombre — sin eso, la segunda página de un barrio largo no dice de qué barrio es.</td></tr>
+<tr><td>Un nombre con ñ o tilde en el PDF</td><td>Cabe: <code>cp1252</code> las tiene. Lo que no cabe se cuenta y se avisa. <b>Ya está resuelto</b> y el marino no lo cambia.</td></tr>
+</tbody></table>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">8 · Huecos y decisiones que no son mías</h2>
+<table class="doc">
+<thead><tr><th style="width:44px">#</th><th style="width:200px">Qué falta o qué hay que firmar</th><th>Comprobado con</th><th>Qué pasa</th></tr></thead>
+<tbody>
+<tr><td><b>hueco 1</b></td><td><b>El estilo del espejo contradice una decisión escrita.</b></td><td><code>DECISIONES.md</code>, «Decisiones de las fases posteriores», Excel (FASE 4).</td><td><b>Decisión del dueño.</b> Mi recomendación y su argumento están en la sección 3.</td></tr>
+<tr><td><b>hueco 2</b></td><td><code>reportes/formato_pdf.py</code> <b>no emite ningún operador gráfico</b>: ni color, ni rectángulo, ni línea.</td><td>Lectura completa de <code>_flujo_de_una_pagina</code> y de <code>_objetos_del_pdf</code>.</td><td>El reporte en PDF con marino <b>no se puede construir</b> hasta que ese módulo sepa pintar. Es trabajo del programador y no es grande, pero no es cero.</td></tr>
+<tr><td><b>hueco 3</b></td><td><b>No hay columna de país ni de templo</b>, así que ninguno de los cuatro documentos puede llevarlos.</td><td><code>grep -rn "pais\|templo" --include=*.py</code> → 0 apariciones como campo; volcado del esquema versión 6.</td><td>Los reportes a los jefes <b>no pueden decir de qué país es cada persona</b>, que es la mitad de por qué el dueño lo pidió. Bloquea una columna en el reporte y una agrupación.</td></tr>
+<tr><td><b>hueco 4</b></td><td>El paquete <b>no se ordena por barrio</b> hoy.</td><td><code>grep "ORDER BY\|sorted"</code> en <code>paquete/exportacion.py</code>: la única ordenación es <code>sorted(paginas)</code>, de páginas de PDF.</td><td>Sin el <code>ORDER BY</code>, las bandas de barrio se alternarían fila sí fila no. <b>Es una cláusula, no un hueco de esquema.</b></td></tr>
+<tr><td><b>hueco 5</b></td><td>El resumen necesita <b>fecha de viaje mínima por barrio</b> y <b>cuenta de barrios</b>.</td><td>Consultas nuevas sobre tablas que ya existen.</td><td>No bloquea nada. Sin ellas el resumen se queda con documentos y personas.</td></tr>
+</tbody></table>
+
+<h3>Lo que le devuelvo al dueño, en una línea cada cosa</h3>
+<ul>
+<li><b>¿Firma el estilo del espejo?</b> Cabecera marino congelada con filtro y anchos; nada de color en los datos. Recomiendo que sí.</li>
+<li><b>¿«Barrio (unidad)» o «Unidad»?</b> Recomiendo «Barrio (unidad)»: lleva su palabra y la del proyecto, y el cambio es seguro incluso para los paquetes ya enviados.</li>
+<li><b>¿Qué países hay?</b> Sin la lista no hay paleta que asignar. La paleta discrimina bien hasta cinco; con más, el color deja de ser un atajo y solo queda el código de dos letras.</li>
+</ul>
+
+<!-- ====================================================================== -->
+<h2 class="seccion">9 · Lo que este mockup NO cubre</h2>
+<ul>
+<li><b>No abrí Excel ni generé ningún <code>.xlsx</code>.</b> Las tablas de arriba son HTML imitando
+una hoja. Que <code>PatternFill</code>, <code>Border</code> y <code>auto_filter</code> se vean como
+están dibujados <b>no lo he comprobado</b>: eso se comprueba escribiendo un archivo y abriéndolo.</li>
+<li><b>No generé ningún PDF.</b> El folio es un SVG. Los tres operadores que digo que faltan salen de
+leer el módulo, no de haber escrito uno.</li>
+<li><b>No medí el peso ni el tiempo</b> de ninguno de los cuatro documentos.</li>
+<li><b>No comprobé que la impresión en blanco y negro conserve las distinciones.</b> Lo razono
+—cambio de peso de letra y barra de 4 px además del color— pero no imprimí nada.</li>
+<li><b>No abrí ningún PDF de <code>pdfs_referencia/</code></b> ni ningún Excel real de compañero.</li>
+<li><b>No toqué ni un archivo del programa.</b> Todo lo de arriba es especificación.</li>
+</ul>
+
+</div>
+</body>
+</html>

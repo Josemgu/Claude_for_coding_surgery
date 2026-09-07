@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<cascara:PaginaDeFichas
+    x:Class="Fichas.App.Importar.PaginaDeImportar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        Por aqui entra TODO. El dueno lo dijo con un numero: «necesito cargar 500 pdf».
+        Sin cuadros modales (requisito 4) y sin nada que impida seguir usando el programa
+        mientras lee: la barra avanza y las demas pantallas siguen respondiendo.
+    -->
+    <ScrollView VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="24" Spacing="16">
+
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="Importar documentos" />
+
+            <TextBlock
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="Elija los PDF escaneados, o una carpeta entera con sus subcarpetas."
+                TextWrapping="Wrap" />
+
+            <!--
+                Los dos primeros llevan AutomationProperties.Name porque su contenido es un
+                icono mas un texto dentro de un StackPanel: de ahi no sale ningun nombre solo.
+                El supervisor lo midio el 2026-09-04 sobre el paquete publicado y los dos
+                salian con el nombre VACIO en el arbol de accesibilidad —«'Open Navigation'
+                '' '' 'Detener'»—, asi que ni su sonda podia encontrarlos por su texto ni un
+                lector de pantalla puede decir cual es cual. El tercero no lo necesita: su
+                Content ya es texto.
+            -->
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button
+                    x:Name="_botonDeArchivos"
+                    AutomationProperties.Name="Elegir archivos…"
+                    Click="AlElegirArchivos"
+                    Style="{ThemeResource AccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8E5;" />
+                        <TextBlock Text="Elegir archivos…" />
+                    </StackPanel>
+                </Button>
+
+                <Button
+                    x:Name="_botonDeCarpeta"
+                    AutomationProperties.Name="Elegir una carpeta…"
+                    Click="AlElegirCarpeta">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE8B7;" />
+                        <TextBlock Text="Elegir una carpeta…" />
+                    </StackPanel>
+                </Button>
+
+                <Button
+                    x:Name="_botonDeDetener"
+                    Click="AlDetener"
+                    Content="Detener"
+                    IsEnabled="False" />
+            </StackPanel>
+
+            <!--  La barra: cuantos van de cuantos, y que archivo se esta leyendo ahora.  -->
+            <StackPanel x:Name="_zonaDeProgreso" Spacing="6" Visibility="Collapsed">
+                <TextBlock x:Name="_cuantosVan" FontWeight="SemiBold" Text="" />
+                <ProgressBar
+                    x:Name="_barra"
+                    AutomationProperties.Name="Avance de la importación"
+                    Maximum="1"
+                    Minimum="0"
+                    Value="0" />
+                <TextBlock
+                    x:Name="_loQueVaSaliendo"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text=""
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+            </StackPanel>
+
+            <!--
+                El resumen: UNA linea, y «ver» abre el detalle DEBAJO. Ni un cuadro modal
+                que haya que cerrar con Aceptar; con 500 documentos, un cuadro que se
+                cierra no deja nada que consultar despues.
+            -->
+            <Border
+                x:Name="_zonaDelResumen"
+                Padding="16,12"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock
+                            x:Name="_lineaDelResumen"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Text=""
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="NoWrap" />
+                        <Button
+                            x:Name="_botonDeVer"
+                            Grid.Column="1"
+                            Click="AlPulsarVer"
+                            Content="ver" />
+                    </Grid>
+
+                    <Border
+                        x:Name="_zonaDelDetalle"
+                        Padding="12,10"
+                        Background="{ThemeResource SolidBackgroundFillColorBaseBrush}"
+                        CornerRadius="4"
+                        Visibility="Collapsed">
+                        <TextBlock
+                            x:Name="_textoDelDetalle"
+                            FontFamily="{ThemeResource ContentControlThemeFontFamily}"
+                            IsTextSelectionEnabled="True"
+                            Text=""
+                            TextWrapping="Wrap" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <TextBlock
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                TextWrapping="Wrap">
+                Ningún documento se rechaza. El que repite a otro entra igual, aparte y marcado:
+                el caso que ya estaba no se toca y nada se funde solo. El que no se puede leer
+                deja su renglón con el motivo.
+            </TextBlock>
+        </StackPanel>
+    </ScrollView>
+</cascara:PaginaDeFichas>

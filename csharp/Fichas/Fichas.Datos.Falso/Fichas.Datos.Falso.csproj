@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Datos inventados en memoria que cumplen los contratos, para que las seis pantallas
+    se puedan construir sin esperar a Fichas.Datos (fase C2). NO abre ningun archivo,
+    NO toca la base real y NO sale a la red. Se sustituye cambiando una linea en
+    Fichas.App/Cascara/Servicios.cs.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Datos.Falso</RootNamespace>
+    <AssemblyName>Fichas.Datos.Falso</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+  </ItemGroup>
+
+</Project>

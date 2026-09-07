@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pruebas de Fichas.Contratos. MSTest por el ADR-0003 §8.2: es el marco de la plantilla
+    oficial de WinUI y el unico donde [UITestMethod] esta documentado; tener dos marcos en
+    el mismo arbol es peor que tener uno.
+  -->
+  <PropertyGroup>
+    <RootNamespace>Fichas.Pruebas.Contratos</RootNamespace>
+    <AssemblyName>Fichas.Pruebas.Contratos</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" Version="4.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+  </ItemGroup>
+
+</Project>

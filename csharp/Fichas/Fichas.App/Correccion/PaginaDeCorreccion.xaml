@@ -1,0 +1,556 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<cascara:PaginaDeFichas
+    x:Class="Fichas.App.Correccion.PaginaDeCorreccion"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:correccion="using:Fichas.App.Correccion"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <cascara:PaginaDeFichas.Resources>
+        <!--  Un renglon vacio no ocupa sitio. El motivo entero esta en HayTexto.cs.  -->
+        <correccion:HayTexto x:Key="_hayTexto" />
+    </cascara:PaginaDeFichas.Resources>
+
+    <!--
+        El reparto de la pantalla, y sale del mockup aprobado (mockups/mockup-v2-documento.html):
+        el documento a la izquierda ocupa la mayor parte, la columna de campos a la derecha
+        se queda en 430 px, y ni la cabecera ni el pie pasan de una linea.
+
+        Lo que el dueno pidio, con sus palabras: «Debo poder ver el pdf completo al lado
+        para confirmar». Lo que rechazo: seis bloques de aviso que empujaban el documento a
+        un sello del 7 % del ancho.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  La cabecera: todo en una linea.  -->
+        <Border
+            Grid.Row="0"
+            Padding="16,8"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <!--
+                    ‹ VOLVER A DONDE SE VENÍA.
+
+                    Palabras del dueño el 2026-09-07: «No tengo opción de regresar a la
+                    ventana de atrás, que quiero seguir trabajando». Medido antes de tocar
+                    nada, con la ventana abierta: entrando a un documento desde la pantalla
+                    del grupo, en toda esta pantalla NO había un solo botón de volver; la
+                    única salida era el menú de la izquierda, que lleva a otra pestaña y
+                    pierde el grupo que se estaba trabajando.
+
+                    Solo se ve cuando se sabe DE DÓNDE se vino, y lleva el nombre del sitio
+                    dentro: «‹ Volver al grupo del 17 de septiembre» dice a dónde se va, y
+                    «‹ Volver» a secas no.
+                -->
+                <!--
+                    El nombre para quien no ve la pantalla va aquí y NO solo en el código:
+                    así lo tiene desde el primer momento, antes de que nadie llame a
+                    MostrarLaVueltaA. Al llamarla se afina con el sitio concreto —«Volver al
+                    grupo del jueves 17 de septiembre»—, que dice más que este.
+                -->
+                <Button
+                    x:Name="_vueltaAtras"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Volver a la pantalla de la que se vino"
+                    Click="AlPulsarVolverAtras"
+                    FontSize="12.5"
+                    Visibility="Collapsed" />
+                <!--
+                    La banda de la cola. SOLO se ve cuando se entró desde la pestaña
+                    «Completar»; entrando por el desplegable a un documento suelto, esta
+                    cabecera es exactamente la de siempre.
+
+                    Existe porque sin ella entrar desde la cola y entrar por el desplegable
+                    se verían igual, y no habría forma de saber por qué al guardar cambia de
+                    documento. La posición lleva su denominador —«3 de 8»— por la regla §8 de
+                    CLAUDE.md: una cifra sola no se puede comprobar.
+                -->
+                <Border
+                    x:Name="_bandaDeLaCola"
+                    Padding="10,4"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource SystemFillColorAttentionBackgroundBrush}"
+                    CornerRadius="4"
+                    Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock
+                            x:Name="_enLaCola"
+                            VerticalAlignment="Center"
+                            FontSize="12.5"
+                            FontWeight="SemiBold"
+                            Text="" />
+                        <Button
+                            AutomationProperties.Name="Volver a la cola de completar"
+                            Click="AlPulsarVolverALaCola"
+                            Content="Volver a la cola"
+                            FontSize="12" />
+                    </StackPanel>
+                </Border>
+                <!--
+                    El nombre para quien no ve la pantalla: sin el, un lector de pantalla
+                    solo decia «cuadro combinado». Lo midio QA sobre el paquete publicado.
+                    Y el ancho sube de 200 a 420 porque la entrada ya no es «CASP2609» a
+                    secas: lleva quien va dentro, si es duplicado y de que archivo salio,
+                    que es lo unico que distingue catorce casos del mismo mes.
+                -->
+                <!--
+                    EL GRUPO CON EL QUE SE TRABAJA.
+
+                    Palabras del dueño el 2026-09-07: «En corrección, permite trabajar por
+                    grupo, no todos juntos. Eso es súper incómodo. El día que tenga 800
+                    solicitudes tendré problemas», y después: «Esto no me funciona para nada,
+                    no le veo función. Prefiero trabajar y corregir por grupo que todos
+                    juntos».
+
+                    Medido antes de tocar nada, con la ventana abierta y 75 documentos en la
+                    base: aquí había UN solo desplegable, plano, que decía «50 de 75 casos».
+                    Los otros 25 no se podían abrir por ninguna vía.
+
+                    El grupo es (fecha de viaje · unidad), que es como ya están las carpetas
+                    de Revisar y como él trabaja. Y el agrupado NO se decide aquí: lo hace el
+                    mismo árbol de Revisar, para que las dos pantallas no puedan llamar
+                    «grupo del 17» a dos cosas distintas.
+                -->
+                <ComboBox
+                    x:Name="_queGrupo"
+                    MinWidth="380"
+                    AutomationProperties.Name="Grupo con el que se está trabajando"
+                    PlaceholderText="elija un grupo"
+                    SelectionChanged="AlElegirUnGrupo" />
+                <ComboBox
+                    x:Name="_queCaso"
+                    MinWidth="420"
+                    AutomationProperties.Name="Caso que se está corrigiendo"
+                    PlaceholderText="elija un caso"
+                    SelectionChanged="AlElegirUnCaso" />
+                <TextBlock
+                    x:Name="_deQueVa"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text=""
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+                <!--
+                    Como quedo marcado el documento, y POR QUE CAMINO. Son tres marcas
+                    distintas y el dueno las nombro como tres: su firma campo por campo, lo
+                    que escribe el Excel del companero con el nombre del companero, y el
+                    atajo del administrador —«el administrador lo hizo»—. Se esconde entero
+                    cuando nadie marco: un renglon que dijera «sin marcar» se leeria como un
+                    estado que alguien puso.
+
+                    Va en la CABECERA y no en el pie a proposito: se tiene que ver al abrir
+                    el documento, sin pulsar nada.
+                -->
+                <Border
+                    x:Name="_marcoDeLaMarca"
+                    Padding="8,2"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                    CornerRadius="4"
+                    Visibility="Collapsed">
+                    <!--
+                        ⛔ SIN AutomationProperties.Name, y es a proposito. Medido con la
+                        ventana abierta el 2026-09-05 sobre el paquete publicado: con un
+                        Name fijo —«Cómo quedó marcado este documento»— la automatizacion, y
+                        con ella un lector de pantalla, leia ESA etiqueta y NO la frase. O
+                        sea: quien no ve la pantalla nunca se enteraba de que el documento lo
+                        habia dado por completo el administrador, que es justo el dato. Un
+                        TextBlock sin Name se anuncia por su texto, que aqui ya se explica
+                        solo.
+                    -->
+                    <TextBlock
+                        x:Name="_laMarcaDelEstado"
+                        FontWeight="SemiBold"
+                        Text=""
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="NoWrap" />
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!--  El cuerpo: el documento a un lado y los campos al otro.  -->
+        <Grid Grid.Row="1" ColumnSpacing="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="360" />
+                <ColumnDefinition Width="430" MinWidth="380" />
+            </Grid.ColumnDefinitions>
+
+            <correccion:VisorDelDocumento x:Name="_visor" Grid.Column="0" />
+
+            <!--
+                La columna de campos baja con la rueda. Cada grupo va en su ItemsRepeater
+                DENTRO de este ScrollView: un ItemsRepeater suelto no baja, lo dice su
+                documentacion, y es el criterio C4-3.
+            -->
+            <ScrollView
+                x:Name="_columnaDeCampos"
+                Grid.Column="1"
+                Padding="0,0,4,0"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="1,0,0,0"
+                ContentOrientation="Vertical"
+                HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!--
+                        ========= ESCRIBIR A MANO QUIÉN VA EN ESTE DOCUMENTO =========
+
+                        Palabras del dueño el 2026-09-07, enseñando un renglón que dice «sin
+                        ninguna persona leída · sin cédula leída»: «¿Cómo voy a confirmar la
+                        recomendación si no me da la opción?».
+
+                        Medido antes de tocar nada, con la ventana abierta: sobre ese
+                        documento el pie decía «Sin ninguna persona leída · no hay a quién
+                        recomendar · 0 dados por buenos» y en TODA la pantalla no había ni un
+                        botón con el que decir quién es. Sin persona no hay seis preguntas que
+                        contestar, así que la recomendación no se podía confirmar nunca.
+
+                        ⛔ EL PROGRAMA NO PROPONE NADA (regla permanente 1). Las dos casillas
+                        nacen vacías y se quedan vacías: lo que entre aquí es lo que él
+                        escriba, y su procedencia lo dirá —«corregido a mano»— para que nunca
+                        se confunda con lo que salió del papel. Lo que sí se hace es ENSEÑARLE
+                        cómo se llama el archivo, al lado y fuera de la casilla: eso es
+                        evidencia, y quien decide es él. El motivo entero, con los dos
+                        escaneos reales que lo delatan, está en TextoDeLaPersonaAMano.cs.
+
+                        ⛔ Y no firma nada (regla permanente 5): escribir un dato y darlo por
+                        bueno siguen siendo dos actos distintos.
+
+                        Solo se ve cuando el documento no trae NI UNA persona, que es el
+                        atasco que él enseñó.
+                    -->
+                    <StackPanel x:Name="_marcoDeLaPersonaAMano" Visibility="Collapsed">
+                        <Border Padding="12,8" Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}">
+                            <StackPanel Spacing="2">
+                                <TextBlock x:Name="_tituloDeLaPersonaAMano" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock
+                                    x:Name="_deQueVaLaPersonaAMano"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <StackPanel Padding="10,8" Spacing="6">
+                            <TextBlock
+                                x:Name="_deDondeSacarElNombre"
+                                FontSize="11"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap" />
+                            <TextBox x:Name="_nombreAMano" Header="Nombre" PlaceholderText="escríbalo mirando el papel" />
+                            <TextBox x:Name="_cedulaAMano" Header="Cédula" PlaceholderText="055-1111-3853, o déjelo en blanco" />
+                            <!--
+                                El nombre para quien no ve la pantalla va aquí además de en el
+                                código, por lo mismo que en el botón de volver: lo tiene desde
+                                el primer momento. El texto de las dos cosas vive en
+                                TextoDeLaPersonaAMano.cs, que es donde se puede leer en una
+                                prueba sin abrir una ventana.
+                            -->
+                            <Button
+                                x:Name="_botonDeAnadirPersona"
+                                HorizontalAlignment="Right"
+                                AutomationProperties.Name="Añadir a mano una persona a este documento con el nombre y la cédula escritos"
+                                Click="AlPulsarAnadirUnaPersona" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!--
+                        ============ LA RECOMENDACION EN EL SISTEMA DEL OBISPO ============
+
+                        Una linea por PERSONA, y salen TODAS, tambien las que nadie miro.
+
+                        ⛔ Es la pregunta que el dueno contesta de verdad: «verificar que los
+                        hermanos que están en el PDF tengan la recomendación hecha en el
+                        sistema». Y es OTRA distinta de «listo para asignar», que mira
+                        nuestros campos: por eso el rotulo dice de que va.
+
+                        La diferencia con el marco de abajo: aquel contesta «¿qué dijo el
+                        compañero?» y calla a las personas por las que nadie contesto —a
+                        proposito—; este contesta «¿está confirmada su recomendación?», y
+                        para la que nadie miro la respuesta es «sin mirar», que no es «no» y
+                        no se puede omitir.
+
+                        ⛔ Aqui no hay ni un boton: solo se lee. Contestar las seis preguntas
+                        dentro del programa es otra fase.
+                    -->
+                    <StackPanel x:Name="_marcoDeLaRecomendacion">
+                        <Border Padding="12,8" Background="{ThemeResource SystemFillColorAttentionBackgroundBrush}">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    x:Name="_tituloDeLaRecomendacion"
+                                    FontWeight="SemiBold"
+                                    Text="Listo para viajar · la recomendación en el sistema del obispo" />
+                                <TextBlock
+                                    x:Name="_lineaDeLaRecomendacion"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <ItemsRepeater x:Name="_laRecomendacion">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="correccion:RecomendacionDeUnaPersona">
+                                    <Border
+                                        Padding="10,6"
+                                        BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                        BorderThickness="0,0,0,1">
+                                        <StackPanel
+                                            AutomationProperties.Name="{x:Bind ParaElLector}"
+                                            Spacing="2">
+                                            <TextBlock
+                                                FontWeight="SemiBold"
+                                                Text="{x:Bind DeQuien}"
+                                                TextWrapping="Wrap" />
+                                            <!--
+                                                La PALABRA y no un color: «sin mirar» no es
+                                                «no», y esa distincion no puede depender de
+                                                percibir un tono.
+                                            -->
+                                            <TextBlock
+                                                FontSize="12"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Text="{x:Bind Frase}"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+
+                    <!--
+                        Lo que hay contestado de cada persona, y QUIEN lo contesto.
+
+                        ⚠️ Son DOS firmas de la misma fila y no se mezclan: el ESTADO lo
+                        propone el Excel del companero (`propuesto_por`), y las seis
+                        preguntas del sistema del lider las puede haber contestado otra
+                        persona dentro del programa (`pasos_por`, migracion 19). Pintar las
+                        seis bajo el nombre del Excel enseñaba las respuestas de Miguel con
+                        el nombre de Sandy: por eso la linea de los seis va aparte.
+
+                        ⛔ Va ARRIBA de todo y NO se mezcla con los campos: lo que dice el
+                        companero es suyo y no firma nada de Miguel (regla permanente 5,
+                        precisada por el dueno el 2026-09-03). Por eso aqui no hay ni un
+                        boton: solo se lee.
+
+                        Sale de su queja del 2026-09-05 —«cuando tomar el Excel del agente
+                        de vuelta no hace ningun cambio en el sistema»—. El Excel SI
+                        escribia; lo que no habia era ninguna pantalla que lo leyera.
+                    -->
+                    <StackPanel x:Name="_marcoDeLasRespuestas" Visibility="Collapsed">
+                        <Border Padding="12,8" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}">
+                            <StackPanel Spacing="2">
+                                <TextBlock
+                                    x:Name="_tituloDeLasRespuestas"
+                                    FontWeight="SemiBold"
+                                    Text="Lo que hay contestado de cada persona" />
+                                <TextBlock
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    Text="Cada línea dice quién lo contestó. Nada de esto es su firma de campos. Aquí solo se lee."
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                        <ItemsRepeater x:Name="_lasRespuestas">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="correccion:RespuestaDelCompanero">
+                                    <Border
+                                        Padding="10,8"
+                                        BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                        BorderThickness="0,0,0,1">
+                                        <StackPanel Spacing="3">
+                                            <TextBlock
+                                                AutomationProperties.Name="{x:Bind DeQuien}"
+                                                FontWeight="SemiBold"
+                                                Text="{x:Bind DeQuien}"
+                                                TextWrapping="Wrap" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Text="{x:Bind Resumen}"
+                                                TextWrapping="Wrap" />
+                                            <ItemsRepeater ItemsSource="{x:Bind Pasos}">
+                                                <ItemsRepeater.ItemTemplate>
+                                                    <DataTemplate x:DataType="correccion:PasoContestado">
+                                                        <Grid ColumnSpacing="8">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <TextBlock
+                                                                Grid.Column="0"
+                                                                FontSize="12"
+                                                                Text="{x:Bind Rotulo}"
+                                                                TextWrapping="Wrap" />
+                                                            <!--
+                                                                La PALABRA, no un color ni una
+                                                                marca: «sin contestar» no es «no»,
+                                                                y esa distincion no puede depender
+                                                                de percibir un tono.
+                                                            -->
+                                                            <TextBlock
+                                                                Grid.Column="1"
+                                                                FontSize="12"
+                                                                FontWeight="SemiBold"
+                                                                Text="{x:Bind Respuesta}" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </ItemsRepeater.ItemTemplate>
+                                            </ItemsRepeater>
+                                            <!--
+                                                ⛔ QUIEN contesto las seis, que NO es quien
+                                                propuso el estado de arriba. Va pegada a los
+                                                seis renglones y no arriba con el resumen,
+                                                porque es la firma de ESTOS seis.
+                                            -->
+                                            <TextBlock
+                                                FontSize="12"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                Text="{x:Bind LineaDeLosPasos}"
+                                                TextWrapping="Wrap"
+                                                Visibility="{x:Bind LineaDeLosPasos, Converter={StaticResource _hayTexto}}" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                Text="{x:Bind LlamoAlLider}"
+                                                TextWrapping="Wrap"
+                                                Visibility="{x:Bind LlamoAlLider, Converter={StaticResource _hayTexto}}" />
+                                            <TextBlock
+                                                FontSize="12"
+                                                FontStyle="Italic"
+                                                Text="{x:Bind Nota}"
+                                                TextWrapping="Wrap"
+                                                Visibility="{x:Bind Nota, Converter={StaticResource _hayTexto}}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+
+                    <!--  Lo dudoso primero, con su cuenta (criterio C4-13).  -->
+                    <Border
+                        x:Name="_marcoDeLoDudoso"
+                        Padding="12,8"
+                        Background="{ThemeResource SystemFillColorCautionBackgroundBrush}">
+                        <TextBlock
+                            x:Name="_tituloDeLoDudoso"
+                            FontWeight="SemiBold"
+                            Text="Por comprobar" />
+                    </Border>
+                    <!--
+                        ⛔ TabFocusNavigation="Local" y NO es un detalle de estilo. Medido
+                        con la ventana abierta sobre el paquete publicado el 2026-09-04, en
+                        un caso con cuatro campos dudosos: el recorrido de Tab tenia 14
+                        paradas y de los cuatro cuadros solo se alcanzaba EL PRIMERO. Los
+                        otros tres no estaban fuera de pantalla ni se declaraban
+                        inalcanzables: el repetidor entero contaba como UNA sola parada, que
+                        es lo que hace el valor por defecto. Con "Local" se entra a los
+                        cuatro. Un campo al que no se puede tabular es un campo que se
+                        corrige con el raton o no se corrige.
+                    -->
+                    <ItemsRepeater
+                        x:Name="_loDudoso"
+                        ElementPrepared="AlPrepararUnaFicha"
+                        TabFocusNavigation="Local">
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate>
+                                <correccion:FichaDeCampo />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+
+                    <!--  Lo demas, cerrado para que no ocupe.  -->
+                    <Expander
+                        x:Name="_marcoDelResto"
+                        Margin="0,8,0,0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        IsExpanded="False">
+                        <Expander.Header>
+                            <TextBlock x:Name="_tituloDelResto" Text="Lo demás" />
+                        </Expander.Header>
+                        <ItemsRepeater
+                            x:Name="_elResto"
+                            ElementPrepared="AlPrepararUnaFicha"
+                            TabFocusNavigation="Local">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate>
+                                    <correccion:FichaDeCampo />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </Expander>
+                </StackPanel>
+            </ScrollView>
+        </Grid>
+
+        <!--  El pie: la cuenta y Guardar. El acuse lo pinta la cascara, debajo de esto.  -->
+        <Border
+            Grid.Row="2"
+            Padding="16,8"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    x:Name="_cuenta"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    Text=""
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap" />
+                <!--
+                    El atajo del dueno, con sus palabras: «Yo puedo completarlos también, los
+                    paquetes, desde el sistema sin pasar la verificación».
+
+                    ⛔ NO firma ningún campo, y por eso NO lleva el estilo del botón
+                    principal: el botón principal de esta pantalla es Guardar. Y NO está
+                    siempre: solo cuando hay un administrador dado de alta, porque marcar
+                    esto sin saber quién es obligaría a firmar con el nombre de otro
+                    (ADR-0005 §6.3).
+                -->
+                <!--
+                    Y cuando el botón no está, en su sitio va POR QUÉ. Medido con la ventana
+                    abierta el 2026-09-05 sobre el paquete publicado: sin esto, una base sin
+                    administrador dejaba el hueco en blanco y no había forma de enterarse de
+                    que faltaba un alta. Un hueco mudo se lee como «esto no existe».
+                -->
+                <TextBlock
+                    x:Name="_porQueNoHayAtajo"
+                    Grid.Column="1"
+                    MaxWidth="420"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text=""
+                    TextTrimming="CharacterEllipsis"
+                    TextWrapping="NoWrap"
+                    Visibility="Collapsed" />
+                <Button
+                    x:Name="_botonDelAdministrador"
+                    Grid.Column="1"
+                    AutomationProperties.Name="Dar este documento por completo como administrador, sin verificar campo por campo"
+                    Click="AlPulsarDarPorCompleto"
+                    Content="Dar por completo"
+                    Visibility="Collapsed" />
+                <Button
+                    x:Name="_botonDeGuardar"
+                    Grid.Column="2"
+                    Click="AlPulsarGuardar"
+                    Content="Guardar"
+                    Style="{ThemeResource AccentButtonStyle}" />
+            </Grid>
+        </Border>
+    </Grid>
+</cascara:PaginaDeFichas>

@@ -1,0 +1,534 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<cascara:PaginaDeFichas
+    x:Class="Fichas.App.Revisar.PaginaDeRevisar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:cascara="using:Fichas.App.Cascara"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:revisar="using:Fichas.App.Revisar"
+    mc:Ignorable="d">
+
+    <!--
+        LOS CUATRO COLORES DEL ESTADO, con sus dos temas.
+
+        Nacen el 2026-09-06, con estas palabras del dueno: «Cuando estoy en revisar no hay
+        nada que me indique color o algo, si este está completo o no». La palabra ya estaba;
+        faltaba el color.
+
+        ⛔ El color NUNCA va solo (mockup v2, y el comentario de RenglonParaAsignar.PalabraDe):
+        cada pastilla lleva su palabra dentro, y hay una prueba que se pone roja si alguien
+        quita el texto y deja la mancha de color
+        (PruebasDelColorDeLaTarjeta.ElColorNuncaVaSoloEnLaTarjeta).
+
+        ⛔ Las ocho parejas estan MEDIDAS con la razon de contraste de la WCAG, y una prueba las
+        vuelve a medir en cada compilacion (PruebasDelColorDeLaTarjeta). La peor de las ocho es
+        «no completa» en claro, con 6,54:1 sobre un minimo de 4,5:1, y la separacion mas corta
+        entre dos fondos es 36,4 sobre un suelo de 30. Quien cambie un color aqui tiene que
+        volver a pasar esas pruebas, no mirarlo.
+
+        Van aqui dentro y no en App.xaml a proposito: solo los usa esta pantalla, y esta es la
+        carpeta de su programador. En un ThemeDictionary del ELEMENTO los resuelve XAML con el
+        tema que eligio el dueno, que es lo unico que evita el defecto medido el 2026-09-05:
+        un pincel sacado de Application.Current.Resources sigue el tema de la APLICACION y la
+        letra de al lado el del elemento — 1,70:1 en la franja de avisos.
+    -->
+    <cascara:PaginaDeFichas.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <!--  Gris neutro: nadie ha dicho nada de este documento todavia.  -->
+                    <SolidColorBrush x:Key="FondoDelEstadoSinRevisar" Color="#E8E8E8" />
+                    <SolidColorBrush x:Key="TintaDelEstadoSinRevisar" Color="#333A44" />
+                    <!--
+                        Ambar, y NO rojo: «no esta completa» es trabajo pendiente, no un fallo.
+                        El rojo se queda para los problemas de verdad, que es lo que ya dice la
+                        franja de avisos.
+                    -->
+                    <SolidColorBrush x:Key="FondoDelEstadoNoCompleta" Color="#FADFAB" />
+                    <SolidColorBrush x:Key="TintaDelEstadoNoCompleta" Color="#6B4500" />
+                    <!--  Verde: el Excel del companero la dio por completa.  -->
+                    <SolidColorBrush x:Key="FondoDelEstadoCompleta" Color="#C7E9D1" />
+                    <SolidColorBrush x:Key="TintaDelEstadoCompleta" Color="#12532B" />
+                    <!--
+                        Azul, distinto del verde a proposito: «fecha pasada completada» NO es lo
+                        mismo que «completa». Lo completo lo dijo el Excel de un companero; esto
+                        lo resolvio el dueno a mano antes de que existiera el programa.
+                    -->
+                    <SolidColorBrush x:Key="FondoDelEstadoFechaPasadaCompletada" Color="#CBD8F7" />
+                    <SolidColorBrush x:Key="TintaDelEstadoFechaPasadaCompletada" Color="#1B357A" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Dark">
+                    <!--
+                        Los mismos cuatro papeles, en oscuro: fondo hundido y letra clara del
+                        mismo tono. Se invierte el peso, no el significado.
+                    -->
+                    <SolidColorBrush x:Key="FondoDelEstadoSinRevisar" Color="#3F3F3F" />
+                    <SolidColorBrush x:Key="TintaDelEstadoSinRevisar" Color="#E6EAF0" />
+                    <SolidColorBrush x:Key="FondoDelEstadoNoCompleta" Color="#543D0E" />
+                    <SolidColorBrush x:Key="TintaDelEstadoNoCompleta" Color="#F7D98F" />
+                    <SolidColorBrush x:Key="FondoDelEstadoCompleta" Color="#16452B" />
+                    <SolidColorBrush x:Key="TintaDelEstadoCompleta" Color="#9EE3B7" />
+                    <SolidColorBrush x:Key="FondoDelEstadoFechaPasadaCompletada" Color="#1E3170" />
+                    <SolidColorBrush x:Key="TintaDelEstadoFechaPasadaCompletada" Color="#B9CDFF" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </cascara:PaginaDeFichas.Resources>
+
+    <!--
+        Una tarjeta por documento, como en el mockup v2 aprobado. Dos filas de barra a
+        proposito: la de arriba es «que veo» —los seis tableros, con su cuenta dentro— y la
+        de abajo «que hago». Ni un parrafo en el cuerpo: cada aviso es una linea y vive en
+        la franja de la cascara.
+    -->
+    <Grid Margin="{StaticResource MargenDePantalla}" RowSpacing="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel
+            Grid.Row="0"
+            Orientation="Horizontal"
+            Spacing="12">
+            <TextBlock Style="{ThemeResource TitleTextBlockStyle}" Text="Revisar" />
+            <TextBlock
+                x:Name="_cuentaDeLaVista"
+                VerticalAlignment="Bottom"
+                FontFamily="Consolas"
+                IsTextSelectionEnabled="True"
+                Opacity="0.85"
+                Text="" />
+        </StackPanel>
+
+        <!--  «Que veo»: los seis tableros, cada uno con su cifra dentro.  -->
+        <ScrollView
+            Grid.Row="1"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Hidden">
+            <StackPanel
+                x:Name="_pastillas"
+                Orientation="Horizontal"
+                Spacing="6" />
+        </ScrollView>
+
+        <!--  «Que hago»: el buscador, lo marcado y las dos acciones de lote.  -->
+        <Grid Grid.Row="2" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBox
+                x:Name="_buscador"
+                Grid.Column="0"
+                PlaceholderText="Buscar caso, unidad, nombre o MRN"
+                TextChanged="AlEscribirEnElBuscador" />
+
+            <TextBlock
+                x:Name="_estadoDeLaSeleccion"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Opacity="0.85"
+                Text="" />
+
+            <Button
+                x:Name="_botonDeArchivar"
+                Grid.Column="2"
+                Click="AlPulsarArchivar"
+                Content="Archivar los marcados"
+                Style="{ThemeResource AccentButtonStyle}" />
+
+            <Button
+                x:Name="_botonDeDesarchivar"
+                Grid.Column="3"
+                Click="AlPulsarDesarchivar"
+                Content="Desarchivar" />
+
+            <!--
+                Las dos unicas cosas del programa que borran de verdad, y las dos preguntan
+                antes con el numero delante. Van al final de la fila y separadas de las de
+                archivar a proposito: archivar y borrar se parecen en la frase y no se
+                parecen en nada mas.
+            -->
+            <Button
+                x:Name="_botonDeBorrar"
+                Grid.Column="4"
+                Margin="12,0,0,0"
+                AutomationProperties.Name="Borrar los documentos marcados"
+                Click="AlPulsarBorrar"
+                Content="Borrar los marcados"
+                ToolTipService.ToolTip="Borra de la base los documentos marcados. Pregunta antes y hace una copia." />
+
+            <Button
+                x:Name="_botonDeEmpezarDeCero"
+                Grid.Column="5"
+                AutomationProperties.Name="Empezar de cero"
+                Click="AlPulsarEmpezarDeCero"
+                Content="Empezar de cero"
+                ToolTipService.ToolTip="Deja la base sin ningún documento. Los compañeros se quedan. Pregunta antes y hace una copia." />
+        </Grid>
+
+    <!--
+        Las carpetas a la izquierda y los documentos a la derecha, como un explorador. El
+        arbol es mes → fecha de viaje → unidad, que es como el dueno lo pidio el 2026-09-05,
+        y lo que viaja antes va arriba: «no quiero revisar gente que viaja en noviembre
+        estando en septiembre».
+    -->
+    <Grid Grid.Row="3" ColumnSpacing="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="290" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0" RowSpacing="6">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontWeight="SemiBold"
+                    Text="Carpetas" />
+                <Button
+                    x:Name="_botonDeVerTodo"
+                    Grid.Column="1"
+                    AutomationProperties.Name="Ver todos los documentos"
+                    Click="AlPulsarVerTodo"
+                    Content="Ver todo"
+                    FontSize="12" />
+            </Grid>
+
+            <!--
+                Apagado por defecto, que es la regla del dueno del 2026-09-05: «cuando yo
+                archive, debe salir del sistema visible». Existe porque desarchivar tiene
+                que ser posible, y para desarchivar algo hay que poder verlo primero.
+            -->
+            <CheckBox
+                x:Name="_verLosArchivados"
+                Grid.Row="1"
+                Checked="AlCambiarSiSeVenLosArchivados"
+                Content="Ver los archivados"
+                FontSize="12"
+                IsChecked="False"
+                ToolTipService.ToolTip="Los archivados salen de la vista y siguen contando en los reportes. Enséñalos si quieres desarchivar alguno."
+                Unchecked="AlCambiarSiSeVenLosArchivados" />
+
+            <!--
+                Volcar el mes al disco. El cuadro que abre es el de elegir carpeta de
+                Windows, que NO es de los que prohibe el requisito 4: aquellos son los
+                avisos del programa. Sale por Cascara/SelectorDeArchivos y no se escribe
+                otro (medido el 2026-09-04: los selectores de WinRT no abren aqui).
+            -->
+            <Button
+                x:Name="_botonDeVolcar"
+                Grid.Row="2"
+                HorizontalAlignment="Stretch"
+                AutomationProperties.Name="Volcar el mes a carpetas"
+                Click="AlPulsarVolcar"
+                Content="Volcar el mes a carpetas…"
+                FontSize="12"
+                ToolTipService.ToolTip="Crea en el disco estas mismas carpetas, con los documentos dentro. Elige antes una carpeta del árbol." />
+
+            <TreeView
+                x:Name="_arbol"
+                Grid.Row="3"
+                AutomationProperties.Name="Carpetas por mes, fecha de viaje y unidad"
+                ItemInvoked="AlElegirUnaCarpeta"
+                SelectionChanged="AlCambiarDeCarpeta"
+                SelectionMode="Single" />
+        </Grid>
+
+        <!--
+            La rejilla de tarjetas. ItemsView virtualiza y trae su propio desplazamiento:
+            con 3 000 documentos solo se construyen las tarjetas que se ven.
+        -->
+        <ItemsView
+            x:Name="_rejilla"
+            Grid.Column="1"
+            AutomationProperties.Name="Documentos para revisar"
+            IsTabStop="True"
+            SelectionMode="Multiple">
+            <ItemsView.Layout>
+                <UniformGridLayout
+                    ItemsStretch="Fill"
+                    MinColumnSpacing="8"
+                    MinItemHeight="176"
+                    MinItemWidth="330"
+                    MinRowSpacing="8" />
+            </ItemsView.Layout>
+            <ItemsView.ItemTemplate>
+                <DataTemplate x:DataType="revisar:TarjetaDeDocumento">
+                    <ItemContainer>
+                        <Grid Padding="10,8" RowSpacing="4">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <!--
+                                El numero manda; el archivo va debajo (mockup v2). El hueco
+                                de la derecha es para la casilla de marcar del ItemContainer,
+                                que se dibuja en esa esquina y se comia la palabra del estado.
+                            -->
+                            <Grid
+                                Grid.Row="0"
+                                Margin="0,0,28,0"
+                                ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock
+                                    Grid.Column="0"
+                                    FontFamily="Consolas"
+                                    FontSize="15"
+                                    FontWeight="Bold"
+                                    Text="{x:Bind NumeroDeCaso}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <!--
+                                    LA PASTILLA DEL ESTADO: color Y palabra, siempre las dos.
+
+                                    Del dueno, 2026-09-06: «no hay nada que me indique color o
+                                    algo, si este está completo o no». Son CUATRO pastillas
+                                    superpuestas y solo una encendida, y no una sola con el
+                                    pincel enlazado, porque un pincel enlazado tendria que
+                                    salir de Application.Current.Resources: eso resuelve con el
+                                    tema de la APLICACION mientras la letra sigue el del
+                                    elemento, y es la causa medida del 1,70:1 del 2026-09-05.
+                                    Con ThemeResource fijo en cada una, XAML las vuelve a
+                                    resolver cuando el dueno cambia de tema.
+
+                                    Las cuatro llevan Text="{x:Bind PalabraDelEstado}" y no un
+                                    literal: la palabra sale del MISMO sitio que el color, asi
+                                    que no pueden acabar diciendo cosas distintas.
+                                -->
+                                <Grid Grid.Column="1" VerticalAlignment="Center">
+                                    <Border
+                                        Padding="6,1"
+                                        Background="{ThemeResource FondoDelEstadoSinRevisar}"
+                                        BorderBrush="{ThemeResource TintaDelEstadoSinRevisar}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Visibility="{x:Bind SeVeSinRevisar}">
+                                        <TextBlock
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Foreground="{ThemeResource TintaDelEstadoSinRevisar}"
+                                            Text="{x:Bind PalabraDelEstado}" />
+                                    </Border>
+                                    <Border
+                                        Padding="6,1"
+                                        Background="{ThemeResource FondoDelEstadoNoCompleta}"
+                                        BorderBrush="{ThemeResource TintaDelEstadoNoCompleta}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Visibility="{x:Bind SeVeNoCompleta}">
+                                        <TextBlock
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Foreground="{ThemeResource TintaDelEstadoNoCompleta}"
+                                            Text="{x:Bind PalabraDelEstado}" />
+                                    </Border>
+                                    <Border
+                                        Padding="6,1"
+                                        Background="{ThemeResource FondoDelEstadoCompleta}"
+                                        BorderBrush="{ThemeResource TintaDelEstadoCompleta}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Visibility="{x:Bind SeVeCompleta}">
+                                        <TextBlock
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Foreground="{ThemeResource TintaDelEstadoCompleta}"
+                                            Text="{x:Bind PalabraDelEstado}" />
+                                    </Border>
+                                    <Border
+                                        Padding="6,1"
+                                        Background="{ThemeResource FondoDelEstadoFechaPasadaCompletada}"
+                                        BorderBrush="{ThemeResource TintaDelEstadoFechaPasadaCompletada}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Visibility="{x:Bind SeVeFechaPasadaCompletada}">
+                                        <TextBlock
+                                            FontSize="11"
+                                            FontWeight="Bold"
+                                            Foreground="{ThemeResource TintaDelEstadoFechaPasadaCompletada}"
+                                            Text="{x:Bind PalabraDelEstado}" />
+                                    </Border>
+                                </Grid>
+                            </Grid>
+
+                            <!--
+                                El archivo y, si repite a otro, de cual repite. La marca va
+                                JUNTO al nombre del archivo a proposito: es ahi donde se ve
+                                el mismo nombre dos veces, y era ahi donde no habia nada que
+                                los distinguiera. El duplicado NO se rechaza (el dueno,
+                                2026-09-03): entra igual, y ahora ademas lo dice.
+                            -->
+                            <StackPanel Grid.Row="1" Spacing="1">
+                                <TextBlock
+                                    FontSize="12"
+                                    Opacity="0.75"
+                                    Text="{x:Bind Archivo}"
+                                    TextTrimming="CharacterEllipsis" />
+                                <TextBlock
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    Text="{x:Bind MarcaDeDuplicado}"
+                                    TextTrimming="CharacterEllipsis"
+                                    Visibility="{x:Bind EsDuplicado}" />
+                                <!--
+                                    Que varios documentos compartan el numero de caso es una
+                                    PISTA de que viajan en el mismo grupo, y el dueno pidio
+                                    verla el 2026-09-05: sus siete escaneos comparten
+                                    CASP2609. Va en linea aparte de la del duplicado a
+                                    proposito: compartir numero NO es ser duplicado, y el
+                                    numero sigue sin identificar a nadie (2026-09-03).
+                                -->
+                                <TextBlock
+                                    FontSize="11"
+                                    Opacity="0.85"
+                                    Text="{x:Bind LineaDelNumeroCompartido}"
+                                    TextTrimming="CharacterEllipsis"
+                                    Visibility="{x:Bind CompartenElNumero}" />
+                            </StackPanel>
+
+                            <!--
+                                Los datos y, debajo, POR QUE no esta completa. El motivo se ve
+                                aqui y no dentro del documento porque eso fue lo que el dueno
+                                pidio el 2026-09-05 al nombrar sus tres estados; sin linea
+                                propia, los tres se leian iguales: «no completado».
+                            -->
+                            <Grid Grid.Row="2" ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Spacing="1">
+                                    <TextBlock
+                                        FontSize="12"
+                                        Opacity="0.85"
+                                        Text="{x:Bind Datos}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        FontWeight="SemiBold"
+                                        Text="{x:Bind LineaDelMotivo}"
+                                        TextTrimming="CharacterEllipsis"
+                                        Visibility="{x:Bind HayLineaDeMotivo}" />
+                                </StackPanel>
+                                <!--
+                                    «Para que se pueda ir a una fecha», dicho por el dueno el
+                                    2026-09-05. Va JUNTO a la linea de datos, que es donde se
+                                    lee «sin fecha de viaje», y no en otra pantalla: lo que
+                                    el pidio es poder hacerlo «ahi mismo en revision». Abre
+                                    un Flyout, que se cierra pulsando fuera y no detiene nada
+                                    (requisito 9: ni un cuadro modal).
+                                -->
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Top"
+                                    AutomationProperties.Name="{x:Bind NombreDelBotonDeFecha}"
+                                    Click="AlAbrirElCuadroDeLaFecha"
+                                    Content="{x:Bind PalabraDelBotonDeFecha}"
+                                    FontSize="12"
+                                    Tag="{x:Bind CasoId}"
+                                    ToolTipService.ToolTip="Escribir la fecha de viaje de este documento, en AAAA-MM-DD" />
+                            </Grid>
+
+                            <!--  Las dos palabras del dueno, tal cual.  -->
+                            <Grid Grid.Row="3" ColumnSpacing="6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Button
+                                    Grid.Column="0"
+                                    HorizontalAlignment="Stretch"
+                                    Click="AlPulsarSiCompleta"
+                                    Content="Sí, completa"
+                                    FontSize="12"
+                                    Tag="{x:Bind CasoId}" />
+                                <!--
+                                    Abre un menu ligero con los tres del dueno en vez de
+                                    escribir de golpe: se cierra pulsando fuera y no detiene
+                                    nada, que es la regla de los cuadros (requisito 9).
+                                -->
+                                <Button
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    Click="AlAbrirElMenuDeNoCompleta"
+                                    Content="No está completa…"
+                                    FontSize="12"
+                                    Tag="{x:Bind CasoId}"
+                                    ToolTipService.ToolTip="Marcar que no está completa, y decir por qué" />
+                                <Button
+                                    Grid.Column="2"
+                                    Click="AlAbrirElMenuDeAsignar"
+                                    Content="{x:Bind AsignadoA}"
+                                    FontSize="12"
+                                    Tag="{x:Bind CasoId}"
+                                    ToolTipService.ToolTip="Asignar este documento" />
+                            </Grid>
+
+                            <!--
+                                La pieza que le faltaba para hacer su trabajo. Del dueno, el
+                                2026-09-05: «en Revisar ahi debe poder dar clic al documento,
+                                abrir otra ventana donde esta la informacion, comentarios o
+                                preguntas, para llegar a si se completo o no la informacion
+                                en el sistema del obispo».
+
+                                Abre una VENTANA de verdad, no un cuadro: Revisar sigue viva
+                                detras, se pueden tener varias abiertas y ninguna detiene el
+                                programa (requisito 9).
+
+                                ⛔ Contestar esas seis NO es la firma de campos «Todo
+                                correcto», que sigue siendo campo por campo en Correccion.
+                            -->
+                            <Button
+                                Grid.Row="4"
+                                HorizontalAlignment="Stretch"
+                                AutomationProperties.Name="{x:Bind NombreDelBotonDeLasPreguntas}"
+                                Click="AlAbrirLasSeisPreguntas"
+                                Content="Las seis preguntas…"
+                                FontSize="12"
+                                Tag="{x:Bind CasoId}"
+                                ToolTipService.ToolTip="Contestar, persona por persona, las seis preguntas del sistema del líder de este documento" />
+
+                            <TextBlock
+                                Grid.Row="5"
+                                FontSize="11"
+                                Opacity="0.7"
+                                Text="{x:Bind PieDeLaTarjeta}"
+                                TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </ItemContainer>
+                </DataTemplate>
+            </ItemsView.ItemTemplate>
+        </ItemsView>
+    </Grid>
+    </Grid>
+</cascara:PaginaDeFichas>
