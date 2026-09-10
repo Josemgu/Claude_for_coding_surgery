@@ -83,10 +83,49 @@ public static class Vocabulario
     /// </remarks>
     public const string ElPaisNoSeGuarda = SinDato;
 
-    /// <summary>El nombre de la unidad con su numero, o lo que haya de los dos.</summary>
-    public static string UnidadConSuNumero(string? nombre, string? numero)
-        => $"{(string.IsNullOrWhiteSpace(nombre) ? "unidad sin nombre" : nombre)} · "
-           + $"{(string.IsNullOrWhiteSpace(numero) ? "sin número" : numero)}";
+    /// <summary>El rotulo de la columna con el numero de la unidad, en las seis tablas.</summary>
+    /// <remarks>
+    /// Es el MISMO texto que usa el paquete de los companeros
+    /// (<c>Fichas.Paquetes.Columnas.ColumnaDelNumeroDeUnidad</c>, «Número de unidad»), y se
+    /// repite a proposito en vez de importarse: los reportes no conocen a los paquetes, y dos
+    /// rotulos distintos para el mismo dato harian que Miguel filtrara por uno y no por el otro.
+    /// </remarks>
+    public const string RotuloDelNumeroDeUnidad = "Número de unidad";
+
+    // ⛔ Aqui vivia `UnidadConSuNumero`, que pegaba las dos cosas en una sola celda —«Castries
+    // Branch · 0700016»— con este cuerpo:
+    //
+    //     $"{(string.IsNullOrWhiteSpace(nombre) ? "unidad sin nombre" : nombre)} · "
+    //     + $"{(string.IsNullOrWhiteSpace(numero) ? "sin número" : numero)}"
+    //
+    // El dueno pidio el 2026-09-08 los dos datos en dos columnas —«Sí, pártelo en dos»—,
+    // sabiendo que eso cambia tambien el PDF, porque pegados NO SE PODIA FILTRAR POR NUMERO DE
+    // UNIDAD en el Excel: el filtro veia una sola cadena con las dos cosas dentro. Ya no hay
+    // nada que pegar y se quedo sin ningun sitio desde donde llamarla. Lo que hacia queda
+    // escrito aqui por si algun dia se quiere volver a juntar las dos en una sola celda.
+    //
+    // Es el mismo movimiento que hizo el paquete de los companeros el 2026-09-07, y el
+    // comentario gemelo esta en `Fichas.Paquetes/Paquetes.cs`.
+
+    /// <summary>El nombre de la unidad, o la palabra que dice que no consta.</summary>
+    /// <remarks>
+    /// Lo que la base guarde es lo que sale: si el escaneo dejo el numero dentro del nombre,
+    /// sale dentro del nombre, porque corregirlo aqui seria cambiar un dato leido (regla
+    /// permanente 1).
+    /// </remarks>
+    public static string NombreDeUnidad(string? nombre)
+        => string.IsNullOrWhiteSpace(nombre) ? "unidad sin nombre" : nombre;
+
+    /// <summary>El numero de la unidad, o la palabra que dice que no consta.</summary>
+    /// <remarks>
+    /// ⚠️ Sale TAL CUAL, con su cero de delante si lo trae. Su columna se declara
+    /// <c>ClaseDeColumna.Texto</c> en las seis tablas justamente por eso: como <c>Crudo</c>, un
+    /// numero de siete digitos sin cero delante entraria en el <c>.xlsx</c> como NUMERO —lo
+    /// decide <c>LibroDelInforme.EsUnRecuentoQueSeDejaSumar</c>, cuyo tope son 9 digitos— y
+    /// dejaria de poder compararse con el del papel.
+    /// </remarks>
+    public static string NumeroDeUnidad(string? numero)
+        => string.IsNullOrWhiteSpace(numero) ? "sin número" : numero;
 
     /// <summary>El nombre de la persona, o la palabra que dice que no se leyo.</summary>
     /// <remarks>

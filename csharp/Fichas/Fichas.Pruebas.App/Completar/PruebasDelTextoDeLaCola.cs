@@ -41,22 +41,29 @@ public sealed class PruebasDelTextoDeLaCola
     }
 
     /// <summary>
-    /// Al salir de la cola se dice «listo para asignar» CON su significado, y cuantos quedan.
+    /// Al salir de la cola se dice QUE PASO, con el numero y cuantos quedan.
     /// </summary>
     /// <remarks>
-    /// La frase sale de <see cref="LasDosPreguntas"/> y no de un literal aqui: escrita en
-    /// dos sitios, el dia que se cambie una quedan dos redacciones para la misma cosa.
+    /// <para>⛔ 2026-09-07: esta linea decia «listo para asignar · el sistema llenó todos los
+    /// campos». Esa era una de las cuatro palabras que el dueño retiró.</para>
+    ///
+    /// <para><b>Lo que la prueba defiende no cambia:</b> que la linea diga de qué documento
+    /// habla, cuántos quedan, y que NO diga «verificado» — la firma es de Miguel y sigue sin
+    /// ser automática (regla permanente 5). Y ahora ademas se comprueba que no haya vuelto
+    /// ninguna de las palabras retiradas.</para>
     /// </remarks>
     [TestMethod]
-    public void AlSalirDeLaColaSeDiceListoParaAsignarConSuSignificado()
+    public void AlSalirDeLaColaSeDiceQuePasoSinNingunaPalabraRetirada()
     {
         var linea = TextoDeLaCola.AlSalirDeLaCola("CASP2609", 7);
 
-        StringAssert.Contains(linea, LasDosPreguntas.ListoParaAsignarConSuSignificado);
+        StringAssert.Contains(linea, "ya no le falta información");
         StringAssert.Contains(linea, "CASP2609");
         StringAssert.Contains(linea, "quedan 7");
         Assert.IsFalse(linea.Contains("verificado", StringComparison.OrdinalIgnoreCase),
             "La cola no verifica nada: la palabra no puede salir de aqui (regla permanente 5).");
+        Assert.IsFalse(linea.Contains(LasDosPreguntas.ListoParaAsignar, StringComparison.OrdinalIgnoreCase),
+            "«Listo para asignar» se retiró de la pantalla el 2026-09-07.");
     }
 
     /// <summary>El que sigue incompleto lo dice, y dice CUANTO le falta.</summary>
@@ -86,15 +93,19 @@ public sealed class PruebasDelTextoDeLaCola
         var texto = TextoDeLaCola.CuandoNoQuedaNada;
 
         StringAssert.Contains(texto, "No queda ningún documento");
-        StringAssert.Contains(texto, LasDosPreguntas.ListaParaViajar,
-            "Hay que decir lo que esto NO significa, o se lee como que ya pueden viajar.");
+        // ⚠️ ESTA es la mitad que sostiene la prueba y no cambia: hay que decir lo que esto NO
+        // significa, o «no queda nada» se lee como «ya pueden viajar», que es la confusión de
+        // fondo del 2026-09-05. Lo que cambió el 2026-09-07 son las palabras: «lista para
+        // viajar» era una de las cuatro retiradas, y la frase lo dice ahora sin ella.
+        StringAssert.Contains(texto, "no quiere decir que cada persona pueda viajar");
+        StringAssert.Contains(texto, "la recomendación se confirma en el sistema del obispo");
 
-        // ⚠️ Concordancia, y sale de un defecto MEDIDO con la ventana abierta el 2026-09-06:
-        // la frase decia «que estén lista para viajar». La constante está en singular porque
-        // es el estado de UNA persona, así que lo que va delante tiene que ser singular.
-        StringAssert.Contains(texto, "cada persona esté " + LasDosPreguntas.ListaParaViajar);
-        Assert.IsFalse(texto.Contains("estén " + LasDosPreguntas.ListaParaViajar, StringComparison.Ordinal),
-            "«estén lista para viajar» no concuerda: la constante es de una sola persona.");
+        // La concordancia sigue vigilada, y sale de un defecto MEDIDO con la ventana abierta
+        // el 2026-09-06: la frase llegó a decir «que estén lista para viajar».
+        Assert.IsFalse(texto.Contains("estén ", StringComparison.Ordinal),
+            "La frase habla de «cada persona», en singular: un plural aquí no concuerda.");
+        Assert.IsFalse(texto.Contains(LasDosPreguntas.ListaParaViajar, StringComparison.Ordinal),
+            "«Lista para viajar» se retiró de la pantalla el 2026-09-07.");
     }
 
     /// <summary>Al vaciarse encadenando se dice cuantos se resolvieron en la vuelta.</summary>

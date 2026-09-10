@@ -19,7 +19,6 @@ csharp/Fichas/.gitignore
 csharp/Fichas/Fichas.Contratos/Fichas.Contratos.csproj
 csharp/Fichas/Fichas.Contratos/Puertos/IAsignaciones.cs
 csharp/Fichas/Fichas.Contratos/Puertos/IExtraccion.cs
-csharp/Fichas/Fichas.Contratos/Puertos/IIlegibles.cs
 csharp/Fichas/Fichas.Contratos/Puertos/ILecturaDePdf.cs
 csharp/Fichas/Fichas.Contratos/Puertos/IReloj.cs
 csharp/Fichas/Fichas.Contratos/Puertos/IReportes.cs
@@ -60,5 +59,23 @@ csharp/C0-espiga
 # archivo. Estaba en la lista por el motivo del 2026-09-05, que es el choque entre
 # programadores, y el aviso del hook dice siempre lo mismo aunque el motivo sea
 # otro. Sin QA corriendo, no hay nada que declararle.
+#
+# Solo se ANADEN metodos. Nada de lo que ya esta se cambia ni se quita.
+
+# 2026-09-09. Se DESCONGELA Fichas.Contratos/Puertos/IIlegibles.cs, y solo para
+# quien anada el borrado de un documento ilegible. Lo autoriza el supervisor.
+#
+# ⚠️ Y esto se anota por una falta suya, no del agente: el 2026-09-09 el supervisor
+# autorizo este archivo DENTRO del pase y se olvido de retirar la ruta de aqui. El
+# hook bloqueo al programador con razon, media entrega volvio sin hacer, y el agente
+# hizo bien en no tocar este archivo, que no es su puesto. La autorizacion son DOS
+# mitades y la de aqui es la que vale. Con IProcedencia.cs, el 2026-09-06, se
+# hicieron las dos; esta vez solo una.
+#
+# Motivo, medido: IIlegibles ofrece listar, contar, registrar, listar descartadas y
+# registrar descartada. Ninguna borra. Un PDF que entro sin poder leerse queda
+# registrado para siempre, y el dueno lo pidio dos veces el mismo dia. Y ademas
+# `Listar` y `Contar` no tienen NI UN consumidor en produccion —grep sobre el repo,
+# solo pruebas—: hoy un ilegible no se ve en ninguna pantalla.
 #
 # Solo se ANADEN metodos. Nada de lo que ya esta se cambia ni se quita.

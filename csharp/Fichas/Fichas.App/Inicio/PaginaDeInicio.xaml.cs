@@ -1,7 +1,5 @@
 using System.Diagnostics;
-using System.Globalization;
 using Fichas.App.Cascara;
-using Fichas.App.Correccion;
 using Fichas.App.Grupo;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,22 +9,25 @@ using Microsoft.UI.Xaml.Media.Animation;
 namespace Fichas.App.Inicio;
 
 /// <summary>
-/// La pantalla de Inicio: lo que esta listo para asignar, lo que esta asignado a los
-/// agentes, y el calendario por donde se entra al grupo que viaja cada dia.
+/// La pantalla de Inicio: el cuadro de dos cifras y el calendario. Nada mas.
 /// </summary>
 /// <remarks>
-/// ⛔ Terreno del programador de Inicio (fases C1, C7 y C12). Nadie mas escribe aqui.
+/// <para>⛔ Terreno del programador de Inicio (fases C1, C7 y C12). Nadie mas escribe aqui.</para>
 ///
-/// Esta clase solo REPARTE lo que calcula <see cref="LectorDelInicio"/>. Ni una regla de
-/// negocio vive aqui: si la hubiera, habria que abrir una ventana para probarla, y las
-/// pruebas de <c>PruebasDeInicio</c> dejarian de poder existir (ADR-0003 §8.1).
+/// <para><b>Que hay y por que hay solo eso.</b> Palabras del dueno el 2026-09-07, repetidas el
+/// 2026-09-09 porque no se habia hecho: <i>«Lo unico que quiero [en Inicio] es el calendario y
+/// un cuadro informando cuales hacen falta por completar, y cuantos casos tienen los
+/// agentes»</i>. Las tres listas que esta pantalla tenia —lo listo para asignar, lo asignado a
+/// los agentes y lo listo para viajar— viven enteras en <c>Flujo/PaginaDelFlujo.xaml</c>, con
+/// entrada propia en el menu.</para>
+///
+/// <para>Esta clase solo REPARTE lo que calcula <see cref="LectorDelInicio"/>. Ni una regla de
+/// negocio vive aqui: si la hubiera, habria que abrir una ventana para probarla, y las pruebas
+/// de <c>PruebasDeInicio</c> dejarian de poder existir (ADR-0003 §8.1).</para>
 /// </remarks>
 public sealed partial class PaginaDeInicio : PaginaDeFichas
 {
-    private IReadOnlyList<RenglonDeCaso> _loListo = [];
-    private IReadOnlyList<RenglonDeCaso> _loAsignado = [];
     private IReadOnlyList<DiaDelCalendario> _losDias = [];
-    private IReadOnlyList<PersonaConTicket> _losTickets = [];
 
     private LectorDelInicio? _lector;
     private int _mesQueSeEnsena;
@@ -40,7 +41,7 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// <summary>Cuanto costo la ultima lectura completa del panel, en milisegundos.</summary>
     public double MilisegundosDelResumen => _milisegundosDelResumen;
 
-    /// <summary>Monta el lector con los cinco puertos que necesita y pinta el mes de hoy.</summary>
+    /// <summary>Monta el lector con los seis puertos que necesita y pinta el mes de hoy.</summary>
     protected override void AlLlegar()
     {
         if (Servicios is null) return;
@@ -60,10 +61,6 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
             _relojDelPintado = Stopwatch.StartNew();
             LayoutUpdated += AlTerminarDeColocar;
             Escuchar(_desplazamientoDeLaPantalla, "la pantalla");
-            Escuchar(_listos, "listo para asignar");
-            Escuchar(_asignados, "asignado a los agentes");
-            Escuchar(_tickets, "listo para viajar");
-            Escuchar(_equipo, "cuánto lleva cada compañero");
         }
 
         Pintar(_mesQueSeEnsena);
@@ -79,10 +76,7 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
         cronometro.Stop();
         _milisegundosDelResumen = cronometro.Elapsed.TotalMilliseconds;
 
-        EscribirLaCabecera(resumen);
-        LlenarLoListo(resumen);
-        LlenarLoAsignado(resumen);
-        LlenarLoDelSistemaDelObispo(resumen);
+        LlenarElCuadro(resumen);
         LlenarElCalendario(resumen);
 
         Servicios.Registro.AnotarNavegacion("Inicio calcula su resumen", _milisegundosDelResumen);
@@ -92,68 +86,40 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
         Servicios.Avisos.Dejar(resumen.Avisos);
     }
 
-    /// <summary>La fecha de hoy en espanol y la linea del denominador que exige el C1-1.</summary>
-    private void EscribirLaCabecera(ResumenDeInicio resumen)
-    {
-        var hoy = FechasEnEspanol.Leer(_lector!.Hoy);
-        _hoy.Text = hoy is DateOnly dia ? FechasEnEspanol.DecirElDiaCompleto(dia) : _lector.Hoy;
-        _denominador.Text = resumen.LineaDelDenominador;
-    }
-
-    /// <summary>La primera de las dos cosas que el dueno pidio ver en Inicio.</summary>
-    private void LlenarLoListo(ResumenDeInicio resumen)
-    {
-        _loListo = resumen.Listos;
-        _listosRenglones.ItemsSource = resumen.Listos;
-        _cuantosListos.Text = EnCifras(resumen.Contadores.ListoParaAsignar);
-        _deQueVanLosListos.Text = resumen.DeQueVaLoListo;
-    }
-
-    /// <summary>La segunda: lo que ahora mismo llevan los companeros, y cuanto lleva cada uno.</summary>
-    private void LlenarLoAsignado(ResumenDeInicio resumen)
-    {
-        _loAsignado = resumen.Asignados;
-        _asignadosRenglones.ItemsSource = resumen.Asignados;
-        _cuantosAsignados.Text = EnCifras(resumen.Contadores.AsignadoALosAgentes);
-        _deQueVanLosAsignados.Text = resumen.DeQueVaLoAsignado;
-        _equipoRenglones.ItemsSource = resumen.Equipo;
-    }
-
     /// <summary>
-    /// La tercera cosa: lo que hay que verificar en el sistema del obispo, en PERSONAS.
+    /// El cuadro de las dos cifras: lo que falta por completar y lo que llevan los agentes.
     /// </summary>
     /// <remarks>
-    /// ⛔ Las dos cifras de arriba no se tocan (C20-2). Esto es una tercera y habla de otro
-    /// sistema: <i>«Ahí yo puedo verificarlos y ver en el sistema de la Iglesia»</i>.
-    /// <para>
-    /// La lista junta lo vencido y lo que apremia, con lo vencido delante: son dos cuentas
-    /// distintas —cada una con su linea— pero una sola lista de personas, porque lo que el
-    /// hace con las dos es lo mismo, llamar al obispo, y dos listas obligarian a mirar dos
-    /// veces.
-    /// </para>
+    /// Las dos salen de la MISMA lectura que arma el calendario, sin una segunda pasada por la
+    /// base; el motivo esta en <see cref="LectorDelInicio"/> y lo cronometra
+    /// <c>PruebasDelCuadroDeInicio</c>.
     /// </remarks>
-    private void LlenarLoDelSistemaDelObispo(ResumenDeInicio resumen)
+    private void LlenarElCuadro(ResumenDeInicio resumen)
     {
-        var loSuyo = resumen.ElSistemaDelObispo;
+        var cuadro = resumen.Cuadro;
 
-        _elGrupoQueViene.Text = loSuyo.FraseDelProximoGrupo;
-        _loVencido.Text = loSuyo.FraseDeLoVencido;
-        _loQueApremia.Text = loSuyo.FraseDeLoQueApremia;
+        _cuantosPorCompletar.Text = cuadro.CifraDeLoQueFalta;
+        _deQueVaLoQueFalta.Text = cuadro.LineaDeLoQueFalta;
+        _cuantosEnLosAgentes.Text = cuadro.CifraDeLosAgentes;
+        _deQueVanLosAgentes.Text = cuadro.LineaDeLosAgentes;
 
-        _losTickets = [.. loSuyo.Vencidas, .. loSuyo.QueApremian];
-        _ticketsRenglones.ItemsSource = _losTickets;
+        // El nombre para el lector de pantalla se pone aqui y no en el XAML: lleva la cifra
+        // dentro, y quien no ve la pantalla no puede leer el numero grande por separado.
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_verLoIncompleto, cuadro.LoQueFaltaParaElLector);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_verElFlujo, cuadro.LosAgentesParaElLector);
     }
 
-    /// <summary>El calendario del mes que se ensena, con su titulo.</summary>
+    /// <summary>El calendario del mes que se ensena, con su titulo, la fecha de hoy y el denominador.</summary>
     private void LlenarElCalendario(ResumenDeInicio resumen)
     {
+        var hoy = FechasEnEspanol.Leer(_lector!.Hoy);
+        _hoy.Text = "Hoy es " + (hoy is DateOnly dia ? FechasEnEspanol.DecirElDiaCompleto(dia) : _lector.Hoy);
+        _denominador.Text = resumen.LineaDelDenominador;
+
         _losDias = resumen.Mes.Dias;
         _tituloDelMes.Text = resumen.Mes.Titulo;
         _mes.ItemsSource = resumen.Mes.Dias;
     }
-
-    /// <summary>Escribe un numero sin que el idioma de la maquina le cambie el separador.</summary>
-    private static string EnCifras(int numero) => numero.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>Retrocede un mes en el calendario.</summary>
     private void AlPedirElMesAnterior(object quien, RoutedEventArgs cuando) => MoverElMes(_mesQueSeEnsena - 1);
@@ -195,11 +161,34 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
         Bindings.Update();
     }
 
-    /// <summary>Abre la ventana de lo que no esta completo, agrupado por fecha de viaje.</summary>
+    /// <summary>
+    /// La primera cifra del cuadro abre la ventana de lo que no esta completo.
+    /// </summary>
+    /// <remarks>
+    /// ⛔ <b>Es la unica puerta de todo el programa a esa ventana</b>, medido el 2026-09-09
+    /// buscando cada <c>Navigate(typeof(PaginaDeIncompletos)</c> del codigo. Hasta hoy era un
+    /// boton suelto con un rotulo; ahora es la cifra, que ademas dice cuantos son antes de
+    /// pulsar. <c>PruebasDeLaPestanaDelFlujo</c> vigila que la puerta siga aqui.
+    /// </remarks>
     private void AlPedirLoIncompleto(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
         Frame.Navigate(typeof(PaginaDeIncompletos), Servicios, new SuppressNavigationTransitionInfo());
+    }
+
+    /// <summary>
+    /// La segunda cifra abre la pestana del flujo, donde estan las tres listas.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ La navegacion va por el marco de esta pagina, no por el menu de la izquierda: la
+    /// entrada de ese menu no se marca al llegar asi, porque eso lo decide
+    /// <c>Cascara/VentanaPrincipal.xaml.cs</c>. La puerta principal del flujo es su entrada del
+    /// menu, que si marca; esta es el atajo desde la cifra que se acaba de leer.
+    /// </remarks>
+    private void AlPedirElFlujo(object quien, RoutedEventArgs cuando)
+    {
+        if (Frame is null || Servicios is null) return;
+        Frame.Navigate(typeof(Flujo.PaginaDelFlujo), Servicios, new SuppressNavigationTransitionInfo());
     }
 
     /// <summary>Pulsar un dia del calendario abre el grupo que viaja ese dia.</summary>
@@ -207,34 +196,6 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     {
         if (Frame is null || Servicios is null) return;
         if (EnLaLista(_losDias, _mes, quien) is DiaDelCalendario dia) AbrirElGrupoDelDia(dia);
-    }
-
-    /// <summary>Pulsar un documento listo lo abre en Correccion.</summary>
-    private void AlPulsarUnDocumentoListo(object quien, RoutedEventArgs cuando)
-    {
-        if (Frame is null || Servicios is null) return;
-        if (EnLaLista(_loListo, _listosRenglones, quien) is RenglonDeCaso renglon)
-            AbrirElCasoEnCorreccion(renglon.CasoId);
-    }
-
-    /// <summary>Pulsar un documento asignado lo abre en Correccion.</summary>
-    private void AlPulsarUnDocumentoAsignado(object quien, RoutedEventArgs cuando)
-    {
-        if (Frame is null || Servicios is null) return;
-        if (EnLaLista(_loAsignado, _asignadosRenglones, quien) is RenglonDeCaso renglon)
-            AbrirElCasoEnCorreccion(renglon.CasoId);
-    }
-
-    /// <summary>Pulsar una persona con la recomendacion sin confirmar abre su documento.</summary>
-    /// <remarks>
-    /// Abre el DOCUMENTO y no a la persona porque la ventana de la persona todavia no
-    /// existe: es la FASE C19. Cuando exista, esta linea la abre a ella.
-    /// </remarks>
-    private void AlPulsarUnaPersonaConTicket(object quien, RoutedEventArgs cuando)
-    {
-        if (Frame is null || Servicios is null) return;
-        if (EnLaLista(_losTickets, _ticketsRenglones, quien) is PersonaConTicket ticket)
-            AbrirElCasoEnCorreccion(ticket.CasoId);
     }
 
     /// <summary>
@@ -282,35 +243,13 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     ///
     /// <para>⚠️ La navegacion va por el marco de esta pagina, no por el menu de la
     /// izquierda: la entrada de ese menu no se marca al llegar asi porque eso lo decide
-    /// <c>Cascara/VentanaPrincipal.xaml.cs</c>, que esta congelado y es de otro terreno.
-    /// Por eso la pantalla del grupo trae su propio boton de volver.</para>
+    /// <c>Cascara/VentanaPrincipal.xaml.cs</c>. Por eso la pantalla del grupo trae su propio
+    /// boton de volver.</para>
     /// </remarks>
     private void AbrirElGrupoDelDia(DiaDelCalendario dia)
     {
         if (!dia.SePuedePulsar) return;
         Frame.Navigate(typeof(PaginaDeGrupo), new LlegadaAlGrupo(Servicios!, dia.Fecha), new SuppressNavigationTransitionInfo());
-    }
-
-    /// <summary>
-    /// Pulsar un documento lo abre en Correccion, por el marco de la cascara.
-    /// </summary>
-    /// <remarks>
-    /// ⚠️ Depende de que <c>PaginaDeCorreccion.AbrirElCaso(long)</c> siga siendo publico;
-    /// es de otro terreno y aqui solo se llama, nunca se toca.
-    ///
-    /// ⚠️ La peticion va POR LA COLA del hilo de la interfaz. Medido el 2026-09-04 en
-    /// fichas.log: al navegar, Correccion abre PRIMERO su propio caso y despues se le pide
-    /// el que se pulso. Se encola para que siga saliendo en ese orden aunque manana el
-    /// desplegable de Correccion tarde un turno mas en decidirse.
-    /// </remarks>
-    private void AbrirElCasoEnCorreccion(long casoId)
-    {
-        var marco = Frame;
-        marco.Navigate(typeof(PaginaDeCorreccion), Servicios, new SuppressNavigationTransitionInfo());
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            if (marco.Content is PaginaDeCorreccion correccion) correccion.AbrirElCaso(casoId);
-        });
     }
 
     /// <summary>
@@ -387,6 +326,11 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     }
 
     /// <summary>Vuelca las cifras de los criterios C1-2, C1-3, C1-5 y C12-3 al informe.</summary>
+    /// <remarks>
+    /// ⚠️ Desde el 2026-09-09 ya no anota las cuatro listas: se fueron a la pestana del flujo.
+    /// Lo que queda medido es lo que queda en pantalla —el cuadro y el calendario—, y las dos
+    /// cifras del cuadro se escriben enteras para poder comprobarlas sin abrir la ventana.
+    /// </remarks>
     private void EscribirElInforme(string deQuePasada, double milisegundosHastaColocar)
     {
         var casos = Servicios?.Argumentos.CasosInventados ?? 0;
@@ -398,13 +342,9 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
         MedicionDeInicio.Anotar($"C12-3  pintado hasta quedar colocado: {MedicionDeInicio.Cifra(milisegundosHastaColocar)} ms "
             + $"({MedicionDeInicio.Cifra(milisegundosHastaColocar / 1000.0, 3)} s)");
         MedicionDeInicio.Anotar($"C1-5   elementos vivos en toda la pantalla: {pantalla.Todos}");
-        AnotarUnaLista("listo para asignar", _listos, _listosRenglones);
-        AnotarUnaLista("asignado a los agentes", _asignados, _asignadosRenglones);
-        AnotarUnaLista("listo para viajar", _tickets, _ticketsRenglones);
-        AnotarUnaLista("cuánto lleva cada compañero", _equipo, _equipoRenglones);
-        MedicionDeInicio.Anotar($"C20-1  «{_elGrupoQueViene.Text}»");
-        MedicionDeInicio.Anotar($"C21-3  «{_loVencido.Text}»");
-        MedicionDeInicio.Anotar($"C21-4  «{_loQueApremia.Text}»");
+        MedicionDeInicio.Anotar($"CUADRO «Me falta por completar»: {_cuantosPorCompletar.Text} — {_deQueVaLoQueFalta.Text}");
+        MedicionDeInicio.Anotar($"CUADRO «Lo que tienen los agentes»: {_cuantosEnLosAgentes.Text} — {_deQueVanLosAgentes.Text}");
+        MedicionDeInicio.Anotar($"C1-1   denominador: «{_denominador.Text}»");
         MedicionDeInicio.Anotar($"C12-2  calendario del mes: {calendario.Todos} elementos con 42 celdas fijas, "
             + $"{MedicionDeInicio.RenglonesRealizados(_mes)} realizadas; la mas llena pide "
             + $"{MedicionDeInicio.Cifra(MedicionDeInicio.AltoQuePideElContenido(_mes))} px de alto");
@@ -414,24 +354,4 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
         MedicionDeInicio.Anotar($"C1-2   {MedicionDeInicio.DescribirLasBarras(_desplazamientoDeLaPantalla, this)}");
         MedicionDeInicio.Anotar(string.Empty);
     }
-
-    /// <summary>
-    /// Anota de una lista lo que decide el C1-5 y el C1-2: cuantos renglones construyo de
-    /// verdad frente a cuantos datos tiene, y cuanto puede bajar por dentro.
-    /// </summary>
-    private static void AnotarUnaLista(string comoSeLlama, ScrollView desplazamiento, ItemsRepeater repetidor)
-    {
-        var arbol = MedicionDeInicio.ContarElementosVivos(desplazamiento);
-        MedicionDeInicio.Anotar(
-            $"C1-5   «{comoSeLlama}»: {arbol.Todos} elementos, {MedicionDeInicio.RenglonesRealizados(repetidor)} "
-            + $"renglones realizados de {ContarLos(repetidor)} datos");
-        MedicionDeInicio.Anotar(
-            $"C1-2   «{comoSeLlama}» mide {MedicionDeInicio.Cifra(desplazamiento.ExtentHeight)} px por dentro "
-            + $"y ensena {MedicionDeInicio.Cifra(desplazamiento.ViewportHeight)} px: "
-            + $"se pueden bajar {MedicionDeInicio.Cifra(desplazamiento.ScrollableHeight)} px");
-    }
-
-    /// <summary>Cuantos datos tiene detras una lista, que no es lo mismo que cuantos renglones construyo.</summary>
-    private static int ContarLos(ItemsRepeater repetidor)
-        => repetidor.ItemsSource is System.Collections.ICollection datos ? datos.Count : 0;
 }

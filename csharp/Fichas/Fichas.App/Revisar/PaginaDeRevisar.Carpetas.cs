@@ -23,46 +23,110 @@ namespace Fichas.App.Revisar;
 public sealed partial class PaginaDeRevisar
 {
     /// <summary>
-    /// Rehace el arbol de carpetas: mes, luego fecha de viaje, luego unidad.
+    /// Rehace el arbol de carpetas —mes, fecha de viaje, unidad— y lo deja donde estaba el.
     /// </summary>
     /// <remarks>
-    /// Solo se abre el PRIMER mes, que es el que viaja antes. Con 3 000 documentos abrirlos
-    /// todos construiria miles de filas de golpe; cerrados, <c>TreeView</c> solo materializa
-    /// las que se ven, y los nodos que no se ven no son elementos vivos.
+    /// <para>⛔ <b>El arbol se rehace de verdad y eso no es negociable</b>: cada carpeta lleva
+    /// en su etiqueta cuantos documentos hay EN EL TABLERO que se mira, y tras marcar un caso
+    /// esa cifra cambia. Lo que se conserva no son los nodos: es <b>donde estaba el</b>, y lo
+    /// decide <see cref="MemoriaDelSitio"/>, que se prueba sin ventana.</para>
+    ///
+    /// <para>⛔ <b>Hasta el 2026-09-09 este metodo hacia <c>_carpetaALaVista = null</c></b>, y
+    /// eso es lo que el dueno describio: <i>«te envia al inicio otra vez de Revisar y te
+    /// coloca todos juntos»</i>. Medido con la ventana abierta ese mismo dia: con «Enero 2027»
+    /// elegida, marcar un caso pasaba de «viendo 5 de 18 · «Enero 2027»» a «viendo 17 de 28
+    /// documentos».</para>
+    ///
+    /// <para>Sin sitio recordado solo se abre el PRIMER mes, que es el que viaja antes. Con
+    /// 3 000 documentos abrirlos todos construiria miles de filas de golpe; cerrados,
+    /// <c>TreeView</c> solo materializa las que se ven.</para>
     /// </remarks>
     private void PintarLasCarpetas()
     {
         if (_tablero is null) return;
+
+        var sitio = DondeEstaba();
 
         _carpetas = ArbolDeRevisar.Agrupar(_tablero.Todas(_tableroALaVista));
         _carpetaALaVista = null;
         _ramas.Clear();
         _arbol.RootNodes.Clear();
 
+        var esElPrimerMes = true;
         foreach (var mes in _carpetas)
         {
-            var nodoDelMes = Rama(mes.Etiqueta, new CarpetaDelArbol(mes.Carpeta, DocumentosDe(mes), mes));
+            var nodoDelMes = Rama(
+                mes.Etiqueta,
+                new CarpetaDelArbol(MemoriaDelSitio.ClaveDelMes(mes), mes.Carpeta, DocumentosDe(mes), mes),
+                sitio,
+                esElPrimerMes);
+
             foreach (var fecha in mes.Fechas)
             {
                 var deLaFecha = fecha.Unidades.SelectMany(u => u.Documentos).ToList();
-                var nodoDeLaFecha = Rama(fecha.Etiqueta, new CarpetaDelArbol(fecha.Carpeta, deLaFecha, mes));
+                var nodoDeLaFecha = Rama(
+                    fecha.Etiqueta,
+                    new CarpetaDelArbol(MemoriaDelSitio.ClaveDeLaFecha(mes, fecha), fecha.Carpeta, deLaFecha, mes),
+                    sitio,
+                    esElPrimerMes: false);
+
                 foreach (var unidad in fecha.Unidades)
                 {
-                    nodoDeLaFecha.Children.Add(
-                        Rama(unidad.Etiqueta, new CarpetaDelArbol(unidad.Carpeta, unidad.Documentos, mes)));
+                    nodoDeLaFecha.Children.Add(Rama(
+                        unidad.Etiqueta,
+                        new CarpetaDelArbol(
+                            MemoriaDelSitio.ClaveDeLaUnidad(mes, fecha, unidad), unidad.Carpeta, unidad.Documentos, mes),
+                        sitio,
+                        esElPrimerMes: false));
                 }
+
                 nodoDelMes.Children.Add(nodoDeLaFecha);
             }
+
             _arbol.RootNodes.Add(nodoDelMes);
+            esElPrimerMes = false;
         }
 
-        if (_arbol.RootNodes.Count > 0) _arbol.RootNodes[0].IsExpanded = true;
+        VolverALaCarpeta(MemoriaDelSitio.CarpetaQueVuelve(sitio, _ramas.Values.Select(c => c.Clave)));
     }
 
-    /// <summary>Crea un nodo del arbol con su texto dentro y lo apunta en el diccionario.</summary>
-    private TreeViewNode Rama(string etiqueta, CarpetaDelArbol carpeta)
+    /// <summary>Donde estaba el ahora mismo: su carpeta y las ramas que tenia abiertas.</summary>
+    private SitioDeRevisar DondeEstaba()
+        => MemoriaDelSitio.Recordar(
+            _carpetaALaVista?.Clave,
+            _ramas.Where(par => par.Key.IsExpanded).Select(par => par.Value.Clave));
+
+    /// <summary>
+    /// Vuelve a dejar elegida la carpeta donde el estaba, o ensena todos si ya no existe.
+    /// </summary>
+    /// <remarks>
+    /// Se toca <see cref="_carpetaALaVista"/> directamente y no por <c>MostrarLaCarpeta</c>:
+    /// aqui todavia no hay tarjetas pintadas, y <see cref="PintarLasTarjetas"/> viene detras.
+    /// Marcar el nodo en el arbol es aparte, para que el borde de la rama tambien vuelva.
+    /// </remarks>
+    private void VolverALaCarpeta(string? clave)
     {
-        var nodo = new TreeViewNode { Content = etiqueta };
+        if (clave is null) return;
+
+        foreach (var (nodo, carpeta) in _ramas)
+        {
+            if (!string.Equals(carpeta.Clave, clave, StringComparison.Ordinal)) continue;
+
+            _carpetaALaVista = carpeta;
+            _arbol.SelectedNode = nodo;
+            return;
+        }
+    }
+
+    /// <summary>Crea un nodo del arbol, lo apunta en el diccionario y lo abre si lo estaba.</summary>
+    private TreeViewNode Rama(string etiqueta, CarpetaDelArbol carpeta, SitioDeRevisar sitio, bool esElPrimerMes)
+    {
+        var nodo = new TreeViewNode
+        {
+            Content = etiqueta,
+            IsExpanded = MemoriaDelSitio.SeAbre(sitio, carpeta.Clave, esElPrimerMes),
+        };
+
         _ramas[nodo] = carpeta;
         return nodo;
     }

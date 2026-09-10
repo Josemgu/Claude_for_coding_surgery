@@ -14,13 +14,18 @@ using Windows.Graphics;
 namespace Fichas.App.Cascara;
 
 /// <summary>
-/// La ventana principal: la barra de titulo, las seis entradas, el marco de las
+/// La ventana principal: la barra de titulo, las nueve entradas, el marco de las
 /// pantallas, la franja de avisos arriba y el acuse en el pie.
 /// </summary>
 /// <remarks>
-/// ⛔ Esta clase es de la cascara y queda CONGELADA al cerrar el pase de esqueleto.
+/// <para>⛔ Esta clase es de la cascara y queda CONGELADA al cerrar el pase de esqueleto.
 /// Quien construya una pantalla trabaja en su carpeta (<c>Inicio/</c>, <c>Correccion/</c>…)
-/// y no toca este archivo.
+/// y no toca este archivo.</para>
+///
+/// <para>⚠️ Se ha descongelado DOS veces, las dos por una peticion del dueno de que algo
+/// tuviera «una tab solo para esto»: el 2026-09-06 para «Completar», y el 2026-09-09 para
+/// «Flujo de trabajo». La segunda no era opcional: sin ella, sacar las tres listas de Inicio
+/// las habria dejado sin ninguna puerta.</para>
 /// </remarks>
 public sealed partial class VentanaPrincipal : Window
 {
@@ -52,7 +57,15 @@ public sealed partial class VentanaPrincipal : Window
         }
 
         DecirSiLosDatosSonInventados(servicios);
-        _navegacion.SelectedItem = _navegacion.MenuItems[0];
+
+        // La cabecera del mockup —titulo, fecha y buscador— y los nueve atajos. Vive en
+        // VentanaPrincipal.Cabecera.cs. Va ANTES de elegir la primera entrada, que es la que
+        // escribe el primer titulo.
+        MontarLaCabecera();
+
+        // La primera entrada, que ya no es MenuItems[0]: el [0] es ahora el titulo del grupo
+        // «El trabajo», y seleccionar un titulo de grupo no navega a ninguna parte.
+        _navegacion.SelectedItem = _navegacion.MenuItems.OfType<NavigationViewItem>().First();
     }
 
     /// <summary>
@@ -105,6 +118,10 @@ public sealed partial class VentanaPrincipal : Window
         if (cuando.SelectedItem is not NavigationViewItem entrada) return;
         var nombre = entrada.Tag as string ?? "Inicio";
 
+        // La cabecera dice a donde se va ANTES de que la pantalla se monte: si se pusiera
+        // despues, el titulo viejo se quedaria a la vista mientras la pantalla carga.
+        PonerElTituloDeLaPantalla(nombre);
+
         var cronometro = Stopwatch.StartNew();
         _marco.Navigate(PantallaDe(nombre), _servicios, new SuppressNavigationTransitionInfo());
         cronometro.Stop();
@@ -116,6 +133,7 @@ public sealed partial class VentanaPrincipal : Window
     private static Type PantallaDe(string nombre) => nombre switch
     {
         "Importar" => typeof(Importar.PaginaDeImportar),
+        "Flujo" => typeof(Flujo.PaginaDelFlujo),
         "Correccion" => typeof(PaginaDeCorreccion),
         "Completar" => typeof(Completar.PaginaDeCompletar),
         "Revisar" => typeof(PaginaDeRevisar),

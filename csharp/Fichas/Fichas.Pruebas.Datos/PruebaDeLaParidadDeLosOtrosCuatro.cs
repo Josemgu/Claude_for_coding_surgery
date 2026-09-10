@@ -432,6 +432,55 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
         }
     }
 
+    /// <summary>
+    /// Dado un renglon ilegible sin documento, cuando se pide el plan de borrarlo en los
+    /// dos, entonces el de verdad da permiso Y EL FALSO NO, y esa divergencia es correcta.
+    /// </summary>
+    /// <remarks>
+    /// <para>⚠️ <b>Es la unica divergencia declarada de este puerto, y esta prueba existe
+    /// para fijarla</b>, no para taparla. El de verdad hace una copia de la base ANTES de
+    /// dar permiso; el falso no tiene base en ningun archivo, asi que no hay nada que
+    /// copiar, y la regla del programa es que sin copia previa no se borra.</para>
+    ///
+    /// <para>Un falso que borrara de su diccionario seria justo el fallo que esta clase
+    /// entera existe para cazar: dejaria pasar en verde una prueba sobre un camino que en
+    /// la base del dueno exige copiar antes. Es la misma decision que
+    /// <c>OperacionDeBorrar</c> toma con <c>IMantenimiento</c> nulo.</para>
+    /// </remarks>
+    [TestMethod]
+    public void ConDatosInventadosNoSePuedeBorrarUnRenglonIlegible()
+    {
+        var (deVerdad, falso, cerrar) = MontarLosDos();
+        using (cerrar)
+        {
+            var elRenglon = new RenglonIlegible
+            {
+                RutaPdf = @"C:\escaneos\roto.pdf",
+                Motivo = "no_se_pudo_abrir",
+                RegistradoEn = DiaDeLasPruebas + " 07:24:00",
+            };
+            var enElDeVerdad = deVerdad.Ilegibles.Registrar(elRenglon);
+            var enElFalso = falso.Ilegibles.Registrar(elRenglon);
+            CompararLasDosEscrituras(enElDeVerdad, enElFalso, "registrar el renglon que se va a borrar");
+
+            var planDeVerdad = deVerdad.Ilegibles.PlanearBorradoDeRenglonesSinCaso([enElDeVerdad.Id]);
+            var planFalso = falso.Ilegibles.PlanearBorradoDeRenglonesSinCaso([enElFalso.Id]);
+
+            Assert.IsTrue(planDeVerdad.SePuedeBorrar, "El de verdad tiene base que copiar y tiene que dar permiso.");
+            Assert.IsNotNull(planDeVerdad.RutaDeLaCopia);
+
+            Assert.IsFalse(planFalso.SePuedeBorrar, "El falso dio permiso para borrar sin haber copiado nada.");
+            Assert.IsNull(planFalso.RutaDeLaCopia);
+            Assert.IsNotEmpty(planFalso.Avisos, "El falso se nego sin decir por que.");
+
+            Assert.IsTrue(deVerdad.Ilegibles.BorrarRenglonesSinCaso(planDeVerdad).SeBorro);
+            Assert.IsFalse(falso.Ilegibles.BorrarRenglonesSinCaso(planFalso).SeBorro);
+
+            Assert.AreEqual(0, deVerdad.Ilegibles.Contar(new FiltroDeIlegibles()));
+            Assert.AreEqual(1, falso.Ilegibles.Contar(new FiltroDeIlegibles()), "El falso borro de su diccionario.");
+        }
+    }
+
     // ─────────────────────────── el andamio ───────────────────────────
 
     private static readonly Pagina PrimeraPagina = new(0, 50);

@@ -127,13 +127,23 @@ public class PruebasDelLibroDeTrabajo
     public void SinNingunaFilaNoSePonenMenusSobreLaCabecera()
         => Assert.AreEqual(0, Hoja().DataValidations.Count());
 
+    /// <summary>
+    /// ⚠️ Ni la hoja va protegida ni queda una sola celda bloqueada, desde el 2026-09-07.
+    /// </summary>
+    /// <remarks>
+    /// Esta prueba afirmaba lo contrario y la cambió una orden del dueño: «no bloquees las
+    /// celdas por favor, de los paquetes». Se comprueban las DOS mitades porque en OOXML hacen
+    /// falta las dos: una hoja protegida bloquea todo lo que no diga lo contrario, y una marca
+    /// de celda sin protección no impide nada. El detalle está en
+    /// <see cref="PruebasDeQueNingunaCeldaVaBloqueada"/>.
+    /// </remarks>
     [TestMethod]
-    public void ElCasoElMrnYLaClaveQuedanBloqueadosYLaHojaProtegida()
+    public void NiLaHojaVaProtegidaNiQuedaNingunaCeldaBloqueada()
     {
         var hoja = Hoja(UnaFila());
-        Assert.IsTrue(hoja.Protection.IsProtected, "en OOXML el bloqueo de una celda no hace nada si la HOJA no esta protegida");
-        Assert.IsTrue(hoja.Cell(7, Columnas.IndiceDe("mrn")).Style.Protection.Locked);
-        Assert.IsTrue(hoja.Cell(7, Columnas.IndiceDe("clave")).Style.Protection.Locked);
+        Assert.IsFalse(hoja.Protection.IsProtected, "el dueño pidió que no se bloqueen las celdas de los paquetes");
+        Assert.IsFalse(hoja.Cell(7, Columnas.IndiceDe("mrn")).Style.Protection.Locked);
+        Assert.IsFalse(hoja.Cell(7, Columnas.IndiceDe("clave")).Style.Protection.Locked);
         Assert.IsFalse(hoja.Cell(7, Columnas.IndiceDe("nombre")).Style.Protection.Locked);
         Assert.IsFalse(hoja.Cell(7, Columnas.IndiceDe("paso_entrevistas")).Style.Protection.Locked);
     }
@@ -197,19 +207,22 @@ public class PruebasDelLibroDeTrabajo
     /// en <see cref="Columnas.Todas"/> dejaria pasar que alguien las siguiera pintando aparte.
     /// </remarks>
     [TestMethod]
-    public void LaHojaSaleConDieciseisColumnasYSinLaFechaDeSolicitudNiLaEstaca()
+    public void LaHojaSaleConDiecisieteColumnasYSinLaFechaDeSolicitudNiLaEstaca()
     {
         var hoja = Hoja(UnaFila());
-        Assert.AreEqual(16, hoja.LastColumnUsed()!.ColumnNumber(), "18 → 16: fuera la fecha de solicitud y la estaca");
+        Assert.AreEqual(17, hoja.LastColumnUsed()!.ColumnNumber(),
+            "18 → 16 el 2026-09-06 → 17 el 2026-09-07, cuando entró «Número de unidad»");
 
-        var rotulos = Enumerable.Range(1, 16)
+        var rotulos = Enumerable.Range(1, 17)
             .Select(columna => hoja.Cell(Columnas.FilaDeLaCabecera, columna).GetString())
             .ToArray();
         CollectionAssert.DoesNotContain(rotulos, "Fecha de solicitud");
         CollectionAssert.DoesNotContain(rotulos, "Estaca o distrito");
         Assert.AreEqual("Caso", rotulos[0]);
         Assert.AreEqual("Fecha de viaje", rotulos[1], "la fecha de viaje sube al puesto de la de solicitud");
-        Assert.AreEqual("clave", rotulos[15], "la clave sigue siendo la última y a la vista");
+        Assert.AreEqual("Número de unidad", rotulos[2], "el número de la unidad, en su propia columna");
+        Assert.AreEqual("Barrio o rama", rotulos[3], "y al lado el nombre de la unidad");
+        Assert.AreEqual("clave", rotulos[16], "la clave sigue siendo la última y a la vista");
     }
 
     [TestMethod]

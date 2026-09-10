@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Inicio;
 
 namespace Fichas.Pruebas.App.Inicio;
@@ -163,8 +164,12 @@ public sealed class PruebasDelHomeQueCuentaPersonas
 
         Assert.HasCount(1, dia.Pastillas, "Los dos documentos son de la misma unidad: una pastilla.");
         Assert.AreEqual(6, dia.Pastillas[0].CuantasPersonas);
+        // ⚠️ La cifra sigue siendo de PERSONAS confirmadas y no de documentos, que es lo que
+        // esta prueba defiende. La redacción cambió el 2026-09-07: decía «2 de 6 confirmadas».
         Assert.AreEqual(2, dia.Pastillas[0].CuantasPersonasConfirmadas);
-        Assert.AreEqual("2 de 6 confirmadas", dia.Pastillas[0].Etiqueta);
+        Assert.AreEqual("me falta 4 de 6", dia.Pastillas[0].Etiqueta);
+        // En voz alta SÍ se dice «confirmadas»: el lector de pantalla lee la explicación entera,
+        // que es el equivalente del detalle que en pantalla está a un clic.
         StringAssert.Contains(dia.Pastillas[0].ParaElLector, "confirmadas", StringComparison.Ordinal);
     }
 

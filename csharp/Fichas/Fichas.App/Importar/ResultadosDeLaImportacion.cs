@@ -49,4 +49,16 @@ public sealed record ResultadoDeUnDocumento(
     int Duplicados,
     int Ilegibles,
     string? Error,
-    double Segundos);
+    double Segundos)
+{
+    /// <summary>Los casos que nacieron de este documento, por su numero interno.</summary>
+    /// <remarks>
+    /// <para>Va fuera de la lista de arriba —y con valor por defecto— porque no es una cifra
+    /// del resumen: es lo que hace falta DESPUES, cuando la pantalla ensena las carpetas que
+    /// esta tanda va a formar en Revisar y lo que entro sin ninguna persona. Sin esto habria
+    /// que volver a leer la tabla entera y filtrarla por la ruta de cada PDF.</para>
+    /// <para><see cref="Casos"/> sigue siendo la cifra que se dice, y esta lista tiene
+    /// exactamente esa longitud: las dos salen del mismo recuento.</para>
+    /// </remarks>
+    public IReadOnlyList<long> CasoIds { get; init; } = [];
+}

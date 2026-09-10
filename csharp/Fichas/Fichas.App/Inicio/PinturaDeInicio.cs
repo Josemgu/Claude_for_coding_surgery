@@ -183,13 +183,23 @@ public static class PinturaDeInicio
     /// <param name="cuantasConfirmadas">Cuantas de sus personas tienen la recomendacion confirmada.</param>
     /// <param name="cuantasPersonas">Cuantas personas trae el grupo.</param>
     public static Brush FondoDeLaPastilla(int cuantasConfirmadas, int cuantasPersonas)
-        => EstaTodoCompleto(cuantasConfirmadas, cuantasPersonas) ? VerdeFondo : RojoFondo;
+        => ColoresDeLaPastilla.De(cuantasConfirmadas, cuantasPersonas) switch
+        {
+            ColorDeLaPastilla.Verde => VerdeFondo,
+            ColorDeLaPastilla.Gris => Panel,
+            _ => RojoFondo,
+        };
 
     /// <summary>La raya de la izquierda de la pastilla, que es lo que da el color.</summary>
     /// <param name="cuantasConfirmadas">Cuantas de sus personas tienen la recomendacion confirmada.</param>
     /// <param name="cuantasPersonas">Cuantas personas trae el grupo.</param>
     public static Brush BordeDeLaPastilla(int cuantasConfirmadas, int cuantasPersonas)
-        => EstaTodoCompleto(cuantasConfirmadas, cuantasPersonas) ? VerdeMarca : RojoMarca;
+        => ColoresDeLaPastilla.De(cuantasConfirmadas, cuantasPersonas) switch
+        {
+            ColorDeLaPastilla.Verde => VerdeMarca,
+            ColorDeLaPastilla.Gris => GrisMarca,
+            _ => RojoMarca,
+        };
 
     /// <summary>
     /// El detalle de un renglon; en rojo cuando el PDF no esta donde el documento dice.
@@ -249,9 +259,17 @@ public static class PinturaDeInicio
     /// <summary>Borde de 2 px, el que marca el dia de hoy.</summary>
     private static readonly Thickness BordeDeHoy = new(2);
 
-    /// <summary>Un grupo esta completo cuando lo estan todos sus documentos y hay alguno.</summary>
-    private static bool EstaTodoCompleto(int cuantasCompletas, int cuantosDocumentos)
-        => cuantosDocumentos > 0 && cuantasCompletas == cuantosDocumentos;
+    // ⛔ Aqui vivia `EstaTodoCompleto(cuantasCompletas, cuantosDocumentos)`, con este cuerpo:
+    //
+    //     cuantosDocumentos > 0 && cuantasCompletas == cuantosDocumentos
+    //
+    // Era la regla del color y tenia el defecto que el dueno vio el 2026-09-07: con cero
+    // personas devolvia falso —porque exige `cuantosDocumentos > 0`— y el falso caia directo en
+    // el rojo, asi que una unidad de la que no se leyo a nadie salia en ROJO diciendo «0 de 0
+    // confirmadas». La regla se mudo a `ColoresDeLaPastilla.De`, en `ModelosDeInicio.cs`, donde
+    // tiene TRES respuestas y donde ademas SE PUEDE PROBAR: aqui no, porque este tipo crea
+    // `SolidColorBrush` y eso no existe fuera del tiempo de ejecucion de XAML — medido: una
+    // prueba que toque este tipo lanza COMException antes de llegar a la regla.
 
     /// <summary>El de la paleta que toca segun el tema con el que se esta pintando.</summary>
     private static Brush Elegir(Brush claro, Brush oscuro) => EsOscuro ? oscuro : claro;

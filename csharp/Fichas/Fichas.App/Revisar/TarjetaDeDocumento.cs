@@ -1,5 +1,6 @@
 using Fichas.App.Asignar;
 using Fichas.App.Grupo;
+using Fichas.App.Vocabulario;
 using Fichas.Contratos.Modelos;
 using Fichas.Reportes.Reglas;
 
@@ -176,10 +177,81 @@ public sealed record TarjetaDeDocumento
     public EstadoQueSeVe EstadoQueSeVe => EstadosQueSeVen.DeLaTarjeta(Estado, Archivado, FechaYaPasada);
 
     /// <summary>
-    /// La palabra del estado: «sin revisar», «completa», «no esta completa» o «fecha pasada
-    /// completada».
+    /// Lo que se lee de este documento: una de las dos palabras, y detras que falta y a quien
+    /// le toca.
     /// </summary>
-    public string PalabraDelEstado => EstadosQueSeVen.PalabraDe(EstadoQueSeVe);
+    /// <remarks>
+    /// <para>⚠️ <b>Pasa por <see cref="LoQueSeLeeDeUnDocumento"/> y no por
+    /// <see cref="EstadoQueSeVe"/></b>, y la diferencia es un caso real: un archivado que
+    /// TODAVIA no ha viajado. Para el enum es su estado de siempre, porque aquel se invento
+    /// para la frase «fecha pasada completada»; para el dueno esta resuelto, porque archivar es
+    /// el gesto con el que el dice que ya no tiene nada que hacer con eso. La palabra sale de
+    /// donde esta esa regla escrita.</para>
+    ///
+    /// <para><b>Cuantos campos le faltan no se pregunta aqui</b> y va en cero a proposito: eso
+    /// exige leer <c>procedencia_campo</c>, y esta pantalla se carga de una sola pasada sobre
+    /// 3 000 documentos (criterio C13-5). La cuenta de campos vive en Inicio y en Completar,
+    /// que si la leen; lo que Revisar contesta es lo que dijo el companero.</para>
+    /// </remarks>
+    public LoQueSeLeeDeUnDocumento Lectura => LoQueSeLeeDeUnDocumento.De(
+        Estado,
+        Archivado,
+        cuantoLeFalta: 0,
+        sinNingunaPersonaLeida: Personas == 0,
+        quienLoLleva: SinAsignar ? string.Empty : AsignadoA,
+        firma: Firma,
+        fechaDeArchivado: FechaDeArchivado,
+        motivo: MotivoParaElDetalle);
+
+    /// <summary>
+    /// La palabra del estado: «resuelto» o «me falta», y no hay una tercera.
+    /// </summary>
+    /// <remarks>
+    /// ⛔ Hasta el 2026-09-07 decia una de CUATRO —«sin revisar», «completa», «no esta
+    /// completa» o «fecha pasada completada»—. Lo que decian no se pierde: esta en
+    /// <see cref="DetalleDelEstado"/>, que se abre cuando el dueno lo pide.
+    /// </remarks>
+    public string PalabraDelEstado => Lectura.Palabra;
+
+    /// <summary>Lo que lee en voz alta un lector de pantalla sobre la pastilla del estado.</summary>
+    /// <remarks>
+    /// Lleva la palabra Y el detalle, aunque en pantalla el detalle este a un clic: quien no ve
+    /// la pantalla no puede pulsar para enterarse de que le falta. Es la misma regla que ya
+    /// sigue <c>RenglonDeCaso.ParaElLector</c>.
+    /// </remarks>
+    public string NombreDeLaPastillaParaElLector => $"{NumeroDeCaso}: {Lectura.ParaElLector}. Pulse para verlo.";
+
+    /// <summary>Que falta y a quien le toca, o quien lo dio por bueno y cuando.</summary>
+    /// <remarks>
+    /// Es la otra mitad de la decision del dueno: <i>«me falta siempre puede decir que falta y
+    /// a quien le toca, y lo dice cuando el lo pide, no de entrada»</i>. Se lee al pulsar la
+    /// pastilla, no en la tarjeta: el ya rechazo por escrito los avisos que ocupan media
+    /// pantalla.
+    /// </remarks>
+    public string DetalleDelEstado => Lectura.Detalle;
+
+    /// <summary>Si esta tarjeta se lee «resuelto»; enciende su pastilla y no la otra.</summary>
+    public bool SeVeResuelto => Lectura.EsResuelto;
+
+    /// <summary>Si esta tarjeta se lee «me falta».</summary>
+    public bool SeVeMeFalta => Lectura.EsMeFalta;
+
+    /// <summary>El motivo que va DENTRO del detalle, sin la frase de quien lo dijo delante.</summary>
+    /// <remarks>
+    /// <see cref="LineaDelMotivo"/> compone la frase entera para la tarjeta; aqui hace falta
+    /// solo el motivo, porque <see cref="LoQueSeLeeDeUnDocumento"/> le pone delante «el
+    /// compañero dijo:» y con las dos saldria dicho dos veces.
+    /// </remarks>
+    private string MotivoParaElDetalle
+    {
+        get
+        {
+            if (Motivo != MotivoDeNoCompletar.SinMotivo) return PalabrasDelEstado.DecirElMotivo(Motivo);
+            return MotivoQueDijoElCompanero == MotivoDeNoCompletar.SinMotivo
+                ? string.Empty
+                : PalabrasDelEstado.DecirElMotivo(MotivoQueDijoElCompanero);
+        }
+    }
 
     /// <summary>Si la tarjeta se ve como «sin revisar»; enciende su pastilla y ninguna otra.</summary>
     /// <remarks>

@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Grupo;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
@@ -35,7 +36,8 @@ public sealed class PruebasDeLoIncompleto
         var renglon = resumen.Grupos.Single().Documentos.Single();
         Assert.AreEqual("HUEC2609", renglon.NumeroCaso);
         Assert.AreEqual(1, renglon.CuantoLeFalta);
-        Assert.AreEqual("le falta 1 dato", renglon.LoQueFaltaTexto);
+        Assert.AreEqual(DosEstados.MeFalta, renglon.PalabraDelEstado);
+        StringAssert.Contains(renglon.DetalleDelEstado, "le falta 1 dato");
         Assert.AreEqual(1, resumen.CuantosDocumentos);
     }
 
@@ -58,9 +60,16 @@ public sealed class PruebasDeLoIncompleto
         var renglon = BaseDeInicio.LectorDeIncompletosDe(servicios).Leer().Grupos.Single().Documentos.Single();
 
         Assert.AreEqual(0, renglon.CuantoLeFalta, "A este no le falta ningún dato en el sistema.");
-        Assert.AreEqual("listo para asignar", renglon.LoQueFaltaTexto);
-        Assert.AreEqual("no completada", renglon.EstadoTexto);
-        StringAssert.Contains(renglon.DetalleDeLoIncompleto, "no completada", StringComparison.Ordinal);
+        Assert.AreEqual(EstadoDeRecomendacion.NoCompleta, renglon.Estado,
+            "En la base sigue diciendo lo que dijo el Excel del compañero; eso no se colapsa.");
+        Assert.AreEqual(DosEstados.MeFalta, renglon.PalabraDelEstado);
+        // ⛔ 2026-09-07: los dos renglones decían frases distintas —«le falta 1 dato» contra
+        // «listo para asignar · no completada»— y ahora dicen la misma palabra. Lo que los
+        // distingue no se pierde: está en el detalle, y sigue diciendo QUIÉN lo dijo.
+        StringAssert.Contains(renglon.DetalleDelEstado, "el compañero dijo");
+        Assert.IsFalse(
+            renglon.DetalleDelEstado.Contains("dato", StringComparison.Ordinal),
+            "A este no le falta ningún dato del papel: lo que falta lo dijo el compañero.");
     }
 
     /// <summary>Un documento sin huecos y marcado completa NO sale.</summary>

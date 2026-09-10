@@ -288,6 +288,12 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
 
         (App.Ventana as VentanaPrincipal)?.AcuseDelPie.Decir(resumen.Linea());
         servicios.Registro.Anotar($"IMPORTACIÓN  {resumen.Linea()}");
+
+        // Las dos cosas que el dueno pidio el 2026-09-07 y que solo tienen sentido cuando la
+        // tanda ya termino: corregir las carpetas que se veran en Revisar, y borrar lo que
+        // entro sin ninguna persona. Estan en PaginaDeImportar.Carpetas.cs.
+        _ultimaTanda = resumen;
+        PintarLoDeDespuesDeLaTanda(servicios);
     }
 
     /// <summary>«3 de 500 documentos», con la concordancia bien puesta.</summary>

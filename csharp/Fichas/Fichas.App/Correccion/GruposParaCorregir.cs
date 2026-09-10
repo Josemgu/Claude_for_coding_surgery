@@ -96,6 +96,15 @@ public sealed record GrupoParaCorregir(
     /// <summary>Cuantos documentos trae este grupo. Sin tope: son todos los suyos.</summary>
     public int CuantosDocumentos => Documentos.Count;
 
+    /// <summary>«Grupo del 12 de septiembre · 325535 · Rama San Juan», sin la cuenta detras.</summary>
+    /// <remarks>
+    /// Va aparte de <see cref="Etiqueta"/> porque se usa para otra cosa: la etiqueta es lo que
+    /// se elige en un desplegable —y ahi la cifra manda—, y esto es como se NOMBRA el grupo al
+    /// decir a donde pasa un documento que sale de Correccion. Ahi la cuenta sobra y encima
+    /// mentiria: el documento que acaba de salir todavia no esta contado en ella.
+    /// </remarks>
+    public string Nombre => $"{CarpetaDeLaFecha} · {CarpetaDeLaUnidad}";
+
     /// <summary>Si es el grupo de los documentos cuya fecha de viaje no se pudo leer.</summary>
     /// <remarks>
     /// Se deduce de <see cref="FechaIso"/> vacio y no de una marca aparte, por lo mismo que

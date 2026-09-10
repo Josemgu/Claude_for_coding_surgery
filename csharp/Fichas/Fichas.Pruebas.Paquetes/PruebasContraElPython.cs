@@ -35,10 +35,18 @@ namespace Fichas.Pruebas.Paquetes;
 /// este proyecto no las guarda, asi que en su hoja eran ruido.
 /// </para>
 /// <para>
+/// <b>Tercera diferencia declarada, del 2026-09-07.</b> La hoja del C# lleva una columna mas que
+/// el Python no tiene —«Número de unidad»— y NINGUNA de sus celdas va bloqueada. Las dos las
+/// pidio el dueno el mismo dia: «el numero de unidad en un lado y al otro el nombre de la
+/// unidad» y «no bloquees las celdas por favor, de los paquetes». El Python bloquea
+/// <c>numero_caso</c> y <c>mrn</c> y protege la hoja; el C# ya no.
+/// </para>
+/// <para>
 /// Lo que se sigue comparando letra por letra son las CATORCE que quedan de las 16 del
-/// Python: sus nombres, sus titulos, su orden relativo, sus anchos, sus formatos, sus bloqueos
-/// y sus siete menus. Las dos quitadas se comprueban aparte —que no estan— en vez de dejar de
-/// nombrarlas: una comparacion con excepciones sin nombre deja de servir.
+/// Python: sus nombres, sus titulos, su orden relativo, sus anchos, sus formatos y sus siete
+/// menus. Los bloqueos ya NO se comparan contra el Python y se comprueban aparte, por su
+/// nombre. Las dos quitadas se comprueban aparte —que no estan— en vez de dejar de nombrarlas:
+/// una comparacion con excepciones sin nombre deja de servir.
 /// </para>
 /// </remarks>
 [TestClass]
@@ -47,9 +55,20 @@ public class PruebasContraElPython
     /// <summary>Las dos que el dueno quito el 2026-09-06; el Python las tiene y el C# ya no.</summary>
     private static readonly string[] LasDosQueSeQuitaron = ["fecha_solicitud", "estaca"];
 
-    /// <summary>Las dos que el dueno anadio el 2026-09-05; el C# las tiene y el Python no.</summary>
-    private static string[] LasDosQueSeAnadieron =>
-        [MotivosDeLaHoja.RotuloDelMotivo, MotivosDeLaHoja.RotuloDelComentario];
+    /// <summary>
+    /// Las tres que el C# tiene y el Python no, EN EL ORDEN EN QUE SALEN EN LA HOJA.
+    /// </summary>
+    /// <remarks>
+    /// El orden importa: se comparan contra <c>Except</c>, que conserva el orden de la hoja. El
+    /// numero de la unidad es del 2026-09-07 y va arriba, entre la fecha de viaje y el nombre de
+    /// la unidad; el motivo y el comentario son del 2026-09-05 y van pegados antes de la clave.
+    /// </remarks>
+    private static string[] LasQueSeAnadieron =>
+    [
+        Columnas.Por(Columnas.ColumnaDelNumeroDeUnidad).Titulo,
+        MotivosDeLaHoja.RotuloDelMotivo,
+        MotivosDeLaHoja.RotuloDelComentario,
+    ];
 
     private sealed record ColumnaDelPython(
         string nombre, string titulo, string clase, bool clave, bool editable, bool respuesta,
@@ -88,7 +107,9 @@ public class PruebasContraElPython
         var hoja = HojaDelCSharp();
         Assert.AreEqual(Python.hoja, hoja.Name);
         Assert.AreEqual("A7", $"A{hoja.SheetView.SplitRow + 1}", "el Python declara el congelado como «A7»");
-        Assert.AreEqual(Python.protegida, hoja.Protection.IsProtected);
+        Assert.IsTrue(Python.protegida, "el Python sí protege la hoja; esto vigila que la huella no cambie sola");
+        Assert.IsFalse(hoja.Protection.IsProtected,
+            "el dueño quitó la protección el 2026-09-07: «no bloquees las celdas por favor, de los paquetes»");
     }
 
     /// <summary>
@@ -121,14 +142,14 @@ public class PruebasContraElPython
         var nuestros = Columnas.Titulos().ToList();
         var titulosQuitados = TitulosDelPythonDe(LasDosQueSeQuitaron);
 
-        CollectionAssert.AreEqual(LasDosQueSeAnadieron, nuestros.Except(Python.titulos).ToArray(),
-            "no puede sobrar ninguna columna más que las dos que el dueño añadió el 2026-09-05");
+        CollectionAssert.AreEqual(LasQueSeAnadieron, nuestros.Except(Python.titulos).ToArray(),
+            "no puede sobrar ninguna columna más que las tres que el dueño añadió el 2026-09-05 y el 2026-09-07");
         CollectionAssert.AreEqual(titulosQuitados, Python.titulos.Except(nuestros).ToArray(),
             "no puede faltar ninguna columna más que las dos que el dueño quitó el 2026-09-06");
 
         CollectionAssert.AreEqual(
             Python.titulos.Where(t => !titulosQuitados.Contains(t)).ToArray(),
-            nuestros.Where(t => !LasDosQueSeAnadieron.Contains(t)).ToArray(),
+            nuestros.Where(t => !LasQueSeAnadieron.Contains(t)).ToArray(),
             "quitando las cuatro declaradas, la hoja sigue siendo la del Python en su orden");
     }
 
@@ -185,8 +206,8 @@ public class PruebasContraElPython
         // Las que quedan del Python, en el orden del Python. Las dos que el dueño quitó se
         // saltan aquí y se comprueban aparte, por su nombre, en su propia prueba.
         var python = Python.columnas.Where(c => !LasDosQueSeQuitaron.Contains(c.nombre)).ToArray();
-        Assert.HasCount(python.Length + 2, Columnas.Todas,
-            "las 14 que quedan del Python más las dos que el dueño añadió el 2026-09-05");
+        Assert.HasCount(python.Length + LasQueSeAnadieron.Length, Columnas.Todas,
+            "las 14 que quedan del Python más las tres que el dueño añadió el 2026-09-05 y el 2026-09-07");
 
         // ⚠️ NO se comprueba la posición absoluta de cada columna, y no es una relajación: con
         // dos columnas quitadas de en medio y dos añadidas al final, ninguna aritmética de
@@ -210,10 +231,11 @@ public class PruebasContraElPython
             Assert.AreEqual(esperada.nombre, nuestra.Nombre, $"columna {numero}: nombre");
             Assert.AreEqual(esperada.titulo, nuestra.Titulo, $"columna {numero}: título");
             Assert.AreEqual(esperada.clave, nuestra.EsClave, $"{esperada.nombre}: es clave");
-            Assert.AreEqual(esperada.editable, nuestra.EsEditable, $"{esperada.nombre}: es editable");
+            // ⚠️ `editable` y `bloqueada` YA NO se comparan contra el Python: el dueño desbloqueó
+            // la hoja entera el 2026-09-07. Se comprueban aparte, por su nombre, en
+            // `LoQueElPythonBloqueaYLaHojaDeHoyYaNo`.
             Assert.AreEqual(esperada.respuesta, nuestra.EsRespuesta, $"{esperada.nombre}: es respuesta");
             Assert.AreEqual((double)esperada.ancho, hoja.Column(numero).Width, $"{esperada.nombre}: ancho");
-            Assert.AreEqual(esperada.bloqueada, celda.Style.Protection.Locked, $"{esperada.nombre}: bloqueo");
             Assert.AreEqual(FormatoComparable(esperada.formato), FormatoComparable(celda.Style.NumberFormat.Format),
                 $"{esperada.nombre}: formato de número");
 
@@ -232,6 +254,29 @@ public class PruebasContraElPython
                     : celda.GetString();
                 Assert.AreEqual(esperada.valor_fila_7, nuestro, $"{esperada.nombre}: valor de la fila 7");
             }
+        }
+    }
+
+    /// <summary>
+    /// La tercera diferencia declarada, nombrada columna a columna: lo que el Python bloquea y
+    /// la hoja de hoy ya no.
+    /// </summary>
+    /// <remarks>
+    /// Se comprueba contra la huella y no contra dos textos escritos aquí: si el Python nunca
+    /// hubiera bloqueado nada, esta prueba estaría vigilando un cambio que nadie hizo.
+    /// </remarks>
+    [TestMethod]
+    public void LoQueElPythonBloqueaYLaHojaDeHoyYaNo()
+    {
+        var hoja = HojaDelCSharp();
+        var bloqueadasEnElPython = Python.columnas.Where(c => c.bloqueada).Select(c => c.nombre).ToArray();
+
+        Assert.IsNotEmpty(bloqueadasEnElPython, "el Python sí bloquea columnas: si no, no habría nada que declarar");
+        foreach (var nombre in bloqueadasEnElPython.Where(n => !LasDosQueSeQuitaron.Contains(n)))
+        {
+            Assert.IsFalse(
+                hoja.Cell(7, Columnas.IndiceDe(nombre)).Style.Protection.Locked,
+                $"«{nombre}» sigue bloqueada, y el dueño pidió el 2026-09-07 que no se bloquee ninguna");
         }
     }
 

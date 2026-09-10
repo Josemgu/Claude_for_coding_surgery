@@ -5,7 +5,7 @@ using Fichas.Contratos.Puertos;
 namespace Fichas.App.Reportes;
 
 /// <summary>
-/// Generar el PDF de los jefes y el del historico, y dejar dicho como quedo.
+/// Generar los tres informes —en PDF o en Excel— y dejar dicho como quedo.
 /// </summary>
 /// <remarks>
 /// <para>Es lo unico que hace la pantalla de Reportes cuando se pulsa el boton, y vive aqui
@@ -25,9 +25,25 @@ namespace Fichas.App.Reportes;
 public sealed class OperacionDeReporte
 {
     private readonly IReportes _reportes;
+    private readonly Fichas.Reportes.IReportesEnExcel? _enExcel;
 
-    /// <summary>Se ata al puerto de los reportes y a nada mas.</summary>
-    public OperacionDeReporte(IReportes reportes) => _reportes = reportes;
+    /// <summary>Se ata al puerto de los reportes, y al del Excel si ese motor lo cumple.</summary>
+    /// <remarks>
+    /// ⚠️ <b>El Excel entra por sondeo y no por el constructor</b>, y es deuda declarada, no una
+    /// decision de arquitectura: lo suyo seria que <see cref="IReportes"/> tuviera los tres
+    /// metodos, pero <c>Fichas.Contratos</c> esta congelado. Es el mismo camino que ya tomo el
+    /// reporte de la segunda vuelta. El motor de verdad los cumple los dos; el de
+    /// <c>--falso</c> no cumple el del Excel, y ahi esta bien que no: alli no hay archivo que
+    /// escribir y la pantalla lo dice, en vez de fingirlo.
+    /// </remarks>
+    public OperacionDeReporte(IReportes reportes)
+    {
+        _reportes = reportes;
+        _enExcel = reportes as Fichas.Reportes.IReportesEnExcel;
+    }
+
+    /// <summary>Si este motor sabe escribir en Excel; con <c>--falso</c> no sabe.</summary>
+    public bool SabeEscribirEnExcel => _enExcel is not null;
 
     /// <summary>Genera el informe del periodo en esa ruta.</summary>
     public ResumenEnPantalla DelPeriodo(PeriodoDeLaPantalla periodo, string ruta)
@@ -62,6 +78,59 @@ public sealed class OperacionDeReporte
             _reportes.GenerarReporteDeCompanero(quien.Id, periodo.Desde, periodo.Hasta, ruta),
             ruta,
             $"Informe de {quien.Nombre} {periodo.EnTexto()}");
+    }
+
+    // ---- los mismos tres, en Excel ------------------------------------------
+
+    /// <summary>Genera el informe del periodo en Excel en esa ruta.</summary>
+    /// <remarks>
+    /// Lo pidio el dueno el 2026-09-07: <i>«está bien el de PDF, pero también quiero uno con
+    /// Excel»</i>. Es el MISMO informe del PDF y llama al mismo motor; lo que cambia es la
+    /// forma, que en una hoja de calculo se puede filtrar, ordenar y sumar.
+    /// </remarks>
+    public ResumenEnPantalla DelPeriodoEnExcel(PeriodoDeLaPantalla periodo, string ruta)
+        => _enExcel is null
+            ? AquiNoHayExcel(ruta)
+            : Contar(
+                _enExcel.GenerarReporteDelPeriodoEnExcel(periodo.Desde, periodo.Hasta, ruta),
+                ruta,
+                $"Reporte {periodo.EnTexto()} en Excel");
+
+    /// <summary>Genera el historico completo en Excel en esa ruta.</summary>
+    public ResumenEnPantalla HistoricoEnExcel(string ruta)
+        => _enExcel is null
+            ? AquiNoHayExcel(ruta)
+            : Contar(_enExcel.GenerarHistoricoEnExcel(ruta), ruta, "Histórico completo en Excel");
+
+    /// <summary>Genera el informe de un agente en Excel en esa ruta.</summary>
+    public ResumenEnPantalla DeUnAgenteEnExcel(Companero quien, PeriodoDeLaPantalla periodo, string ruta)
+    {
+        ArgumentNullException.ThrowIfNull(quien);
+
+        return _enExcel is null
+            ? AquiNoHayExcel(ruta)
+            : Contar(
+                _enExcel.GenerarReporteDeCompaneroEnExcel(quien.Id, periodo.Desde, periodo.Hasta, ruta),
+                ruta,
+                $"Informe de {quien.Nombre} {periodo.EnTexto()} en Excel");
+    }
+
+    /// <summary>Lo que se dice cuando el motor de este arranque no escribe Excel.</summary>
+    /// <remarks>
+    /// Pasa con <c>--falso</c> y solo con <c>--falso</c>. Se dice a la cara en vez de decir
+    /// «escrito» sobre un archivo que nadie va a encontrar: es la misma decision del reporte de
+    /// la segunda vuelta y la del mantenimiento.
+    /// </remarks>
+    private static ResumenEnPantalla AquiNoHayExcel(string ruta)
+    {
+        var aviso = Aviso.Advierte(
+            "Este arranque no escribe informes en Excel.",
+            string.Empty,
+            "Pasa cuando el programa se abre con «--falso»: los datos son inventados y no hay "
+            + $"motor de informes detrás. No se escribió nada en «{ruta}». Con la base de "
+            + "verdad el botón sí escribe.");
+
+        return new ResumenEnPantalla(false, aviso.Linea, ResumenEnPantalla.DetalleDe([aviso]), null, [aviso]);
     }
 
     /// <summary>Escribe la linea con el archivo ya mirado y recoge lo que hay que avisar.</summary>

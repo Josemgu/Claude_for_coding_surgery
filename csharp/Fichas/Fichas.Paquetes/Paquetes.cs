@@ -243,7 +243,12 @@ public sealed class Paquetes : IPaquetes
                     // El dueno las quito de la hoja el 2026-09-06: ya no hay nada que poner.
                     FechaViaje = caso.FechaViaje,
                     Templo = caso.TemploNombre,
-                    UnidadNombre = UnidadConSuNumero(caso),
+                    // ⚠️ 2026-09-07: los dos datos de la unidad van SEPARADOS, cada uno en su
+                    // columna, porque el dueno lo pidio asi: «el numero de unidad en un lado y
+                    // al otro el nombre de la unidad». Antes se pegaban en una sola celda.
+                    // Cada uno sale como lo guarda la base y ninguno se retoca.
+                    UnidadNumero = caso.UnidadNumero,
+                    UnidadNombre = caso.UnidadNombre,
                     Nombre = persona.Nombre,
                     Mrn = persona.Mrn,
                     AQueVa = ResumirOrdenanzas(persona),
@@ -255,23 +260,11 @@ public sealed class Paquetes : IPaquetes
         return filas;
     }
 
-    /// <summary>
-    /// El barrio con su numero entre parentesis, o lo que haya de los dos.
-    /// </summary>
-    /// <remarks>
-    /// Si el numero ya esta dentro del nombre no se vuelve a pegar. Es el mismo cuidado que
-    /// tiene el programa viejo, y alli nacio de un caso real: en unos escaneos el nombre sale
-    /// ya con el numero y en otros suelto, y pegarlo siempre dejaba
-    /// «Cuatricentenaria (7000014) (7000014)», que no es lo que dice el papel.
-    /// </remarks>
-    private static string? UnidadConSuNumero(Caso caso)
-    {
-        var nombre = caso.UnidadNombre ?? string.Empty;
-        var numero = caso.UnidadNumero ?? string.Empty;
-        if (numero.Length == 0 || nombre.Contains(numero, StringComparison.Ordinal))
-            return nombre.Length > 0 ? nombre : (numero.Length > 0 ? numero : null);
-        return nombre.Length > 0 ? $"{nombre} ({numero})" : numero;
-    }
+    // ⛔ Aqui vivia `UnidadConSuNumero`, que pegaba el numero detras del nombre —«Cuatricentenaria
+    // (7000014)»— cuidando de no repetirlo cuando el escaneo ya lo traia dentro. El dueno pidio
+    // el 2026-09-07 los dos datos en dos columnas, asi que ya no hay nada que pegar y se quedo
+    // sin ningun sitio desde donde llamarla. Lo que hacia queda escrito aqui por si algun dia se
+    // quiere volver a juntar los dos en una sola celda.
 
     /// <summary>A que va la persona al templo, leido de las seis casillas del formulario.</summary>
     /// <remarks>Una casilla sin marcar no dice «no»: dice que nadie la leyo, y por eso no aparece.</remarks>

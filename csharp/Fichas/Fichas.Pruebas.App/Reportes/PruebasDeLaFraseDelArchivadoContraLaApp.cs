@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Asignar;
 using Fichas.App.Cascara;
 using Fichas.App.Inicio;
@@ -132,9 +133,11 @@ public sealed class PruebasDeLaFraseDelArchivadoContraLaApp
             mundo.Archivados.Where(enLasListas.Contains).ToList(),
             "Ni un archivado puede salir en «listo para asignar» ni en «asignado».");
 
-        // Y el calendario TAMPOCO los enseña, que es la otra mitad de la misma pantalla.
-        // Se mide archivando UN caso que el calendario está pintando ahora mismo y volviendo
-        // a leer: así la prueba no depende de que la semilla ponga un archivado en este mes.
+        // ⛔ 2026-09-07: EL CALENDARIO SÍ LOS ENSEÑA, y es lo único que cambió de esta prueba.
+        // Del dueño: «debe salir de todos lados EXCEPTO del calendario. Aunque se archive, debe
+        // quedarse en el calendario marcado en verde». Lo que sigue vigilando esta prueba —que
+        // un archivado no salga en «listo para asignar» ni en «asignado»— está arriba y no se
+        // toca. Aquí se mide la otra mitad: que se quede, y que no traiga la palabra.
         var antes = DocumentosEnElCalendario(resumen);
         Assert.IsGreaterThan(0, antes, "Si el calendario no pintara nada, esto no probaría nada.");
 
@@ -142,12 +145,19 @@ public sealed class PruebasDeLaFraseDelArchivadoContraLaApp
         new AccionesDeRevisar(mundo.Casos, mundo.Servicios.Reloj, new BuzonDeAvisos())
             .ArchivarEnLote([unoQueSeVe]);
 
-        var despues = DocumentosEnElCalendario(lector.Leer());
+        var despuesDeArchivar = lector.Leer();
+        var despues = DocumentosEnElCalendario(despuesDeArchivar);
 
         Assert.AreEqual(
-            antes - 1,
+            antes,
             despues,
-            "Archivar un caso tiene que quitarlo del calendario, no marcarlo dentro de él.");
+            "Archivar no lo saca del calendario: se queda, en verde (2026-09-07).");
+        Assert.IsEmpty(
+            despuesDeArchivar.Mes.Dias
+                .SelectMany(dia => dia.Pastillas)
+                .Where(p => p.Etiqueta.Contains("archivad", StringComparison.OrdinalIgnoreCase))
+                .ToList(),
+            "Pero la palabra «archivado» no vuelve a la etiqueta: era lo que le confundía.");
     }
 
     /// <summary>Cuantos documentos pinta el calendario del mes, sumando sus pastillas.</summary>

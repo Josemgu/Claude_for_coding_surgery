@@ -85,4 +85,33 @@ public static class MotivosDeIlegible
     /// avisos de ese mismo renglon.</para>
     /// </remarks>
     public const string CampoNoAceptado = "campo_no_aceptado";
+
+    /// <summary>
+    /// Como se lee ese codigo en una pantalla, en espanol.
+    /// </summary>
+    /// <remarks>
+    /// <para>Los codigos se guardan y se cuentan; lo que se ENSENA es esto. Un renglon que
+    /// dijera <c>no_se_pudo_abrir</c> delante del dueno le hace traducir jerga para saber
+    /// que le paso a su papel.</para>
+    ///
+    /// <para>⚠️ <b>Un codigo que no este en esta lista se devuelve TAL CUAL</b>, y es a
+    /// proposito: la base del dueno lleva renglones escritos por el programa viejo en
+    /// Python, y manana puede aparecer un codigo nuevo. Un codigo feo delante es mejor que
+    /// un renglon mudo —al menos se puede buscar—, y es la misma decision que
+    /// <c>EtiquetasDeLaCarga</c> tomo en el borrado.</para>
+    /// </remarks>
+    /// <param name="codigo">El codigo tal como esta en <c>documentos_ilegibles.motivo</c>.</param>
+    public static string EnEspanol(string? codigo) => codigo switch
+    {
+        NoSePudoAbrir => "no se pudo abrir el archivo",
+        SinTexto => "no se leyó ni una línea",
+        SinNumeroDeCaso => "no se leyó el número de caso",
+        EntroComoDuplicado => "repite a un documento que ya estaba",
+        HojaAparte => "la hoja contradecía a su hermana",
+        LoLeyoOtraHoja => "lo leyó otra hoja del mismo documento",
+        NumeroNoAceptado => "la base no aceptó el número de caso leído",
+        CampoNoAceptado => "la base no aceptó un campo leído",
+        null or "" => "sin motivo anotado",
+        _ => codigo,
+    };
 }

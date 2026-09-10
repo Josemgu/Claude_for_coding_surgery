@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Fichas.Pruebas.App.Cascara;
@@ -35,7 +35,7 @@ public sealed class PruebasDelEspanolDeLaPantalla
     /// <summary>Las carpetas de la app cuyos textos se barren.</summary>
     /// <remarks><c>Correccion</c> no esta, y el motivo va en el resumen de la clase.</remarks>
     private static readonly string[] ElTerrenoQueSeBarre =
-        ["Cascara", "Revisar", "Asignar", "Paquetes", "Reportes", "Importar", "Inicio"];
+        ["Cascara", "Revisar", "Asignar", "Paquetes", "Reportes", "Importar", "Inicio", "Flujo"];
 
     /// <summary>Lo minimo que hay que haber leido para que un cero signifique algo.</summary>
     /// <remarks>

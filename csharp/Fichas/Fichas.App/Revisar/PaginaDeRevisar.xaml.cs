@@ -169,7 +169,7 @@ public sealed partial class PaginaDeRevisar : PaginaDeFichas
         Servicios.Avisos.Dejar(Aviso.Advierte(
             linea,
             nameof(Caso.FechaViaje),
-            "Están en el tablero «Fecha pasada». En cada tarjeta, «Sí, completa» los deja "
+            "Están en el tablero «Fecha pasada». En cada tarjeta, «Resuelto» los deja "
             + "contando en los reportes, y «Archivar los marcados» los cierra sin borrarlos."));
     }
 

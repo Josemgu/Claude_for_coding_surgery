@@ -60,6 +60,34 @@ public sealed class OperacionDeAsignar
     }
 
     /// <summary>
+    /// Cuantos casos se le darian a ese companero si se siguiera adelante, y la pregunta.
+    /// </summary>
+    /// <remarks>
+    /// <para>Va separado de <see cref="AsignarVarios"/> a proposito y por lo mismo que
+    /// <see cref="MirarLoQueSeLeQuitaria"/>: <b>mirar no escribe nada</b>. Asi la pantalla
+    /// puede decir cuantos son, dejar que el dueno se eche atras, y no haber tocado la base
+    /// mientras tanto.</para>
+    ///
+    /// <para>Existe desde el 2026-09-09, con el reparto por grupo: asignar el grupo del 12 de
+    /// septiembre toca quince documentos de una vez, y todo lo que en este programa toca
+    /// muchos a la vez dice cuantos antes de hacerlo. Hasta hoy los dos botones de bloque de
+    /// <c>PaginaDeGrupo</c> asignaban directo y lo decian despues; eso NO se toca aqui —es
+    /// terreno de otro— pero esta puerta ya esta abierta para cuando se unifique.</para>
+    ///
+    /// <para>No se cuenta contra la base: los casos ya vienen contados por quien armo el
+    /// grupo, y volver a preguntar seria leer otra vez lo que ya esta en la mano.</para>
+    /// </remarks>
+    /// <param name="casoIds">Los documentos del grupo que se iba a repartir.</param>
+    /// <param name="nombreDelCompanero">A quien se le darian, para poder nombrarlo.</param>
+    /// <param name="deQueGrupo">De que grupo son, tal como se lee en el panel.</param>
+    public LoQueSeVaAAsignar MirarLoQueSeVaAAsignar(
+        IReadOnlyCollection<long> casoIds, string nombreDelCompanero, string deQueGrupo)
+    {
+        ArgumentNullException.ThrowIfNull(casoIds);
+        return new(casoIds.Count, nombreDelCompanero, deQueGrupo);
+    }
+
+    /// <summary>
     /// Cuantos casos se le quitarian a ese companero, y la pregunta con el numero delante.
     /// </summary>
     /// <remarks>
@@ -107,6 +135,45 @@ public sealed class OperacionDeAsignar
             _avisos.Dejar(resultado.Avisos);
             if (resultado.SeEscribio) retirados++;
             else noSePudieron++;
+        }
+
+        return new ResumenDeRetirada(retirados, noSePudieron, nombreDelCompanero);
+    }
+
+    /// <summary>
+    /// Le retira a ESE companero las asignaciones vivas de esos casos, y a nadie mas.
+    /// </summary>
+    /// <remarks>
+    /// <para>Lo pidio el dueno el 2026-09-07 para el paquete que vuelve completo: <i>«cuando el
+    /// sube un paquete que completo, debe quitarle que ese caso esta asignado a el»</i>. Quien
+    /// decide QUE casos son es <see cref="Fichas.App.Paquetes.LimpiezaAlVolver"/>; aqui solo se
+    /// retiran.</para>
+    ///
+    /// <para>⚠️ <b>Se filtra por companero y esa es la diferencia con
+    /// <see cref="RetirarDelCaso"/>.</b> Un caso puede llevarlo mas de uno a la vez (la P-11
+    /// sigue abierta), y quitarselo a todos porque uno lo devolvio completo le borraria el
+    /// trabajo al otro sin que nadie lo haya pedido.</para>
+    ///
+    /// <para>Va por <see cref="IAsignaciones.Retirar"/>, la misma puerta que las otras dos: la
+    /// fila se desactiva con su fecha y nunca se borra, asi que quien llevo que caso se
+    /// conserva.</para>
+    /// </remarks>
+    public ResumenDeRetirada RetirarleEstosCasos(
+        long companeroId, IReadOnlyCollection<long> casoIds, string nombreDelCompanero)
+    {
+        ArgumentNullException.ThrowIfNull(casoIds);
+
+        var retirados = 0;
+        var noSePudieron = 0;
+        foreach (var casoId in casoIds)
+        {
+            foreach (var asignacion in _asignaciones.VivasDeCaso(casoId).Where(una => una.CompaneroId == companeroId))
+            {
+                var resultado = _asignaciones.Retirar(asignacion.Id, _reloj.Ahora());
+                _avisos.Dejar(resultado.Avisos);
+                if (resultado.SeEscribio) retirados++;
+                else noSePudieron++;
+            }
         }
 
         return new ResumenDeRetirada(retirados, noSePudieron, nombreDelCompanero);
@@ -174,6 +241,61 @@ public sealed record LoQueSeLeQuitaria(int CasosQueLleva, string NombreDelCompan
                  + $". {vuelven} a estar sin asignar y {sePuedenDar} a otra persona. "
                  + "No se borra nada del documento: su estado, lo que contestó el agente y las firmas "
                  + "se quedan como están.";
+        }
+    }
+}
+
+/// <summary>
+/// Lo que se le daria a un companero si se siguiera adelante. Mirarlo no escribe nada.
+/// </summary>
+/// <remarks>
+/// Existe para poder decir el numero ANTES de tocar la base, que es como pregunta este
+/// programa cuando un gesto toca muchos documentos de una vez. Es el hermano de
+/// <see cref="LoQueSeLeQuitaria"/> y la pregunta va en la propia pantalla, no en un cuadro
+/// que detiene el trabajo: el unico autorizado a detenerlo es borrar de verdad
+/// (<c>Fichas.App/Revisar/OperacionDeBorrar.cs</c>).
+/// </remarks>
+/// <param name="Cuantos">Cuantos documentos trae el grupo que se iba a repartir.</param>
+/// <param name="NombreDelCompanero">A quien se le darian, para poder nombrarlo.</param>
+/// <param name="DeQueGrupo">De que grupo son, tal como se lee en el panel.</param>
+public sealed record LoQueSeVaAAsignar(int Cuantos, string NombreDelCompanero, string DeQueGrupo)
+{
+    /// <summary>Si hay algo que dar; con cero no se enciende el boton de confirmar.</summary>
+    public bool HayAlgoQueAsignar => Cuantos > 0;
+
+    /// <summary>La pregunta con el numero delante, el grupo nombrado y lo que NO pasa dicho.</summary>
+    /// <remarks>
+    /// <para>Nombra el grupo porque en esta pantalla hay muchos y el gesto es el mismo en
+    /// todos: una pregunta que dijera solo «se van a asignar 15» no deja comprobar que son
+    /// los 15 del dia que se queria repartir.</para>
+    ///
+    /// <para>Dice lo que NO pasa por lo mismo que la pregunta de quitar: sin esa frase,
+    /// «asignar el grupo entero» se lee como si se cerrara el trabajo de esos documentos, y
+    /// asignar no marca nada como verificado (regla permanente 5).</para>
+    ///
+    /// <para>Las formas del verbo se calculan ANTES y no dentro del texto: un condicional
+    /// metido en medio de la frase la parte en trozos que ya no se leen como espanol.</para>
+    /// </remarks>
+    public string Pregunta
+    {
+        get
+        {
+            if (Cuantos == 0) return $"En {DeQueGrupo} no hay ningún documento que asignar.";
+
+            var esUnoSolo = Cuantos == 1;
+            var van = esUnoSolo ? "va" : "van";
+            // ⚠️ La frase del final concuerda ENTERA, sujeto incluido. Con solo el verbo
+            // cambiado se leia «los documentos se quedan como estaba», que se vio pintado en
+            // la ventana el 2026-09-09: el sujeto en plural no se puede dejar fijo.
+            var seQuedanComoEstaban = esUnoSolo
+                ? "el documento se queda como estaba"
+                : "los documentos se quedan como estaban";
+
+            return $"Se {van} a asignar a {NombreDelCompanero} "
+                 + Plural.Con(Cuantos, "documento", "documentos")
+                 + $" de {DeQueGrupo}. "
+                 + $"Si alguno ya lo llevaba otra persona, se {van} a quedar con los dos y se avisa. "
+                 + $"No se marca nada como revisado: {seQuedanComoEstaban}.";
         }
     }
 }

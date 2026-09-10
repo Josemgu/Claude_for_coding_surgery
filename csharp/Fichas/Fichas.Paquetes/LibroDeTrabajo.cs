@@ -23,8 +23,21 @@ public sealed record FilaDeTrabajo
     /// <summary>El templo; no va en la tabla, va en la cabecera de la hoja.</summary>
     public string? Templo { get; init; }
 
-    /// <summary>El barrio o rama, con su numero entre parentesis cuando lo hay.</summary>
+    /// <summary>
+    /// El barrio o rama, tal como lo guarda la base y SIN el numero pegado detras.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Hasta el 2026-09-07 aqui llegaba «Cuatricentenaria (7000014)», armado por
+    /// <c>Paquetes.UnidadConSuNumero</c>. El dueno pidio los dos datos separados —«el numero de
+    /// unidad en un lado y al otro el nombre de la unidad»— y ahora cada uno viaja en su
+    /// propiedad y sale en su columna. Lo que la base guarde es lo que se escribe: si el
+    /// escaneo dejo el numero dentro del nombre, sale dentro del nombre, porque corregirlo
+    /// aqui seria cambiar un dato leido.
+    /// </remarks>
     public string? UnidadNombre { get; init; }
+
+    /// <summary>El numero de la unidad, tal como lo guarda la base.</summary>
+    public string? UnidadNumero { get; init; }
 
     /// <summary>El nombre de la persona tal como se leyo o se corrigio.</summary>
     public string? Nombre { get; init; }
@@ -43,6 +56,7 @@ public sealed record FilaDeTrabajo
     {
         "numero_caso" => NumeroCaso,
         "fecha_viaje" => FechaViaje,
+        Columnas.ColumnaDelNumeroDeUnidad => UnidadNumero,
         "unidad_nombre" => UnidadNombre,
         "nombre" => Nombre,
         "mrn" => Mrn,
@@ -76,11 +90,18 @@ public sealed record CabeceraDeLaHoja(string NumeroDeCaso, string Templo, string
 /// rellena el companero, con menu de dos opciones.
 /// </para>
 /// <para>
-/// ⚠️ El bloqueo de una celda no hace nada por si solo en OOXML: solo surte efecto cuando
-/// la HOJA esta protegida. Por eso se hacen las dos cosas. Y NO es una barrera contra
-/// alguien que quiera saltarsela —la proteccion se quita desde el menu de Excel—: es una
-/// barrera contra el accidente de teclear encima del MRN creyendo que se corrige. La
-/// defensa de verdad esta en la vuelta: la fila cuya clave no casa no se aplica.
+/// ⚠️ <b>Nada de esta hoja va bloqueado desde el 2026-09-07</b>, por orden del dueno: «no
+/// bloquees las celdas por favor, de los paquetes». Se quitaron las DOS mitades del bloqueo
+/// —la marca de celda y la proteccion de la hoja— y hacia falta quitar las dos: en OOXML la
+/// marca no impide nada mientras la hoja no este protegida, pero una hoja protegida bloquea
+/// todo lo que no diga lo contrario, porque el valor por defecto de una celda es «bloqueada».
+/// Dejar las marcas puestas seria una trampa para el dia que alguien proteja la hoja.
+/// </para>
+/// <para>
+/// Lo que aquel bloqueo protegia era el par <c>numero_caso</c> + <c>mrn</c>, y ya no
+/// reconcilia: desde el 2026-09-03 la hoja lleva la columna <c>clave</c> y la vuelta casa por
+/// ella. La defensa de verdad siempre estuvo ahi —la fila cuya clave no casa no se aplica— y
+/// esta medida en <c>PruebasDeLaClaveEstropeada</c>.
 /// </para>
 /// </remarks>
 public static class LibroDeTrabajo
@@ -197,9 +218,8 @@ public static class LibroDeTrabajo
         EnsancharLasColumnas(hoja);
 
         hoja.SheetView.FreezeRows(Columnas.FilaDeLaCabecera);
-        // La proteccion va DESPUES de escribirlo todo: es lo que activa los bloqueos de
-        // celda de arriba. Sin esta linea, marcar una celda como bloqueada no impide nada.
-        hoja.Protect();
+        // ⛔ Aqui iba `hoja.Protect()`, que era lo que activaba los bloqueos de celda. El dueno
+        // lo quito el 2026-09-07: «no bloquees las celdas por favor, de los paquetes».
         return libro;
     }
 
@@ -258,7 +278,8 @@ public static class LibroDeTrabajo
             celda.Style.Fill.BackgroundColor = XLColor.FromHtml(Tinta);
             celda.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
             celda.Style.Alignment.WrapText = true;
-            celda.Style.Protection.Locked = true;
+            // Ni el titulo: la hoja entera queda libre desde el 2026-09-07.
+            celda.Style.Protection.Locked = false;
         }
         hoja.Row(Columnas.FilaDeLaCabecera).Height = AltoDeLaCabecera;
     }
@@ -298,6 +319,9 @@ public static class LibroDeTrabajo
         // hoja del Python con la del C#: es la unica diferencia de formato que salio.
         if (columna.Clase == ClaseDeColumna.Temporal && celda.DataType == XLDataType.DateTime)
             celda.Style.NumberFormat.Format = FormatoDeFechaEnExcel;
+        // Se escribe a mano y no se deja al valor por defecto: en Excel una celda nace
+        // «bloqueada», asi que callarse aqui dejaria la hoja lista para bloquearse sola el dia
+        // que alguien la proteja.
         celda.Style.Protection.Locked = !columna.EsEditable;
         celda.Style.Border.BottomBorder = XLBorderStyleValues.Thin;
         celda.Style.Border.BottomBorderColor = XLColor.FromHtml(Linea);

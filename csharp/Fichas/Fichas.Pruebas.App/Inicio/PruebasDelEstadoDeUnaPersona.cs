@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Grupo;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
@@ -94,9 +95,18 @@ public sealed class PruebasDelEstadoDeUnaPersona
         Assert.AreEqual(No, personas[1].Recomendacion, "La segunda tiene una en no.");
         Assert.IsNull(personas[2].Recomendacion, "Sin contestar no es «no».");
 
-        StringAssert.Contains(personas[0].RecomendacionTexto, "lista para viajar", StringComparison.Ordinal);
-        StringAssert.Contains(personas[1].RecomendacionTexto, "no lista para viajar", StringComparison.Ordinal);
-        StringAssert.Contains(personas[2].RecomendacionTexto, "sin mirar", StringComparison.Ordinal);
+        // ⛔ 2026-09-07: la frase decía «lista para viajar · recomendación confirmada» o
+        // «sin mirar · recomendación sin confirmar», con TRES de las cuatro palabras que el
+        // dueño retiró. Lo que estas pruebas defienden es lo que más importa de aquel criterio
+        // y NO cambia: que «sin mirar» y «no lista» sigan siendo cosas distintas, porque dar
+        // por lista a una persona de la que faltan preguntas por mirar es lo que manda a
+        // alguien al templo con la recomendación mal. La palabra es la misma para las dos; el
+        // detalle las separa, y eso es lo que se comprueba.
+        Assert.AreEqual(DosEstados.Resuelto, personas[0].PalabraDelEstado);
+        Assert.AreEqual(DosEstados.MeFalta, personas[1].PalabraDelEstado);
+        Assert.AreEqual(DosEstados.MeFalta, personas[2].PalabraDelEstado);
+        StringAssert.Contains(personas[1].DetalleDelEstado, "se quedó en", StringComparison.Ordinal);
+        StringAssert.Contains(personas[2].DetalleDelEstado, "nadie ha contestado", StringComparison.Ordinal);
 
         Assert.AreNotEqual(personas[1].RecomendacionTexto, personas[2].RecomendacionTexto,
             "«No lista» y «sin mirar» no pueden leerse igual.");
@@ -150,8 +160,14 @@ public sealed class PruebasDelEstadoDeUnaPersona
             .DelDia(ElDiaDelViaje).EnUnaSolaLista().Where(r => r.EsUnaPersona).ToList();
 
         Assert.HasCount(2, renglones);
-        StringAssert.Contains(renglones[0].Detalle, "recomendación confirmada", StringComparison.Ordinal);
-        StringAssert.Contains(renglones[1].Detalle, "recomendación sin confirmar", StringComparison.Ordinal);
+        // ⛔ 2026-09-07: el renglón decía «recomendación confirmada» / «recomendación sin
+        // confirmar». Ahora dice una de las dos palabras, y lo que las separaba sigue separado
+        // en el DETALLE, que es lo que esta prueba comprueba a continuación: una habla de las
+        // seis preguntas contestadas que sí, la otra de dónde se quedó.
+        Assert.AreEqual(DosEstados.Resuelto, renglones[0].PalabraDelEstado);
+        Assert.AreEqual(DosEstados.MeFalta, renglones[1].PalabraDelEstado);
+        StringAssert.Contains(renglones[0].DetalleDelEstado, "dicen que sí", StringComparison.Ordinal);
+        StringAssert.Contains(renglones[1].DetalleDelEstado, "líder", StringComparison.Ordinal);
         Assert.AreEqual(Si, renglones[0].Recomendacion, "El primer renglón es de una persona lista.");
         Assert.AreEqual(No, renglones[1].Recomendacion, "El segundo, de una que no lo está.");
 
@@ -178,8 +194,8 @@ public sealed class PruebasDelEstadoDeUnaPersona
 
         Assert.HasCount(1, personas);
         Assert.IsNull(personas[0].Recomendacion);
-        StringAssert.Contains(personas[0].RecomendacionTexto, "sin mirar", StringComparison.Ordinal);
-        StringAssert.Contains(personas[0].RecomendacionTexto, "recomendación sin confirmar", StringComparison.Ordinal);
+        Assert.AreEqual(DosEstados.MeFalta, personas[0].PalabraDelEstado);
+        StringAssert.Contains(personas[0].DetalleDelEstado, "nadie ha contestado", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -258,8 +274,13 @@ public sealed class PruebasDelEstadoDeUnaPersona
         Assert.AreEqual(1, grupo.CuantasPersonasNoListas);
         Assert.AreEqual(3, grupo.CuantasPersonasSinMirar);
 
+        // ⚠️ La CIFRA sigue contándose igual y sigue siendo la de personas, que es lo que esta
+        // prueba defiende. Lo que cambió el 2026-09-07 es cómo se escribe: la línea decía
+        // «2 de 6 personas confirmadas» y ahora dice «me falta 4 de 6», porque «confirmadas»
+        // es una de las cuatro palabras que el dueño retiró.
         Assert.AreEqual(2, grupo.Unidades[0].CuantasPersonasConfirmadas);
-        StringAssert.Contains(grupo.Unidades[0].Detalle, "2 de 6 personas confirmadas", StringComparison.Ordinal);
+        StringAssert.Contains(grupo.Unidades[0].Detalle, DosEstados.Cuenta(2, 6), StringComparison.Ordinal);
+        StringAssert.Contains(grupo.Unidades[0].Detalle, "4 de 6", StringComparison.Ordinal);
 
         Assert.AreNotEqual(grupo.CuantosDocumentos, grupo.CuantasPersonasSinConfirmar,
             "Si las dos cifras coincidieran, la prueba no demostraría el cambio de unidad.");

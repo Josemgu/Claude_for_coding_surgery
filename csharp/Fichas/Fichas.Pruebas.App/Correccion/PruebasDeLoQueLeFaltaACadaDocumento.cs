@@ -36,9 +36,17 @@ public sealed class PruebasDeLoQueLeFaltaACadaDocumento
         var loQueFalta = LoQueLeFaltaACadaDocumento.DeTodaLaBase(
             servicios.Casos, servicios.Personas, servicios.Procedencia);
 
-        Assert.AreEqual(LasDosPreguntas.ListoParaAsignarConSuSignificado, loQueFalta.De(entero));
-        Assert.AreEqual("le falta 1 dato", loQueFalta.De(sinTemplo));
-        Assert.AreEqual(LasDosPreguntas.SinNingunaPersonaLeidaConSuSignificado, loQueFalta.De(sinNadie));
+        // ⛔ 2026-09-07: las tres frases cambiaron de redacción con el colapso a dos palabras.
+        // Lo que esta prueba defiende es que las TRES respuestas se distingan y salgan de la
+        // misma composición que la pantalla del grupo, y eso no cambia.
+        StringAssert.Contains(loQueFalta.De(entero), "repartirlo", StringComparison.Ordinal);
+        StringAssert.Contains(loQueFalta.De(sinTemplo), "le falta 1 dato", StringComparison.Ordinal);
+        StringAssert.Contains(loQueFalta.De(sinNadie), "no se leyó ninguna persona", StringComparison.Ordinal);
+
+        Assert.AreEqual(
+            LasDosPreguntas.LoQueLeFaltaAlDocumento(0, sinNingunaPersonaLeida: false),
+            loQueFalta.De(entero),
+            "sale de la MISMA composición que la pantalla del grupo");
     }
 
     /// <summary>Un documento que no esta en la base no se inventa: se calla.</summary>

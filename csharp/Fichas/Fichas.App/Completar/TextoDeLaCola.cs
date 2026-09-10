@@ -52,13 +52,17 @@ public static class TextoDeLaCola
     /// Lo que se dice del documento que acaba de quedar sin huecos y sale de la cola.
     /// </summary>
     /// <remarks>
-    /// ⛔ Dice «listo para asignar», que es una lectura del estado, y NO dice «verificado»:
-    /// la firma sigue siendo de Miguel y sigue sin ser automatica (regla permanente 5).
+    /// <para>⛔ 2026-09-07: decia «listo para asignar · el sistema llenó todos los campos».
+    /// Ahora dice lo que HA PASADO —que ya no le falta información y sale de la cola— sin usar
+    /// ninguna de las cuatro palabras retiradas.</para>
+    ///
+    /// <para>Y sigue sin decir «verificado»: la firma es de Miguel y sigue sin ser automatica
+    /// (regla permanente 5).</para>
     /// </remarks>
     /// <param name="numeroCaso">El numero del documento que sale.</param>
     /// <param name="quedan">Cuantos quedan en la cola despues de sacarlo.</param>
     public static string AlSalirDeLaCola(string numeroCaso, int quedan)
-        => $"{numeroCaso} · {LasDosPreguntas.ListoParaAsignarConSuSignificado}. "
+        => $"{numeroCaso} · ya no le falta información. "
            + $"Sale de la cola; quedan {quedan}.";
 
     /// <summary>«CASP2609 sigue en la cola: le faltan 2 datos.»</summary>
@@ -114,7 +118,7 @@ public static class TextoDeLaCola
     /// </remarks>
     public const string CuandoNoQuedaNada =
         "No queda ningún documento con información que falte. "
-        + "Eso no quiere decir que cada persona esté " + LasDosPreguntas.ListaParaViajar
+        + "Eso no quiere decir que cada persona pueda viajar"
         + ": la recomendación se confirma en el sistema del obispo, y eso no lo ve este programa.";
 
     /// <summary>El rotulo del boton que arranca el flujo desde el primero de la cola.</summary>

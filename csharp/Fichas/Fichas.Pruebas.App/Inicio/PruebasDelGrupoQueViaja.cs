@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Asignar;
 using Fichas.App.Cascara;
 using Fichas.App.Grupo;
@@ -146,8 +147,11 @@ public sealed class PruebasDelGrupoQueViaja
 
         var grupo = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8));
 
+        // ⚠️ La cuenta de DOCUMENTOS completos sigue siendo la misma y sigue aparte de la de
+        // personas; lo que cambió el 2026-09-07 es la redacción: decía «2 de 3 completas».
         Assert.AreEqual(2, grupo.CuantasCompletas);
-        StringAssert.Contains(grupo.ComoVa, "2 de 3 completas", StringComparison.Ordinal);
+        StringAssert.Contains(grupo.ComoVa, DosEstados.Cuenta(2, 3), StringComparison.Ordinal);
+        StringAssert.Contains(grupo.ComoVa, "1 de 3", StringComparison.Ordinal);
     }
 
     /// <summary>Un grupo con todo completo lo dice y no anade ningun motivo.</summary>
@@ -159,7 +163,7 @@ public sealed class PruebasDelGrupoQueViaja
 
         var grupo = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8));
 
-        Assert.AreEqual("1 de 1 completa", grupo.ComoVa);
+        Assert.AreEqual(DosEstados.Resuelto, grupo.ComoVa, "Sin motivo detrás: no falta ninguno.");
     }
 
     /// <summary>
@@ -556,10 +560,13 @@ public sealed class PruebasDelGrupoQueViaja
 
         // ⚠️ La etiqueta cambio de unidad el 2026-09-05 (criterio C20-3): antes decia
         // «8 pers. · 0/4», donde el 0 y el 4 eran DOCUMENTOS completos. Ahora cuenta
-        // PERSONAS confirmadas, que es lo que el dueno hace con esa cifra: «faltan 3, 4 o 5
-        // personas que la recomendación no está confirmada». Ninguna de las ocho tiene sus
-        // seis preguntas contestadas, asi que son 0 de 8.
-        Assert.AreEqual("0 de 8 confirmadas", dia.Pastillas[0].Etiqueta);
+        // PERSONAS, que es lo que el dueno hace con esa cifra: «faltan 3, 4 o 5 personas que la
+        // recomendación no está confirmada». Ninguna de las ocho tiene sus seis preguntas
+        // contestadas, asi que le faltan las ocho.
+        // ⛔ Y el 2026-09-07 dejo de decir «0 de 8 confirmadas»: la cifra se queda y la palabra
+        // pasa a ser una de las dos.
+        Assert.AreEqual("me falta 8 de 8", dia.Pastillas[0].Etiqueta);
+        Assert.AreEqual(0, dia.Pastillas[0].CuantasPersonasConfirmadas, "La cifra de confirmadas no se toca.");
     }
 
     /// <summary>El calendario y la pantalla del grupo cuentan lo mismo para el mismo dia.</summary>

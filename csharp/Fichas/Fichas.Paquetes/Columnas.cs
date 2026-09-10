@@ -52,7 +52,10 @@ public enum ClaseDeRespuesta
 /// <param name="Titulo">Como sale impresa en la hoja; es tambien lo que se busca al volver.</param>
 /// <param name="Clase">Como entra el valor en la celda.</param>
 /// <param name="EsClave">Si es parte del par que reconcilia.</param>
-/// <param name="EsEditable">Si el companero la puede teclear; las que no, se escriben bloqueadas.</param>
+/// <param name="EsEditable">
+/// Si el companero la puede teclear. Desde el 2026-09-07 lo son TODAS, por orden del dueno
+/// —«no bloquees las celdas por favor, de los paquetes»—, asi que ninguna se escribe bloqueada.
+/// </param>
 /// <param name="Respuesta">Que le pide al companero, si es que le pide algo.</param>
 public sealed record ColumnaDeLaHoja(
     string Nombre,
@@ -128,15 +131,29 @@ public static class Columnas
     /// <summary>Lo que se ensancha una columna que no tiene ancho propio: los seis pasos.</summary>
     public const int AnchoDeUnPaso = 13;
 
+    /// <summary>Como se llama en la base la columna con el numero de la unidad.</summary>
+    public const string ColumnaDelNumeroDeUnidad = "unidad_numero";
+
     /// <summary>
-    /// Las 16 columnas en el orden en que salen impresas.
+    /// Las 17 columnas en el orden en que salen impresas.
     /// </summary>
     /// <remarks>
-    /// ⚠️ <c>numero_caso</c> y <c>mrn</c> van BLOQUEADAS. Son las dos mitades del par que
-    /// reconcilia: si el companero corrige un MRN «que estaba mal», su fila deja de casar
-    /// y su trabajo entero se va a la lista de descartados. <c>nombre</c> SI se deja
-    /// editable, y no es un descuido: la reconciliacion NUNCA mira el nombre, asi que un
-    /// acento cambiado no puede hacer dano.
+    /// ⚠️ <b>Ninguna va bloqueada desde el 2026-09-07</b>, por orden del dueno: «no bloquees
+    /// las celdas por favor, de los paquetes». Hasta ese dia <c>numero_caso</c> y <c>mrn</c>
+    /// iban bloqueadas como las dos mitades del par que reconciliaba. Ya no reconcilian: desde
+    /// el 2026-09-03 la hoja lleva la columna <c>clave</c> y
+    /// <c>Reconciliacion.ParDeLaFila</c> casa POR ELLA cuando la hoja la trae. Siguen
+    /// declaradas <see cref="ColumnaDeLaHoja.EsClave"/> porque son el par de respaldo cuando la
+    /// hoja NO trae la columna <c>clave</c>, y ese camino esta medido en
+    /// <c>PruebasDeLaClaveEstropeada</c>.
+    /// <para>
+    /// ⚠️ <b><c>unidad_numero</c> es del 2026-09-07 y la pidio el dueno:</b> «en el paquete que
+    /// se prepara para los agentes debe estar el numero de unidad en un lado y al otro el
+    /// nombre de la unidad». Antes el numero salia PEGADO dentro de la celda del nombre
+    /// —«Cuatricentenaria (7000014)»— y no habia forma de leer uno sin el otro. Va como
+    /// <see cref="ClaseDeColumna.Texto"/> por lo mismo que el MRN: sin formato de texto, Excel
+    /// se come un cero de delante y el numero deja de ser el que dice el papel.
+    /// </para>
     /// <para>
     /// Las dos ultimas antes de la clave —el motivo y el comentario— las pidio el dueno el
     /// 2026-09-05: «en el calendario tambien puede decir el estado: no completado, no se
@@ -148,12 +165,13 @@ public static class Columnas
     /// </remarks>
     public static IReadOnlyList<ColumnaDeLaHoja> Todas { get; } =
     [
-        new("numero_caso", "Caso", ClaseDeColumna.Texto, EsClave: true, EsEditable: false, ClaseDeRespuesta.Ninguna),
-        new("fecha_viaje", "Fecha de viaje", ClaseDeColumna.Temporal, false, false, ClaseDeRespuesta.Ninguna),
-        new("unidad_nombre", "Barrio o rama", ClaseDeColumna.Crudo, false, false, ClaseDeRespuesta.Ninguna),
+        new("numero_caso", "Caso", ClaseDeColumna.Texto, EsClave: true, EsEditable: true, ClaseDeRespuesta.Ninguna),
+        new("fecha_viaje", "Fecha de viaje", ClaseDeColumna.Temporal, false, true, ClaseDeRespuesta.Ninguna),
+        new(ColumnaDelNumeroDeUnidad, "Número de unidad", ClaseDeColumna.Texto, false, true, ClaseDeRespuesta.Ninguna),
+        new("unidad_nombre", "Barrio o rama", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna),
         new("nombre", "Hermano(a) que viaja", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna),
-        new("mrn", "Cédula de miembro", ClaseDeColumna.Texto, EsClave: true, EsEditable: false, ClaseDeRespuesta.Ninguna),
-        new("a_que_va", "A qué va", ClaseDeColumna.Crudo, false, false, ClaseDeRespuesta.Ninguna),
+        new("mrn", "Cédula de miembro", ClaseDeColumna.Texto, EsClave: true, EsEditable: true, ClaseDeRespuesta.Ninguna),
+        new("a_que_va", "A qué va", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna),
         .. Pasos.Todos.Select(paso => new ColumnaDeLaHoja(
             paso.Nombre, paso.Rotulo, ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.SiONo)),
         new(Pasos.ColumnaDeLaLlamada, Pasos.RotuloDeLaLlamada, ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.SiONo),
@@ -161,7 +179,7 @@ public static class Columnas
             ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Motivo),
         new(MotivosDeLaHoja.ColumnaDelComentario, MotivosDeLaHoja.RotuloDelComentario,
             ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.TextoLibre),
-        new(ColumnaDeLaClave, "clave", ClaseDeColumna.Texto, false, false, ClaseDeRespuesta.Ninguna),
+        new(ColumnaDeLaClave, "clave", ClaseDeColumna.Texto, false, true, ClaseDeRespuesta.Ninguna),
     ];
 
     private static readonly Dictionary<string, ColumnaDeLaHoja> PorNombre =
@@ -176,6 +194,9 @@ public static class Columnas
     {
         ["numero_caso"] = 11,
         ["fecha_viaje"] = 14,
+        // 16, que es lo que mide su propio rotulo: un numero de unidad son siete digitos, asi
+        // que lo que decide el ancho aqui es la cabecera y no el dato.
+        [ColumnaDelNumeroDeUnidad] = 16,
         ["unidad_nombre"] = 24,
         ["nombre"] = 26,
         ["mrn"] = 19,

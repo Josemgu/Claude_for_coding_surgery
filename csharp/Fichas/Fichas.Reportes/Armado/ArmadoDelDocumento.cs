@@ -26,6 +26,10 @@ public static class ArmadoDelDocumento
         new("N.º de caso", ClaseDeColumna.Texto, 12),
         new("Persona", ClaseDeColumna.Crudo, 30),
         new("MRN", ClaseDeColumna.Texto, 14),
+        // ⚠️ 2026-09-08: la unidad va en DOS columnas por orden del dueno —«Sí, pártelo en
+        // dos»—. El numero PRIMERO y como Texto: pegado detras del nombre no se podia filtrar
+        // por el, y como Crudo el .xlsx se comeria su cero de delante.
+        new(Vocabulario.RotuloDelNumeroDeUnidad, ClaseDeColumna.Texto, 16),
         new("Unidad", ClaseDeColumna.Crudo, 22),
         new("Fecha de viaje", ClaseDeColumna.Temporal, 14),
         new("¿Viajó?", ClaseDeColumna.Crudo, 12),
@@ -38,6 +42,10 @@ public static class ArmadoDelDocumento
         new("N.º de caso", ClaseDeColumna.Texto, 12),
         new("Persona", ClaseDeColumna.Crudo, 30),
         new("MRN", ClaseDeColumna.Texto, 14),
+        // ⚠️ 2026-09-08: la unidad va en DOS columnas por orden del dueno —«Sí, pártelo en
+        // dos»—. El numero PRIMERO y como Texto: pegado detras del nombre no se podia filtrar
+        // por el, y como Crudo el .xlsx se comeria su cero de delante.
+        new(Vocabulario.RotuloDelNumeroDeUnidad, ClaseDeColumna.Texto, 16),
         new("Unidad", ClaseDeColumna.Crudo, 22),
         new("Fecha de viaje", ClaseDeColumna.Temporal, 14),
         new("Motivo por el que no pudo viajar", ClaseDeColumna.Crudo, 46),
@@ -148,7 +156,8 @@ public static class ArmadoDelDocumento
                     f.Caso.NumeroCaso,
                     Vocabulario.PersonaOSinNombre(f.Persona.Nombre),
                     string.IsNullOrWhiteSpace(f.Persona.Mrn) ? Vocabulario.SinDato : f.Persona.Mrn,
-                    Vocabulario.UnidadConSuNumero(f.Caso.UnidadNombre, f.Caso.UnidadNumero),
+                    Vocabulario.NumeroDeUnidad(f.Caso.UnidadNumero),
+                    Vocabulario.NombreDeUnidad(f.Caso.UnidadNombre),
                     f.FechaViaje,
                     Estados.TextoDeSiViajo(f.Persona.PudoViajar),
                     Vocabulario.TextoDelEstado(f.Caso.EstadoRecomendacion),
@@ -181,7 +190,8 @@ public static class ArmadoDelDocumento
                     f.Caso.NumeroCaso,
                     Vocabulario.PersonaOSinNombre(f.Persona.Nombre),
                     string.IsNullOrWhiteSpace(f.Persona.Mrn) ? Vocabulario.SinDato : f.Persona.Mrn,
-                    Vocabulario.UnidadConSuNumero(f.Caso.UnidadNombre, f.Caso.UnidadNumero),
+                    Vocabulario.NumeroDeUnidad(f.Caso.UnidadNumero),
+                    Vocabulario.NombreDeUnidad(f.Caso.UnidadNombre),
                     f.FechaViaje,
                     f.Persona.MotivoNoViajo,
                     TextoDeLaDeteccion(casosPorId.GetValueOrDefault(f.CasoId), f.FechaViaje),

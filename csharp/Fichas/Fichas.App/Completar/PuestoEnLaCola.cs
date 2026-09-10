@@ -31,14 +31,22 @@ public sealed record PuestoEnLaCola(int Puesto, RenglonDeCaso Documento)
     /// <summary>«en 3 días», «hoy», «hace 2 días» o «sin fecha».</summary>
     public string CuandoViaja => Documento.CuandoViaja;
 
-    /// <summary>«Rama de Prueba · le faltan 2 datos · 3 personas».</summary>
+    /// <summary>«Rama de Prueba · me falta · 3 personas».</summary>
     /// <remarks>
-    /// La unidad va delante porque es lo que le dice a QUIEN hay que llamar, que es su
+    /// <para>La unidad va delante porque es lo que le dice a QUIEN hay que llamar, que es su
     /// trabajo de verdad: <i>«yo debo llamar al obispo, saber cómo le puedo ayudar a
-    /// completar ese caso»</i> (2026-09-05).
+    /// completar ese caso»</i> (2026-09-05).</para>
+    ///
+    /// <para>⛔ <b>2026-09-07:</b> aquí iba «le faltan 2 datos». Ahora va la palabra, y cuántos
+    /// datos son va en <see cref="DetalleDeLoQueLeFalta"/>. Esta cola ES la de lo que no está
+    /// completo, así que la palabra se repite en todos los renglones y la cifra es lo que los
+    /// distingue: por eso el detalle sigue estando y a un clic.</para>
     /// </remarks>
     public string LoQueLeFalta
-        => $"{Documento.Unidad} · {Documento.LoQueFaltaTexto} · {Documento.CuantasPersonasTexto}";
+        => $"{Documento.Unidad} · {Documento.PalabraDelEstado} · {Documento.CuantasPersonasTexto}";
+
+    /// <summary>Qué le falta a este documento y a quién le toca; se lee cuando él lo pide.</summary>
+    public string DetalleDeLoQueLeFalta => Documento.DetalleDelEstado;
 
     /// <summary>Lo que lee en voz alta un lector de pantalla sobre el renglon entero.</summary>
     /// <remarks>
@@ -47,7 +55,7 @@ public sealed record PuestoEnLaCola(int Puesto, RenglonDeCaso Documento)
     /// </remarks>
     public string ParaElLector
         => $"Puesto {Puesto}. {NumeroCaso}, {Documento.Unidad}, {CuandoViaja}, "
-           + $"{Documento.LoQueFaltaTexto}. Pulse para entrar en la cola por este documento.";
+           + $"{Documento.Lectura.ParaElLector}. Pulse para entrar en la cola por este documento.";
 
     /// <summary>Numera una cola entera, del puesto 1 en adelante.</summary>
     public static IReadOnlyList<PuestoEnLaCola> Numerar(IReadOnlyList<RenglonDeCaso> documentos)

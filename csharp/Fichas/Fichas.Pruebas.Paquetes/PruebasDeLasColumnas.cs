@@ -3,32 +3,34 @@ using Fichas.Paquetes;
 namespace Fichas.Pruebas.Paquetes;
 
 /// <summary>
-/// Las 16 columnas de la hoja «Por verificar», sus titulos y sus anchos.
+/// Las 17 columnas de la hoja «Por verificar», sus titulos y sus anchos.
 /// </summary>
 /// <remarks>
 /// El criterio C6-1 de PENDIENTES.md habla de «16 titulos y anchos», que eran los 16 de
-/// <c>paquete/columnas.py</c> del programa en Python. Siguen siendo 16, pero YA NO son los
-/// mismos 16, y la cuenta que coincide es una casualidad que conviene no confundir:
+/// <c>paquete/columnas.py</c> del programa en Python. Ya no son 16 ni son los mismos:
 /// <list type="bullet">
 /// <item>El 2026-09-05 el dueno anadio dos —«¿Por qué no se completó?» y «Comentario»—
 /// porque el programa viejo solo admitia trabajo hecho y el companero no tenia donde decir
 /// por que NO pudo.</item>
 /// <item>El 2026-09-06 el dueno quito dos —«Fecha de solicitud» y «Estaca o distrito»—:
 /// «son informaciones que no me pide verificar».</item>
+/// <item>El 2026-09-07 el dueno anadio una: «Número de unidad». Sus palabras: «el numero de
+/// unidad en un lado y al otro el nombre de la unidad». Hasta ese dia el numero salia pegado
+/// dentro de la celda del nombre.</item>
 /// </list>
 /// </remarks>
 [TestClass]
 public class PruebasDeLasColumnas
 {
     [TestMethod]
-    public void LaHojaTieneDieciseisColumnas() => Assert.HasCount(16, Columnas.Todas);
+    public void LaHojaTieneDiecisieteColumnas() => Assert.HasCount(17, Columnas.Todas);
 
     [TestMethod]
     public void LosTitulosSonLosDeLaHojaQueElDuenoVerifica()
     {
         string[] esperados =
         [
-            "Caso", "Fecha de viaje", "Barrio o rama",
+            "Caso", "Fecha de viaje", "Número de unidad", "Barrio o rama",
             "Hermano(a) que viaja", "Cédula de miembro", "A qué va",
             "1. Preparación", "2. Información", "3. Cita del templo",
             "4. Acciones requeridas", "5. Entrevistas", "6. Listo para el templo",
@@ -42,7 +44,7 @@ public class PruebasDeLasColumnas
     {
         string[] esperados =
         [
-            "numero_caso", "fecha_viaje", "unidad_nombre",
+            "numero_caso", "fecha_viaje", "unidad_numero", "unidad_nombre",
             "nombre", "mrn", "a_que_va",
             "paso_preparacion", "paso_informacion", "paso_cita_del_templo",
             "paso_acciones_requeridas", "paso_entrevistas", "paso_listo_para_el_templo",
@@ -91,17 +93,21 @@ public class PruebasDeLasColumnas
     }
 
     /// <summary>
-    /// Las dos mitades del par que reconcilia van bloqueadas: si el companero «corrige» un
-    /// MRN, su fila deja de casar y su trabajo entero se pierde.
+    /// ⚠️ Ninguna columna va bloqueada desde el 2026-09-07: «no bloquees las celdas por favor,
+    /// de los paquetes».
     /// </summary>
+    /// <remarks>
+    /// Aqui se afirmaba lo contrario —que <c>numero_caso</c>, <c>mrn</c> y <c>clave</c> iban
+    /// bloqueadas— con el motivo de proteger el par que reconciliaba. Ese motivo caduco el
+    /// 2026-09-03, cuando la hoja empezo a llevar la columna <c>clave</c> y la vuelta paso a
+    /// casar por ella. Lo que protegia el bloqueo se mide ahora en
+    /// <see cref="PruebasDeLaClaveEstropeada"/>.
+    /// </remarks>
     [TestMethod]
-    public void ElCasoElMrnYLaClaveVanBloqueadosYElNombreNo()
-    {
-        Assert.IsFalse(Columnas.Por("numero_caso").EsEditable);
-        Assert.IsFalse(Columnas.Por("mrn").EsEditable);
-        Assert.IsFalse(Columnas.Por("clave").EsEditable);
-        Assert.IsTrue(Columnas.Por("nombre").EsEditable, "corregir una tilde no puede hacer dano: nunca se casa por nombre");
-    }
+    public void NingunaColumnaSeDeclaraNoEditable()
+        => Assert.IsEmpty(
+            Columnas.Todas.Where(columna => !columna.EsEditable).Select(columna => columna.Nombre).ToList(),
+            "el dueño pidió que no se bloquee ninguna celda de los paquetes");
 
     /// <summary>
     /// Nueve columnas rellena el companero, y solo siete se leen como «si o no».
@@ -142,9 +148,9 @@ public class PruebasDeLasColumnas
         => CollectionAssert.AreEqual(new[] { "numero_caso", "mrn" }, Columnas.Todas.Where(c => c.EsClave).Select(c => c.Nombre).ToArray());
 
     [TestMethod]
-    public void LasTresColumnasDeTextoSonLasQueExcelPuedeEstropear()
+    public void LasCuatroColumnasDeTextoSonLasQueExcelPuedeEstropear()
         => CollectionAssert.AreEqual(
-            new[] { "numero_caso", "mrn", "clave" },
+            new[] { "numero_caso", "unidad_numero", "mrn", "clave" },
             Columnas.Todas.Where(c => c.Clase == ClaseDeColumna.Texto).Select(c => c.Nombre).ToArray());
 
     [TestMethod]

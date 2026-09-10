@@ -140,6 +140,7 @@ public static class Reconciliacion
         var yaVistos = new Dictionary<string, int>(StringComparer.Ordinal);
         var avisos = new List<Aviso>();
 
+        AvisarSiFaltaLaColumnaDeLaClave(libro, avisos);
         AvisarDeLasColumnasQueNoTrae(libro, avisos);
         foreach (var fila in libro.Filas)
         {
@@ -158,6 +159,43 @@ public static class Reconciliacion
                 + "al cerrar la ventana."));
         }
         return new ResultadoDeReconciliar(renglones, descartadas, sinNada, avisos);
+    }
+
+    /// <summary>
+    /// Avisa, UNA vez por archivo, cuando la hoja devuelta ya no trae la columna «clave».
+    /// </summary>
+    /// <remarks>
+    /// <para>⚠️ <b>Es la averia mas cara de las que puede traer una hoja devuelta, y hasta el
+    /// 2026-09-07 no se decia con esas palabras.</b> Medido sobre un paquete generado al que se
+    /// le borra la columna entera: <c>LectorDeExcel.BuscarLaFilaDeTitulos</c> localiza la fila
+    /// de titulos buscando precisamente el rotulo «clave», asi que sin esa columna no encuentra
+    /// la fila 6, cae a la fila 1 y lee las cinco lineas de cabecera como si fueran datos. El
+    /// resultado son SEIS filas descartadas de una hoja de una persona, todas con el motivo «la
+    /// fila no trae el número de caso o no trae el MRN», que es verdad de las lineas de cabecera
+    /// y mentira de la fila de la persona.</para>
+    ///
+    /// <para>Cada fila sigue dejando su renglon con su motivo —nada se descarta en silencio—,
+    /// pero quien lea seis motivos que no cuadran no puede adivinar la causa. Este aviso la
+    /// nombra. <b>NO cambia nada de lo que se aplica</b>: solo pone en palabras lo que ya
+    /// pasaba.</para>
+    ///
+    /// <para>El camino de casar por <c>numero_caso</c> + <c>mrn</c> sigue existiendo y sigue
+    /// probado, pero es para una hoja que Miguel arme por su cuenta con los titulos en la fila
+    /// 1 — no para un paquete generado al que se le borro la columna.</para>
+    /// </remarks>
+    private static void AvisarSiFaltaLaColumnaDeLaClave(LibroLeido libro, List<Aviso> avisos)
+    {
+        var tituloDeLaClave = Columnas.Por(Columnas.ColumnaDeLaClave).Titulo;
+        if (libro.Titulos.Any(titulo => string.Equals(titulo, tituloDeLaClave, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        avisos.Add(Aviso.Problema(
+            $"La hoja que volvió no trae la columna «{tituloDeLaClave}».",
+            tituloDeLaClave,
+            "Esa columna es la que devuelve cada renglón a su persona, y además es la que marca "
+            + "dónde empieza la tabla. Sin ella, la hoja generada por este programa no se puede "
+            + "leer: sus filas caen todas en la lista de descartados. Pídale al compañero el "
+            + "archivo tal como se lo dieron, o vuelva a generarle el paquete."));
     }
 
     /// <summary>

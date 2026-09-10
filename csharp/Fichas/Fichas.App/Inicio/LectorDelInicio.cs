@@ -17,10 +17,23 @@ namespace Fichas.App.Inicio;
 /// optimizacion: es lo que impide que el contador de arriba y la lista de abajo digan cosas
 /// distintas si alguien cambia la base entre dos consultas.</para>
 ///
-/// <para><b>Ensena DOS cosas y ninguna mas</b>, que es lo que pidio el dueno el 2026-09-05:
-/// lo que esta listo para asignar y lo que esta asignado a los agentes. Lo demas no
-/// desaparecio del programa: lo que no esta completo esta en
-/// <see cref="LectorDeIncompletos"/>, agrupado por fecha de viaje.</para>
+/// <para><b>⚠️ Este lector alimenta DOS pantallas desde el 2026-09-09, y hay que saberlo antes
+/// de tocarlo:</b> el cuadro de dos cifras de Inicio y las tres listas de la pestana del flujo.
+/// No se partio en dos a proposito. Las cifras del cuadro y las listas contestan la misma
+/// pregunta con distinta letra, y dos lectores acaban contestando distinto; el dueno leeria un
+/// numero en Inicio y contaria otro al abrir la pestana. Es la enfermedad que este proyecto ya
+/// diagnostico el 2026-09-07 con las cuatro palabras de estado.</para>
+///
+/// <para><b>Que hay en cada una.</b> En Inicio, «me falta por completar» y «lo que tienen los
+/// agentes», mas el calendario — palabras del dueno del 2026-09-07: <i>«Lo unico que quiero es
+/// el calendario y un cuadro»</i>. En la pestana del flujo, lo listo para asignar, lo asignado
+/// a los agentes y lo listo para viajar. ⚠️ Esto <b>deshace</b> lo que el mismo pidio el
+/// 2026-09-05 —«lo unico que quiero ver en Home es lo que esta listo para asignar y lo que esta
+/// asignado a los agentes»—, que estaba construido; manda la peticion nueva.</para>
+///
+/// <para>Lo que no esta completo sigue teniendo ademas su ventana entera, en
+/// <see cref="LectorDeIncompletos"/>, agrupada por fecha de viaje, y la cifra del cuadro es la
+/// puerta a ella.</para>
 ///
 /// <para><b>Un caso archivado no sale de NADA de esta pantalla</b> —ni de las dos listas, ni
 /// del calendario, ni de los avisos del sistema del obispo—. Regla del dueno del 2026-09-05
@@ -101,22 +114,53 @@ public sealed class LectorDelInicio
 
         var listos = new List<RenglonDeCaso>();
         var asignados = new List<RenglonDeCaso>();
-        Repartir(deTrabajo, fechas, personasPorCaso, duenos, hoy, procedencias, listos, asignados);
+        var porCompletar = new List<RenglonDeCaso>();
+        Repartir(deTrabajo, fechas, personasPorCaso, duenos, hoy, procedencias, listos, asignados, porCompletar);
+
+        var sinDevolver = _asignaciones.Contar(FiltroDeAsignaciones.Activas with { SinDevolver = true });
+        var equipo = ArmarElEquipo(deTrabajo, duenos);
 
         return new ResumenDeInicio(
             new ContadoresDeInicio(
                 listos.Count,
                 asignados.Count,
                 listos.Sum(r => r.CuantasPersonas),
-                _asignaciones.Contar(FiltroDeAsignaciones.Activas with { SinDevolver = true })),
+                sinDevolver),
             ContarLosDenominadores(todos.Count, deTrabajo.Count),
             PorFechaDeViaje(listos),
             PorFechaDeViaje(asignados),
-            ArmarElEquipo(deTrabajo, duenos),
+            equipo,
             ArmarElCalendario(hoy, finDeLaVentana, desplazamientoDeMes, personasPorCaso),
             avisos,
-            ArmarLoDelSistemaDelObispo(todos, personasPorCaso, hoy));
+            ArmarLoDelSistemaDelObispo(todos, personasPorCaso, hoy),
+            ArmarElCuadro(porCompletar, asignados, equipo, sinDevolver));
     }
+
+    /// <summary>
+    /// Las dos cifras que quedan a la vista en Inicio, armadas con lo que ya se conto.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ <b>No lee la base ni una vez mas, y eso es el punto entero.</b> Lo facil habria
+    /// sido montar aqui un <see cref="LectorDeIncompletos"/> para saber cuantos faltan por
+    /// completar; eso recorre los casos, las personas y la procedencia por segunda vez en cada
+    /// pintado, y el techo de esta pantalla son 200 ms (C20-5). Lo que se cuenta sale del
+    /// mismo reparto que ya arma las listas. <c>PruebasDelCuadroDeInicio</c> lo cronometra.</para>
+    ///
+    /// <para>⚠️ <b>El companero de la fila «Sin asignar» no cuenta como companero.</b> Va en el
+    /// equipo con id 0 para poder ensenar cuantos no lleva nadie, pero no es una persona: si
+    /// contara, el cuadro diria un compañero de mas siempre.</para>
+    /// </remarks>
+    private static CuadroDeInicio ArmarElCuadro(
+        IReadOnlyList<RenglonDeCaso> porCompletar,
+        IReadOnlyList<RenglonDeCaso> asignados,
+        IReadOnlyList<RenglonDeCompanero> equipo,
+        int sinDevolver)
+        => new(
+            porCompletar.Count,
+            porCompletar.Sum(r => r.CuantasPersonas),
+            asignados.Count,
+            equipo.Count(c => c.Id != 0 && c.Casos > 0),
+            sinDevolver);
 
     /// <summary>
     /// Lo que hay que verificar en el sistema del obispo, contado en PERSONAS: el grupo que
@@ -311,7 +355,8 @@ public sealed class LectorDelInicio
         DateOnly hoy,
         ProcedenciasDeUnaPasada procedencias,
         List<RenglonDeCaso> listos,
-        List<RenglonDeCaso> asignados)
+        List<RenglonDeCaso> asignados,
+        List<RenglonDeCaso> porCompletar)
     {
         foreach (var caso in deTrabajo)
         {
@@ -319,10 +364,29 @@ public sealed class LectorDelInicio
             var dueno = duenos.GetValueOrDefault(caso.Id, string.Empty);
             var renglon = ArmarRenglon(caso, fechas[caso.Id], hoy, suyas, dueno, procedencias);
 
+            if (LeFaltaAlgo(renglon, caso)) porCompletar.Add(renglon);
+
             if (!string.IsNullOrEmpty(dueno)) asignados.Add(renglon);
-            else if (renglon.CuantoLeFalta == 0 && caso.Estado != EstadoDeRecomendacion.NoCompleta) listos.Add(renglon);
+            else if (!LeFaltaAlgo(renglon, caso)) listos.Add(renglon);
         }
     }
+
+    /// <summary>
+    /// Si a un documento le falta algo, con la MISMA regla que la ventana de incompletos.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ <b>Son dos cosas a la vez y las dos cuentan:</b> que le falte algun dato en el
+    /// sistema —lo que impide armarle el paquete al companero— o que el Excel del companero lo
+    /// haya devuelto marcado <c>no_completa</c>. Es palabra por palabra la condicion de
+    /// <see cref="LectorDeIncompletos"/>, y esta escrita aparte para que se lea que es la misma
+    /// y no una copia que alguien pueda cambiar en un sitio y en el otro no.</para>
+    ///
+    /// <para>⚠️ El «no cuenta como listo para asignar» ya era esta misma pregunta antes del
+    /// 2026-09-07; lo unico que cambia es que ahora se le da nombre porque tambien la usa el
+    /// cuadro. La lista de lo listo no cambia de contenido.</para>
+    /// </remarks>
+    private static bool LeFaltaAlgo(RenglonDeCaso renglon, Caso caso)
+        => renglon.CuantoLeFalta > 0 || caso.Estado == EstadoDeRecomendacion.NoCompleta;
 
     /// <summary>
     /// Ordena una lista por lo que viaja antes, que es la prioridad que el dueno declaro.

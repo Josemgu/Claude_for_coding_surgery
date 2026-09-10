@@ -75,7 +75,7 @@
                     <TextBlock
                         FontSize="12"
                         Foreground="{ThemeResource TintaSuave}"
-                        Text="Elija el período, genere el PDF y ábralo desde aquí."
+                        Text="Elija el período y genere el informe. El PDF es para enseñarlo; el Excel, para filtrar y sumar."
                         TextWrapping="Wrap" />
 
                     <!--  Los tres atajos del programa viejo, y las dos fechas a mano para el resto.  -->
@@ -141,10 +141,29 @@
                                 <TextBlock Text="Generar el PDF…" />
                             </StackPanel>
                         </Button>
+                        <!--
+                            El del Excel es el MISMO informe: mismas cifras, mismos rótulos, otra
+                            forma. Va al lado del de PDF y no en un bloque aparte, porque un bloque
+                            aparte se lee como si fuera otro informe distinto.
+                        -->
+                        <Button
+                            x:Name="_botonDeGenerarEnExcel"
+                            AutomationProperties.Name="Generar el Excel…"
+                            Click="AlPulsarGenerarElReporteEnExcel">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9D2;" />
+                                <TextBlock Text="Generar el Excel…" />
+                            </StackPanel>
+                        </Button>
+                        <!--
+                            Dice «el archivo» y no «el PDF» desde que hay dos formatos: abre el
+                            último que se generó, sea cual sea, y un botón que dijera «PDF»
+                            después de generar un Excel estaría mintiendo sobre lo que abre.
+                        -->
                         <Button
                             x:Name="_botonDeAbrir"
                             Click="AlPulsarAbrir"
-                            Content="Abrir el PDF"
+                            Content="Abrir el archivo"
                             IsEnabled="False" />
                         <Button
                             x:Name="_botonDeLaCarpeta"
@@ -258,6 +277,16 @@
                                 <TextBlock Text="Generar el informe del agente…" />
                             </StackPanel>
                         </Button>
+                        <Button
+                            x:Name="_botonDelInformeDeAgenteEnExcel"
+                            AutomationProperties.Name="Generar el informe del agente en Excel…"
+                            Click="AlPulsarGenerarElInformeDeAgenteEnExcel"
+                            IsEnabled="False">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9D2;" />
+                                <TextBlock Text="En Excel…" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
 
                     <!--  El resumen: UNA linea, «ver» abre el detalle debajo, X lo cierra.  -->
@@ -342,6 +371,10 @@
                             x:Name="_botonDelHistorico"
                             Click="AlPulsarGenerarElHistorico"
                             Content="Generar el histórico en PDF…" />
+                        <Button
+                            x:Name="_botonDelHistoricoEnExcel"
+                            Click="AlPulsarGenerarElHistoricoEnExcel"
+                            Content="Generar el histórico en Excel…" />
                         <Button
                             x:Name="_botonDeRefrescar"
                             Click="AlPulsarRefrescar"

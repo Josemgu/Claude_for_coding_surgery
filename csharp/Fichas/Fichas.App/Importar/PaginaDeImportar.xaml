@@ -127,6 +127,166 @@
                 </StackPanel>
             </Border>
 
+            <!--
+                Peticion 6 del dueno (2026-09-07): «debe permitir editar las carpetas que se
+                mostraran en Revisar, porque a veces el sistema no pone los nombres de manera
+                correcta». No hay ningun «nombre de carpeta» guardado: la carpeta la componen
+                la fecha de viaje y la unidad del documento, asi que lo que se corrige son
+                esas tres cosas y el nombre cambia solo. Aqui debajo, sin cuadro modal.
+            -->
+            <Border
+                x:Name="_zonaDeLasCarpetas"
+                Padding="16,12"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="Las carpetas que estos documentos formarán en Revisar" />
+                    <TextBlock
+                        x:Name="_lineaDeLasCarpetas"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text=""
+                        TextWrapping="Wrap" />
+
+                    <ListView
+                        x:Name="_listaDeCarpetas"
+                        AutomationProperties.Name="Las carpetas de esta tanda"
+                        DisplayMemberPath="Etiqueta"
+                        MaxHeight="200"
+                        SelectionChanged="AlElegirUnaCarpeta"
+                        SelectionMode="Single" />
+
+                    <StackPanel x:Name="_corrector" Spacing="8" Visibility="Collapsed">
+                        <TextBlock
+                            x:Name="_carpetaElegida"
+                            FontWeight="SemiBold"
+                            Text=""
+                            TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <!--
+                                Un calendario y no una caja de texto: la fecha decide en que
+                                grupo cae el documento, y una fecha escrita a mano que el
+                                programa no sepa leer lo dejaria donde estaba con el dueno
+                                creyendo que ya la puso.
+                            -->
+                            <CalendarDatePicker
+                                x:Name="_fechaDeLaCarpeta"
+                                AutomationProperties.Name="Fecha de viaje de la carpeta"
+                                Header="Fecha de viaje"
+                                MinWidth="200"
+                                PlaceholderText="sin fecha de viaje" />
+                            <TextBox
+                                x:Name="_numeroDeLaUnidad"
+                                AutomationProperties.Name="Número de la unidad de la carpeta"
+                                Header="N.º de unidad"
+                                MaxLength="7"
+                                PlaceholderText="6 o 7 cifras"
+                                Width="140" />
+                            <TextBox
+                                x:Name="_nombreDeLaUnidad"
+                                AutomationProperties.Name="Nombre de la unidad de la carpeta"
+                                Header="Nombre de la unidad"
+                                PlaceholderText="como está en la etiqueta del papel"
+                                Width="280" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button
+                                Click="AlCorregirLaCarpeta"
+                                Content="Guardar el nombre de la carpeta"
+                                Style="{ThemeResource AccentButtonStyle}" />
+                            <Button Click="AlQuitarLaFechaDeLaCarpeta" Content="Dejarla sin fecha" />
+                        </StackPanel>
+                        <TextBlock
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            TextWrapping="Wrap">
+                            Lo que se escriba aquí se guarda en TODOS los documentos de esa carpeta.
+                            Nada se adivina: una fecha o un número de unidad que el programa no
+                            entienda no se escriben, y se dice por qué.
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!--
+                Del dueno, dos veces el mismo dia (2026-09-07): «este documento no tiene
+                informacion de ninguna persona, deberia permitirme eliminarlo». Se borra
+                DESDE DONDE se esta mirando, y por el mismo camino que todo lo que borra en
+                este programa: copia antes, la cifra delante y se puede cancelar.
+            -->
+            <Border
+                x:Name="_zonaSinInformacion"
+                Padding="16,12"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Visibility="Collapsed">
+                <StackPanel Spacing="10">
+                    <TextBlock
+                        FontWeight="SemiBold"
+                        Text="Lo que entró sin información de ninguna persona" />
+                    <TextBlock
+                        x:Name="_lineaSinInformacion"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text=""
+                        TextWrapping="Wrap" />
+
+                    <ListView
+                        x:Name="_listaSinInformacion"
+                        AutomationProperties.Name="Documentos sin ninguna persona"
+                        DisplayMemberPath="Etiqueta"
+                        MaxHeight="180"
+                        SelectionMode="Multiple" />
+
+                    <Button
+                        x:Name="_botonDeBorrarLoVacio"
+                        Click="AlBorrarLoQueNoTraeNadie"
+                        Content="Borrar los marcados" />
+
+                    <!--
+                        Los PDF que no se pudieron leer y no dejaron documento. Hasta el
+                        2026-09-09 solo se NOMBRABAN, en un parrafo, porque no habia como
+                        borrarlos: IIlegibles no tenia borrado. Ahora si, y por eso son una
+                        lista marcable con su boton, igual que la de arriba.
+                    -->
+                    <StackPanel x:Name="_zonaDeLosPdfIlegibles" Spacing="10" Visibility="Collapsed">
+                        <TextBlock
+                            x:Name="_lineaDeLosPdfIlegibles"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            Text=""
+                            TextWrapping="Wrap" />
+
+                        <ListView
+                            x:Name="_listaDeLosPdfIlegibles"
+                            AutomationProperties.Name="PDF que no se pudieron leer"
+                            DisplayMemberPath="Etiqueta"
+                            MaxHeight="180"
+                            SelectionMode="Multiple" />
+
+                        <Button
+                            x:Name="_botonDeBorrarLosPdfIlegibles"
+                            Click="AlBorrarLosPdfIlegibles"
+                            Content="Borrar los marcados" />
+
+                        <!--
+                            ⛔ Esta frase se lee ANTES de marcar nada, y otra vez dentro del
+                            cuadro. El dueno marca un renglon que nombra un archivo suyo: sin
+                            decirselo, creeria que le quitaron el escaneo.
+                        -->
+                        <TextBlock
+                            x:Name="_loQueNoSeBorraDeLosPdf"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                            IsTextSelectionEnabled="True"
+                            Text=""
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <TextBlock
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 TextWrapping="Wrap">

@@ -71,6 +71,19 @@
                                 Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
                                 Text="{x:Bind Detalle, Mode=OneTime}"
                                 TextTrimming="CharacterEllipsis" />
+                            <!--
+                                ⚠️ Que le falta a ESTA unidad y donde se arregla. El dueno lo
+                                dicto asi el 2026-09-07: «5 personas viajaran el 12 de
+                                septiembre, falta verificar recomendaciones». Va en su propia
+                                linea y no pegado al detalle porque son dos preguntas —cuanta
+                                gente viaja y que falta— y pegadas se leen como una sola frase
+                                larga que se corta con puntos suspensivos.
+                            -->
+                            <TextBlock
+                                FontSize="11.5"
+                                Foreground="{x:Bind grupo:PinturaDelGrupo.TintaSuave, Mode=OneTime}"
+                                Text="{x:Bind LoQueLeFaltaALaUnidad, Mode=OneTime}"
+                                TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                         <Button
                             Grid.Column="1"

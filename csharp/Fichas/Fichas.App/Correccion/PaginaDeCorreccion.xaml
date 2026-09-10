@@ -96,6 +96,42 @@
                     </StackPanel>
                 </Border>
                 <!--
+                    LA BANDA DE SALIDA. Se ve cuando el documento que se tiene delante ya no
+                    tiene nada que falte, y dice a qué grupo pasó, con un botón para ir a verlo.
+
+                    Existe por la mitad peligrosa de lo que el dueño pidió el 2026-09-07:
+                    «cuando yo lo corrija y le ponga la información, debe salir de Corrección y
+                    pasar al grupo de su fecha». Salir no puede querer decir desaparecer. Si un
+                    documento se va de una lista y él no ve que llegó a la otra, lo pierde, y en
+                    este programa perder un documento significa que alguien llegue al templo y
+                    no pueda entrar.
+
+                    El documento se queda a la vista mientras lo tiene abierto —quitárselo de
+                    delante en el acto le pondría otro documento sin haberlo pedido— y esta
+                    banda es lo que le dice que ya no está en la lista.
+                -->
+                <Border
+                    x:Name="_bandaDeLaSalida"
+                    Padding="10,4"
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}"
+                    CornerRadius="4"
+                    Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <TextBlock
+                            x:Name="_yaEstaResuelto"
+                            VerticalAlignment="Center"
+                            FontSize="12.5"
+                            FontWeight="SemiBold"
+                            Text="" />
+                        <Button
+                            x:Name="_irASuGrupo"
+                            Click="AlPulsarIrASuGrupo"
+                            Content="Ver su grupo"
+                            FontSize="12" />
+                    </StackPanel>
+                </Border>
+                <!--
                     El nombre para quien no ve la pantalla: sin el, un lector de pantalla
                     solo decia «cuadro combinado». Lo midio QA sobre el paquete publicado.
                     Y el ancho sube de 200 a 420 porque la entrada ya no es «CASP2609» a

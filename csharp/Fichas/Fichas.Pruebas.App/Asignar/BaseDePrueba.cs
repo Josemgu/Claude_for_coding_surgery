@@ -1,6 +1,7 @@
 using Fichas.App.Asignar;
 using Fichas.App.Cascara;
 using Fichas.App.Revisar;
+using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
 
@@ -129,6 +130,41 @@ internal sealed class BaseDePrueba
         });
         return resultado.Id;
     }
+
+    /// <summary>
+    /// Mete un caso con SU unidad —numero y nombre— y su fecha de viaje, y devuelve su id.
+    /// </summary>
+    /// <remarks>
+    /// <para><see cref="Meter"/> pone siempre la misma «Rama de prueba» y ningun numero, que
+    /// alcanzaba mientras la pantalla no agrupaba. Repartir por grupo necesita varias unidades
+    /// de verdad: con una sola, un agrupado roto y uno bueno dan el mismo resultado.</para>
+    ///
+    /// <para>⚠️ Los nombres de unidad que se le pasan estan INVENTADOS o son los del ejemplo
+    /// que escribio el dueno; ninguna persona real entra en una prueba.</para>
+    /// </remarks>
+    public long MeterConUnidad(string? numero, string? fechaViaje, string? unidadNumero, string? unidadNombre)
+        => Servicios.Casos.Guardar(new Caso
+        {
+            NumeroCaso = numero,
+            FechaViaje = fechaViaje,
+            Archivado = false,
+            RutaPdf = $@"C:\pdf\{numero ?? "sin-numero"}.pdf",
+            PaginaPdf = 1,
+            UnidadNumero = unidadNumero,
+            UnidadNombre = unidadNombre,
+            CreadoEn = Reloj.Ahora(),
+        }).Id;
+
+    /// <summary>
+    /// Cuantas asignaciones vivas lleva ese companero AHORA MISMO, leidas de la base.
+    /// </summary>
+    /// <remarks>
+    /// Se pregunta a la base y no al resumen que devolvio la operacion: un resumen dice lo que
+    /// la operacion CREE que hizo, y lo que hay que comprobar es lo que quedo escrito. Es la
+    /// diferencia entre probar el codigo y probar el efecto.
+    /// </remarks>
+    public int CuantasAsignacionesVivas(long companeroId)
+        => Servicios.Asignaciones.Contar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true));
 
     /// <summary>
     /// Mete en un caso las personas que viajan, en el orden del formulario, y devuelve sus ids.

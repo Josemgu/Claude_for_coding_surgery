@@ -1,4 +1,4 @@
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 
 namespace Fichas.Pruebas.App.Cascara;
 
@@ -28,7 +28,7 @@ public sealed class PruebasDelNombreParaElLectorDePantalla
 {
     /// <summary>Las carpetas de la app cuyos controles se barren.</summary>
     private static readonly string[] ElTerrenoQueSeBarre =
-        ["Cascara", "Revisar", "Asignar", "Paquetes", "Reportes", "Importar", "Inicio"];
+        ["Cascara", "Revisar", "Asignar", "Paquetes", "Reportes", "Importar", "Inicio", "Flujo"];
 
     /// <summary>Los controles con los que se trabaja y que por tanto necesitan nombre.</summary>
     /// <remarks>

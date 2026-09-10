@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <cascara:PaginaDeFichas
     x:Class="Fichas.App.Inicio.PaginaDeInicio"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -15,8 +15,11 @@
             que el dueno aprobo. Se copia la composicion, no el HTML.
         -->
 
-        <x:Double x:Key="AltoDeUnaLista">300</x:Double>
-        <x:Double x:Key="AltoDelEquipo">190</x:Double>
+        <!--
+            ⛔ «AltoDeUnaLista» y «AltoDelEquipo» se fueron con sus listas a Flujo/PaginaDelFlujo.xaml
+            el 2026-09-09. En esta pantalla ya no hay ninguna lista que acotar: el dueno dejo
+            aqui el cuadro de dos cifras y el calendario, y nada mas.
+        -->
 
         <!--
             Lo que se pulsa es un BOTON, aunque no lo parezca.
@@ -60,186 +63,18 @@
         <x:Double x:Key="AltoDeUnDia">150</x:Double>
 
         <!--
-            El renglon de un documento listo para asignar: cuando viaja, su numero y su
-            unidad, y cuantas personas van. Fondo transparente porque el contenedor no es
-            una ListView: sin fondo, el hueco entre textos no se puede pulsar.
+            ⛔ AQUI ESTABAN LAS CUATRO PLANTILLAS DE RENGLON, y se fueron enteras el
+            2026-09-09 a Flujo/PaginaDelFlujo.xaml: la del documento listo para asignar, la
+            del documento asignado, la de la persona con la recomendacion sin confirmar y la
+            del companero con lo que lleva.
+
+            Palabras del dueno el 2026-09-07, repetidas el 2026-09-09: «Listo para asignar
+            debe ser una ventana, no debe estar en el home del sistema. Tampoco asignar a los
+            agentes... Y listo para viajar igual: los tres en una misma pestana».
+
+            No se borro nada: se movieron tal cual, con sus colores y sus motivos, y la
+            pestana nueva tiene su entrada propia en el menu de la izquierda.
         -->
-        <DataTemplate x:Key="RenglonListoPlantilla" x:DataType="inicio:RenglonDeCaso">
-          <Button
-              AutomationProperties.Name="{x:Bind ParaElLector, Mode=OneTime}"
-              Click="AlPulsarUnDocumentoListo"
-              Style="{StaticResource LoQueSePulsa}">
-            <Grid
-                Padding="6,5"
-                Background="Transparent"
-                ColumnSpacing="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="86" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock
-                    Grid.Column="0"
-                    VerticalAlignment="Center"
-                    FontSize="12.5"
-                    FontWeight="{x:Bind inicio:PinturaDeInicio.GrosorDeLaFecha(EsVencido), Mode=OneTime}"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeLaFecha(EsVencido), Mode=OneTime}"
-                    Text="{x:Bind CuandoViaja, Mode=OneTime}" />
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock
-                        FontFamily="Consolas"
-                        FontSize="12.5"
-                        FontWeight="SemiBold"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}"
-                        Text="{x:Bind NumeroCaso, Mode=OneTime}" />
-                    <TextBlock
-                        FontSize="11.5"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                        Text="{x:Bind DetalleDeLoListo, Mode=OneTime}"
-                        TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-
-                <TextBlock
-                    Grid.Column="2"
-                    VerticalAlignment="Center"
-                    FontSize="12.5"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.VerdeMarca, Mode=OneTime}"
-                    Text="{x:Bind CuantasPersonasTexto, Mode=OneTime}" />
-            </Grid>
-          </Button>
-        </DataTemplate>
-
-        <!--
-            El renglon de una PERSONA con la recomendacion sin confirmar.
-
-            ⛔ Es una persona y no un documento, y ahi esta el cambio entero de esta banda:
-            una familia de cinco donde fallo uno es UNA persona (criterio C21-3). Si aqui
-            saliera el documento, el dueno no sabria a quien tiene que buscar en el sistema
-            de la Iglesia.
-        -->
-        <DataTemplate x:Key="RenglonDeUnaPersonaConTicketPlantilla" x:DataType="inicio:PersonaConTicket">
-          <Button
-              AutomationProperties.Name="{x:Bind ParaElLector, Mode=OneTime}"
-              Click="AlPulsarUnaPersonaConTicket"
-              Style="{StaticResource LoQueSePulsa}">
-            <Grid
-                Padding="6,5"
-                Background="Transparent"
-                ColumnSpacing="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="86" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock
-                    Grid.Column="0"
-                    VerticalAlignment="Center"
-                    FontSize="12.5"
-                    FontWeight="Bold"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.RojoMarca, Mode=OneTime}"
-                    Text="{x:Bind CuandoViaja, Mode=OneTime}" />
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock
-                        FontSize="12.5"
-                        FontWeight="SemiBold"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}"
-                        Text="{x:Bind Nombre, Mode=OneTime}" />
-                    <TextBlock
-                        FontSize="11.5"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                        Text="{x:Bind Detalle, Mode=OneTime}"
-                        TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-
-                <!--
-                    Aqui iba la palabra ARCHIVADO, que el dueno pidio el 2026-09-03 y quito el
-                    2026-09-06: un archivado ya no llega a esta lista, asi que no hay nada que marcar.
-                -->
-            </Grid>
-          </Button>
-        </DataTemplate>
-
-        <!--  El renglon de un documento asignado: quien lo lleva y como va.  -->
-        <DataTemplate x:Key="RenglonAsignadoPlantilla" x:DataType="inicio:RenglonDeCaso">
-          <Button
-              AutomationProperties.Name="{x:Bind ParaElLector, Mode=OneTime}"
-              Click="AlPulsarUnDocumentoAsignado"
-              Style="{StaticResource LoQueSePulsa}">
-            <Grid
-                Padding="6,5"
-                Background="Transparent"
-                ColumnSpacing="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="86" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock
-                    Grid.Column="0"
-                    VerticalAlignment="Center"
-                    FontSize="12.5"
-                    FontWeight="{x:Bind inicio:PinturaDeInicio.GrosorDeLaFecha(EsVencido), Mode=OneTime}"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeLaFecha(EsVencido), Mode=OneTime}"
-                    Text="{x:Bind CuandoViaja, Mode=OneTime}" />
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock
-                        FontFamily="Consolas"
-                        FontSize="12.5"
-                        FontWeight="SemiBold"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}"
-                        Text="{x:Bind NumeroCaso, Mode=OneTime}" />
-                    <TextBlock
-                        FontSize="11.5"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                        Text="{x:Bind DetalleDeLoAsignado, Mode=OneTime}"
-                        TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-
-                <TextBlock
-                    Grid.Column="2"
-                    VerticalAlignment="Center"
-                    FontSize="12.5"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                    Text="{x:Bind CuantasPersonasTexto, Mode=OneTime}" />
-            </Grid>
-          </Button>
-        </DataTemplate>
-
-        <!--  Un renglon del cuadro de cuanto lleva cada companero.  -->
-        <DataTemplate x:Key="RenglonDeCompaneroPlantilla" x:DataType="inicio:RenglonDeCompanero">
-            <Grid Padding="6,5" ColumnSpacing="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="64" />
-                    <ColumnDefinition Width="86" />
-                </Grid.ColumnDefinitions>
-                <TextBlock
-                    Grid.Column="0"
-                    FontSize="12.5"
-                    FontWeight="SemiBold"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}"
-                    Text="{x:Bind Nombre, Mode=OneTime}"
-                    TextTrimming="CharacterEllipsis" />
-                <TextBlock
-                    Grid.Column="1"
-                    HorizontalAlignment="Right"
-                    FontSize="12.5"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                    Text="{x:Bind CasosTexto, Mode=OneTime}" />
-                <TextBlock
-                    Grid.Column="2"
-                    HorizontalAlignment="Right"
-                    FontSize="12.5"
-                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                    Text="{x:Bind SinDevolverTexto, Mode=OneTime}" />
-            </Grid>
-        </DataTemplate>
 
         <!--  Las iniciales de la cabecera del calendario, con la misma rejilla que los dias.  -->
         <DataTemplate x:Key="InicialDelDiaPlantilla" x:DataType="x:String">
@@ -300,8 +135,8 @@
                                 <Border
                                     Margin="0,2,0,0"
                                     Padding="4,2"
-                                    Background="{x:Bind inicio:PinturaDeInicio.FondoDeLaPastilla(CuantasPersonasConfirmadas, CuantasPersonas), Mode=OneTime}"
-                                    BorderBrush="{x:Bind inicio:PinturaDeInicio.BordeDeLaPastilla(CuantasPersonasConfirmadas, CuantasPersonas), Mode=OneTime}"
+                                    Background="{x:Bind inicio:PinturaDeInicio.FondoDeLaPastilla(CuantasPersonasResueltas, CuantasPersonas), Mode=OneTime}"
+                                    BorderBrush="{x:Bind inicio:PinturaDeInicio.BordeDeLaPastilla(CuantasPersonasResueltas, CuantasPersonas), Mode=OneTime}"
                                     BorderThickness="3,0,0,0">
                                     <StackPanel>
                                         <TextBlock
@@ -362,79 +197,54 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!--  ============================ LA CABECERA ============================  -->
+            <!--
+                ================ LAS DOS COSAS QUE PIDIO, Y NADA MAS ==================
+
+                Palabras del dueno el 2026-09-07, repetidas el 2026-09-09 porque no se habia
+                hecho: «Lo unico que quiero [en Inicio] es EL CALENDARIO y UN CUADRO informando
+                cuales hacen falta por completar, y cuantos casos tienen los agentes».
+
+                Se fueron de aqui la cabecera de «Hoy» —su fecha vive ahora en la cabecera del
+                calendario, que es de lo que hablaba—, las dos listas de lo listo y lo asignado,
+                el cuadro del equipo y la lista de lo listo para viajar.
+
+                ⚠️ Esto DESHACE lo que el mismo pidio el 2026-09-05 —«lo unico que quiero ver en
+                Home es lo que esta listo para asignar y lo que esta asignado a los agentes»—,
+                que estaba construido y probado. Las tres listas estan enteras en
+                Flujo/PaginaDelFlujo.xaml, con su entrada propia en el menu de la izquierda.
+
+                ⛔ Es un CUADRO DE CIFRAS, no una lista para trabajar. Cada cifra se puede pulsar
+                y lleva a donde se trabaja eso, que es lo unico que este cuadro hace ademas de
+                informar.
+            -->
             <Grid Grid.Row="0" ColumnSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Spacing="2">
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <TextBlock
-                            VerticalAlignment="Bottom"
-                            FontSize="18"
-                            FontWeight="SemiBold"
-                            Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}"
-                            Text="Hoy" />
-                        <TextBlock
-                            x:Name="_hoy"
-                            VerticalAlignment="Bottom"
-                            Margin="0,0,0,2"
-                            FontSize="13"
-                            Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}" />
-                    </StackPanel>
-                    <!--  El denominador del C1-1: N en la base, N en pantalla, siempre a la vista.  -->
-                    <TextBlock
-                        x:Name="_denominador"
-                        FontSize="12"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.Apagado, Mode=OneTime}" />
-                </StackPanel>
-
-                <!--
-                    Lo que no esta completo tiene su propia ventana y se entra por aqui.
-                    Palabras del dueno el 2026-09-05: «crea una ventana de revisar lo que no
-                    está completo, y ponlo por grupo de fechas».
-                -->
-                <Button
-                    x:Name="_verLoIncompleto"
-                    Grid.Column="1"
-                    VerticalAlignment="Bottom"
-                    Click="AlPedirLoIncompleto"
-                    Content="Lo que no está completo"
-                    FontSize="12.5" />
-            </Grid>
-
-            <!--
-                ===================== LAS DOS COSAS QUE PIDIO, Y NADA MAS ==================
-
-                Palabras del dueno el 2026-09-05: «Lo unico que quiero ver en Home es lo que
-                esta listo para asignar y lo que esta asignado a los agentes».
-
-                Lo que habia antes no se borro del programa: «Personas por viajar», «Con la
-                recomendacion completa», «Viajaron sin verificar», «Por verificar antes de
-                que salgan» y «Sin fecha de viaje» estan ahora en la ventana de incompletos,
-                agrupadas por fecha de viaje, que es donde el pidio verlas.
-            -->
-            <Grid Grid.Row="1" ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
-                <!--  ······················ LISTO PARA ASIGNAR ······················  -->
+                <!--  ···················· ME FALTA POR COMPLETAR ····················  -->
                 <Border
                     Grid.Column="0"
                     Background="{x:Bind inicio:PinturaDeInicio.Papel, Mode=OneTime}"
                     BorderBrush="{x:Bind inicio:PinturaDeInicio.Linea, Mode=OneTime}"
                     BorderThickness="1">
-                    <Grid>
+                  <!--
+                      ⛔ El cuadro entero es UN BOTON, y es la unica puerta del programa a la
+                      ventana de lo que no esta completo. Medido el 2026-09-09 buscando cada
+                      «Navigate(typeof(PaginaDeIncompletos)» del codigo: solo habia uno, y
+                      estaba en esta pantalla. Hasta hoy era un boton suelto que ademas no
+                      decia cuantos son.
+                  -->
+                  <Button
+                      x:Name="_verLoIncompleto"
+                      AutomationProperties.Name="Me falta por completar. Pulse para ver cuáles son y corregirlos."
+                      Click="AlPedirLoIncompleto"
+                      Style="{StaticResource LoQueSePulsa}">
+                    <Grid Background="Transparent">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
@@ -442,90 +252,70 @@
                         <Border
                             Grid.Row="0"
                             Padding="12,7"
-                            Background="{x:Bind inicio:PinturaDeInicio.CabeceraVerde, Mode=OneTime}"
-                            BorderBrush="{x:Bind inicio:PinturaDeInicio.CabeceraVerdeOscura, Mode=OneTime}"
+                            Background="{x:Bind inicio:PinturaDeInicio.CabeceraRoja, Mode=OneTime}"
+                            BorderBrush="{x:Bind inicio:PinturaDeInicio.CabeceraRojaOscura, Mode=OneTime}"
                             BorderThickness="0,0,0,1">
-                            <!--
-                                ⛔ El rotulo NO se queda solo: debajo va lo que significa
-                                (criterio C17-1). El dueno pidio esta cifra el 2026-09-05
-                                —«si el sistema escanea y verifica todos los campos sin mi
-                                intervención, debe decir listo para asignar»— y el MISMO dia
-                                dijo que «listo» a secas le hacia leer la otra pregunta: «no
-                                puede poner los PDF listos para viajar porque no se ha
-                                verificado la recomendación en el sistema del obispo».
-                            -->
                             <StackPanel Spacing="1">
+                                <!--
+                                    La palabra es la del idioma de dos estados que el dueno fijo
+                                    el 2026-09-07: «me falta». Va con mayuscula por encabezar el
+                                    recuadro, que es justo para lo que existe
+                                    «MeFaltaEnCabecera» en Vocabulario/DosEstados.cs.
+                                -->
                                 <TextBlock
                                     FontSize="13"
                                     FontWeight="Bold"
                                     Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeCabecera, Mode=OneTime}"
-                                    Text="Listo para asignar" />
+                                    Text="Me falta por completar" />
                                 <TextBlock
                                     FontSize="11"
                                     Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeCabecera, Mode=OneTime}"
-                                    Text="el sistema llenó todos los campos"
+                                    Text="pulse para ver cuáles son y corregirlos"
                                     TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
 
                         <StackPanel
                             Grid.Row="1"
-                            Margin="12,8,12,4"
+                            Margin="12,10,12,12"
                             Orientation="Horizontal"
                             Spacing="8">
                             <TextBlock
-                                x:Name="_cuantosListos"
+                                x:Name="_cuantosPorCompletar"
                                 VerticalAlignment="Bottom"
-                                FontSize="30"
+                                FontSize="34"
                                 FontWeight="Bold"
-                                Foreground="{x:Bind inicio:PinturaDeInicio.VerdeMarca, Mode=OneTime}" />
+                                Foreground="{x:Bind inicio:PinturaDeInicio.RojoMarca, Mode=OneTime}" />
                             <TextBlock
-                                x:Name="_deQueVanLosListos"
-                                Margin="0,0,0,4"
+                                x:Name="_deQueVaLoQueFalta"
+                                Margin="0,0,0,5"
                                 VerticalAlignment="Bottom"
                                 FontSize="12.5"
                                 Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
                                 TextWrapping="Wrap" />
                         </StackPanel>
-
-                        <!--
-                            Lista virtualizada y con SU PROPIA barra.
-
-                            El alto va acotado a proposito: un repetidor sin alto dentro de
-                            un desplazamiento recibe alto infinito, deja de virtualizar y
-                            construye los 3 000 renglones.
-
-                            Y es un ScrollView con un ItemsRepeater dentro, y no una
-                            ListView. Medido el 2026-09-04 empujando la rueda de verdad: con
-                            ListView, las 12 muescas movieron la PANTALLA 384 px y la lista
-                            no se movio ni un pixel, y el evento no llegaba siquiera a la
-                            ListView. El ScrollView de la pantalla recoge la rueda en el
-                            compositor, antes de que ningun manejador de XAML pueda verla;
-                            solo otro ScrollView dentro se la queda.
-                        -->
-                        <ScrollView
-                            x:Name="_listos"
-                            Grid.Row="2"
-                            MaxHeight="{StaticResource AltoDeUnaLista}"
-                            Margin="4,0,4,8"
-                            ContentOrientation="Vertical"
-                            VerticalScrollBarVisibility="Visible">
-                            <ItemsRepeater x:Name="_listosRenglones" ItemTemplate="{StaticResource RenglonListoPlantilla}" />
-                        </ScrollView>
                     </Grid>
+                  </Button>
                 </Border>
 
-                <!--  ···················· ASIGNADO A LOS AGENTES ····················  -->
+                <!--  ·················· LO QUE TIENEN LOS AGENTES ··················  -->
                 <Border
                     Grid.Column="1"
                     Background="{x:Bind inicio:PinturaDeInicio.Papel, Mode=OneTime}"
                     BorderBrush="{x:Bind inicio:PinturaDeInicio.Linea, Mode=OneTime}"
                     BorderThickness="1">
-                    <Grid>
+                  <!--
+                      Pulsar lleva a la pestana del flujo, que es donde estan ahora las tres
+                      listas. La entrada del menu es su puerta principal; esta es la que sigue
+                      el dedo del dueno desde la cifra que acaba de leer.
+                  -->
+                  <Button
+                      x:Name="_verElFlujo"
+                      AutomationProperties.Name="Lo que tienen los agentes. Pulse para abrir el flujo de trabajo."
+                      Click="AlPedirElFlujo"
+                      Style="{StaticResource LoQueSePulsa}">
+                    <Grid Background="Transparent">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
@@ -536,161 +326,43 @@
                             Background="{x:Bind inicio:PinturaDeInicio.CabeceraAmbar, Mode=OneTime}"
                             BorderBrush="{x:Bind inicio:PinturaDeInicio.CabeceraAmbarOscura, Mode=OneTime}"
                             BorderThickness="0,0,0,1">
-                            <TextBlock
-                                FontSize="13"
-                                FontWeight="Bold"
-                                Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeCabecera, Mode=OneTime}"
-                                Text="Asignado a los agentes" />
+                            <StackPanel Spacing="1">
+                                <TextBlock
+                                    FontSize="13"
+                                    FontWeight="Bold"
+                                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeCabecera, Mode=OneTime}"
+                                    Text="Lo que tienen los agentes" />
+                                <TextBlock
+                                    FontSize="11"
+                                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeCabecera, Mode=OneTime}"
+                                    Text="pulse para abrir el flujo de trabajo"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
                         </Border>
 
                         <StackPanel
                             Grid.Row="1"
-                            Margin="12,8,12,4"
+                            Margin="12,10,12,12"
                             Orientation="Horizontal"
                             Spacing="8">
                             <TextBlock
-                                x:Name="_cuantosAsignados"
+                                x:Name="_cuantosEnLosAgentes"
                                 VerticalAlignment="Bottom"
-                                FontSize="30"
+                                FontSize="34"
                                 FontWeight="Bold"
                                 Foreground="{x:Bind inicio:PinturaDeInicio.AmbarMarca, Mode=OneTime}" />
                             <TextBlock
-                                x:Name="_deQueVanLosAsignados"
-                                Margin="0,0,0,4"
+                                x:Name="_deQueVanLosAgentes"
+                                Margin="0,0,0,5"
                                 VerticalAlignment="Bottom"
                                 FontSize="12.5"
                                 Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
                                 TextWrapping="Wrap" />
                         </StackPanel>
-
-                        <ScrollView
-                            x:Name="_asignados"
-                            Grid.Row="2"
-                            MaxHeight="{StaticResource AltoDeUnaLista}"
-                            Margin="4,0,4,4"
-                            ContentOrientation="Vertical"
-                            VerticalScrollBarVisibility="Visible">
-                            <ItemsRepeater x:Name="_asignadosRenglones" ItemTemplate="{StaticResource RenglonAsignadoPlantilla}" />
-                        </ScrollView>
-
-                        <Border
-                            Grid.Row="3"
-                            Padding="12,5"
-                            Background="{x:Bind inicio:PinturaDeInicio.Panel, Mode=OneTime}"
-                            BorderBrush="{x:Bind inicio:PinturaDeInicio.Linea, Mode=OneTime}"
-                            BorderThickness="0,1,0,1">
-                            <TextBlock
-                                FontSize="12.5"
-                                FontWeight="Bold"
-                                Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}"
-                                Text="Cuánto lleva cada compañero" />
-                        </Border>
-
-                        <ScrollView
-                            x:Name="_equipo"
-                            Grid.Row="4"
-                            MaxHeight="{StaticResource AltoDelEquipo}"
-                            Margin="4,4,4,8"
-                            ContentOrientation="Vertical"
-                            VerticalScrollBarVisibility="Visible">
-                            <ItemsRepeater x:Name="_equipoRenglones" ItemTemplate="{StaticResource RenglonDeCompaneroPlantilla}" />
-                        </ScrollView>
                     </Grid>
+                  </Button>
                 </Border>
             </Grid>
-
-            <!--
-                ================= LA RECOMENDACION EN EL SISTEMA DEL OBISPO =================
-
-                ⛔ Es la TERCERA cosa de Inicio y NO toca las dos de arriba. Aquellas hablan
-                de nuestros campos; esta habla del sistema de la Iglesia, que el programa no
-                ve y que solo una persona puede mirar. Las dos preguntas conviven a proposito
-                (ADR-0006 §1.3), y cada una dice de que va.
-
-                Palabras del dueno el 2026-09-05: «En el Home debe decirme: las personas del
-                grupo del 17 de septiembre, faltan 3, 4 o 5 personas que la recomendación para
-                el templo no está confirmada. Ahí yo puedo verificarlos y ver en el sistema de
-                la Iglesia».
-
-                Y no hay ningun aviso que salga solo (C21-5): ni correo, ni sonido, ni
-                servicio. El aviso es esta lista, que se ve al abrir.
-            -->
-            <Border
-                Grid.Row="2"
-                Background="{x:Bind inicio:PinturaDeInicio.Papel, Mode=OneTime}"
-                BorderBrush="{x:Bind inicio:PinturaDeInicio.Linea, Mode=OneTime}"
-                BorderThickness="1">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Border
-                        Grid.Row="0"
-                        Padding="12,7"
-                        Background="{x:Bind inicio:PinturaDeInicio.CabeceraRoja, Mode=OneTime}"
-                        BorderBrush="{x:Bind inicio:PinturaDeInicio.CabeceraRojaOscura, Mode=OneTime}"
-                        BorderThickness="0,0,0,1">
-                        <StackPanel Spacing="1">
-                            <TextBlock
-                                FontSize="13"
-                                FontWeight="Bold"
-                                Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeCabecera, Mode=OneTime}"
-                                Text="Listo para viajar" />
-                            <TextBlock
-                                FontSize="11"
-                                Foreground="{x:Bind inicio:PinturaDeInicio.TintaDeCabecera, Mode=OneTime}"
-                                Text="la recomendación de cada persona, confirmada en el sistema del obispo"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
-                    <!--  La frase del grupo que viene, con sus palabras y su denominador.  -->
-                    <TextBlock
-                        x:Name="_elGrupoQueViene"
-                        Grid.Row="1"
-                        Margin="12,8,12,2"
-                        FontSize="14"
-                        FontWeight="SemiBold"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}"
-                        TextWrapping="Wrap" />
-
-                    <!--  Lo que ya viajo sin confirmar y lo que apremia, en DOS lineas.  -->
-                    <StackPanel
-                        Grid.Row="2"
-                        Margin="12,0,12,6"
-                        Spacing="1">
-                        <TextBlock
-                            x:Name="_loVencido"
-                            FontSize="12.5"
-                            Foreground="{x:Bind inicio:PinturaDeInicio.RojoMarca, Mode=OneTime}"
-                            TextWrapping="Wrap" />
-                        <TextBlock
-                            x:Name="_loQueApremia"
-                            FontSize="12.5"
-                            Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <!--
-                        La lista de PERSONAS, virtualizada y con su propia barra, por lo
-                        mismo que las otras dos: sin alto acotado el repetidor recibe alto
-                        infinito y construye un renglon por dato.
-                    -->
-                    <ScrollView
-                        x:Name="_tickets"
-                        Grid.Row="3"
-                        MaxHeight="{StaticResource AltoDeUnaLista}"
-                        Margin="4,0,4,8"
-                        ContentOrientation="Vertical"
-                        VerticalScrollBarVisibility="Visible">
-                        <ItemsRepeater x:Name="_ticketsRenglones" ItemTemplate="{StaticResource RenglonDeUnaPersonaConTicketPlantilla}" />
-                    </ScrollView>
-                </Grid>
-            </Border>
 
             <!--
                 ============================ EL CALENDARIO ============================
@@ -701,7 +373,7 @@
                 esa fecha, con su PDF».
             -->
             <Border
-                Grid.Row="3"
+                Grid.Row="1"
                 Background="{x:Bind inicio:PinturaDeInicio.Papel, Mode=OneTime}"
                 BorderBrush="{x:Bind inicio:PinturaDeInicio.Linea, Mode=OneTime}"
                 BorderThickness="1">
@@ -731,12 +403,24 @@
                                 FontSize="13"
                                 FontWeight="Bold"
                                 Foreground="{x:Bind inicio:PinturaDeInicio.Tinta, Mode=OneTime}" />
-                            <TextBlock
+                            <!--
+                                La fecha de hoy vivia en la cabecera de la pantalla, que ya no
+                                existe. Va aqui porque de esto hablaba: es el dia que el
+                                calendario tiene recuadrado.
+                            -->
+                            <StackPanel
                                 Grid.Column="1"
                                 VerticalAlignment="Center"
-                                FontSize="12"
-                                Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                                Text="Pulse un día para abrir el grupo que viaja ese día" />
+                                Spacing="0">
+                                <TextBlock
+                                    x:Name="_hoy"
+                                    FontSize="12"
+                                    Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}" />
+                                <TextBlock
+                                    FontSize="11.5"
+                                    Foreground="{x:Bind inicio:PinturaDeInicio.Apagado, Mode=OneTime}"
+                                    Text="Pulse un día para abrir el grupo que viaja ese día" />
+                            </StackPanel>
                             <StackPanel
                                 Grid.Column="2"
                                 Orientation="Horizontal"
@@ -791,12 +475,24 @@
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
 
-                    <TextBlock
+                    <StackPanel
                         Grid.Row="3"
                         Margin="8,0,8,10"
-                        FontSize="11.5"
-                        Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
-                        Text="cada pastilla es un grupo: una unidad de ese día  ·  la cifra son PERSONAS con la recomendación confirmada  ·  rojo: falta alguna por confirmar  ·  verde: todas confirmadas  ·  lo archivado no sale aquí: se ve en Revisar" />
+                        Spacing="2">
+                        <TextBlock
+                            FontSize="11.5"
+                            Foreground="{x:Bind inicio:PinturaDeInicio.TintaSuave, Mode=OneTime}"
+                            Text="cada pastilla es un grupo: una unidad de ese día  ·  la cifra son PERSONAS  ·  verde: resuelto  ·  rojo: te falta alguna  ·  gris: de ese grupo no se leyó ninguna persona  ·  lo archivado se queda aquí, en verde" />
+                        <!--
+                            El denominador del C1-1: sin el, ninguna cifra de esta pantalla se
+                            puede comprobar. Estaba en la cabecera, que se fue; se queda aqui
+                            porque es lo que acota TODO lo que se ve, tambien el cuadro.
+                        -->
+                        <TextBlock
+                            x:Name="_denominador"
+                            FontSize="11.5"
+                            Foreground="{x:Bind inicio:PinturaDeInicio.Apagado, Mode=OneTime}" />
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

@@ -7,7 +7,8 @@ using Microsoft.UI.Xaml.Controls;
 namespace Fichas.App.Reportes;
 
 /// <summary>
-/// La pantalla de Reportes: el informe en PDF para los jefes, y el historico de lo archivado.
+/// La pantalla de Reportes: los tres informes —los jefes, un agente y el historico—, en PDF y
+/// en Excel.
 /// </summary>
 /// <remarks>
 /// <para>Aqui no se decide nada: la pantalla coloca controles y pasa mensajes. Que periodo se
@@ -48,6 +49,12 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
         PonerElPeriodo(PeriodoDeLaPantalla.DelMesDe(Servicios.Reloj.Hoy()));
         LeerElHistorico();
 
+        // Con «--falso» no hay motor de informes detrás, así que los botones del Excel se
+        // apagan en vez de escribir un archivo que nadie va a encontrar después. Es la misma
+        // decisión que ya tomaron el reporte de la segunda vuelta y el mantenimiento.
+        _botonDeGenerarEnExcel.IsEnabled = _operacion.SabeEscribirEnExcel;
+        _botonDelHistoricoEnExcel.IsEnabled = _operacion.SabeEscribirEnExcel;
+
         // Los ACTIVOS y los desactivados no: un compañero desactivado sigue teniendo trabajo
         // hecho detrás y su informe se puede pedir. Se ofrecen todos y se dice cuál está activo
         // por su nombre, que es lo que la lista de compañeros ya hace en las demás pantallas.
@@ -60,9 +67,13 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
 
     // ---- el informe por agente ----------------------------------------------
 
-    /// <summary>Al elegir a quién se enciende el botón.</summary>
+    /// <summary>Al elegir a quién se enciende el botón; el del Excel, solo si hay motor.</summary>
     private void AlElegirElAgente(object quien, SelectionChangedEventArgs cuando)
-        => _botonDelInformeDeAgente.IsEnabled = _deQuienEsElInforme.SelectedItem is Companero;
+    {
+        var hayAgente = _deQuienEsElInforme.SelectedItem is Companero;
+        _botonDelInformeDeAgente.IsEnabled = hayAgente;
+        _botonDelInformeDeAgenteEnExcel.IsEnabled = hayAgente && (_operacion?.SabeEscribirEnExcel ?? false);
+    }
 
     /// <summary>Pide dónde guardar el informe de ese agente y lo genera.</summary>
     private void AlPulsarGenerarElInformeDeAgente(object quien, RoutedEventArgs cuando)
@@ -73,7 +84,22 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
             var periodo = PeriodoPuesto();
             return GenerarAsync(
                 NombreDeArchivo.DelInformeDeAgente(elegido.Nombre, periodo),
+                Pdf,
                 ruta => _operacion!.DeUnAgente(elegido, periodo, ruta),
+                _resumenDelAgente);
+        });
+
+    /// <summary>Pide dónde guardar el informe de ese agente en Excel y lo genera.</summary>
+    private void AlPulsarGenerarElInformeDeAgenteEnExcel(object quien, RoutedEventArgs cuando)
+        => ManejadorSeguro.Correr("Generar el informe del agente en Excel…", Servicios, () =>
+        {
+            if (_deQuienEsElInforme.SelectedItem is not Companero elegido) return Task.CompletedTask;
+
+            var periodo = PeriodoPuesto();
+            return GenerarAsync(
+                NombreDeArchivo.DelInformeDeAgenteEnExcel(elegido.Nombre, periodo),
+                Excel,
+                ruta => _operacion!.DeUnAgenteEnExcel(elegido, periodo, ruta),
                 _resumenDelAgente);
         });
 
@@ -118,6 +144,16 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
 
     // ---- generar ------------------------------------------------------------
 
+    /// <summary>Los dos formatos en los que sale un informe: como se llaman y en qué acaban.</summary>
+    /// <remarks>
+    /// Se declaran aquí y no se escriben en cada manejador: son SEIS llamadas al selector, y
+    /// con la extensión escrita seis veces basta un descuido para que el selector proponga
+    /// «.pdf» sobre un archivo de Excel y Windows abra el programa que no es.
+    /// </remarks>
+    private static readonly (string QueEs, string Extension) Pdf = ("PDF", ".pdf");
+
+    private static readonly (string QueEs, string Extension) Excel = ("Excel", ".xlsx");
+
     /// <summary>Pide donde guardar el informe del periodo y lo genera.</summary>
     private void AlPulsarGenerarElReporte(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el PDF…", Servicios, () =>
@@ -125,7 +161,20 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
             var periodo = PeriodoPuesto();
             return GenerarAsync(
                 NombreDeArchivo.DelReporteDelPeriodo(periodo),
+                Pdf,
                 ruta => _operacion!.DelPeriodo(periodo, ruta),
+                _resumen);
+        });
+
+    /// <summary>Pide donde guardar el informe del periodo en Excel y lo genera.</summary>
+    private void AlPulsarGenerarElReporteEnExcel(object quien, RoutedEventArgs cuando)
+        => ManejadorSeguro.Correr("Generar el Excel…", Servicios, () =>
+        {
+            var periodo = PeriodoPuesto();
+            return GenerarAsync(
+                NombreDeArchivo.DelReporteDelPeriodoEnExcel(periodo),
+                Excel,
+                ruta => _operacion!.DelPeriodoEnExcel(periodo, ruta),
                 _resumen);
         });
 
@@ -133,24 +182,39 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     private void AlPulsarGenerarElHistorico(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el histórico en PDF…", Servicios, () => GenerarAsync(
             NombreDeArchivo.DelHistorico(Hoy()),
+            Pdf,
             ruta => _operacion!.Historico(ruta),
             _resumen));
 
+    /// <summary>Pide donde guardar el historico completo en Excel y lo genera.</summary>
+    private void AlPulsarGenerarElHistoricoEnExcel(object quien, RoutedEventArgs cuando)
+        => ManejadorSeguro.Correr("Generar el histórico en Excel…", Servicios, () => GenerarAsync(
+            NombreDeArchivo.DelHistoricoEnExcel(Hoy()),
+            Excel,
+            ruta => _operacion!.HistoricoEnExcel(ruta),
+            _resumen));
+
     /// <summary>
-    /// Abre el selector de guardado y genera el PDF donde se diga.
+    /// Abre el selector de guardado y genera el archivo donde se diga.
     /// </summary>
     /// <remarks>
     /// El trabajo de generar corre FUERA del hilo de la ventana. La cifra medida en
     /// <c>Fichas.Pruebas.Reportes</c> con 3 000 casos son segundos, y unos segundos con la
     /// ventana congelada se leen como «el programa se colgó».
     /// </remarks>
+    /// <param name="nombrePropuesto">El nombre que se le propone al selector.</param>
+    /// <param name="formato">En qué formato sale: <see cref="Pdf"/> o <see cref="Excel"/>.</param>
+    /// <param name="generar">Lo que escribe el archivo en la ruta que se elija.</param>
     /// <param name="donde">En qué bloque de la pantalla se enseña la línea del resultado.</param>
     private async Task GenerarAsync(
-        string nombrePropuesto, Func<string, ResumenEnPantalla> generar, ZonaDeResumen donde)
+        string nombrePropuesto,
+        (string QueEs, string Extension) formato,
+        Func<string, ResumenEnPantalla> generar,
+        ZonaDeResumen donde)
     {
         if (_operacion is null) return;
 
-        var ruta = ElegirDondeGuardar(nombrePropuesto, "PDF", ".pdf");
+        var ruta = ElegirDondeGuardar(nombrePropuesto, formato.QueEs, formato.Extension);
         if (ruta is null) return;
 
         BloquearLosBotones(true);
@@ -200,15 +264,15 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
 
     // ---- abrir --------------------------------------------------------------
 
-    /// <summary>Abre el ultimo PDF generado con el programa que Windows tenga puesto.</summary>
+    /// <summary>Abre el ultimo archivo generado con el programa que Windows tenga puesto.</summary>
     private void AlPulsarAbrir(object quien, RoutedEventArgs cuando)
-        => ManejadorSeguro.Correr("Abrir el PDF", Servicios, () =>
+        => ManejadorSeguro.Correr("Abrir el archivo", Servicios, () =>
         {
             DejarSiHayAviso(AbrirElArchivo.Abrir(_ultimoArchivo));
             return Task.CompletedTask;
         });
 
-    /// <summary>Abre en el Explorador la carpeta donde quedo el ultimo PDF.</summary>
+    /// <summary>Abre en el Explorador la carpeta donde quedo el ultimo archivo.</summary>
     private void AlPulsarAbrirLaCarpeta(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Ver la carpeta", Servicios, () =>
         {
@@ -287,11 +351,22 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     }
 
     /// <summary>Apaga los botones mientras se genera; una segunda pulsada no arranca otra tanda.</summary>
+    /// <remarks>
+    /// Los tres del Excel vuelven a encenderse solo si este arranque sabe escribirlo: si no, se
+    /// quedan apagados como estaban, y no es que la generación los haya roto.
+    /// </remarks>
     private void BloquearLosBotones(bool bloqueados)
     {
+        var hayAgente = _deQuienEsElInforme.SelectedItem is Companero;
+        var hayExcel = _operacion?.SabeEscribirEnExcel ?? false;
+
         _botonDeGenerar.IsEnabled = !bloqueados;
         _botonDelHistorico.IsEnabled = !bloqueados;
         _botonDeRefrescar.IsEnabled = !bloqueados;
-        _botonDelInformeDeAgente.IsEnabled = !bloqueados && _deQuienEsElInforme.SelectedItem is Companero;
+        _botonDelInformeDeAgente.IsEnabled = !bloqueados && hayAgente;
+
+        _botonDeGenerarEnExcel.IsEnabled = !bloqueados && hayExcel;
+        _botonDelHistoricoEnExcel.IsEnabled = !bloqueados && hayExcel;
+        _botonDelInformeDeAgenteEnExcel.IsEnabled = !bloqueados && hayAgente && hayExcel;
     }
 }

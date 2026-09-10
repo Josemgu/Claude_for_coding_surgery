@@ -42,6 +42,9 @@ public static class SeccionesDeDireccion
     private static readonly Columna[] ColumnasDeQuienViajoSinVerificar =
     [
         new("Persona", ClaseDeColumna.Crudo, 30),
+        // ⚠️ 2026-09-08: la unidad en DOS columnas, el numero delante y como Texto. Ver el
+        // motivo entero en Vocabulario, donde vivia la funcion que las pegaba.
+        new(Vocabulario.RotuloDelNumeroDeUnidad, ClaseDeColumna.Texto, 16),
         new("Barrio o rama", ClaseDeColumna.Crudo, 24),
         new("Caso", ClaseDeColumna.Texto, 12),
         new("Viajó el", ClaseDeColumna.Temporal, 14),
@@ -74,6 +77,9 @@ public static class SeccionesDeDireccion
 
     private static readonly Columna[] ColumnasDeLasUnidades =
     [
+        // ⚠️ 2026-09-08: la unidad en DOS columnas, el numero delante y como Texto. Aqui ademas
+        // cambio LA CLAVE del agrupado: ver <see cref="LasUnidades"/>.
+        new(Vocabulario.RotuloDelNumeroDeUnidad, ClaseDeColumna.Texto, 16),
         new("Barrio o rama", ClaseDeColumna.Crudo, 34),
         new("Personas", ClaseDeColumna.Crudo, 12),
         new(Vocabulario.SinLaPreparacionCompleta, ClaseDeColumna.Crudo, 18),
@@ -118,7 +124,8 @@ public static class SeccionesDeDireccion
             .Select(f => (IReadOnlyList<string?>)new string?[]
             {
                 Vocabulario.PersonaOSinNombre(f.Persona.Nombre),
-                Vocabulario.UnidadConSuNumero(f.Caso.UnidadNombre, f.Caso.UnidadNumero),
+                Vocabulario.NumeroDeUnidad(f.Caso.UnidadNumero),
+                Vocabulario.NombreDeUnidad(f.Caso.UnidadNombre),
                 f.Caso.NumeroCaso,
                 f.FechaViaje,
                 Preparacion.QuePaso(f.Persona),
@@ -254,11 +261,16 @@ public static class SeccionesDeDireccion
     /// </remarks>
     public static Seccion? LasUnidades(IReadOnlyList<PersonaConSuCaso> personas)
     {
-        var porUnidad = new Dictionary<string, (int Personas, int SinCompletar)>(StringComparer.Ordinal);
+        // ⚠️ 2026-09-08: la clave es el PAR (número, nombre) y ya no la cadena pegada.
+        // Agrupar por la cadena metia el numero dentro de la clave sin querer; ahora entra
+        // declarado, cada dato sale en su columna y el orden sigue siendo el mismo porque se
+        // desempata por los dos.
+        var porUnidad = new Dictionary<(string Numero, string Nombre), (int Personas, int SinCompletar)>();
         foreach (var fila in personas)
         {
-            var unidad = Vocabulario.UnidadConSuNumero(fila.Caso.UnidadNombre, fila.Caso.UnidadNumero);
-            if (string.IsNullOrWhiteSpace(unidad)) unidad = Vocabulario.SinUnidad;
+            var unidad = (
+                Vocabulario.NumeroDeUnidad(fila.Caso.UnidadNumero),
+                Vocabulario.NombreDeUnidad(fila.Caso.UnidadNombre));
 
             var cuenta = porUnidad.GetValueOrDefault(unidad);
             porUnidad[unidad] = (
@@ -269,7 +281,8 @@ public static class SeccionesDeDireccion
         var conFalta = porUnidad
             .Where(par => par.Value.SinCompletar > 0)
             .OrderByDescending(par => par.Value.SinCompletar)
-            .ThenBy(par => par.Key, StringComparer.Ordinal)
+            .ThenBy(par => par.Key.Nombre, StringComparer.Ordinal)
+            .ThenBy(par => par.Key.Numero, StringComparer.Ordinal)
             .ToList();
         if (conFalta.Count == 0) return null;
 
@@ -285,7 +298,8 @@ public static class SeccionesDeDireccion
             conFalta
                 .Select(par => (IReadOnlyList<string?>)new string?[]
                 {
-                    par.Key, Numero(par.Value.Personas), Numero(par.Value.SinCompletar),
+                    par.Key.Numero, par.Key.Nombre,
+                    Numero(par.Value.Personas), Numero(par.Value.SinCompletar),
                 })
                 .ToList(),
             Plural.Con(conFalta.Count, "unidad con algo pendiente", "unidades con algo pendiente"));

@@ -41,6 +41,21 @@ public sealed class VentanaDeLasPreguntas : Window
     private readonly long _casoId;
     private readonly ElementTheme _tema;
 
+    /// <summary>De qué personas se pulsó el atajo de las seis y todavía no se ha guardado.</summary>
+    /// <remarks>
+    /// <para>
+    /// ⛔ <b>Es lo que decide qué origen se escribe</b>, y por eso se vacía en cuanto él toca
+    /// un desplegable de esa persona: si marcó las seis de un tirón y luego cambió una a «no»,
+    /// eso ya no fue un tirón, y decir lo contrario en la base sería mentir sobre cómo se
+    /// contestó.
+    /// </para>
+    /// <para>
+    /// Va por persona y no por ventana: un documento puede traer diez y cada una es un ticket
+    /// aparte (ADR-0006 §2.1).
+    /// </para>
+    /// </remarks>
+    private readonly HashSet<long> _marcadasDeUnTiron = [];
+
     private readonly StackPanel _personas = new() { Spacing = 10 };
     private readonly TextBlock _resumen = new() { FontSize = 13, TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _franja = new()
@@ -205,14 +220,14 @@ public sealed class VentanaDeLasPreguntas : Window
             caja.Children.Add(fila);
         }
 
-        var guardar = new Button
+        // Al tocar un desplegable a mano, lo que hubiera se deja de llamar «de un tirón»:
+        // esa persona vuelve al camino de siempre y se firma como tal.
+        foreach (var desplegable in desplegables)
         {
-            Content = "Guardar las seis",
-            HorizontalAlignment = HorizontalAlignment.Right,
-        };
-        AutomationProperties.SetName(guardar, $"Guardar las seis preguntas de {ticket.DeQuien}");
-        guardar.Click += (_, _) => Guardar(ticket, desplegables);
-        caja.Children.Add(guardar);
+            desplegable.SelectionChanged += (_, _) => _marcadasDeUnTiron.Remove(ticket.PersonaId);
+        }
+
+        caja.Children.Add(BotonesDe(ticket, desplegables));
 
         return new Border
         {
@@ -222,6 +237,61 @@ public sealed class VentanaDeLasPreguntas : Window
             BorderThickness = new Thickness(1),
             BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.Gray),
         };
+    }
+
+    /// <summary>Los dos botones de una persona: el atajo de las seis y el de guardar.</summary>
+    /// <remarks>
+    /// ⛔ <b>Son dos y en este orden por una razón que no es estética.</b> El atajo pone las
+    /// seis en «sí» y NO escribe nada; el que escribe sigue siendo «Guardar las seis», que ya
+    /// existía y ya se auditaba. Así él ve en pantalla lo que va a firmar antes de firmarlo, y
+    /// un clic de más no puede convertir «no lo he mirado» en «está todo bien» (regla
+    /// permanente 5). El porqué entero está en <see cref="MarcarLasSeisDeUnTiron"/>.
+    /// </remarks>
+    private FrameworkElement BotonesDe(TicketDeUnaPersona ticket, IReadOnlyList<ComboBox> desplegables)
+    {
+        var fila = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+
+        var deUnTiron = new Button { Content = MarcarLasSeisDeUnTiron.LoQueDiceElBoton };
+        AutomationProperties.SetName(deUnTiron, $"{MarcarLasSeisDeUnTiron.LoQueDiceElBoton} de {ticket.DeQuien}");
+        ToolTipService.SetToolTip(deUnTiron, MarcarLasSeisDeUnTiron.LoQueSeAvisa);
+        deUnTiron.Click += (_, _) => PonerLasSeisEnSi(ticket, desplegables);
+        fila.Children.Add(deUnTiron);
+
+        var guardar = new Button { Content = "Guardar las seis" };
+        AutomationProperties.SetName(guardar, $"Guardar las seis preguntas de {ticket.DeQuien}");
+        guardar.Click += (_, _) => Guardar(ticket, desplegables);
+        fila.Children.Add(guardar);
+
+        return fila;
+    }
+
+    /// <summary>
+    /// Pone los seis desplegables de esa persona en «sí». NO escribe nada en la base.
+    /// </summary>
+    /// <remarks>
+    /// El sello se pone DESPUÉS de mover los desplegables: moverlos dispara
+    /// <c>SelectionChanged</c>, que es justo lo que lo quita.
+    /// </remarks>
+    private void PonerLasSeisEnSi(TicketDeUnaPersona ticket, IReadOnlyList<ComboBox> desplegables)
+    {
+        var propuestas = MarcarLasSeisDeUnTiron.LoQuePropone(ticket);
+        var enSi = PreguntasDeUnDocumento.LasTresRespuestas
+            .Select((respuesta, i) => (respuesta, i))
+            .First(par => par.respuesta == true)
+            .i;
+
+        for (var i = 0; i < desplegables.Count && i < propuestas.Count; i++)
+        {
+            desplegables[i].SelectedIndex = enSi;
+        }
+
+        _marcadasDeUnTiron.Add(ticket.PersonaId);
+        Decir([Aviso.Informa(MarcarLasSeisDeUnTiron.LoQueSeAvisa, string.Empty, string.Empty)]);
     }
 
     /// <summary>El desplegable de una pregunta, con sus TRES respuestas.</summary>
@@ -252,6 +322,11 @@ public sealed class VentanaDeLasPreguntas : Window
     }
 
     /// <summary>Guarda las seis de ESA persona y vuelve a leer la base.</summary>
+    /// <remarks>
+    /// ⛔ El origen que se escribe depende de si esas seis vinieron del atajo y NO se tocaron
+    /// después: es lo único que separa en la base «las miré una a una» de «las marqué en
+    /// bloque», porque las seis columnas quedan idénticas por los dos caminos.
+    /// </remarks>
     private void Guardar(TicketDeUnaPersona ticket, IReadOnlyList<ComboBox> desplegables)
     {
         var elegidas = desplegables
@@ -260,13 +335,21 @@ public sealed class VentanaDeLasPreguntas : Window
                 (desplegable.SelectedItem as ComboBoxItem)?.Tag as bool?))
             .ToList();
 
-        var resultado = _acciones.Guardar(ticket.PersonaId, PreguntasDeUnDocumento.ComoSeGuarda(elegidas));
+        var seis = PreguntasDeUnDocumento.ComoSeGuarda(elegidas);
+        var fueDeUnTiron = _marcadasDeUnTiron.Contains(ticket.PersonaId);
+
+        var resultado = fueDeUnTiron
+            ? _acciones.GuardarDeUnTiron(ticket.PersonaId, seis)
+            : _acciones.Guardar(ticket.PersonaId, seis);
 
         if (!resultado.SeEscribio)
         {
             Decir(resultado.Avisos);
             return;
         }
+
+        // Escrito ya, el sello ha cumplido: si él vuelve a tocar estas seis, será a mano.
+        _marcadasDeUnTiron.Remove(ticket.PersonaId);
 
         // Se relee la base ANTES de decir cómo quedó: la frase que se enseña sale de lo
         // escrito y no de lo que esta ventana creía estar escribiendo.

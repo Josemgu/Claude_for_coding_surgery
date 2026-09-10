@@ -1,4 +1,5 @@
 using Fichas.App.Inicio;
+using Fichas.App.Vocabulario;
 using Fichas.Contratos.Modelos;
 using Fichas.Reportes.Reglas;
 
@@ -103,6 +104,20 @@ public sealed record PersonaDelGrupo(
     /// </remarks>
     public string EstadoDelDocumentoTexto => PalabrasDelEstado.Decir(EstadoDelDocumento, Motivo);
 
+    /// <summary>Lo que se lee de ESTA persona: una de las dos palabras, y su detalle.</summary>
+    /// <remarks>
+    /// ⛔ <b>Es la persona y no el documento.</b> Cinco personas del mismo papel pueden leerse
+    /// distinto, y esa separacion es del 2026-09-05 y no se toca. Lo del documento sigue en
+    /// <see cref="EstadoDelDocumentoTexto"/>, que ya no se pinta en el renglon.
+    /// </remarks>
+    public LoQueSeLeeDeUnaPersona Lectura => LoQueSeLeeDeUnaPersona.De(Recomendacion, PasosSinCompletar);
+
+    /// <summary>«resuelto» o «me falta»; la unica palabra de estado del renglon.</summary>
+    public string PalabraDelEstado => Lectura.Palabra;
+
+    /// <summary>Que le falta a esta persona y a quien le toca; se lee cuando el lo pide.</summary>
+    public string DetalleDelEstado => Lectura.Detalle;
+
     /// <summary>
     /// Como esta ESTA persona: «lista para viajar», «no lista para viajar» o «sin mirar», con
     /// su recomendacion y con el paso donde se quedo.
@@ -133,13 +148,47 @@ public sealed record PersonaDelGrupo(
     /// </remarks>
     public bool SinNingunaPersonaLeida => PersonaId == 0;
 
-    /// <summary>«le faltan 3 datos», «le falta 1 dato» o «listo para asignar · …».</summary>
+    /// <summary>Lo que se lee del DOCUMENTO de esta persona; no es el estado de ella.</summary>
     /// <remarks>
-    /// ⛔ Es la OTRA pregunta —la que contesta el programa mirando nuestros campos— y no se
-    /// mezcla con <see cref="RecomendacionTexto"/>. El motivo entero esta en
-    /// <see cref="LasDosPreguntas"/>, que es ademas donde se COMPONE la frase desde el
-    /// 2026-09-07: aqui se componia aparte, y una frase compuesta en dos sitios acaba
-    /// diciendo dos cosas del mismo documento.
+    /// ⛔ Es la OTRA pregunta —la que contesta el programa mirando nuestros campos y lo que
+    /// dijo el companero— y no se mezcla con <see cref="Lectura"/>, que es la de la persona.
+    /// Se compone en un solo sitio: compuesta en dos, acaba diciendo dos cosas del mismo
+    /// documento.
+    /// </remarks>
+    public LoQueSeLeeDeUnDocumento LecturaDelDocumento => LoQueSeLeeDeUnDocumento.De(
+        EstadoDelDocumento,
+        archivado: false,
+        CuantoLeFalta,
+        SinNingunaPersonaLeida,
+        quienLoLleva: Dueno,
+        firma: string.Empty,
+        motivo: Motivo == MotivoDeNoCompletar.SinMotivo
+            ? string.Empty
+            : PalabrasDelEstado.DecirElMotivo(Motivo));
+
+    /// <summary>
+    /// Que le falta al DOCUMENTO y a quien le toca, ya en palabras.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ <b>2026-09-07:</b> decia «le faltan 3 datos» o «listo para asignar · el sistema
+    /// llenó todos los campos». Lo segundo era una de las cuatro palabras retiradas.</para>
+    ///
+    /// <para>⚠️ <b>Aqui va el DETALLE y no la palabra</b>, y a proposito: la palabra de este
+    /// renglon es la de la PERSONA —<see cref="PalabraDelEstado"/>, que ya va en
+    /// <see cref="Detalle"/>—, y poner otra al lado devolveria las dos frases que el dueno leia
+    /// una creyendo la otra. Esta columna contesta «¿por que estoy mirando este renglon?», que
+    /// es a quien hay que llamar.</para>
+    ///
+    /// <para>Y aqui el detalle SI va a la vista, no a un clic: esta pantalla es a la que el
+    /// entra cuando ya ha preguntado —eligio un dia y un grupo—, y es donde marca el telefono.
+    /// El clic que ahorra el detalle es el de Revisar, donde hay 3 000 tarjetas compitiendo.</para>
+    ///
+    /// <para>⚠️ Sale de <see cref="LasDosPreguntas.LoQueLeFaltaAlDocumento"/> y NO de
+    /// <see cref="LecturaDelDocumento"/>, aunque las dos digan casi lo mismo: por ese metodo
+    /// pasan tambien <c>LoQueLeFaltaACadaDocumento</c> y el pie de Correccion, y componerlo
+    /// aqui aparte es exactamente lo que hacia que el mismo documento se leyera distinto en dos
+    /// pantallas. Lo vigila
+    /// <c>PruebasDeLoQueLeFaltaACadaDocumento.ContestaLoMismoQueLaPantallaDelGrupoEnTodaLaBase</c>.</para>
     /// </remarks>
     public string LoQueFaltaTexto
         => LasDosPreguntas.LoQueLeFaltaAlDocumento(CuantoLeFalta, SinNingunaPersonaLeida);
@@ -155,7 +204,12 @@ public sealed record PersonaDelGrupo(
     /// el dueno leia como si fuera de la persona. Ahora va el de la persona; el del documento
     /// sigue diciendose, con su nombre, en la cabecera de la unidad.
     /// </remarks>
-    public string Detalle => $"{NumeroCaso} · {RecomendacionTexto} · {DuenoTexto} · {PdfTexto}";
+    /// <remarks>
+    /// ⛔ <b>2026-09-07:</b> aqui iba <see cref="RecomendacionTexto"/> —«lista para viajar · 
+    /// recomendacion confirmada», tres de las palabras retiradas—. Lo que decia no se pierde:
+    /// va en <see cref="DetalleDelEstado"/>, que se lee al pulsar la palabra.
+    /// </remarks>
+    public string Detalle => $"{NumeroCaso} · {PalabraDelEstado} · {DuenoTexto} · {PdfTexto}";
 }
 
 /// <summary>
@@ -170,6 +224,12 @@ public sealed record PersonaDelGrupo(
 /// </remarks>
 /// <param name="UnidadNumero">Su numero, o vacio si el papel no lo traia.</param>
 /// <param name="UnidadNombre">Su nombre tal como se leyo.</param>
+/// <param name="Fecha">
+/// El dia en que viaja esta unidad. Entro el 2026-09-09: el dueno lee la unidad ENTERA en un
+/// renglon —<i>«Rama San Juan No 325535, 10 personas viajarán el 12 de septiembre»</i>— y con
+/// la fecha solo en el titulo de la pantalla, ese renglon copiado o leido en voz alta no dice
+/// de que dia habla.
+/// </param>
 /// <param name="CasoIds">Los documentos de esta unidad ese dia; un archivado no llega hasta aqui.</param>
 /// <param name="Personas">Las personas, en el orden en que se ensenan.</param>
 /// <param name="CuantasCompletas">Cuantos de esos documentos estan completos.</param>
@@ -177,6 +237,7 @@ public sealed record PersonaDelGrupo(
 public sealed record UnidadDelGrupo(
     string UnidadNumero,
     string UnidadNombre,
+    DateOnly Fecha,
     IReadOnlyList<long> CasoIds,
     IReadOnlyList<PersonaDelGrupo> Personas,
     int CuantasCompletas,
@@ -225,19 +286,76 @@ public sealed record UnidadDelGrupo(
     /// <summary>Las que todavia no: las que estan en «no» y las que nadie miro.</summary>
     public int CuantasPersonasSinConfirmar => Personas.Count - CuantasPersonasConfirmadas;
 
-    /// <summary>«3 documentos · 7 personas · 2 de 7 personas confirmadas · 1 de 3 completas».</summary>
+    /// <summary>«10 personas viajan el 12 de septiembre · 2 documentos · me falta 5 de 10».</summary>
     /// <remarks>
-    /// Las dos cuentas van juntas y con su palabra delante para que no se confundan: las
-    /// PERSONAS confirmadas son la recomendacion en el sistema del obispo, y los DOCUMENTOS
-    /// completos son lo que dijo el Excel del companero. Son dos respuestas de dos sitios.
+    /// <para>⛔ <b>Decia «2 de 7 personas confirmadas · 1 de 3 completas»</b> hasta el
+    /// 2026-09-07: DOS cuentas de dos sitios distintos —las PERSONAS confirmadas en el sistema
+    /// del lider y los DOCUMENTOS que dio por completos el Excel del companero—, con dos de las
+    /// cuatro palabras que el dueno retiro. Las dos siguen calculandose y siguen aparte
+    /// (<see cref="CuantasPersonasConfirmadas"/> y <c>CuantasCompletas</c>); lo que se pinta es
+    /// una, en PERSONAS, que es la unidad de trabajo que el declaro el 2026-09-05.</para>
+    ///
+    /// <para>⚠️ <b>2026-09-09: las personas van delante y con su fecha.</b> El dueno dicto el
+    /// renglon con sus palabras —<i>«Rama San Juan No 325535, 10 personas viajarán el 12 de
+    /// septiembre»</i>—, y lo primero que dice de una unidad es cuanta gente viaja y cuando. Los
+    /// documentos siguen ahi: son lo que se asigna, y sin esa cifra el boton «Asignar esta
+    /// unidad» diria cuanto trabajo mueve solo despues de pulsarlo.</para>
     /// </remarks>
     public string Detalle
-        => Plural.Con(CuantosDocumentos, "documento", "documentos")
-           + " · " + Plural.Con(Personas.Count, "persona", "personas")
-           + $" · {CuantasPersonasConfirmadas} de {Personas.Count} "
-           + Plural.Palabra(Personas.Count, "persona confirmada", "personas confirmadas")
-           + $" · {CuantasCompletas} de {CuantosDocumentos} "
-           + Plural.Palabra(CuantosDocumentos, "completa", "completas");
+        => Plural.Con(Personas.Count, "persona", "personas")
+           + $" {(Personas.Count == 1 ? "viaja" : "viajan")} el {FechasEnEspanol.DecirElDiaYElMes(Fecha)}"
+           + " · " + Plural.Con(CuantosDocumentos, "documento", "documentos")
+           + " · " + DosEstados.Cuenta(CuantasPersonasConfirmadas, Personas.Count);
+
+    /// <summary>Cuantos de sus documentos tienen todavia algun hueco del papel.</summary>
+    /// <remarks>
+    /// ⛔ La cuenta la trae ya hecha <see cref="PersonaDelGrupo.CuantoLeFalta"/>, que sale de
+    /// <see cref="LoQueLeFalta"/> —el veredicto unico—. Aqui solo se cuentan documentos
+    /// DISTINTOS: un documento de cinco personas pinta cinco renglones con la misma cifra
+    /// dentro, y sumarlos diria cinco documentos donde hay uno.
+    /// </remarks>
+    public int CuantosDocumentosConHuecos
+        => Personas.Where(p => p.CuantoLeFalta > 0).Select(p => p.CasoId).Distinct().Count();
+
+    /// <summary>
+    /// Que le falta a esta unidad, dicho de forma que se sepa QUE hacer: «resuelto», o las dos
+    /// faltas que existen, cada una con su sitio.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>De donde sale.</b> El dueno dicto la cabecera de la unidad pequena asi:
+    /// <i>«Barrio Marito 656351, 5 personas viajarán el 12 de septiembre, falta verificar
+    /// recomendaciones»</i>. La cifra sola —«me falta 5 de 10»— no dice de que, y las dos
+    /// faltas que puede tener una unidad <b>se arreglan por caminos distintos</b>: los huecos
+    /// del papel se llenan escribiendo en Correccion, y las recomendaciones se resuelven
+    /// llamando al lider (<i>«yo debo llamar al obispo»</i>, 2026-09-05). Meterlas en una sola
+    /// frase obligaria a abrir la unidad para saber cual de los dos trabajos toca.</para>
+    ///
+    /// <para>⛔ <b>Es un DETALLE y no una palabra de estado.</b> La palabra sigue siendo una de
+    /// las dos y va en <see cref="Detalle"/>; esto es la otra mitad de la decision del
+    /// 2026-09-07: «me falta» siempre puede decir que falta y a quien le toca.</para>
+    /// </remarks>
+    public string LoQueLeFaltaALaUnidad
+    {
+        get
+        {
+            var trozos = new List<string>();
+
+            if (CuantosDocumentosConHuecos > 0)
+            {
+                trozos.Add(Plural.Con(CuantosDocumentosConHuecos, "documento", "documentos")
+                           + " con datos del papel por completar · te toca a ti, en Corrección");
+            }
+
+            if (CuantasPersonasSinConfirmar > 0)
+            {
+                trozos.Add("falta verificar "
+                           + Plural.Con(CuantasPersonasSinConfirmar, "recomendación", "recomendaciones")
+                           + " en el sistema del líder");
+            }
+
+            return trozos.Count == 0 ? DosEstados.Resuelto : string.Join(" · ", trozos);
+        }
+    }
 }
 
 /// <summary>
@@ -297,28 +415,18 @@ public sealed record GrupoDelDia(
     public int CuantasPersonasSinConfirmar => CuantasPersonasNoListas + CuantasPersonasSinMirar;
 
     /// <summary>
-    /// «4 de 10 personas confirmadas · 3 sin mirar», la linea del dia en PERSONAS.
+    /// «resuelto» o «me falta 6 de 10», la linea del dia contada en PERSONAS.
     /// </summary>
     /// <remarks>
-    /// Va aparte de <see cref="ComoVa"/>, que sigue contando DOCUMENTOS completos y conserva
-    /// sus palabras exactas: son dos respuestas distintas y ponerlas en la misma frase es lo
-    /// que hacia que el dueno leyera una creyendo la otra.
+    /// <para>⛔ <b>Decia «4 de 10 personas confirmadas · 3 sin mirar»</b> hasta el 2026-09-07,
+    /// con dos de las palabras retiradas. Lo que separaba «sin mirar» de «no lista» sigue vivo
+    /// —<see cref="CuantasPersonasSinMirar"/> y <see cref="CuantasPersonasNoListas"/> se
+    /// calculan igual, y <c>LoQueSeLeeDeUnaPersona</c> las dice distinto en el detalle de cada
+    /// renglon—; lo que se retira es esa distincion de la CABECERA, donde competia con la
+    /// cuenta de documentos y hacia que el dueno leyera una creyendo la otra.</para>
     /// </remarks>
     public string ComoVanLasPersonas
-    {
-        get
-        {
-            if (EstaVacio) return "no viaja nadie este día";
-
-            var todas = TodasLasPersonas.Count;
-            var cuenta = $"{CuantasPersonasConfirmadas} de {todas} "
-                         + Plural.Palabra(todas, "persona confirmada", "personas confirmadas");
-
-            return CuantasPersonasSinMirar == 0
-                ? cuenta
-                : $"{cuenta} · {CuantasPersonasSinMirar} sin mirar";
-        }
-    }
+        => EstaVacio ? "no viaja nadie este día" : DosEstados.Cuenta(CuantasPersonasConfirmadas, TodasLasPersonas.Count);
 
     /// <summary>
     /// Los que se pueden asignar del dia entero.
@@ -337,16 +445,19 @@ public sealed record GrupoDelDia(
            + " · " + Plural.Con(CuantasPersonas, "persona", "personas")
            + " · " + Plural.Con(Unidades.Count, "unidad", "unidades");
 
-    /// <summary>«2 de 7 completas», y si falta alguno, por que (regla C11-4).</summary>
+    /// <summary>«resuelto» o «me falta 5 de 7», contado en DOCUMENTOS, con su motivo.</summary>
+    /// <remarks>
+    /// ⛔ Decia «2 de 7 completas» hasta el 2026-09-07. El motivo se conserva —es lo que el
+    /// dueno pidio el 2026-09-05 al nombrar sus tres motivos— porque un motivo NO es una
+    /// palabra de estado: dice por que falta, no si falta.
+    /// </remarks>
     public string ComoVa
     {
         get
         {
             if (EstaVacio) return "no viaja nadie este día";
 
-            var cuenta = $"{CuantasCompletas} de {CuantosDocumentos} "
-                         + Plural.Palabra(CuantosDocumentos, "completa", "completas");
-
+            var cuenta = DosEstados.Cuenta(CuantasCompletas, CuantosDocumentos);
             return CuantasCompletas == CuantosDocumentos
                 ? cuenta
                 : $"{cuenta} · {PalabrasDelEstado.DecirElMotivo(Motivo)}";
@@ -398,6 +509,17 @@ public sealed record GrupoDelDia(
 /// Si al DOCUMENTO de esta persona le falta algun dato, ya en palabras. Vacio en una cabecera
 /// de unidad: una unidad no es un documento y no tiene campos que llenar.
 /// </param>
+/// <param name="PalabraDelEstado">
+/// «resuelto» o «me falta», dicho de ESTA PERSONA. Vacio en una cabecera: la cabecera lleva su
+/// cuenta en <see cref="Detalle"/>.
+/// </param>
+/// <param name="DetalleDelEstado">
+/// Que le falta a esta persona y a quien le toca. Se lee cuando el dueno lo pide, no de entrada.
+/// </param>
+/// <param name="LoQueLeFaltaALaUnidad">
+/// Que le falta a la UNIDAD de esta cabecera y donde se arregla. Vacio en el renglon de una
+/// persona: una persona no es una unidad, y lo suyo va en <paramref name="DetalleDelEstado"/>.
+/// </param>
 public sealed record RenglonDelGrupo(
     bool EsCabecera,
     string Titulo,
@@ -408,16 +530,27 @@ public sealed record RenglonDelGrupo(
     bool EstaCompleta,
     bool ElPdfNoSePuedeAbrir,
     bool? Recomendacion = null,
-    string LoQueLeFaltaAlDocumento = "")
+    string LoQueLeFaltaAlDocumento = "",
+    string PalabraDelEstado = "",
+    string DetalleDelEstado = "",
+    string LoQueLeFaltaALaUnidad = "")
 {
     /// <summary>La cabecera de una unidad dentro del dia.</summary>
+    /// <remarks>
+    /// ⚠️ <b>Desde el 2026-09-09 se lleva ademas lo que le falta a la unidad.</b> Hasta hoy la
+    /// cabecera decia cuanto faltaba —«me falta 5 de 10»— y no de que, asi que habia que abrir
+    /// la unidad para saber si el trabajo era escribir en Correccion o llamar al lider. Es lo
+    /// que el dueno dicto el 2026-09-07: <i>«5 personas viajarán el 12 de septiembre, falta
+    /// verificar recomendaciones»</i>.
+    /// </remarks>
     public static RenglonDelGrupo Cabecera(UnidadDelGrupo unidad)
     {
         ArgumentNullException.ThrowIfNull(unidad);
         return new RenglonDelGrupo(
             true, unidad.Titulo, unidad.Detalle, 0, unidad.CasosQueSePuedenAsignar, string.Empty,
             unidad.CuantasCompletas == unidad.CuantosDocumentos && unidad.CuantosDocumentos > 0,
-            false);
+            false,
+            LoQueLeFaltaALaUnidad: unidad.LoQueLeFaltaALaUnidad);
     }
 
     /// <summary>El renglon de una persona del grupo.</summary>
@@ -436,7 +569,9 @@ public sealed record RenglonDelGrupo(
             persona.EstadoDelDocumento == EstadoDeRecomendacion.Completa,
             persona.ElPdfNoSePuedeAbrir,
             persona.Recomendacion,
-            persona.LoQueFaltaTexto);
+            persona.LoQueFaltaTexto,
+            persona.PalabraDelEstado,
+            persona.DetalleDelEstado);
     }
 
     /// <summary>Si este renglon es una persona; lo lee la plantilla para ensenar su mitad.</summary>
@@ -452,6 +587,7 @@ public sealed record RenglonDelGrupo(
     /// del arreglo del 2026-09-07 no existiria para el.
     /// </remarks>
     public string ParaElLector => EsCabecera
-        ? $"Unidad {Titulo}. {Detalle}"
-        : $"{Titulo}. {Cedula}. {Detalle}. {LoQueLeFaltaAlDocumento}. Pulse para verificar este documento.";
+        ? $"Unidad {Titulo}. {Detalle}. {LoQueLeFaltaALaUnidad}"
+        : $"{Titulo}. {Cedula}. {Detalle}. {DetalleDelEstado}. {LoQueLeFaltaAlDocumento}. "
+          + "Pulse para verificar este documento.";
 }

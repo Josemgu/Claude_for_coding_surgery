@@ -1,5 +1,6 @@
 ﻿using Fichas.App.Asignar;
 using Fichas.App.Revisar;
+using Fichas.App.Vocabulario;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 
@@ -79,7 +80,7 @@ public sealed class PruebasDeRevisar
         banco.Servicios.Casos.MarcarEstado(ids[4], EstadoDeRecomendacion.Completa, elCompanero.Id, "paquete devuelto");
         banco.Tablero.Cargar();
 
-        var completados = banco.Tablero.Todas(FiltroDeTarjeta.Completadas);
+        var completados = banco.Tablero.Todas(FiltroDeTarjeta.Resuelto);
 
         Assert.HasCount(2, completados, "Los dos marcados completa, y ni uno mas.");
         foreach (var tarjeta in completados)
@@ -115,8 +116,11 @@ public sealed class PruebasDeRevisar
         var tarjeta = banco.Tablero.De(ids[3])!;
 
         Assert.AreEqual(EstadoDeRecomendacion.NoCompleta, tarjeta.Estado);
+        // ⚠️ ESTA es la línea que sostiene la prueba y no se toca: la firma dice QUIÉN lo marcó
+        // y con qué verbo, y es lo que separa un «no completa» de un completo aunque la palabra
+        // de la pastilla se haya colapsado a dos el 2026-09-07.
         StringAssert.StartsWith(tarjeta.Firma, "Marcada no completa por ");
-        Assert.AreEqual("no está completa", tarjeta.PalabraDelEstado, "El color nunca va solo.");
+        Assert.AreEqual(DosEstados.MeFalta, tarjeta.PalabraDelEstado, "El color nunca va solo.");
     }
 
     /// <summary>
@@ -128,8 +132,17 @@ public sealed class PruebasDeRevisar
     /// se ve. Lo que la prueba vigila sigue siendo lo mismo: que cada tablero cuenta lo suyo y
     /// que «Todo» es la suma de lo cargado, no un numero de otro sitio.
     /// </remarks>
+    /// <remarks>
+    /// ⛔ <b>Eran SEIS hasta el 2026-09-07 y son CINCO</b>: «Sin revisar» y «No completas» se
+    /// juntan en «Me falta», porque con dos palabras los dos enseñaban tarjetas que dicen lo
+    /// mismo. Lo que esta prueba defiende no cambia: que cada tablero cuente lo suyo y que
+    /// «Todo» sea exactamente lo cargado, que es el denominador del criterio C1-1.
+    /// <para>⚠️ Y se comprueba además que los dos que se juntaron SUMAN lo que sumaban por
+    /// separado —4 sin revisar + 1 no completa = 5 en «Me falta»—, para que juntarlos no haya
+    /// perdido ninguna tarjeta por el camino.</para>
+    /// </remarks>
     [TestMethod]
-    public void LosSeisTablerosCuentanLoSuyoYTodoEsElDenominadorDeLoSinArchivar()
+    public void LosCincoTablerosCuentanLoSuyoYTodoEsElDenominadorDeLoSinArchivar()
     {
         var banco = new BaseDePrueba();
         banco.MeterUnCasoDeCadaEstado();
@@ -139,11 +152,25 @@ public sealed class PruebasDeRevisar
 
         Assert.AreEqual(6, cuentas[FiltroDeTarjeta.Todo], "Seis sin archivar; el archivado no cuenta aqui.");
         Assert.AreEqual(banco.Tablero.Total, cuentas[FiltroDeTarjeta.Todo], "«Todo» es exactamente lo cargado.");
-        Assert.AreEqual(4, cuentas[FiltroDeTarjeta.SinRevisar], "Seis menos el completa y el no completa.");
-        Assert.AreEqual(1, cuentas[FiltroDeTarjeta.Completadas]);
-        Assert.AreEqual(1, cuentas[FiltroDeTarjeta.Incompletas]);
+        Assert.AreEqual(5, cuentas[FiltroDeTarjeta.MeFalta], "Los 4 sin revisar más el 1 no completa.");
+        Assert.AreEqual(1, cuentas[FiltroDeTarjeta.Resuelto]);
         Assert.AreEqual(6, cuentas[FiltroDeTarjeta.SinAsignar], "Nadie lleva nada todavia.");
         Assert.AreEqual(1, cuentas[FiltroDeTarjeta.FechaPasada]);
+
+        // Los dos de estado reparten TODO lo cargado y no se solapan: si una tarjeta cayera
+        // en los dos o en ninguno, esta suma dejaría de cuadrar con «Todo».
+        Assert.AreEqual(
+            cuentas[FiltroDeTarjeta.Todo],
+            cuentas[FiltroDeTarjeta.MeFalta] + cuentas[FiltroDeTarjeta.Resuelto],
+            "«Me falta» y «Resuelto» reparten lo cargado: ni una tarjeta en los dos ni en ninguno.");
+
+        // ⚠️ Y en la BASE siguen siendo cuatro: lo que se juntó es la pestaña, no la columna.
+        var enLaBase = banco.Tablero.Todas(FiltroDeTarjeta.Todo)
+            .GroupBy(t => t.Estado)
+            .ToDictionary(g => g.Key, g => g.Count());
+        Assert.AreEqual(4, enLaBase[EstadoDeRecomendacion.SinMarcar], "«Sin marcar» sigue distinguiéndose…");
+        Assert.AreEqual(1, enLaBase[EstadoDeRecomendacion.NoCompleta], "…de «no completa»…");
+        Assert.AreEqual(1, enLaBase[EstadoDeRecomendacion.Completa], "…y de «completa».");
     }
 
     /// <summary>
@@ -209,7 +236,7 @@ public sealed class PruebasDeRevisar
 
         // Lo que deja Ctrl+A sobre el tablero de completados: los que se estan viendo, y
         // solo esos. Es lo mismo que le pasa la pantalla a ArchivarEnLote.
-        var marcados = banco.Tablero.Todas(FiltroDeTarjeta.Completadas).Select(t => t.CasoId).ToList();
+        var marcados = banco.Tablero.Todas(FiltroDeTarjeta.Resuelto).Select(t => t.CasoId).ToList();
         var resumen = banco.Acciones.ArchivarEnLote(marcados);
         banco.Tablero.Cargar();
 
@@ -258,7 +285,7 @@ public sealed class PruebasDeRevisar
         banco.Tablero.Cargar();
 
         // Lo que Ctrl+A puede llegar a marcar es lo que el tablero esta ensenando.
-        var aLaVista = banco.Tablero.Todas(FiltroDeTarjeta.Completadas);
+        var aLaVista = banco.Tablero.Todas(FiltroDeTarjeta.Resuelto);
 
         Assert.HasCount(1, aLaVista, "Solo el tablero que se mira, no los seis cargados.");
         Assert.AreEqual(6, banco.Tablero.Total, "Y cargados siguen estando los seis sin archivar.");
@@ -316,8 +343,8 @@ public sealed class PruebasDeRevisar
         banco.Tablero.Cargar("AAAA0003");
 
         Assert.AreEqual(1, banco.Tablero.Total);
-        Assert.AreEqual(1, banco.Tablero.Cuentas()[FiltroDeTarjeta.Completadas]);
-        Assert.AreEqual(0, banco.Tablero.Cuentas()[FiltroDeTarjeta.SinRevisar]);
+        Assert.AreEqual(1, banco.Tablero.Cuentas()[FiltroDeTarjeta.Resuelto]);
+        Assert.AreEqual(0, banco.Tablero.Cuentas()[FiltroDeTarjeta.MeFalta]);
     }
 
     /// <summary>Cada linea de la tarjeta cabe en un renglon: ni un parrafo (requisito 4).</summary>

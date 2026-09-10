@@ -1,4 +1,5 @@
-﻿using Fichas.App.Asignar;
+﻿using Fichas.App.Vocabulario;
+using Fichas.App.Asignar;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 
@@ -63,7 +64,11 @@ public sealed class PruebasDeAsignar
 
         var completo = ofrecidos.Single(r => r.CasoId == ids[2]);
 
-        Assert.AreEqual("completa", completo.PalabraDelEstado, "Un caso ya completo se sigue pudiendo asignar.");
+        // ⚠️ Lo que esta prueba defiende es que un caso NO se esconda por su estado, y eso no
+        // cambia: sigue en la lista de lo que se puede repartir. La palabra sí cambió el
+        // 2026-09-07; que en la base siga siendo «completa» se comprueba aquí al lado.
+        Assert.AreEqual(DosEstados.Resuelto, completo.PalabraDelEstado, "Un caso ya completo se sigue pudiendo asignar.");
+        Assert.AreEqual(EstadoDeRecomendacion.Completa, completo.Estado, "Y en la base sigue siendo «completa».");
         Assert.IsEmpty(
             ofrecidos.Where(r => r.CasoId == ids[6]).ToList(),
             "El archivado NO se ofrece: no se le da trabajo a nadie sobre algo ya cerrado.");

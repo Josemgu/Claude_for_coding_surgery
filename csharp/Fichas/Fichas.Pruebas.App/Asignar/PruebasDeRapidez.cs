@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Fichas.App.Asignar;
 using Fichas.App.Revisar;
 using Fichas.Contratos.Consultas;
 
@@ -161,6 +162,45 @@ public sealed class PruebasDeRapidez
             Techo,
             cronometro.Elapsed.TotalMilliseconds,
             $"Cargar la pantalla entera tardo {cronometro.Elapsed.TotalMilliseconds:F1} ms; el techo es {Techo:F0} ms.");
+    }
+
+    /// <summary>
+    /// Con 3 000 en la base, repartir los documentos en grupos cabe de sobra en 0,2 s.
+    /// </summary>
+    /// <remarks>
+    /// <para>Se anadio el 2026-09-09 con el reparto por grupo. Es lo que la ventana hace
+    /// DESPUES de leer —<c>PaginaDeAsignar.PintarLosGrupos</c>—, y va aparte de la prueba de
+    /// la pantalla entera a proposito: asi se sabe cuanto de lo que tarda la pantalla es leer
+    /// la base y cuanto es agrupar, en vez de tener una sola cifra que no distingue las dos
+    /// cosas.</para>
+    ///
+    /// <para>⚠️ Agrupar NO vuelve a preguntar a la base: recibe los renglones ya leidos. Por
+    /// eso esta medicion excluye la lectura, que es lo que se quiere saber.</para>
+    /// </remarks>
+    [TestMethod]
+    public void ConTresMilCasosAgruparLaPantallaDeAsignarCabeEnMenosDeDosDecimas()
+    {
+        var banco = new BaseDePrueba(TresMil);
+        var ofrecidos = banco.Lista.Ofrecer(Pagina.Primera(int.MaxValue)).Elementos;
+        GruposParaAsignar.EnUnaSolaLista(GruposParaAsignar.Armar(ofrecidos));   // calentamiento
+
+        var cronometro = Stopwatch.StartNew();
+        var grupos = GruposParaAsignar.Armar(ofrecidos);
+        var renglones = GruposParaAsignar.EnUnaSolaLista(grupos);
+        cronometro.Stop();
+
+        Assert.IsGreaterThan(1, grupos.Count, "Con 3 000 hay muchas fechas: la medicion agrupa de verdad.");
+        Assert.AreEqual(
+            ofrecidos.Count,
+            grupos.Sum(grupo => grupo.CuantosDocumentos),
+            "Y con 3 000 tambien: la suma de los grupos es el total ofrecido, no se pierde ninguno.");
+        Console.WriteLine(
+            $"Asignar · agrupar {ofrecidos.Count} documentos en {grupos.Count} fechas "
+            + $"y {renglones.Count} renglones de panel: {cronometro.Elapsed.TotalMilliseconds:F1} ms");
+        Assert.IsLessThanOrEqualTo(
+            Techo,
+            cronometro.Elapsed.TotalMilliseconds,
+            $"Agrupar tardo {cronometro.Elapsed.TotalMilliseconds:F1} ms; el techo es {Techo:F0} ms.");
     }
 
     /// <summary>Con 3 000, el denominador de Asignar se dice sin traerse los 3 000 casos.</summary>

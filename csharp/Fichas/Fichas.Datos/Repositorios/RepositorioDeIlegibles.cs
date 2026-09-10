@@ -18,8 +18,12 @@ namespace Fichas.Datos.Repositorios;
 /// estaba mal, y una tabla que existe para guardar lo que no entro no puede rechazar
 /// lo que no entro.
 /// </para>
+/// <para>
+/// Lo que BORRA renglones no esta aqui: vive en <c>RepositorioDeIlegibles.Borrado.cs</c>,
+/// para que se vea de un vistazo cual es el archivo que quita filas.
+/// </para>
 /// </remarks>
-public sealed class RepositorioDeIlegibles : RepositorioBase, IIlegibles
+public sealed partial class RepositorioDeIlegibles : RepositorioBase, IIlegibles
 {
     private const string ColumnasDeIlegibles =
         "id, ruta_pdf, pagina_pdf, motivo, detalle, lineas_leidas, caso_id, registrado_en";

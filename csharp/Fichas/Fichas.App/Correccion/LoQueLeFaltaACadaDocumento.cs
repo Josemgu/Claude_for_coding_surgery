@@ -30,9 +30,19 @@ namespace Fichas.App.Correccion;
 /// </remarks>
 public sealed class LoQueLeFaltaACadaDocumento
 {
-    private readonly IReadOnlyDictionary<long, string> _porCaso;
+    private readonly IReadOnlyDictionary<long, Lectura> _porCaso;
 
-    private LoQueLeFaltaACadaDocumento(IReadOnlyDictionary<long, string> porCaso) => _porCaso = porCaso;
+    private LoQueLeFaltaACadaDocumento(IReadOnlyDictionary<long, Lectura> porCaso) => _porCaso = porCaso;
+
+    /// <summary>Lo contestado de un documento: la frase que se lee y si le falta algo.</summary>
+    /// <remarks>
+    /// Las dos cosas van juntas y salen de la MISMA llamada a <see cref="LoQueLeFalta"/>. Si la
+    /// frase se compusiera aqui y el booleano se recalculara en otro sitio, volveria a haber dos
+    /// veredictos sobre el mismo documento, que es el agujero del 2026-09-06.
+    /// </remarks>
+    /// <param name="Frase">Que le falta, en palabras.</param>
+    /// <param name="LeFalta">Si queda algo que hacer con el.</param>
+    private readonly record struct Lectura(string Frase, bool LeFalta);
 
     /// <summary>Lee la base entera y deja contestada la pregunta de cada documento.</summary>
     /// <param name="casos">Los documentos.</param>
@@ -49,13 +59,14 @@ public sealed class LoQueLeFaltaACadaDocumento
         var suyas = PersonasPorCaso(personas);
         var procedencias = ProcedenciasDeUnaPasada.DeTodaLaBase(procedencia);
 
-        var porCaso = new Dictionary<long, string>(todos.Count);
+        var porCaso = new Dictionary<long, Lectura>(todos.Count);
         foreach (var caso in todos)
         {
             var gente = suyas.GetValueOrDefault(caso.Id) ?? [];
-            porCaso[caso.Id] = LasDosPreguntas.LoQueLeFaltaAlDocumento(
-                LoQueLeFalta.DeUnDocumento(caso, gente, procedencias).Count,
-                gente.Count == 0);
+            var cuanto = LoQueLeFalta.DeUnDocumento(caso, gente, procedencias).Count;
+            porCaso[caso.Id] = new Lectura(
+                LasDosPreguntas.LoQueLeFaltaAlDocumento(cuanto, gente.Count == 0),
+                cuanto > 0);
         }
 
         return new LoQueLeFaltaACadaDocumento(porCaso);
@@ -70,7 +81,25 @@ public sealed class LoQueLeFaltaACadaDocumento
     /// no consta.
     /// </remarks>
     /// <param name="casoId">El documento.</param>
-    public string De(long casoId) => _porCaso.GetValueOrDefault(casoId, string.Empty);
+    public string De(long casoId) => _porCaso.GetValueOrDefault(casoId).Frase ?? string.Empty;
+
+    /// <summary>
+    /// Si a ese documento le queda algo que hacer; falso tambien si ese documento no esta en
+    /// esta pasada.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ <b>No es un veredicto nuevo</b>, y eso es lo importante: es el mismo
+    /// <see cref="LoQueLeFalta.EstaListo"/> que ya se calculo arriba para componer la frase,
+    /// solo que dicho en una palabra en vez de en una. Con un segundo criterio volveria el
+    /// agujero que <c>DECISIONES.md</c> midio el 2026-09-06: documentos que se quedaban fuera de
+    /// todas las listas porque una pantalla los daba por resueltos y otra no.</para>
+    ///
+    /// <para>⚠️ <b>El falso de un documento que no esta aqui no es un descuido.</b> Un archivado
+    /// no entra en esta pasada, y archivar es el gesto con el que el dueno cierra un documento
+    /// (2026-09-06): no le queda nada que hacer con el, asi que tampoco entra en Correccion.</para>
+    /// </remarks>
+    /// <param name="casoId">El documento.</param>
+    public bool LeFaltaAlgo(long casoId) => _porCaso.GetValueOrDefault(casoId).LeFalta;
 
     /// <summary>Las personas repartidas por documento, en UNA consulta.</summary>
     private static Dictionary<long, List<Persona>> PersonasPorCaso(IPersonas personas)

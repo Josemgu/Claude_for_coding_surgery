@@ -119,11 +119,22 @@ public sealed class ListaParaAsignar
             NumeroDeCaso = string.IsNullOrWhiteSpace(caso.NumeroCaso) ? RenglonParaAsignar.SinNumero : caso.NumeroCaso,
             TieneNumeroDeCaso = !string.IsNullOrWhiteSpace(caso.NumeroCaso),
             Unidad = string.IsNullOrWhiteSpace(caso.UnidadNombre) ? "sin unidad" : caso.UnidadNombre,
+            // El numero de la unidad y la fecha ISO van CRUDOS, sin la frase de relleno: son
+            // los dos datos con los que GruposParaAsignar reparte por grupo, y de «sin fecha
+            // de viaje» no sale ningun dia. Se leen del mismo caso que ya estaba en la mano:
+            // no cuestan ni una consulta mas.
+            UnidadNumero = caso.UnidadNumero?.Trim() ?? string.Empty,
             FechaDeViaje = string.IsNullOrWhiteSpace(caso.FechaViaje) ? RenglonParaAsignar.SinFecha : caso.FechaViaje,
+            FechaDeViajeIso = caso.FechaViaje?.Trim() ?? string.Empty,
             Personas = personas.TryGetValue(caso.Id, out var cuantas) ? cuantas : 0,
             QuienViaja = RenglonParaAsignar.ComoSeDiceQuienViaja(nombres),
             QuienesViajan = RenglonParaAsignar.ComoSeDicenTodosLosQueViajan(nombres),
-            PalabraDelEstado = RenglonParaAsignar.PalabraDe(caso.Estado),
+            // ⚠️ Se pasa el VALOR y no la palabra: desde el 2026-09-07 como se lee un estado lo
+            // decide el vocabulario y no quien arma la fila. Archivado va en falso porque esta
+            // lista nunca ofrece un archivado (2026-09-05), y la cuenta de campos no se pide
+            // aqui: exigiria leer la procedencia de 3 000 documentos para pintar una pagina.
+            Estado = caso.Estado,
+            Archivado = caso.Archivado,
             AsignadoA = portadores.TryGetValue(caso.Id, out var quien) ? quien : RenglonParaAsignar.SinAsignar,
         };
     }

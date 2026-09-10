@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Xml.Linq;
 using Fichas.App.Revisar;
+using Fichas.App.Vocabulario;
 using Fichas.Contratos.Modelos;
 
 namespace Fichas.Pruebas.App.Revisar;
@@ -43,10 +44,21 @@ public sealed class PruebasDelColorDeLaTarjeta
     /// </remarks>
     private const double SeparacionMinimaEntreFondos = 30.0;
 
-    /// <summary>Los cuatro estados que se ven en una tarjeta de Revisar.</summary>
-    private static readonly EstadoQueSeVe[] LosCuatro = Enum.GetValues<EstadoQueSeVe>();
+    /// <summary>Las DOS lecturas que se ven en una tarjeta de Revisar.</summary>
+    /// <remarks>
+    /// ⛔ <b>Eran los cuatro <see cref="EstadoQueSeVe"/></b>, una pastilla por palabra, hasta el
+    /// 2026-09-07. El dueno colapso las palabras a dos —<i>«Dos estados nada mas: resuelto y me
+    /// falta»</i>— y con ellas los colores, porque la palabra y el color tienen que salir del
+    /// mismo sitio. Lo que vigila esta clase no cambia: que cada pastilla traiga sus dos colores
+    /// en los dos temas, que la palabra se lea encima, que los colores se distingan y que
+    /// ninguna pastilla se quede muda.
+    /// <para>Que los CUATRO estados de la base sigan siendo cuatro lo vigila
+    /// <see cref="CadaTarjetaCaeEnElEstadoQueLeToca"/>, aqui abajo, que mira el enum y no la
+    /// pantalla.</para>
+    /// </remarks>
+    private static readonly LoQueSeLee[] LasDos = Enum.GetValues<LoQueSeLee>();
 
-    /// <summary>Cada estado que se ve trae su fondo y su tinta en los DOS temas.</summary>
+    /// <summary>Cada lectura trae su fondo y su tinta en los DOS temas.</summary>
     /// <remarks>
     /// Una clave que solo esté en un tema deja esa pastilla pintada con el color del otro, que
     /// es el defecto que se midió el 2026-09-05 en la franja de avisos: 1,70:1.
@@ -60,7 +72,7 @@ public sealed class PruebasDelColorDeLaTarjeta
         Console.WriteLine($"Colores declarados: {claro.Count} en claro, {oscuro.Count} en oscuro.");
 
         var faltan = new List<string>();
-        foreach (var estado in LosCuatro)
+        foreach (var estado in LasDos)
         {
             foreach (var clave in (string[])[EstadosQueSeVen.ClaveDelFondo(estado), EstadosQueSeVen.ClaveDeLaTinta(estado)])
             {
@@ -69,21 +81,21 @@ public sealed class PruebasDelColorDeLaTarjeta
             }
         }
 
-        Assert.HasCount(LosCuatro.Length * 2, claro, "Un fondo y una tinta por estado, ni más ni menos.");
+        Assert.HasCount(LasDos.Length * 2, claro, "Un fondo y una tinta por lectura, ni más ni menos.");
         CollectionAssert.AreEquivalent(claro.Keys.ToList(), oscuro.Keys.ToList());
         Assert.IsEmpty(faltan, string.Join(Environment.NewLine, faltan));
     }
 
-    /// <summary>La palabra de cada estado se lee sobre su color, en los dos temas.</summary>
+    /// <summary>La palabra de cada lectura se lee sobre su color, en los dos temas.</summary>
     [TestMethod]
     [DataRow("Light")]
     [DataRow("Dark")]
-    public void LaPalabraDeCadaEstadoSeLeeSobreSuColor(string tema)
+    public void LaPalabraDeCadaLecturaSeLeeSobreSuColor(string tema)
     {
         var colores = LosColoresDe(tema);
         var malos = new List<string>();
 
-        foreach (var estado in LosCuatro)
+        foreach (var estado in LasDos)
         {
             var fondo = colores[EstadosQueSeVen.ClaveDelFondo(estado)];
             var tinta = colores[EstadosQueSeVen.ClaveDeLaTinta(estado)];
@@ -92,7 +104,7 @@ public sealed class PruebasDelColorDeLaTarjeta
             Console.WriteLine(string.Format(
                 CultureInfo.InvariantCulture,
                 "{0,-5} {1,-22} «{2}» {3} sobre {4}  {5,5:N2}:1",
-                tema, estado, EstadosQueSeVen.PalabraDe(estado), tinta, fondo, razon));
+                tema, estado, DosEstados.Palabra(estado), tinta, fondo, razon));
 
             if (razon < ContrasteMinimo)
                 malos.Add(string.Format(
@@ -103,18 +115,18 @@ public sealed class PruebasDelColorDeLaTarjeta
         Assert.IsEmpty(malos, string.Join(Environment.NewLine, malos));
     }
 
-    /// <summary>Los cuatro colores se distinguen entre sí; si no, el color no indica nada.</summary>
+    /// <summary>Los dos colores se distinguen entre sí; si no, el color no indica nada.</summary>
     [TestMethod]
     [DataRow("Light")]
     [DataRow("Dark")]
-    public void LosCuatroColoresSeDistinguenEntreSi(string tema)
+    public void LosDosColoresSeDistinguenEntreSi(string tema)
     {
         var colores = LosColoresDe(tema);
         var juntos = new List<string>();
 
-        foreach (var uno in LosCuatro)
+        foreach (var uno in LasDos)
         {
-            foreach (var otro in LosCuatro.Where(e => e > uno))
+            foreach (var otro in LasDos.Where(e => e > uno))
             {
                 var fondoUno = colores[EstadosQueSeVen.ClaveDelFondo(uno)];
                 var fondoOtro = colores[EstadosQueSeVen.ClaveDelFondo(otro)];
@@ -143,7 +155,7 @@ public sealed class PruebasDelColorDeLaTarjeta
     /// ⛔ Es la regla del mockup v2, y se comprueba sobre el XAML porque es ahí donde se
     /// rompería: basta con que alguien borre el <c>TextBlock</c> de dentro del <c>Border</c>
     /// para dejar una mancha de color sin palabra. La prueba cuenta las pastillas y exige que
-    /// sean las cuatro, para que no se compruebe con cero.
+    /// sean las dos, para que no se compruebe con cero.
     /// </remarks>
     [TestMethod]
     public void ElColorNuncaVaSoloEnLaTarjeta()
@@ -170,7 +182,7 @@ public sealed class PruebasDelColorDeLaTarjeta
         }
 
         Assert.HasCount(
-            LosCuatro.Length, pastillas, "Hace falta una pastilla por estado; con menos no se comprueba nada.");
+            LasDos.Length, pastillas, "Hace falta una pastilla por lectura; con menos no se comprueba nada.");
         Assert.IsEmpty(
             mudas,
             "El color nunca va solo (mockup v2): una pastilla de color sin palabra deja la "
@@ -194,6 +206,27 @@ public sealed class PruebasDelColorDeLaTarjeta
         Assert.AreEqual(
             EstadoQueSeVe.FechaPasadaCompletada,
             EstadosQueSeVen.DeLaTarjeta(EstadoDeRecomendacion.NoCompleta, archivado: true, fechaYaPasada: true));
+    }
+
+    /// <summary>
+    /// ⚠️ Los CUATRO estados que se ven siguen siendo cuatro, y cada uno cae en su lectura.
+    /// </summary>
+    /// <remarks>
+    /// Es la mitad del pase del 2026-09-07 que se pone roja si alguien colapsa de más: las
+    /// palabras son dos, el enum sigue teniendo cuatro valores y cada uno tiene que saber en
+    /// cuál de las dos cae. «Completa» y «fecha pasada completada» no le dejan nada que hacer;
+    /// las otras dos sí.
+    /// </remarks>
+    [TestMethod]
+    public void LosCuatroEstadosSiguenSiendoCuatroYCadaUnoCaeEnSuLectura()
+    {
+        var cuatro = Enum.GetValues<EstadoQueSeVe>();
+        Assert.HasCount(4, cuatro, "En la base siguen siendo cuatro; lo que se colapsa es la palabra.");
+
+        Assert.AreEqual(LoQueSeLee.Resuelto, EstadosQueSeVen.LoQueSeLeeDe(EstadoQueSeVe.Completa));
+        Assert.AreEqual(LoQueSeLee.Resuelto, EstadosQueSeVen.LoQueSeLeeDe(EstadoQueSeVe.FechaPasadaCompletada));
+        Assert.AreEqual(LoQueSeLee.MeFalta, EstadosQueSeVen.LoQueSeLeeDe(EstadoQueSeVe.NoCompleta));
+        Assert.AreEqual(LoQueSeLee.MeFalta, EstadosQueSeVen.LoQueSeLeeDe(EstadoQueSeVe.SinRevisar));
     }
 
     // ---- de donde salen las cifras -------------------------------------------

@@ -36,42 +36,52 @@
     <cascara:PaginaDeFichas.Resources>
         <ResourceDictionary>
             <ResourceDictionary.ThemeDictionaries>
+                <!--
+                    ⛔ AQUI HABIA CUATRO PAREJAS DE COLORES, una por palabra de estado, y desde
+                    el 2026-09-07 hay DOS, una por lectura. Lo que decian, por si algun dia se
+                    quiere volver a separar:
+
+                      FondoDelEstadoSinRevisar            #E8E8E8 / oscuro #3F3F3F
+                      TintaDelEstadoSinRevisar            #333A44 / oscuro #E6EAF0
+                        gris neutro: nadie ha dicho nada de este documento todavia.
+                      FondoDelEstadoNoCompleta            #FADFAB / oscuro #543D0E
+                      TintaDelEstadoNoCompleta            #6B4500 / oscuro #F7D98F
+                        ambar y NO rojo: «no esta completa» es trabajo pendiente, no un fallo.
+                      FondoDelEstadoCompleta              #C7E9D1 / oscuro #16452B
+                      TintaDelEstadoCompleta              #12532B / oscuro #9EE3B7
+                        verde: el Excel del companero la dio por completa.
+                      FondoDelEstadoFechaPasadaCompletada #CBD8F7 / oscuro #1E3170
+                      TintaDelEstadoFechaPasadaCompletada #1B357A / oscuro #B9CDFF
+                        azul, distinto del verde: lo resolvio el dueno antes del programa.
+
+                    Se juntan porque la palabra y el color tienen que salir del MISMO sitio
+                    (ver el comentario de la pastilla, mas abajo): cuatro colores bajo dos
+                    palabras serian dos verdes distintos para «resuelto». Lo que aquellos cuatro
+                    separaban NO se pierde — sigue en la base, en la firma del pie de la tarjeta
+                    y en el detalle que se abre al pulsar la pastilla.
+                -->
                 <ResourceDictionary x:Key="Light">
-                    <!--  Gris neutro: nadie ha dicho nada de este documento todavia.  -->
-                    <SolidColorBrush x:Key="FondoDelEstadoSinRevisar" Color="#E8E8E8" />
-                    <SolidColorBrush x:Key="TintaDelEstadoSinRevisar" Color="#333A44" />
                     <!--
-                        Ambar, y NO rojo: «no esta completa» es trabajo pendiente, no un fallo.
-                        El rojo se queda para los problemas de verdad, que es lo que ya dice la
-                        franja de avisos.
+                        Ambar, y NO rojo: «me falta» es trabajo pendiente, no un fallo. El rojo
+                        se queda para los problemas de verdad, que es lo que ya dice la franja
+                        de avisos.
                     -->
-                    <SolidColorBrush x:Key="FondoDelEstadoNoCompleta" Color="#FADFAB" />
-                    <SolidColorBrush x:Key="TintaDelEstadoNoCompleta" Color="#6B4500" />
-                    <!--  Verde: el Excel del companero la dio por completa.  -->
-                    <SolidColorBrush x:Key="FondoDelEstadoCompleta" Color="#C7E9D1" />
-                    <SolidColorBrush x:Key="TintaDelEstadoCompleta" Color="#12532B" />
-                    <!--
-                        Azul, distinto del verde a proposito: «fecha pasada completada» NO es lo
-                        mismo que «completa». Lo completo lo dijo el Excel de un companero; esto
-                        lo resolvio el dueno a mano antes de que existiera el programa.
-                    -->
-                    <SolidColorBrush x:Key="FondoDelEstadoFechaPasadaCompletada" Color="#CBD8F7" />
-                    <SolidColorBrush x:Key="TintaDelEstadoFechaPasadaCompletada" Color="#1B357A" />
+                    <SolidColorBrush x:Key="FondoDelEstadoMeFalta" Color="#FADFAB" />
+                    <SolidColorBrush x:Key="TintaDelEstadoMeFalta" Color="#6B4500" />
+                    <!--  Verde: no le queda nada que hacer con este documento.  -->
+                    <SolidColorBrush x:Key="FondoDelEstadoResuelto" Color="#C7E9D1" />
+                    <SolidColorBrush x:Key="TintaDelEstadoResuelto" Color="#12532B" />
                 </ResourceDictionary>
 
                 <ResourceDictionary x:Key="Dark">
                     <!--
-                        Los mismos cuatro papeles, en oscuro: fondo hundido y letra clara del
+                        Los mismos dos papeles, en oscuro: fondo hundido y letra clara del
                         mismo tono. Se invierte el peso, no el significado.
                     -->
-                    <SolidColorBrush x:Key="FondoDelEstadoSinRevisar" Color="#3F3F3F" />
-                    <SolidColorBrush x:Key="TintaDelEstadoSinRevisar" Color="#E6EAF0" />
-                    <SolidColorBrush x:Key="FondoDelEstadoNoCompleta" Color="#543D0E" />
-                    <SolidColorBrush x:Key="TintaDelEstadoNoCompleta" Color="#F7D98F" />
-                    <SolidColorBrush x:Key="FondoDelEstadoCompleta" Color="#16452B" />
-                    <SolidColorBrush x:Key="TintaDelEstadoCompleta" Color="#9EE3B7" />
-                    <SolidColorBrush x:Key="FondoDelEstadoFechaPasadaCompletada" Color="#1E3170" />
-                    <SolidColorBrush x:Key="TintaDelEstadoFechaPasadaCompletada" Color="#B9CDFF" />
+                    <SolidColorBrush x:Key="FondoDelEstadoMeFalta" Color="#543D0E" />
+                    <SolidColorBrush x:Key="TintaDelEstadoMeFalta" Color="#F7D98F" />
+                    <SolidColorBrush x:Key="FondoDelEstadoResuelto" Color="#16452B" />
+                    <SolidColorBrush x:Key="TintaDelEstadoResuelto" Color="#9EE3B7" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
         </ResourceDictionary>
@@ -308,75 +318,70 @@
                                     Text="{x:Bind NumeroDeCaso}"
                                     TextTrimming="CharacterEllipsis" />
                                 <!--
-                                    LA PASTILLA DEL ESTADO: color Y palabra, siempre las dos.
+                                    LA PASTILLA DEL ESTADO: color Y palabra, siempre las dos,
+                                    y el detalle A UN CLIC.
 
                                     Del dueno, 2026-09-06: «no hay nada que me indique color o
-                                    algo, si este está completo o no». Son CUATRO pastillas
-                                    superpuestas y solo una encendida, y no una sola con el
-                                    pincel enlazado, porque un pincel enlazado tendria que
-                                    salir de Application.Current.Resources: eso resuelve con el
-                                    tema de la APLICACION mientras la letra sigue el del
-                                    elemento, y es la causa medida del 1,70:1 del 2026-09-05.
-                                    Con ThemeResource fijo en cada una, XAML las vuelve a
-                                    resolver cuando el dueno cambia de tema.
+                                    algo, si este está completo o no». Y del 2026-09-07: «Dos
+                                    estados nada más: resuelto y me falta».
 
-                                    Las cuatro llevan Text="{x:Bind PalabraDelEstado}" y no un
+                                    Son DOS pastillas superpuestas y solo una encendida, y no
+                                    una sola con el pincel enlazado, porque un pincel enlazado
+                                    tendria que salir de Application.Current.Resources: eso
+                                    resuelve con el tema de la APLICACION mientras la letra
+                                    sigue el del elemento, y es la causa medida del 1,70:1 del
+                                    2026-09-05. Con ThemeResource fijo en cada una, XAML las
+                                    vuelve a resolver cuando el dueno cambia de tema.
+
+                                    ⛔ Eran CUATRO hasta el 2026-09-07, una por palabra. Lo que
+                                    aquellas decian —«sin revisar», «completa», «no está
+                                    completa», «fecha pasada completada»— no se pierde: vive en
+                                    DetalleDelEstado, que se lee al PULSAR la pastilla. Es la
+                                    otra mitad de su decision: una cifra a la vista, el detalle
+                                    cuando el lo pide.
+
+                                    Las dos llevan Text="{x:Bind PalabraDelEstado}" y no un
                                     literal: la palabra sale del MISMO sitio que el color, asi
                                     que no pueden acabar diciendo cosas distintas.
                                 -->
                                 <Grid Grid.Column="1" VerticalAlignment="Center">
-                                    <Border
-                                        Padding="6,1"
-                                        Background="{ThemeResource FondoDelEstadoSinRevisar}"
-                                        BorderBrush="{ThemeResource TintaDelEstadoSinRevisar}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Visibility="{x:Bind SeVeSinRevisar}">
-                                        <TextBlock
-                                            FontSize="11"
-                                            FontWeight="Bold"
-                                            Foreground="{ThemeResource TintaDelEstadoSinRevisar}"
-                                            Text="{x:Bind PalabraDelEstado}" />
-                                    </Border>
-                                    <Border
-                                        Padding="6,1"
-                                        Background="{ThemeResource FondoDelEstadoNoCompleta}"
-                                        BorderBrush="{ThemeResource TintaDelEstadoNoCompleta}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Visibility="{x:Bind SeVeNoCompleta}">
-                                        <TextBlock
-                                            FontSize="11"
-                                            FontWeight="Bold"
-                                            Foreground="{ThemeResource TintaDelEstadoNoCompleta}"
-                                            Text="{x:Bind PalabraDelEstado}" />
-                                    </Border>
-                                    <Border
-                                        Padding="6,1"
-                                        Background="{ThemeResource FondoDelEstadoCompleta}"
-                                        BorderBrush="{ThemeResource TintaDelEstadoCompleta}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Visibility="{x:Bind SeVeCompleta}">
-                                        <TextBlock
-                                            FontSize="11"
-                                            FontWeight="Bold"
-                                            Foreground="{ThemeResource TintaDelEstadoCompleta}"
-                                            Text="{x:Bind PalabraDelEstado}" />
-                                    </Border>
-                                    <Border
-                                        Padding="6,1"
-                                        Background="{ThemeResource FondoDelEstadoFechaPasadaCompletada}"
-                                        BorderBrush="{ThemeResource TintaDelEstadoFechaPasadaCompletada}"
-                                        BorderThickness="1"
-                                        CornerRadius="8"
-                                        Visibility="{x:Bind SeVeFechaPasadaCompletada}">
-                                        <TextBlock
-                                            FontSize="11"
-                                            FontWeight="Bold"
-                                            Foreground="{ThemeResource TintaDelEstadoFechaPasadaCompletada}"
-                                            Text="{x:Bind PalabraDelEstado}" />
-                                    </Border>
+                                    <Button
+                                        Padding="0"
+                                        AutomationProperties.Name="{x:Bind NombreDeLaPastillaParaElLector}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Click="AlAbrirElDetalleDelEstado"
+                                        Tag="{x:Bind CasoId}"
+                                        ToolTipService.ToolTip="Pulse para ver qué falta y a quién le toca">
+                                        <Grid>
+                                            <Border
+                                                Padding="6,1"
+                                                Background="{ThemeResource FondoDelEstadoMeFalta}"
+                                                BorderBrush="{ThemeResource TintaDelEstadoMeFalta}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Visibility="{x:Bind SeVeMeFalta}">
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="{ThemeResource TintaDelEstadoMeFalta}"
+                                                    Text="{x:Bind PalabraDelEstado}" />
+                                            </Border>
+                                            <Border
+                                                Padding="6,1"
+                                                Background="{ThemeResource FondoDelEstadoResuelto}"
+                                                BorderBrush="{ThemeResource TintaDelEstadoResuelto}"
+                                                BorderThickness="1"
+                                                CornerRadius="8"
+                                                Visibility="{x:Bind SeVeResuelto}">
+                                                <TextBlock
+                                                    FontSize="11"
+                                                    FontWeight="Bold"
+                                                    Foreground="{ThemeResource TintaDelEstadoResuelto}"
+                                                    Text="{x:Bind PalabraDelEstado}" />
+                                            </Border>
+                                        </Grid>
+                                    </Button>
                                 </Grid>
                             </Grid>
 
@@ -416,10 +421,14 @@
                             </StackPanel>
 
                             <!--
-                                Los datos y, debajo, POR QUE no esta completa. El motivo se ve
-                                aqui y no dentro del documento porque eso fue lo que el dueno
-                                pidio el 2026-09-05 al nombrar sus tres estados; sin linea
-                                propia, los tres se leian iguales: «no completado».
+                                Los datos del documento en un renglon.
+
+                                ⛔ Debajo iba POR QUE no esta completa, en linea propia, desde
+                                el 2026-09-05. El motivo NO se pierde: se movio al detalle de
+                                la pastilla (DetalleDelEstado), que se abre al pulsarla. Lo
+                                pidio el dueno el 2026-09-07 al colapsar los estados: «lo dice
+                                cuando el lo pide, no de entrada». La propiedad LineaDelMotivo
+                                sigue existiendo y sigue probada; lo que cambia es donde se lee.
                             -->
                             <Grid Grid.Row="2" ColumnSpacing="6">
                                 <Grid.ColumnDefinitions>
@@ -432,12 +441,6 @@
                                         Opacity="0.85"
                                         Text="{x:Bind Datos}"
                                         TextTrimming="CharacterEllipsis" />
-                                    <TextBlock
-                                        FontSize="11"
-                                        FontWeight="SemiBold"
-                                        Text="{x:Bind LineaDelMotivo}"
-                                        TextTrimming="CharacterEllipsis"
-                                        Visibility="{x:Bind HayLineaDeMotivo}" />
                                 </StackPanel>
                                 <!--
                                     «Para que se pueda ir a una fecha», dicho por el dueno el
@@ -465,13 +468,25 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+                                <!--
+                                    ⛔ 2026-09-07: estos dos botones decian «Sí, completa» y «No
+                                    está completa…», que son dos de las cuatro palabras que el
+                                    dueno retiro. Dicen ahora las dos suyas.
+
+                                    Lo que ESCRIBEN no cambia: el primero pone «completa» en
+                                    casos.estado_recomendacion con su firma, y el segundo «no
+                                    completa» con su motivo. La columna sigue guardando las
+                                    mismas palabras de siempre; lo que cambia es como se le
+                                    pregunta a el.
+                                -->
                                 <Button
                                     Grid.Column="0"
                                     HorizontalAlignment="Stretch"
                                     Click="AlPulsarSiCompleta"
-                                    Content="Sí, completa"
+                                    Content="Resuelto"
                                     FontSize="12"
-                                    Tag="{x:Bind CasoId}" />
+                                    Tag="{x:Bind CasoId}"
+                                    ToolTipService.ToolTip="Dar este documento por resuelto: queda «completa» con tu nombre y la fecha" />
                                 <!--
                                     Abre un menu ligero con los tres del dueno en vez de
                                     escribir de golpe: se cierra pulsando fuera y no detiene
@@ -481,10 +496,10 @@
                                     Grid.Column="1"
                                     HorizontalAlignment="Stretch"
                                     Click="AlAbrirElMenuDeNoCompleta"
-                                    Content="No está completa…"
+                                    Content="Me falta…"
                                     FontSize="12"
                                     Tag="{x:Bind CasoId}"
-                                    ToolTipService.ToolTip="Marcar que no está completa, y decir por qué" />
+                                    ToolTipService.ToolTip="Decir que a este documento le falta algo, y por qué: queda «no completa» con tu nombre" />
                                 <Button
                                     Grid.Column="2"
                                     Click="AlAbrirElMenuDeAsignar"

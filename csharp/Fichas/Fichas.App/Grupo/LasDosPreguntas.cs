@@ -106,19 +106,26 @@ public static class LasDosPreguntas
     ///
     /// <para>⛔ Y esto NO firma nada ni es un estado de la base: es una lectura, la respuesta a
     /// «¿le falta algo a este documento?». No hay columna que lo guarde.</para>
+    ///
+    /// <para>⛔ <b>2026-09-07:</b> devolvia «listo para asignar · el sistema llenó todos los
+    /// campos», «le faltan 3 datos» o «sin ninguna persona leída · no hay a quién recomendar».
+    /// La primera era una de las cuatro palabras que el dueno retiro, asi que la composicion se
+    /// mudo a <c>Fichas.App.Vocabulario.LoQueSeLeeDeUnDocumento</c> y esta funcion delega en
+    /// ella. <b>Se queda en vez de borrarse</b> porque es el punto por el que pasan las DOS
+    /// pantallas —el grupo del dia y <c>LoQueLeFaltaACadaDocumento</c>—, y lo vigila
+    /// <c>PruebasDeLoQueLeFaltaACadaDocumento.ContestaLoMismoQueLaPantallaDelGrupoEnTodaLaBase</c>:
+    /// con dos composiciones, el mismo documento se leia distinto en cada pantalla.</para>
     /// </remarks>
     /// <param name="cuantoLeFalta">Cuantos datos le faltan, contados por <see cref="LoQueLeFalta"/>.</param>
     /// <param name="sinNingunaPersonaLeida">Si el documento no trae ni una persona.</param>
     public static string LoQueLeFaltaAlDocumento(int cuantoLeFalta, bool sinNingunaPersonaLeida)
-    {
-        // Va delante de la cuenta por lo mismo que en el pie de Correccion: es lo que de
-        // verdad detiene al documento, y la cuenta de campos no diria nada de ello.
-        if (sinNingunaPersonaLeida) return SinNingunaPersonaLeidaConSuSignificado;
-        if (cuantoLeFalta <= 0) return ListoParaAsignarConSuSignificado;
-
-        return "le " + Plural.Palabra(cuantoLeFalta, "falta", "faltan")
-               + " " + Plural.Con(cuantoLeFalta, "dato", "datos");
-    }
+        => Fichas.App.Vocabulario.LoQueSeLeeDeUnDocumento.De(
+            Fichas.Contratos.Modelos.EstadoDeRecomendacion.SinMarcar,
+            archivado: false,
+            cuantoLeFalta,
+            sinNingunaPersonaLeida,
+            quienLoLleva: string.Empty,
+            firma: string.Empty).Detalle;
 
     // ────────────────────────── PREGUNTA 2 · la contesta una persona ──────────────────────────
 
@@ -178,17 +185,27 @@ public static class LasDosPreguntas
     /// lista, en que paso se quedo.
     /// </summary>
     /// <remarks>
-    /// El paso donde se quedo es el criterio C18-3 y sale de <see cref="Pasos.SinCompletar"/>,
-    /// ya construido: es lo que el dueno le dice al obispo por telefono. Una linea, nunca un
-    /// parrafo.
+    /// <para>El paso donde se quedo es el criterio C18-3 y sale de <see cref="Pasos.SinCompletar"/>,
+    /// ya construido: es lo que el dueno le dice al lider por telefono. Una linea, nunca un
+    /// parrafo.</para>
+    ///
+    /// <para>⛔ <b>2026-09-07:</b> devolvia «no lista para viajar · recomendación sin confirmar ·
+    /// se quedó en Entrevistas», con TRES de las cuatro palabras que el dueno retiro. La
+    /// composicion se mudo a <c>Fichas.App.Vocabulario.LoQueSeLeeDeUnaPersona</c> y esta funcion
+    /// delega en ella. <b>Se queda en vez de borrarse</b> porque por aqui pasan CUATRO
+    /// pantallas —Inicio, el grupo del dia, Correccion y la ventana de las seis preguntas de
+    /// Revisar—, y componer la frase en cuatro sitios es como empieza que el mismo renglon diga
+    /// dos cosas distintas de la misma persona.</para>
+    ///
+    /// <para>⚠️ Y el paso donde se quedo SIGUE saliendo: es lo unico que el dueno le dice al
+    /// lider por telefono, y ahora va dentro del detalle en vez de al final de la linea.</para>
     /// </remarks>
     /// <param name="estado">Lo que dicen sus seis preguntas.</param>
     /// <param name="seQuedoEn">Los pasos marcados que NO, sin el numero de delante.</param>
     public static string FraseDeUnaPersona(bool? estado, IReadOnlyList<string>? seQuedoEn)
     {
-        var frase = $"{Decir(estado)} · {DecirLaRecomendacion(estado)}";
-        if (estado != false || seQuedoEn is null || seQuedoEn.Count == 0) return frase;
-        return $"{frase} · se quedó en {Enumerar(seQuedoEn)}";
+        var lectura = Fichas.App.Vocabulario.LoQueSeLeeDeUnaPersona.De(estado, seQuedoEn);
+        return $"{lectura.Palabra} · {lectura.Detalle}";
     }
 
     /// <summary>

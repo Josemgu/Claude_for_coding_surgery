@@ -1,24 +1,48 @@
 using Fichas.App.Asignar;
+using Fichas.App.Vocabulario;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Contratos.Puertos;
 
 namespace Fichas.App.Revisar;
 
-/// <summary>Los seis tableros de la barra de Revisar. «Completadas» ES el tablero de completados.</summary>
+/// <summary>
+/// Los CINCO tableros de la barra de Revisar.
+/// </summary>
+/// <remarks>
+/// <para>⛔ <b>Eran SEIS hasta el 2026-09-07</b>, y dos de ellos —<c>SinRevisar</c> («nadie ha
+/// dicho nada todavía de este documento») e <c>Incompletas</c> («el Excel del compañero dijo
+/// que no está completa»)— se juntan en <see cref="MeFalta"/>. El dueño colapsó las palabras a
+/// dos, y con dos palabras aquellos dos tableros enseñaban exactamente lo mismo: una lista de
+/// tarjetas que dicen «me falta». Dos pestañas con la misma palabra y distinta cuenta obligan a
+/// abrir las dos para saber cuál mirar, que es el trabajo que este programa le quita.</para>
+///
+/// <para><b>Y por qué SOLO esos dos se juntan.</b> Los otros tres no contestan la pregunta del
+/// estado: <see cref="SinAsignar"/> contesta QUIÉN lo lleva, <see cref="FechaPasada"/> contesta
+/// CUÁNDO viaja, y <see cref="Todo"/> es el denominador que exige el criterio C1-1 —una cifra
+/// sin su denominador no se puede comprobar—. Colapsarlos habría sido perder respuestas, no
+/// palabras.</para>
+///
+/// <para>⚠️ <b>Lo que separaba a los dos que se juntan sigue en la base y en el detalle</b>: la
+/// tarjeta que el compañero marcó «no completa» lleva su firma —«Marcada no completa por
+/// Sandy»— y su motivo, y la que nadie tocó no lleva ninguna de las dos. La cuenta de cada uno
+/// se puede seguir haciendo sobre <c>casos.estado_recomendacion</c>, que no se ha tocado.</para>
+/// </remarks>
 public enum FiltroDeTarjeta
 {
-    /// <summary>Todo lo que se cargo; es el denominador de los otros cinco, no de la base.</summary>
+    /// <summary>Todo lo que se cargo; es el denominador de los otros cuatro, no de la base.</summary>
     Todo = 0,
 
-    /// <summary>Nadie ha dicho nada todavia de este documento.</summary>
-    SinRevisar = 1,
+    /// <summary>Al dueno le queda algo que hacer con este documento.</summary>
+    /// <remarks>
+    /// Junta lo que nadie ha mirado y lo que el companero devolvio sin completar. El valor 1 es
+    /// el que tenia <c>SinRevisar</c> a proposito: es el tablero con el que abre la pantalla, y
+    /// asi un valor guardado en otro sitio no cambia de significado por debajo.
+    /// </remarks>
+    MeFalta = 1,
 
-    /// <summary>El Excel del companero dijo que no esta completa.</summary>
-    Incompletas = 2,
-
-    /// <summary>El tablero de completados: lo que el Excel del companero dio por completo.</summary>
-    Completadas = 3,
+    /// <summary>No le queda nada: lo dio por completo el companero, o lo archivo el.</summary>
+    Resuelto = 3,
 
     /// <summary>No lo lleva nadie ahora mismo.</summary>
     SinAsignar = 4,
@@ -67,17 +91,17 @@ public sealed class TableroDeRevisar
     /// los PDF para revisar; solo los que necesitan revisión son los que deben ser
     /// revisados, no todos»</i>.</para>
     ///
-    /// <para><b>Por que «Sin revisar» y no otro de los seis, con sus palabras y no con un
-    /// gusto.</b> El dice «los que NECESITAN revisión». De los seis tableros, el unico que
-    /// significa eso es <see cref="FiltroDeTarjeta.SinRevisar"/>: «nadie ha dicho nada
-    /// todavia de este documento». Los otros cuatro contestan otra pregunta —lo que el
-    /// companero YA contesto (Incompletas, Completadas), quien lo lleva (SinAsignar) y
-    /// cuando viaja (FechaPasada)—, y «Todo» es exactamente lo que el dijo que sobraba.</para>
+    /// <para><b>Por que «Me falta» y no otro de los cinco, con sus palabras y no con un
+    /// gusto.</b> El dice «los que NECESITAN revisión». De los cinco tableros, el unico que
+    /// significa eso es <see cref="FiltroDeTarjeta.MeFalta"/>. Los otros tres contestan otra
+    /// pregunta —lo que ya esta cerrado (Resuelto), quien lo lleva (SinAsignar) y cuando viaja
+    /// (FechaPasada)—, y «Todo» es exactamente lo que el dijo que sobraba.</para>
     ///
-    /// <para><b>No se anade ningun tablero nuevo</b>, y la decision del 2026-09-06 lo dice
-    /// con todas las letras: <i>«los seis tableros […] están bien; el defecto es el que
-    /// sobra»</i>. «Todo» sigue estando y se llega con un clic: deja de ser lo primero, no
-    /// desaparece.</para>
+    /// <para>⛔ <b>Hasta el 2026-09-07 este tablero se llamaba «Sin revisar»</b> y era uno de
+    /// seis. No se anade ninguno nuevo: se juntan dos que con dos palabras decian lo mismo. La
+    /// decision del 2026-09-06 —<i>«los seis tableros […] están bien; el defecto es el que
+    /// sobra»</i>— hablaba de que NO se anadieran; juntar dos que ahora se leen igual va en la
+    /// misma direccion, y «Todo» sigue estando a un clic.</para>
     ///
     /// <para>⚠️ <b>Y esta aqui, y no escrito a mano en la pagina, porque ahi no se podia
     /// probar.</b> Hasta hoy el tablero de partida era un valor en un campo privado de
@@ -92,7 +116,7 @@ public sealed class TableroDeRevisar
     /// otro tablero automaticamente: abrir unos dias en uno y otros dias en otro seria un
     /// programa que cambia de sitio solo, que es lo contrario de lo que el pidio.</para>
     /// </remarks>
-    public static FiltroDeTarjeta ElTableroConElQueSeAbre => FiltroDeTarjeta.SinRevisar;
+    public static FiltroDeTarjeta ElTableroConElQueSeAbre => FiltroDeTarjeta.MeFalta;
 
     /// <summary>Lo que hay cargado ahora mismo, ya con el texto del buscador aplicado.</summary>
     public IReadOnlyList<TarjetaDeDocumento> Cargadas => _tarjetas;
@@ -223,9 +247,8 @@ public sealed class TableroDeRevisar
     /// <summary>El nombre en espanol de cada tablero, tal como se pinta en su pastilla.</summary>
     public static string NombreDe(FiltroDeTarjeta filtro) => filtro switch
     {
-        FiltroDeTarjeta.SinRevisar => "Sin revisar",
-        FiltroDeTarjeta.Incompletas => "No completas",
-        FiltroDeTarjeta.Completadas => "Completados",
+        FiltroDeTarjeta.MeFalta => DosEstados.MeFaltaEnCabecera,
+        FiltroDeTarjeta.Resuelto => DosEstados.ResueltoEnCabecera,
         FiltroDeTarjeta.SinAsignar => "Sin asignar",
         FiltroDeTarjeta.FechaPasada => "Fecha pasada",
         _ => "Todo",
@@ -244,9 +267,13 @@ public sealed class TableroDeRevisar
     /// </remarks>
     private static bool Entra(TarjetaDeDocumento tarjeta, FiltroDeTarjeta filtro) => filtro switch
     {
-        FiltroDeTarjeta.SinRevisar => tarjeta.Estado == EstadoDeRecomendacion.SinMarcar,
-        FiltroDeTarjeta.Incompletas => tarjeta.Estado == EstadoDeRecomendacion.NoCompleta,
-        FiltroDeTarjeta.Completadas => tarjeta.Estado == EstadoDeRecomendacion.Completa,
+        // ⚠️ Los dos primeros salen de la MISMA lectura y no de dos condiciones sueltas: asi no
+        // pueden separarse de la palabra que la tarjeta pinta, y «Me falta» siempre trae
+        // exactamente las tarjetas que dicen «me falta». Con dos condiciones escritas aparte,
+        // una tarjeta archivada podia quedarse fuera de los dos tableros y desaparecer de
+        // «Todo» sin que nadie lo notara.
+        FiltroDeTarjeta.MeFalta => tarjeta.SeVeMeFalta,
+        FiltroDeTarjeta.Resuelto => tarjeta.SeVeResuelto,
         FiltroDeTarjeta.SinAsignar => tarjeta.SinAsignar,
         FiltroDeTarjeta.FechaPasada => tarjeta.FechaYaPasada && !tarjeta.Archivado,
         _ => true,

@@ -32,15 +32,47 @@ namespace Fichas.App.Correccion;
 public sealed partial class PaginaDeCorreccion
 {
     private IReadOnlyList<GrupoParaCorregir> _grupos = [];
+
+    /// <summary>
+    /// Los grupos SIN filtrar, que es donde esta el destino de lo que sale.
+    /// </summary>
+    /// <remarks>
+    /// Se guardan aparte de <see cref="_grupos"/> a proposito: en los filtrados un documento
+    /// resuelto ya no aparece —por definicion—, asi que preguntarles a donde paso no daria
+    /// ninguna respuesta. Es la misma pasada; no cuesta una segunda lectura de la base.
+    /// </remarks>
+    private IReadOnlyList<GrupoParaCorregir> _todosLosGrupos = [];
+
     private IReadOnlyList<CasoEnElDesplegable> _documentos = [];
     private LoQueLeFaltaACadaDocumento? _loQueLeFalta;
     private bool _cambiandoDeGrupo;
+    private int _documentosSinArchivar;
 
-    /// <summary>Cuantos grupos hay ahora mismo; lo lee la medicion.</summary>
+    /// <summary>Cuantos grupos de trabajo hay ahora mismo; lo lee la medicion.</summary>
     public int CuantosGrupos => _grupos.Count;
 
     /// <summary>Cuantos documentos ofrece el grupo elegido; lo lee la medicion.</summary>
     public int CuantosDocumentosDelGrupo => _documentos.Count;
+
+    /// <summary>Cuantos documentos piden algo en toda la base; lo lee la medicion.</summary>
+    public int CuantosConAlgoQueFalta => CuantosPidenAlgo();
+
+    /// <summary>
+    /// Cuantos de los que estan en la lista siguen pidiendo algo, SIN contar al invitado.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ <b>Una sola cuenta para las dos cifras de la pantalla</b>, y ese es el arreglo:
+    /// medido con la ventana abierta el 2026-09-09, tras corregir el ultimo dato la cabecera
+    /// decia «2 con algo que falta, de 6» y el pie «queda 1 documento con algo que falta».
+    /// Dos cifras de la misma pantalla que no encajan, y ninguna forma de saber cual creer. La
+    /// diferencia era el invitado: el documento que acaba de resolverse y sigue delante.</para>
+    ///
+    /// <para>El criterio es el mismo <see cref="QueEntraEnCorreccion.SaleDeCorreccion"/> que
+    /// decide quien entra, asi que la cifra no puede separarse de la lista que cuenta.</para>
+    /// </remarks>
+    private int CuantosPidenAlgo()
+        => QueEntraEnCorreccion.CuantosPidenAlgo(
+               _grupos, casoId => _loQueLeFalta?.LeFaltaAlgo(casoId) ?? true);
 
     /// <summary>
     /// Lee la base, arma los grupos y deja elegido el que contiene ese documento.
@@ -67,15 +99,25 @@ public sealed partial class PaginaDeCorreccion
             Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Servicios.Reloj);
         tablero.Cargar();
 
-        _grupos = GruposParaCorregir.Armar(tablero.Cargadas);
+        _todosLosGrupos = GruposParaCorregir.Armar(tablero.Cargadas);
         _loQueLeFalta = LoQueLeFaltaACadaDocumento.DeTodaLaBase(
             Servicios.Casos, Servicios.Personas, Servicios.Procedencia);
+
+        // ⛔ Aqui es donde Correccion deja de ser un almacen. Hasta el 2026-09-09 se ofrecian
+        // TODOS los documentos no archivados; desde hoy solo los que piden algo, que es lo que
+        // el dueno pidio el 2026-09-07: «si voy a Correccion no debe estar ahi, porque ya esta
+        // todo listo». El veredicto no se decide aqui: es LoQueLeFalta, el mismo de la cola y
+        // el de la pantalla del grupo.
+        _grupos = QueEntraEnCorreccion.Filtrar(
+            _todosLosGrupos, _loQueLeFalta.LeFaltaAlgo, casoQueSigueAbierto);
+        _documentosSinArchivar = tablero.Total;
         cronometro.Stop();
 
         Servicios.Registro.Anotar(string.Format(
             System.Globalization.CultureInfo.InvariantCulture,
-            "CORRECCION  {0} grupos con {1} documentos, leidos en {2:F0} ms",
-            _grupos.Count, tablero.Total, cronometro.Elapsed.TotalMilliseconds));
+            "CORRECCION  {0} grupos con {1} documentos que piden algo, de {2} sin archivar, leidos en {3:F0} ms",
+            _grupos.Count, CuantosPidenAlgo(), tablero.Total,
+            cronometro.Elapsed.TotalMilliseconds));
 
         _cambiandoDeGrupo = true;
         _queGrupo.ItemsSource = _grupos.Select(grupo => grupo.Etiqueta).ToList();
@@ -85,7 +127,14 @@ public sealed partial class PaginaDeCorreccion
         {
             _documentos = [];
             _queCaso.ItemsSource = null;
-            _deQueVa.Text = TextoDeLosGrupos.NoHayNingunDocumento;
+            // ⚠️ Dos frases y no una: «no hay ningun documento» y «no queda ninguno con algo
+            // que falta» son cosas distintas, y desde que Correccion filtra, la segunda es la
+            // normal. Decir la primera con 75 documentos resueltos en la base se leeria como
+            // que el programa perdio la base entera.
+            _deQueVa.Text = _documentosSinArchivar == 0
+                ? TextoDeLosGrupos.NoHayNingunDocumento
+                : TextoDeLaSalidaDeCorreccion.NoQuedaNadaQueCorregir;
+            MostrarSiYaEstaResuelto();
             return;
         }
 
@@ -155,8 +204,8 @@ public sealed partial class PaginaDeCorreccion
             "CORRECCION  el grupo «{0}» arma {1} documentos en {2:F0} ms",
             grupo.Etiqueta, entradas.Count, cronometro.Elapsed.TotalMilliseconds));
 
-        _deQueVa.Text = TextoDeLosGrupos.Denominador(
-            entradas.Count, _grupos.Count, _grupos.Sum(uno => uno.CuantosDocumentos));
+        _deQueVa.Text = TextoDeLaSalidaDeCorreccion.Denominador(
+            entradas.Count, _grupos.Count, CuantosPidenAlgo(), _documentosSinArchivar);
 
         if (entradas.Count == 0) return;
 
@@ -201,8 +250,21 @@ public sealed partial class PaginaDeCorreccion
     /// <param name="casoId">El documento que se acaba de abrir.</param>
     private void SituarLosDesplegablesEn(long casoId)
     {
-        if (_grupos.Count == 0) return;
         if (_documentos.Any(entrada => entrada.Id == casoId)) return;
+
+        // ⛔ Se llega aqui con un documento que YA NO ESTA en la lista de trabajo cuando se
+        // entra desde fuera a uno resuelto: desde el grupo del dia, o desde el flujo de
+        // trabajo. Se rehace la lista con el dentro como invitado, porque si no la cabecera
+        // diria un grupo y un documento que no son los que se tienen delante. Es la misma
+        // queja del dueno que arreglo esta funcion el 2026-09-07, con la lista ya filtrada.
+        if (GruposParaCorregir.DondeEsta(_todosLosGrupos, casoId) >= 0
+            && GruposParaCorregir.DondeEsta(_grupos, casoId) < 0)
+        {
+            LlenarLosGrupos(casoId);
+            return;
+        }
+
+        if (_grupos.Count == 0) return;
 
         var donde = GruposParaCorregir.DondeEsta(_grupos, casoId);
         if (donde < 0) return;
@@ -310,13 +372,19 @@ public static class TextoDeLosGrupos
     /// del desplegable: es el criterio C17-1 —«listo» a secas se lee como «listo para
     /// viajar»— resuelto sin gastar treinta caracteres por linea en una lista de 61.</para>
     /// </remarks>
+    /// <remarks>
+    /// ⚠️ <b>2026-09-09: quedo SIN USAR y NO se borra.</b> Desde que Correccion solo ensena lo
+    /// que pide algo hacen falta CUATRO cifras y no tres —los que piden algo, y de cuantos—, y
+    /// la compone <c>TextoDeLaSalidaDeCorreccion.Denominador</c>. Se queda porque la regla del
+    /// dueno del 2026-08-19 es que durante el desarrollo «sin usar» y «sin terminar» se ven
+    /// iguales desde fuera, y esto se decide al cerrar la fase, no ahora. Va nombrado en la
+    /// entrega para que el planificador lo anote en <c>PENDIENTES.md</c>.
+    /// </remarks>
     /// <param name="enEsteGrupo">Cuantos documentos trae el grupo elegido.</param>
     /// <param name="cuantosGrupos">Cuantos grupos hay.</param>
     /// <param name="enTotal">Cuantos documentos hay en total, sin los archivados.</param>
     public static string Denominador(int enEsteGrupo, int cuantosGrupos, int enTotal)
         => $"{Fichas.Reportes.Reglas.Plural.Con(enEsteGrupo, "documento", "documentos")} en este grupo"
            + $" · {Fichas.Reportes.Reglas.Plural.Con(cuantosGrupos, "grupo", "grupos")}"
-           + $" · {enTotal} en total"
-           + $" · «{Fichas.App.Grupo.LasDosPreguntas.ListoParaAsignar}» = "
-           + Fichas.App.Grupo.LasDosPreguntas.QueSignificaListoParaAsignar;
+           + $" · {enTotal} en total";
 }

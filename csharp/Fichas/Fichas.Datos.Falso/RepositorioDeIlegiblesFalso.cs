@@ -63,6 +63,35 @@ public sealed class RepositorioDeIlegiblesFalso : IIlegibles
         return ResultadoDeEscritura.Bien(id);
     }
 
+    /// <summary>
+    /// Aqui NO se puede planear un borrado, y por eso el plan vuelve sin permiso.
+    /// </summary>
+    /// <remarks>
+    /// ⛔ No es un hueco por rellenar: es lo mismo que hace <c>OperacionDeBorrar</c> con
+    /// <c>IMantenimiento</c> nulo. Con <c>--falso</c> no hay base en ningun archivo, asi
+    /// que no hay nada que copiar, y la regla del programa es que sin copia previa no se
+    /// borra. Un falso que borrara de su diccionario dejaria pasar en verde una prueba
+    /// sobre un camino que en la base de verdad exige copiar antes.
+    /// </remarks>
+    public PlanDeBorrado PlanearBorradoDeRenglonesSinCaso(IReadOnlyCollection<long> renglonIds)
+        => PlanDeBorrado.NoSePuede(
+            AlcanceDelBorrado.Documentos,
+            null,
+            Aviso.Problema(
+                "Aquí no se puede borrar: el programa abrió con datos inventados.",
+                string.Empty,
+                "Borrar exige copiar antes la base de verdad, y con «--falso» no hay ninguna. "
+                + "Cierre el programa y ábralo normal."));
+
+    /// <summary>Aqui nunca se borra nada, por lo mismo que nunca se planea.</summary>
+    public ResultadoDeBorrado BorrarRenglonesSinCaso(PlanDeBorrado plan)
+        => ResultadoDeBorrado.NoSeBorro(
+            null,
+            Aviso.Problema(
+                "No se borró nada: el programa abrió con datos inventados.",
+                string.Empty,
+                "Nada se borra sin haber copiado antes la base, y con «--falso» no hay base."));
+
     /// <summary>Aplica los filtros simples y devuelve la lista de lo mas reciente a lo mas viejo.</summary>
     private List<RenglonIlegible> Filtrar(FiltroDeIlegibles filtro)
     {

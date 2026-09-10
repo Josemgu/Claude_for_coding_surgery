@@ -49,10 +49,14 @@ internal sealed class BaseDelPaquete : IDisposable
         Ilegibles = new RepositorioDeIlegiblesFalso(Almacen);
         Asignaciones = new RepositorioDeAsignacionesFalso(Almacen);
         Paquetes = new Fichas.Paquetes.Paquetes(Casos, Personas, Companeros, Ilegibles, Reloj);
-        Vuelta = new OperacionDeLaVuelta(Paquetes, Ilegibles, Casos, Personas);
         Firma = new FirmaEnBloque(Procedencia, Reloj);
         Avisos = new BuzonDeAvisos();
         Reparto = new OperacionDeAsignar(Asignaciones, Reloj, Avisos);
+        // Con la limpieza puesta, que es como la monta la pantalla desde el 2026-09-07: montarla
+        // sin ella dejaria las pruebas midiendo una tuberia mas corta que la del programa.
+        Vuelta = new OperacionDeLaVuelta(
+            Paquetes, Ilegibles, Casos, Personas,
+            new LimpiezaAlVolver(Asignaciones, Casos, Reparto));
         Ida = new OperacionDelPaquete(Paquetes, Asignaciones, Casos);
         _carpeta = Path.Combine(Path.GetTempPath(), "fichas-pruebas-app-paquetes", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_carpeta);
@@ -162,6 +166,18 @@ internal sealed class BaseDelPaquete : IDisposable
     /// <summary>Cuantas asignaciones vivas tiene ese companero ahora mismo, leidas de la base.</summary>
     public int VivasDe(long companeroId)
         => Asignaciones.Contar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true));
+
+    /// <summary>Que casos lleva vivos ahora mismo, leidos de la base y sin repetir.</summary>
+    /// <remarks>
+    /// Por el mismo puerto y con el mismo filtro que miran Asignar, Inicio y el paquete
+    /// siguiente. Contarlo de otra manera mediria otra cosa.
+    /// </remarks>
+    public IReadOnlyList<long> CasosVivosDe(long companeroId)
+        => [.. Asignaciones
+            .Listar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true), Pagina.Primera(int.MaxValue))
+            .Elementos
+            .Select(asignacion => asignacion.CasoId)
+            .Distinct()];
 
     /// <summary>Todas sus asignaciones, vivas y retiradas: es donde se ve que nada se borro.</summary>
     public IReadOnlyList<Asignacion> TodasLasDe(long companeroId)

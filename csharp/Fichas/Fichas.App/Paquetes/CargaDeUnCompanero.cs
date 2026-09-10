@@ -97,12 +97,16 @@ public sealed record CargaDelCompanero(
 /// trabajo de alguien sin que nadie lo decida. Se queda dentro y ademas se cuenta aparte en la
 /// linea, para que se vea que sigue ahi.</para>
 ///
-/// <para>⛔ <b>Aqui NO se retira ninguna asignacion.</b> Es la otra forma de arreglar «trabajar
-/// dos veces» y NO es la que se eligio: retirar al devolver cambia lo que se ve en Asignar, en
-/// Inicio y en el informe de cada agente —que se recorta a sus asignaciones vivas
-/// (<c>Fichas.Reportes/ReportesEnPdf.cs</c>)—, y el dueno pidio no mandar dos veces el mismo
-/// trabajo, no borrar de quien era. Filtrar el paquete no cambia ninguna de esas tres
-/// pantallas.</para>
+/// <para>⛔ <b>Aqui NO se retira ninguna asignacion, y eso no ha cambiado</b>: esta clase LEE.
+/// Quien retira es <see cref="LimpiezaAlVolver"/>, desde la vuelta.</para>
+///
+/// <para>⚠️ <b>Lo que si cambio el 2026-09-07.</b> Este parrafo decia que retirar al devolver
+/// NO era la forma elegida, «porque el informe de cada agente se recorta a sus asignaciones
+/// vivas». <b>Esa razon era falsa</b>: <c>ReportesEnPdf.DocumentoDeCompanero</c> pide las
+/// asignaciones con <c>SoloActivas: false</c> y arma sus casos con TODAS, vivas y retiradas. El
+/// dueno pidio lo contrario de lo que se hizo —<i>«debe quitarle que ese caso esta asignado a
+/// el; debe quedar limpio»</i>— y manda el. Este filtro se queda igual y es cinturon y
+/// tirantes: alcanza lo que un dia se devolvio completo y por lo que fuera sigue asignado.</para>
 /// </remarks>
 public static class CargaDeUnCompanero
 {

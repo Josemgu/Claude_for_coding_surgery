@@ -66,6 +66,9 @@ public static class ArmadoDeLaSegundaVuelta
         new("Caso", ClaseDeColumna.Texto, 12),
         new("Persona", ClaseDeColumna.Crudo, 26),
         new("MRN", ClaseDeColumna.Texto, 14),
+        // ⚠️ 2026-09-08: la unidad en DOS columnas, el numero delante y como Texto. Ver el
+        // motivo entero en Vocabulario, donde vivia la funcion que las pegaba.
+        new(Vocabulario.RotuloDelNumeroDeUnidad, ClaseDeColumna.Texto, 16),
         new("Barrio o rama", ClaseDeColumna.Crudo, 22),
         new("Viaja el", ClaseDeColumna.Temporal, 12),
         new("Lo intentó", ClaseDeColumna.Crudo, 18),
@@ -110,7 +113,8 @@ public static class ArmadoDeLaSegundaVuelta
                     caso.NumeroCaso,
                     Vocabulario.PersonaOSinNombre(persona.Nombre),
                     string.IsNullOrWhiteSpace(persona.Mrn) ? Vocabulario.SinDato : persona.Mrn,
-                    Vocabulario.UnidadConSuNumero(caso.UnidadNombre, caso.UnidadNumero),
+                    Vocabulario.NumeroDeUnidad(caso.UnidadNumero),
+                    Vocabulario.NombreDeUnidad(caso.UnidadNombre),
                     caso.FechaViaje,
                     $"{intento.QuienLoIntento} · categoría {intento.CategoriaDeQuienLoIntento}",
                     Estados.TextoDelMotivo(intento.Motivo),

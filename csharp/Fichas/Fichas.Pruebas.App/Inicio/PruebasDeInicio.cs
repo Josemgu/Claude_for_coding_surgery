@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Cascara;
 using Fichas.App.Inicio;
 using Fichas.App.Revisar;
@@ -41,7 +42,11 @@ public sealed class PruebasDeInicio
 
         var renglon = resumen.Listos.Single(r => r.NumeroCaso == "LIST2609");
         Assert.AreEqual(0, renglon.CuantoLeFalta);
-        Assert.AreEqual("listo para asignar", renglon.LoQueFaltaTexto);
+        // ⛔ 2026-09-07: decía «listo para asignar». Ahora dice «me falta», y el detalle explica
+        // por qué: al papel no le falta ni un dato, pero al dueño sí le queda algo que hacer con
+        // él —repartirlo—. Es la definición que él mismo dio de «resuelto».
+        Assert.AreEqual(DosEstados.MeFalta, renglon.PalabraDelEstado);
+        StringAssert.Contains(renglon.DetalleDelEstado, "repartirlo");
         Assert.AreEqual(2, renglon.CuantasPersonas);
         Assert.AreEqual(1, resumen.Contadores.ListoParaAsignar);
         Assert.AreEqual(2, resumen.Contadores.PersonasListas);
@@ -263,20 +268,23 @@ public sealed class PruebasDeInicio
     }
 
     /// <summary>
-    /// Y TAMPOCO sale en el calendario: ni pastilla, ni palabra, ni cuenta.
+    /// ⚠️ Un archivado SÍ sale en el calendario, en verde, y SIN la palabra «archivado».
     /// </summary>
     /// <remarks>
-    /// ⛔ <b>Esta prueba afirmaba justo lo contrario hasta el 2026-09-06</b>, y se llamaba
-    /// <c>UnDocumentoArchivadoSiSaleEnElCalendarioConLaPalabraArchivado</c>: venia de los
-    /// criterios C7-2 y C12-4, que recogian lo que el dueno pidio el 2026-09-03 —la PALABRA
-    /// y no un color—. El dueno lo deshizo con su motivo: <i>«si se queda en el tablero y
-    /// dice archivado, lo que hace es que me confunda»</i>.
-    /// <para>Lo que sigue vigilando: que el calendario y la vista de trabajo digan lo MISMO
-    /// de un documento archivado. Antes las dos mitades eran deliberadamente distintas;
-    /// ahora coinciden, y esta prueba es la que lo ata.</para>
+    /// <para><b>Esta prueba ha cambiado de signo dos veces, y las dos por él.</b> El 2026-09-03
+    /// pidió verlo en el calendario con la palabra; el 2026-09-06 pidió que desapareciera de
+    /// todas partes, y desapareció también de aquí; el 2026-09-07 lo devolvió al calendario:
+    /// <i>«Cuando un paquete entra y marca todo completo, debe salir de todos lados EXCEPTO del
+    /// calendario. Aunque se archive, debe quedarse en el calendario marcado en verde, porque
+    /// están completos, pero se mueve para abrir espacio a otros PDF»</i>.</para>
+    ///
+    /// <para><b>No es una contradicción porque el motivo cambió.</b> Lo que le estorbaba el 06
+    /// era la ETIQUETA —<i>«si se queda en el tablero y DICE ARCHIVADO, lo que hace es que me
+    /// confunda»</i>—, no verlo resuelto. Así que vuelve la pastilla y no vuelve la palabra, y
+    /// esta prueba ata las dos mitades: que esté, y que no diga «archivado».</para>
     /// </remarks>
     [TestMethod]
-    public void UnDocumentoArchivadoTampocoSaleEnElCalendario()
+    public void UnDocumentoArchivadoSaleEnElCalendarioResueltoYSinLaPalabraArchivado()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
         BaseDeInicio.MeterCaso(servicios, "ARCH2609", "2026-09-10", archivado: true, cuantasPersonas: 2, unidadNumero: "9999999");
@@ -284,22 +292,56 @@ public sealed class PruebasDeInicio
         var mes = BaseDeInicio.LeerInicio(servicios).Mes;
         var pastillas = mes.Dias.SelectMany(d => d.Pastillas).ToList();
 
-        Assert.IsEmpty(pastillas, "Un día cuyo único documento está archivado no pinta ninguna pastilla.");
-        Assert.AreEqual(0, mes.Dias.Sum(d => d.CuantasMas), "Ni se cuenta en el «+N más».");
+        Assert.HasCount(1, pastillas, "Lo archivado se queda en el calendario (2026-09-07).");
+        Assert.AreEqual(DosEstados.Resuelto, pastillas[0].Etiqueta, "Y se lee resuelto: lo cerró él.");
+        Assert.IsTrue(pastillas[0].EstaResuelta, "Lo que decide su verde.");
+        Assert.IsFalse(
+            pastillas[0].Etiqueta.Contains("archivad", StringComparison.OrdinalIgnoreCase),
+            "La etiqueta «ARCHIVADO» no vuelve: era lo que le confundía.");
+    }
+
+    /// <summary>Y sigue sin salir en las listas de trabajo, que es la otra mitad de su frase.</summary>
+    /// <remarks>
+    /// <i>«Debe salir de todos lados excepto del calendario […] se mueve para abrir espacio a
+    /// otros PDF que necesitan ser procesados»</i>. Si esta prueba se pusiera roja, el
+    /// archivado habría vuelto a competir por su atención, que es lo que él quitó el 06.
+    /// </remarks>
+    [TestMethod]
+    public void ElArchivadoDelCalendarioNoVuelveANingunaLista()
+    {
+        var servicios = BaseDeInicio.MontarServicios(0);
+        BaseDeInicio.MeterCaso(servicios, "ARCH2610", "2026-09-10", archivado: true, cuantasPersonas: 2, unidadNumero: "9999999");
+
+        var resumen = BaseDeInicio.LeerInicio(servicios);
+
+        Assert.IsEmpty(resumen.Listos, "Ni en lo que está por repartir.");
+        Assert.IsEmpty(resumen.Asignados, "Ni en lo que llevan los compañeros.");
+        Assert.AreEqual(0, resumen.Contadores.ListoParaAsignar);
+        Assert.AreEqual(0, resumen.Denominadores.CasosNoArchivados);
+        Assert.IsEmpty(
+            BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 10)).Unidades,
+            "Ni en el grupo del día, que es la pantalla de trabajo.");
     }
 
     /// <summary>
-    /// Un grupo con un archivado dentro cuenta SOLO lo vivo, y no dice la palabra.
+    /// Un grupo con un archivado dentro lo cuenta como resuelto, y sigue sin decir la palabra.
     /// </summary>
     /// <remarks>
-    /// ⛔ Antes se llamaba <c>UnGrupoMitadArchivadoDiceCuantasCompletasYCuantosArchivados</c> y
-    /// exigia «1 de 2 confirmadas · 1 ARCHIVADO». Lo que vigila —que la pastilla no mienta
-    /// sobre cuantas personas quedan por verificar— se conserva entero; lo que cambia es que
-    /// el trozo archivado ya no entra en la cuenta en vez de entrar marcado.
-    /// <para>El sitio donde esa cuenta sigue estando completa es Reportes, que no se toco.</para>
+    /// <para>⛔ Esta prueba ha llevado tres nombres. Exigió «1 de 2 confirmadas · 1 ARCHIVADO»
+    /// (2026-09-03), después que el archivado no entrara en la cuenta (2026-09-06), y desde el
+    /// 2026-09-07 que entre y cuente como resuelto: el dueño lo quiere en verde.</para>
+    ///
+    /// <para><b>Lo que vigila no ha cambiado nunca:</b> que la pastilla no mienta sobre cuánta
+    /// gente le queda por mirar. Con el archivado dentro, la respuesta honesta es que no le
+    /// queda ninguna, porque él cerró ese documento.</para>
+    ///
+    /// <para>⚠️ Y las dos cuentas siguen separadas en el modelo:
+    /// <c>CuantasPersonasConfirmadas</c> sigue contando SOLO las seis preguntas en sí, y no se
+    /// contamina con el archivado. Decir que las de un archivado están confirmadas sería
+    /// inventarlo.</para>
     /// </remarks>
     [TestMethod]
-    public void UnGrupoMitadArchivadoCuentaSoloLoVivo()
+    public void UnGrupoMitadArchivadoCuentaElArchivadoComoResuelto()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
         var uno = BaseDeInicio.MeterCaso(servicios, "MIXT2601", "2026-09-10", estado: "completa", unidadNumero: "9999999");
@@ -310,12 +352,11 @@ public sealed class PruebasDeInicio
             .SelectMany(d => d.Pastillas)
             .Single(p => p.UnidadNumero == "9999999");
 
-        Assert.AreEqual(1, pastilla.CuantosDocumentos, "El archivado no se cuenta como documento del grupo.");
+        Assert.AreEqual(2, pastilla.CuantosDocumentos, "Los dos están en el calendario (2026-09-07).");
         Assert.AreEqual(1, pastilla.CuantasCompletas, "El estado del documento se sigue contando aparte.");
-
-        // ⚠️ La etiqueta cuenta PERSONAS confirmadas desde el criterio C20-3, no documentos
-        // completos: queda una sola persona a la vista, con sus seis preguntas en sí.
-        Assert.AreEqual("1 de 1 confirmadas", pastilla.Etiqueta);
+        Assert.AreEqual(1, pastilla.CuantasPersonasConfirmadas,
+            "Confirmada es una afirmación sobre las seis preguntas, y el archivado no la trae.");
+        Assert.AreEqual(DosEstados.Resuelto, pastilla.Etiqueta, "Y aun así, al dueño no le queda nada aquí.");
     }
 
     /// <summary>
@@ -337,14 +378,20 @@ public sealed class PruebasDeInicio
 
         acciones.ArchivarEnLote([casoId]);
         var archivado = BaseDeInicio.LeerInicio(servicios);
-        Assert.IsEmpty(archivado.Mes.Dias.SelectMany(d => d.Pastillas), "Archivado: no está en el calendario.");
+        // ⛔ 2026-09-07: archivado SÍ está en el calendario, y ahí se lee resuelto. Lo que esta
+        // prueba defiende —que desarchivar lo devuelva a las listas de trabajo— no cambia.
+        Assert.HasCount(1, archivado.Mes.Dias.SelectMany(d => d.Pastillas).ToList(),
+            "Archivado: se queda en el calendario.");
+        Assert.AreEqual(DosEstados.Resuelto, archivado.Mes.Dias.SelectMany(d => d.Pastillas).Single().Etiqueta);
         Assert.IsNull(archivado.ElSistemaDelObispo.ProximoGrupo, "Archivado: no hay grupo que venga.");
         Assert.IsEmpty(BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8)).Unidades);
 
         acciones.DesarchivarEnLote([casoId]);
         var devuelto = BaseDeInicio.LeerInicio(servicios);
 
-        Assert.HasCount(1, devuelto.Mes.Dias.SelectMany(d => d.Pastillas).ToList(), "Desarchivado: vuelve al calendario.");
+        Assert.HasCount(1, devuelto.Mes.Dias.SelectMany(d => d.Pastillas).ToList(), "Desarchivado: sigue en el calendario.");
+        Assert.AreNotEqual(DosEstados.Resuelto, devuelto.Mes.Dias.SelectMany(d => d.Pastillas).Single().Etiqueta,
+            "Y deja de leerse resuelto: vuelve a ser trabajo.");
         Assert.IsNotNull(devuelto.ElSistemaDelObispo.ProximoGrupo, "Desarchivado: vuelve a ser el grupo que viene.");
         Assert.AreEqual(1, devuelto.Denominadores.CasosNoArchivados);
         Assert.HasCount(1, BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8)).Unidades,

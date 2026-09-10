@@ -1,4 +1,5 @@
 using Fichas.App.Revisar;
+using Fichas.App.Vocabulario;
 using Fichas.Contratos.Modelos;
 
 namespace Fichas.Pruebas.App.Revisar;
@@ -22,7 +23,15 @@ namespace Fichas.Pruebas.App.Revisar;
 ///
 /// <para>⚠️ <b>Lo que NO cambia, y por eso hay pruebas de las dos mitades:</b> el tablero «Fecha
 /// pasada» de los NO archivados sigue significando lo que significaba —«esto viajó y hay que
-/// decidir»— y su tarjeta sigue diciendo lo que decía. Las dos cosas no se mezclan.</para>
+/// decidir»— y su tarjeta sigue distinguiéndose en la base. Las dos cosas no se mezclan.</para>
+///
+/// <para>⛔ <b>2026-09-07: estas pruebas se movieron, no se debilitaron.</b> Miraban la PALABRA
+/// —«fecha pasada completada» contra «no está completa»—, y el dueño colapsó las cuatro palabras
+/// a dos: <i>«Dos estados nada más: resuelto y me falta»</i>. Lo que vigilaban —que un archivado
+/// con fecha pasada NO se confunda con un incompleto vivo— sigue vigilado, y ahora se mira donde
+/// de verdad tiene que sostenerse: en <see cref="TarjetaDeDocumento.EstadoQueSeVe"/> y en la
+/// base, que siguen siendo cuatro. La palabra se comprueba además, para que las dos no puedan
+/// separarse.</para>
 /// </remarks>
 [TestClass]
 public sealed class PruebasDeLaFechaPasadaCompletada
@@ -35,7 +44,7 @@ public sealed class PruebasDeLaFechaPasadaCompletada
 
     /// <summary>
     /// Un archivado incompleto con fecha pasada desaparece de Revisar, y con el interruptor
-    /// vuelve a verse diciendo «fecha pasada completada».
+    /// vuelve a verse: se lee «resuelto» y la base lo sigue llamando «fecha pasada completada».
     /// </summary>
     /// <remarks>
     /// Es el criterio del pase entero en una prueba: primero que archivar gana a estar
@@ -43,7 +52,7 @@ public sealed class PruebasDeLaFechaPasadaCompletada
     /// propósito. Sin la primera mitad, la segunda no significaría nada.
     /// </remarks>
     [TestMethod]
-    public void ElArchivadoIncompletoDesapareceYConElInterruptorDiceFechaPasadaCompletada()
+    public void ElArchivadoIncompletoDesapareceYConElInterruptorSeLeeResuelto()
     {
         var banco = new BancoDeCarpetas();
         var viejo = banco.MeterConEstado("AAAA0001", UnaFechaYaPasada, EstadoDeRecomendacion.NoCompleta);
@@ -60,15 +69,19 @@ public sealed class PruebasDeLaFechaPasadaCompletada
 
         Assert.IsNull(alTrabajar, "Archivar gana a estar incompleto: desaparece aunque le falten campos.");
         Assert.IsNotNull(alMirarlosAProposito, "Con «Ver los archivados» tiene que volver a verse.");
-        Assert.AreEqual("fecha pasada completada", alMirarlosAProposito.PalabraDelEstado);
-        Assert.AreEqual(EstadoQueSeVe.FechaPasadaCompletada, alMirarlosAProposito.EstadoQueSeVe);
+        Assert.AreEqual(DosEstados.Resuelto, alMirarlosAProposito.PalabraDelEstado);
+        Assert.AreEqual(
+            EstadoQueSeVe.FechaPasadaCompletada,
+            alMirarlosAProposito.EstadoQueSeVe,
+            "La palabra son dos; el estado que se ve sigue siendo el suyo y no se colapsa.");
     }
 
     /// <summary>
-    /// Un documento NO archivado con fecha pasada sigue diciendo lo que decía, y no «completada».
+    /// Un documento NO archivado con fecha pasada se lee «me falta», y no se confunde con
+    /// el archivado que ya está decidido.
     /// </summary>
     [TestMethod]
-    public void ElNoArchivadoConFechaPasadaSigueDiciendoLoQueDecia()
+    public void ElNoArchivadoConFechaPasadaSigueSiendoLoQueEra()
     {
         var banco = new BancoDeCarpetas();
         var vivo = banco.MeterConEstado("AAAA0002", UnaFechaYaPasada, EstadoDeRecomendacion.NoCompleta);
@@ -79,8 +92,12 @@ public sealed class PruebasDeLaFechaPasadaCompletada
         Console.WriteLine($"No archivado con fecha pasada: «{tarjeta.PalabraDelEstado}».");
 
         Assert.IsTrue(tarjeta.FechaYaPasada, "La fecha sigue siendo pasada; eso no cambia.");
-        Assert.AreEqual("no está completa", tarjeta.PalabraDelEstado);
+        Assert.AreEqual(DosEstados.MeFalta, tarjeta.PalabraDelEstado);
         Assert.DoesNotContain("completada", tarjeta.PalabraDelEstado, StringComparison.Ordinal);
+        Assert.AreEqual(
+            EstadoQueSeVe.NoCompleta,
+            tarjeta.EstadoQueSeVe,
+            "En la base sigue siendo «no completa», que es otra cosa que «fecha pasada completada».");
         Assert.AreEqual(1, banco.Tablero.CuantasEn(FiltroDeTarjeta.FechaPasada), "Y sigue en su tablero de siempre.");
     }
 
@@ -114,15 +131,21 @@ public sealed class PruebasDeLaFechaPasadaCompletada
     }
 
     /// <summary>
-    /// Un archivado SIN fecha pasada no se llama «completada»: eso sería inventarle algo.
+    /// Un archivado SIN fecha pasada no se llama «completado»: eso sería inventarle algo.
     /// </summary>
     /// <remarks>
-    /// El dueño habló de los que archiva <b>porque son fechas pasadas</b>. Un archivado que
+    /// <para>El dueño habló de los que archiva <b>porque son fechas pasadas</b>. Un archivado que
     /// todavía no ha viajado se archivó por otro motivo, y decir de él que está completado sería
-    /// afirmar algo que nadie ha dicho.
-    /// </remarks>
+    /// afirmar algo que nadie ha dicho.</para>
+    ///
+    /// <para>⚠️ <b>Y sí se lee «resuelto», que NO es lo mismo que «completado».</b> Archivar es el
+    /// gesto con el que el dueño dice que ya no tiene nada que hacer con ese documento, y eso es
+    /// exactamente lo que «resuelto» significa desde el 2026-09-07. Lo que esta prueba defiende
+    /// —que nadie afirme que está completo— se comprueba donde vive esa afirmación: en
+    /// <c>casos.estado_recomendacion</c>, que sigue diciendo «no completa», y en el detalle, que
+    /// dice quién lo cerró y no dice que nadie lo completara.</para>
     [TestMethod]
-    public void ElArchivadoQueTodaviaNoHaViajadoNoSeLlamaCompletada()
+    public void ElArchivadoQueTodaviaNoHaViajadoNoSeLlamaCompletadoEnNingunSitio()
     {
         var banco = new BancoDeCarpetas();
         var porVenir = banco.MeterConEstado("AAAA0005", UnaFechaPorVenir, EstadoDeRecomendacion.NoCompleta);
@@ -134,8 +157,14 @@ public sealed class PruebasDeLaFechaPasadaCompletada
         Console.WriteLine($"Archivado que aún no viaja: «{tarjeta.PalabraDelEstado}».");
 
         Assert.IsFalse(tarjeta.FechaYaPasada);
-        Assert.AreEqual("no está completa", tarjeta.PalabraDelEstado);
+        Assert.AreEqual(DosEstados.Resuelto, tarjeta.PalabraDelEstado, "Lo archivó él: no le queda nada que hacer.");
+        Assert.AreEqual(
+            EstadoDeRecomendacion.NoCompleta,
+            banco.Servicios.Casos.Obtener(porVenir)!.Estado,
+            "En la base sigue diciendo «no completa»: archivar no completa nada.");
         Assert.AreEqual(EstadoQueSeVe.NoCompleta, tarjeta.EstadoQueSeVe);
+        Assert.DoesNotContain("completad", tarjeta.DetalleDelEstado, StringComparison.Ordinal);
+        StringAssert.Contains(tarjeta.DetalleDelEstado, "archivaste");
     }
 
     /// <summary>

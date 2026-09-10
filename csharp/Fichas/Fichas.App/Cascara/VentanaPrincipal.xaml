@@ -24,6 +24,26 @@
         desaparecian dentro. Una pantalla ilegible.
     -->
     <Grid x:Name="_raiz" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.Resources>
+            <!--
+                El rotulo del atajo que va al final de cada entrada, como en el mockup
+                («Panel  Alt+1»).
+
+                ⚠️ El color es «TextFillColorSecondaryBrush» del sistema y NO uno de los seis
+                de la paleta de App.xaml. Motivo: los seis estan medidos contra «Papel» y
+                «Panel», y el fondo del panel de navegacion no es ninguno de los dos —lo pinta
+                WinUI con su propio material—. Un color medido contra un fondo que no es el
+                suyo es una cifra que no vale. Este recurso es el que el sistema mantiene
+                legible sobre sus propias superficies en los dos temas.
+            -->
+            <Style x:Key="RotuloDelAtajo" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="Margin" Value="12,0,0,0" />
+            </Style>
+        </Grid.Resources>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -54,36 +74,242 @@
             haber una tab solo para esto». Hasta entonces, la ventana de incompletos de
             Inicio tuvo que entrar por un botón en vez de por aquí.
         -->
+        <!--
+            ⚠️ El panel pasa de «LeftCompact» a «Left» el 2026-09-09, y no es un capricho de
+            forma: en compacto solo se ve el icono, y entonces ni los dos grupos ni los nueve
+            atajos —que es justo lo que el dueno echo en falta del mockup— se leen sin abrir
+            el panel a mano. El mockup dibuja el rail SIEMPRE con su palabra al lado del icono.
+
+            El precio, MEDIDO con la ventana abierta el 2026-09-09 sobre el paquete publicado,
+            leyendo el arbol de accesibilidad: la ventana abre a 1730 px de ancho
+            (ArgumentosDeArranque.Ancho) y el panel ocupa 236x699 px —el mismo numero que pide
+            «OpenPaneLength», o sea que WinUI no lo recorta—, asi que quedan 1494 para la
+            pantalla. «AnchoMinimoDeContenido» de App.xaml pide 760: sobran 734. Ninguna
+            pantalla pierde sitio por debajo de su minimo.
+
+            Y las nueve entradas caben sin desplazar: el grupo que las contiene mide 228x428
+            px y las nueve, mas los dos titulos, entran enteras dentro. Importa porque WinUI
+            VIRTUALIZA esta lista: una entrada que no esta realizada no dispara su atajo, asi
+            que si algun dia hubiera que desplazar para llegar a «Reportes», Alt+9 dejaria de
+            funcionar sin que nadie lo tocara. Hoy las nueve estan a la vista y los nueve
+            atajos se pulsaron uno a uno con la ventana abierta.
+        -->
         <NavigationView
             x:Name="_navegacion"
             Grid.Row="1"
             IsBackButtonVisible="Collapsed"
             IsPaneToggleButtonVisible="True"
             IsSettingsVisible="False"
-            OpenPaneLength="220"
-            PaneDisplayMode="LeftCompact"
+            OpenPaneLength="236"
+            PaneDisplayMode="Left"
             SelectionChanged="AlElegirUnaEntrada">
 
+            <!--
+                LA CABECERA del mockup: el titulo de donde se esta, la fecha de hoy y el
+                buscador. Va en «NavigationView.Header», que es el sitio que WinUI tiene para
+                esto: se queda quieto mientras la pantalla de dentro se desplaza.
+            -->
+            <NavigationView.Header>
+                <Grid Padding="24,4,24,10" ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        x:Name="_tituloDeLaPantalla"
+                        Grid.Column="0"
+                        AutomationProperties.AutomationId="tituloDeLaPantalla"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource SubtitleTextBlockStyle}"
+                        Text="Inicio" />
+
+                    <!--
+                        La fecha de hoy, en espanol y sin hora. El texto lo escribe
+                        FechaDeLaCabecera.
+
+                        ⚠️ El «Style» NO es adorno: sin el, este texto hereda el tamano de
+                        letra del NavigationView y la fecha sale MAS ALTA que el titulo, que
+                        es lo que manda en la cabecera.
+
+                        Medido el 2026-09-09 sobre el paquete publicado, quitando el «Style»,
+                        volviendo a publicar y leyendo el arbol de accesibilidad de la ventana
+                        abierta:
+                          · con el «Style»  ... titulo 51x28 px · fecha 974x20 px
+                          · sin el «Style»  ... titulo 51x28 px · fecha 974x38 px
+                        Con el, la fecha es mas baja que el titulo; sin el, es diez pixeles
+                        mas alta y le quita la jerarquia.
+                    -->
+                    <TextBlock
+                        x:Name="_fechaDeHoy"
+                        Grid.Column="1"
+                        AutomationProperties.AutomationId="fechaDeHoy"
+                        Margin="4,3,0,0"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource BodyTextBlockStyle}"
+                        Text="" />
+
+                    <!--
+                        EL BUSCADOR. Que hace y por que hace eso y no lo del mockup esta
+                        explicado en Cascara/BusquedaDeLaCabecera.cs, con sus mediciones.
+                        En corto: busca de verdad por numero de caso, nombre o MRN; ensena
+                        caso, unidad y fecha de viaje; y NO pinta el nombre ni el MRN de
+                        nadie aunque busque por ellos.
+                    -->
+                    <AutoSuggestBox
+                        x:Name="_buscador"
+                        Grid.Column="2"
+                        Width="320"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="Buscar un documento por caso, nombre o MRN"
+                        FontSize="14"
+                        QueryIcon="Find"
+                        QuerySubmitted="AlPedirLaBusqueda"
+                        SuggestionChosen="AlElegirLoEncontrado"
+                        TextChanged="AlEscribirEnElBuscador"
+                        ToolTipService.ToolTip="Buscar un documento (Alt+B)">
+                        <AutoSuggestBox.KeyboardAccelerators>
+                            <KeyboardAccelerator
+                                Key="B"
+                                Invoked="AlPulsarElAtajoDelBuscador"
+                                Modifiers="Menu" />
+                        </AutoSuggestBox.KeyboardAccelerators>
+                    </AutoSuggestBox>
+                </Grid>
+            </NavigationView.Header>
+
+            <!--
+                ⚠️ LOS DOS GRUPOS, y el criterio con el que se reparten las nueve entradas.
+
+                El mockup agrupa en «El trabajo» y «La gente». Aqui se copia esa forma, no su
+                lista: el mockup dibuja cinco entradas con otros nombres y cada una de estas
+                nueve la pidio el dueno con el nombre que tiene.
+
+                El corte respeta el ORDEN que ya habia, porque cada posicion esta argumentada
+                en los comentarios de abajo y reordenar el menu es cambiar lo que el dueno ya
+                ve. Sale 6 y 3, y el criterio es este: en «La gente» estan las tres pantallas
+                donde aparece OTRA persona que no es Miguel —el companero al que se le asigna,
+                el companero al que va y del que vuelve el paquete, y el jefe o el agente al
+                que va el informe—. En «El trabajo» esta lo que Miguel hace el solo con los
+                documentos.
+
+                ⚠️ Y lo que hay que decir del reparto en vez de callarlo: «Flujo de trabajo»
+                habla de agentes y aun asi queda en «El trabajo». Es la entrada mas discutible
+                de las nueve, y se queda ahi porque enseña el ESTADO del trabajo —listo para
+                asignar, listo para viajar— y no el acto de tratar con una persona. Moverla
+                obligaria a reordenar el menu.
+
+                No se hizo un tercer grupo: el unico que saldria seria uno de una sola entrada,
+                y un titulo para un solo renglon ocupa mas de lo que ordena.
+            -->
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Inicio" Tag="Inicio">
+                <NavigationViewItemHeader Content="El trabajo" />
+
+                <NavigationViewItem
+                    Tag="Inicio"
+                    AutomationProperties.Name="Inicio, Alt+1"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE80F;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number1"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Inicio" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+1" />
+                    </Grid>
                 </NavigationViewItem>
                 <!--
                     Por aqui entra TODO. Va la segunda, justo detras de Inicio, porque es
                     el primer paso del trabajo: sin documentos importados no hay nada que
                     corregir, ni que asignar, ni que reportar.
                 -->
-                <NavigationViewItem Content="Importar" Tag="Importar">
+                <NavigationViewItem
+                    Tag="Importar"
+                    AutomationProperties.Name="Importar, Alt+2"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8E5;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number2"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Importar" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+2" />
+                    </Grid>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Corrección" Tag="Correccion">
+                <!--
+                    La NOVENA, pedida por el dueño el 2026-09-07 y repetida el 2026-09-09
+                    porque no se había hecho: «Listo para asignar debe ser una ventana, no
+                    debe estar en el home del sistema. Tampoco asignar a los agentes... Y
+                    listo para viajar igual: LOS TRES EN UNA MISMA PESTAÑA».
+
+                    ⛔ Sin esta entrada, quitar esas tres listas de Inicio las habría borrado
+                    del programa. Medido el 2026-09-09 antes de mover nada: Asignar lista
+                    TODOS los casos sin filtrar por estado ni por dueño —no es la misma lista—,
+                    su cuadro de equipo cuenta otra cifra, y «listo para viajar» no existía en
+                    ninguna otra pantalla.
+
+                    Va la tercera, detrás de Importar, porque es donde se decide qué hacer con
+                    lo que ya entró: es el reparto del trabajo, antes de corregir nada.
+                -->
+                <NavigationViewItem
+                    Tag="Flujo"
+                    AutomationProperties.Name="Flujo de trabajo, Alt+3"
+                    HorizontalContentAlignment="Stretch">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8AB;" />
+                    </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number3"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Flujo de trabajo" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+3" />
+                    </Grid>
+                </NavigationViewItem>
+                <NavigationViewItem
+                    Tag="Correccion"
+                    AutomationProperties.Name="Corrección, Alt+4"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE70F;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number4"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Corrección" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+4" />
+                    </Grid>
                 </NavigationViewItem>
                 <!--
                     La octava, pedida por el dueño el 2026-09-06 con estas palabras: «debe
@@ -95,30 +321,117 @@
                     abre la cola entera y, al guardar uno que quede sin huecos, lo saca y
                     pone delante el siguiente. Una no sustituye a la otra.
                 -->
-                <NavigationViewItem Content="Completar" Tag="Completar">
+                <NavigationViewItem
+                    Tag="Completar"
+                    AutomationProperties.Name="Completar, Alt+5"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE9D5;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number5"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Completar" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+5" />
+                    </Grid>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Revisar" Tag="Revisar">
+                <NavigationViewItem
+                    Tag="Revisar"
+                    AutomationProperties.Name="Revisar, Alt+6"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8A5;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number6"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Revisar" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+6" />
+                    </Grid>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Asignar" Tag="Asignar">
+
+                <!--
+                    ⚠️ EL SEGUNDO GRUPO. El criterio de por que estas tres y no otras va
+                    arriba, en el comentario que abre «NavigationView.MenuItems».
+                -->
+                <NavigationViewItemHeader Content="La gente" />
+
+                <NavigationViewItem
+                    Tag="Asignar"
+                    AutomationProperties.Name="Asignar, Alt+7"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE716;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number7"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Asignar" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+7" />
+                    </Grid>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Paquetes" Tag="Paquetes">
+                <NavigationViewItem
+                    Tag="Paquetes"
+                    AutomationProperties.Name="Paquetes, Alt+8"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8B7;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number8"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Paquetes" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+8" />
+                    </Grid>
                 </NavigationViewItem>
-                <NavigationViewItem Content="Reportes" Tag="Reportes">
+                <NavigationViewItem
+                    Tag="Reportes"
+                    AutomationProperties.Name="Reportes, Alt+9"
+                    HorizontalContentAlignment="Stretch">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE9D9;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.KeyboardAccelerators>
+                        <KeyboardAccelerator
+                            Key="Number9"
+                            Invoked="AlPulsarElAtajoDeUnaEntrada"
+                            Modifiers="Menu" />
+                    </NavigationViewItem.KeyboardAccelerators>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left" Text="Reportes" />
+                        <TextBlock
+                            HorizontalAlignment="Right"
+                            Style="{StaticResource RotuloDelAtajo}"
+                            Text="Alt+9" />
+                    </Grid>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
 

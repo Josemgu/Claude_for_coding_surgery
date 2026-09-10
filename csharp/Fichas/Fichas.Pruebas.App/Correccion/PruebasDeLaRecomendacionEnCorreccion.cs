@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Correccion;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
@@ -127,12 +128,23 @@ public sealed class PruebasDeLaRecomendacionEnCorreccion
 
         var recomendaciones = ModeloSobre(servicios).LaRecomendacionDeCadaPersona;
 
-        StringAssert.Contains(recomendaciones[0].Frase, "recomendación confirmada", StringComparison.Ordinal);
-        StringAssert.Contains(recomendaciones[1].Frase, "recomendación sin confirmar", StringComparison.Ordinal);
-        StringAssert.Contains(recomendaciones[2].Frase, "recomendación sin confirmar", StringComparison.Ordinal);
+        // ⛔ 2026-09-07: la frase decía «lista para viajar · recomendación confirmada» o
+        // «sin mirar · recomendación sin confirmar», con TRES de las cuatro palabras que el
+        // dueño retiró. Lo que estas pruebas defienden es lo que más importa de aquel criterio
+        // y NO cambia: que «sin mirar» y «no lista» sigan siendo cosas distintas, porque dar
+        // por lista a una persona de la que faltan preguntas por mirar es lo que manda a
+        // alguien al templo con la recomendación mal. La palabra es la misma para las dos; el
+        // detalle las separa, y eso es lo que se comprueba.
+        StringAssert.StartsWith(recomendaciones[0].Frase, DosEstados.Resuelto, StringComparison.Ordinal);
+        StringAssert.StartsWith(recomendaciones[1].Frase, DosEstados.MeFalta, StringComparison.Ordinal);
+        StringAssert.StartsWith(recomendaciones[2].Frase, DosEstados.MeFalta, StringComparison.Ordinal);
 
         StringAssert.Contains(recomendaciones[1].Frase, "se quedó en Entrevistas", StringComparison.Ordinal);
-        StringAssert.Contains(recomendaciones[2].Frase, "sin mirar", StringComparison.Ordinal);
+        StringAssert.Contains(recomendaciones[2].Frase, "nadie ha contestado", StringComparison.Ordinal);
+        Assert.AreNotEqual(
+            recomendaciones[1].Frase,
+            recomendaciones[2].Frase,
+            "«sin mirar» sigue sin leerse igual que «no lista»: una es la ausencia de respuesta.");
 
         foreach (var una in recomendaciones)
         {

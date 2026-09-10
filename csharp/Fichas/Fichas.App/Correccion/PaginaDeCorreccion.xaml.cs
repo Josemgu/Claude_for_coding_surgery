@@ -100,6 +100,11 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         MostrarLoQueContestoElCompanero();
         MostrarComoQuedoLaMarca();
         MostrarElCuadroDeLaPersonaAMano();
+        // ⛔ Un documento al que ya no le falta nada NO esta en la lista de trabajo, y si se
+        // llega a el desde fuera hay que decirlo: sin esta banda se leeria como uno mas de la
+        // cola de Correccion. Es la decision del dueno del 2026-09-07: «si voy a Correccion no
+        // debe estar ahi, porque ya esta todo listo».
+        MostrarSiYaEstaResuelto();
         Recontar();
         MostrarLaHoja(_modelo.Caso?.PaginaPdf ?? 1);
         cronometro.Stop();
@@ -435,6 +440,11 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     {
         if (_modelo is null || Servicios is null) return;
 
+        // Se pregunta ANTES de guardar: lo que hay que saber es si este guardado es el que
+        // saca al documento de Correccion, y despues de escribir esa pregunta ya no se puede
+        // hacer. Sale de la pasada que armo la lista, sin volver a la base.
+        var leFaltabaAntes = _loQueLeFalta?.LeFaltaAlgo(_casoAbierto) ?? false;
+
         var resultado = _modelo.Guardar();
         foreach (var ficha in _fichas) ficha.Refrescar();
         Recontar();
@@ -459,9 +469,12 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         // linea de ESTE documento la que se rehaga y no la del siguiente.
         RehacerLaLineaDelDocumento();
 
-        // Y lo ultimo: si se entro desde la cola, guardar encadena. Va al final para que el
-        // documento que se abra detras no se encuentre los avisos del anterior encima.
+        // Y lo ultimo, en este orden: si se entro desde la cola, guardar encadena; si no, y el
+        // documento acaba de dejar de tener huecos, sale de Correccion y se dice a que grupo
+        // paso. Cada uno mira si le toca a el, y nunca hablan los dos: la cola ya dice lo mismo
+        // y ademas cuantos quedan.
         SeguirLaCola(resultado);
+        SeguirElFlujoDeTrabajo(resultado, leFaltabaAntes);
     }
 
     /// <summary>
@@ -497,11 +510,18 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         // esta listo, y con los cinco campos del caso bien la cuenta de campos es 0. Sin este
         // caso, la cabecera diria «Quedan 0 campos por comprobar» sobre un documento que la
         // pantalla no da por listo: otra vez dos cifras de la misma pantalla que no encajan.
-        var estado = _modelo.ListoParaAsignar
-            ? Fichas.App.Grupo.LasDosPreguntas.ListoParaAsignarEnCabeceraConSuSignificado
-            : _modelo.SinNingunaPersonaLeida
-                ? Fichas.App.Grupo.LasDosPreguntas.SinNingunaPersonaLeidaEnCabeceraConSuSignificado
-                : $"{Quedan(porComprobar)} {porComprobar} {Campos(porComprobar)} por comprobar";
+        // ⛔ 2026-09-07: las tres frases de aquí —«Listo para asignar · el sistema llenó
+        // todos los campos», «Sin ninguna persona leída · …» y «Quedan N campos por
+        // comprobar»— se sustituyen por UNA lectura, que es la misma que leen Inicio, Asignar,
+        // Revisar y el grupo del día. Lo que decían sigue dicho, en su detalle.
+        var lectura = Fichas.App.Vocabulario.LoQueSeLeeDeUnDocumento.De(
+            Fichas.Contratos.Modelos.EstadoDeRecomendacion.SinMarcar,
+            archivado: false,
+            cuantoLeFalta: _modelo.ListoParaAsignar ? 0 : porComprobar,
+            _modelo.SinNingunaPersonaLeida,
+            quienLoLleva: string.Empty,
+            firma: string.Empty);
+        var estado = $"{lectura.PalabraEnCabecera} · {lectura.Detalle}";
         var buenos = $"{firmados} {Dados(firmados)} por {Buenos(firmados)}";
         _cuenta.Text = noValen == 0
             ? $"{estado} · {buenos}"

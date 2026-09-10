@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Los reportes en PDF para los jefes y el historico.
+  <!-- Los informes para los jefes y el historico, en PDF y en Excel.
        Terreno de un solo programador: nadie mas escribe aqui (EN-CURSO.md, ciclo 7).
 
-       ⚠️ NINGUN PackageReference, y es una decision medida, no un olvido:
-       el motor de PDF esta portado a mano desde reportes/formato_pdf.py del Python
-       (dos operadores crudos, «re f» y «l S»), que es lo que manda el criterio C8-4
-       de PENDIENTES.md. Ver Formato/EscritorDePdf.cs para el porque y la medida. -->
+       ⚠️ EL MOTOR DE PDF NO TIENE NI UNA DEPENDENCIA, y eso no ha cambiado: esta
+       portado a mano desde reportes/formato_pdf.py del Python (dos operadores crudos,
+       «re f» y «l S»), que es lo que manda el criterio C8-4 de PENDIENTES.md. Ver
+       Formato/EscritorDePdf.cs para el porque y la medida. -->
   <PropertyGroup>
     <RootNamespace>Fichas.Reportes</RootNamespace>
     <AssemblyName>Fichas.Reportes</AssemblyName>
@@ -14,6 +14,21 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
+  </ItemGroup>
+
+  <!--
+    ClosedXML, SOLO para el informe en Excel que el dueno pidio el 2026-09-07. Es la
+    misma version y el mismo paquete que ya usa Fichas.Paquetes para la hoja de los
+    companeros y para el Excel espejo, asi que NO anade ni un archivo a lo publicado:
+    ya viajaba. La medida esta en la entrega.
+
+    Escribir el .xlsx a mano, como se hizo con el PDF, no tenia el mismo motivo: alli
+    eran dos operadores de texto y aqui es un ZIP con varios XML y su tabla de estilos
+    compartida. Y lo que hay que reproducir —formato de texto en el MRN, fechas de
+    verdad, autofiltro— ya esta escrito y probado con esta misma biblioteca.
+  -->
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.1" />
   </ItemGroup>
 
 </Project>

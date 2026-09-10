@@ -1,5 +1,8 @@
 using System.Globalization;
 
+using Fichas.App.Vocabulario;
+using Fichas.Contratos.Modelos;
+
 namespace Fichas.App.Correccion;
 
 /// <summary>
@@ -102,23 +105,27 @@ public static class TextoDelAcuse
     public static string FraseDelDocumento(
         bool listo, int camposQueLeFaltan, bool sinNingunaPersonaLeida = false)
     {
-        // ⛔ El significado va PEGADO al rótulo y no en otra línea (criterio C17-1). Sin él,
-        // «listo» a secas se lee como «listo para viajar», que es exactamente lo que el dueño
-        // dijo que el programa hacía mal el 2026-09-05: «No puede poner los PDF listos para
-        // viajar porque no se ha verificado la recomendación en el sistema del obispo».
-        if (listo)
-            return $"este documento ya está {Fichas.App.Grupo.LasDosPreguntas.ListoParaAsignarConSuSignificado}";
+        // ⛔ 2026-09-07: AQUÍ SE DECÍA «listo para asignar · el sistema llenó todos los
+        // campos», y era una de las cuatro palabras que el dueño retiró. Lo que aquel rótulo
+        // decía no se pierde: sigue dicho, entero, en el DETALLE de la lectura.
+        //
+        // ⚠️ Y la palabra es «me falta» incluso cuando el sistema llenó todos los campos, que
+        // es lo que más cuesta leer de este cambio. No es un descuido: él definió «resuelto»
+        // como «que no queda nada que él tenga que hacer con eso», y a un documento sin huecos
+        // y sin repartir le queda que él lo reparta. La alternativa —que Corrección dijera
+        // «resuelto» de un documento que Inicio llama «me falta»— es exactamente el defecto
+        // que este pase viene a quitar: la pantalla enseñando una pregunta y él leyendo la
+        // otra. Lo que cambia al terminar de corregir es el DETALLE, que pasa de «le faltan 3
+        // datos del papel» a «te toca a ti: repartirlo a un compañero».
+        var lectura = LoQueSeLeeDeUnDocumento.De(
+            EstadoDeRecomendacion.SinMarcar,
+            archivado: false,
+            cuantoLeFalta: listo ? 0 : camposQueLeFaltan,
+            sinNingunaPersonaLeida,
+            quienLoLleva: string.Empty,
+            firma: string.Empty);
 
-        // Va delante de la cuenta de campos porque es lo que de verdad detiene al documento:
-        // con los cinco campos del caso perfectos y sin una sola persona, la frase de los
-        // campos no diría nada y el pie se quedaría en blanco justo cuando hay algo que decir.
-        if (sinNingunaPersonaLeida)
-            return "no se leyó ninguna persona en este documento: no hay a quién recomendar";
-
-        if (camposQueLeFaltan <= 0) return string.Empty;
-        return camposQueLeFaltan == 1
-            ? "falta 1 campo por revisar"
-            : $"faltan {camposQueLeFaltan} campos por revisar";
+        return $"{lectura.Palabra} · {lectura.Detalle}";
     }
 
     /// <summary>

@@ -19,21 +19,38 @@ public static class NombreDeArchivo
 
     private static readonly char[] LoQueWindowsNoAdmite = Path.GetInvalidFileNameChars();
 
+    /// <summary>Lo que llevan los tres nombres antes de la extension, en un solo sitio.</summary>
+    /// <remarks>
+    /// Desde el 2026-09-07 cada informe sale en dos formatos, y el tronco lo comparten los dos:
+    /// el PDF y el Excel del mismo período son el mismo informe y se llaman igual, con distinta
+    /// extension. Escrito dos veces, cambiar el nombre en un sitio dejaria al dueño con
+    /// «Reporte …» y «Informe …» del mismo mes, buscando en cuál está lo que ya vio.
+    /// </remarks>
+    private static string TroncoDelPeriodo(PeriodoDeLaPantalla periodo)
+        => $"Reporte {periodo.Desde} a {periodo.Hasta}";
+
+    private static string TroncoDelHistorico(string hoyIso) => $"Histórico {hoyIso}";
+
+    private static string TroncoDelInformeDeAgente(string? nombreDelCompanero, PeriodoDeLaPantalla periodo)
+        => $"Informe de {QuienEs(nombreDelCompanero)} {periodo.Desde} a {periodo.Hasta}";
+
     /// <summary>«Reporte 2026-09-01 a 2026-09-30.pdf».</summary>
     public static string DelReporteDelPeriodo(PeriodoDeLaPantalla periodo)
-        => Limpiar($"Reporte {periodo.Desde} a {periodo.Hasta}", ".pdf");
+        => Limpiar(TroncoDelPeriodo(periodo), ".pdf");
+
+    /// <summary>«Reporte 2026-09-01 a 2026-09-30.xlsx».</summary>
+    public static string DelReporteDelPeriodoEnExcel(PeriodoDeLaPantalla periodo)
+        => Limpiar(TroncoDelPeriodo(periodo), ".xlsx");
 
     /// <summary>«Historico 2026-09-04.pdf».</summary>
-    public static string DelHistorico(string hoyIso) => Limpiar($"Histórico {hoyIso}", ".pdf");
+    public static string DelHistorico(string hoyIso) => Limpiar(TroncoDelHistorico(hoyIso), ".pdf");
+
+    /// <summary>«Historico 2026-09-04.xlsx».</summary>
+    public static string DelHistoricoEnExcel(string hoyIso) => Limpiar(TroncoDelHistorico(hoyIso), ".xlsx");
 
     /// <summary>«Paquete de Sandy 2026-09-04.xlsx».</summary>
     public static string DelPaquete(string? nombreDelCompanero, string hoyIso)
-    {
-        var quien = string.IsNullOrWhiteSpace(nombreDelCompanero)
-            ? CuandoNoHayNombre
-            : nombreDelCompanero.Trim();
-        return Limpiar($"Paquete de {quien} {hoyIso}", ".xlsx");
-    }
+        => Limpiar($"Paquete de {QuienEs(nombreDelCompanero)} {hoyIso}", ".xlsx");
 
     /// <summary>«Segunda vuelta de Yudelka 2026-09-05.xlsx».</summary>
     /// <remarks>
@@ -43,21 +60,19 @@ public static class NombreDeArchivo
     /// una categoria 4.
     /// </remarks>
     public static string DeLaSegundaVuelta(string? nombreDelCompanero, string hoyIso)
-    {
-        var quien = string.IsNullOrWhiteSpace(nombreDelCompanero)
-            ? CuandoNoHayNombre
-            : nombreDelCompanero.Trim();
-        return Limpiar($"Segunda vuelta de {quien} {hoyIso}", ".xlsx");
-    }
+        => Limpiar($"Segunda vuelta de {QuienEs(nombreDelCompanero)} {hoyIso}", ".xlsx");
 
     /// <summary>«Informe de Sandy 2026-09-01 a 2026-09-30.pdf».</summary>
     public static string DelInformeDeAgente(string? nombreDelCompanero, PeriodoDeLaPantalla periodo)
-    {
-        var quien = string.IsNullOrWhiteSpace(nombreDelCompanero)
-            ? CuandoNoHayNombre
-            : nombreDelCompanero.Trim();
-        return Limpiar($"Informe de {quien} {periodo.Desde} a {periodo.Hasta}", ".pdf");
-    }
+        => Limpiar(TroncoDelInformeDeAgente(nombreDelCompanero, periodo), ".pdf");
+
+    /// <summary>«Informe de Sandy 2026-09-01 a 2026-09-30.xlsx».</summary>
+    public static string DelInformeDeAgenteEnExcel(string? nombreDelCompanero, PeriodoDeLaPantalla periodo)
+        => Limpiar(TroncoDelInformeDeAgente(nombreDelCompanero, periodo), ".xlsx");
+
+    /// <summary>El nombre del companero limpio de espacios, o la palabra que dice que no hay.</summary>
+    private static string QuienEs(string? nombreDelCompanero)
+        => string.IsNullOrWhiteSpace(nombreDelCompanero) ? CuandoNoHayNombre : nombreDelCompanero.Trim();
 
     /// <summary>Quita lo que Windows no admite y recorta si no cabe, dejando la extension.</summary>
     private static string Limpiar(string tronco, string extension)

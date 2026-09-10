@@ -1,4 +1,4 @@
-namespace Fichas.Pruebas.App.Inicio;
+﻿namespace Fichas.Pruebas.App.Inicio;
 
 /// <summary>
 /// C1-6: cero cuadros modales en Inicio y en las dos pantallas nuevas, cazados con una
@@ -97,11 +97,22 @@ public sealed class PruebasSinCuadrosEnInicio
     /// Lo que el dueno pidio ver en Inicio, y NADA mas.
     /// </summary>
     /// <remarks>
-    /// Sus palabras el 2026-09-05: <i>«Lo único que quiero ver en Home es lo que está listo
-    /// para asignar y lo que está asignado a los agentes»</i>. Los siete rotulos que Inicio
-    /// tenia el 2026-09-04 —medidos por el supervisor con <c>grep</c> sobre este mismo
-    /// archivo— no pueden seguir ahi. Se comprueba sobre el XAML porque es lo que el lee:
-    /// una regla que solo mirara los datos no cazaria un rotulo olvidado en la pantalla.
+    /// <para>Sus palabras el 2026-09-05: <i>«Lo único que quiero ver en Home es lo que está
+    /// listo para asignar y lo que está asignado a los agentes»</i>. Los siete rotulos que
+    /// Inicio tenia el 2026-09-04 —medidos por el supervisor con <c>grep</c> sobre este mismo
+    /// archivo— no pueden seguir ahi. Se comprueba sobre el XAML porque es lo que el lee: una
+    /// regla que solo mirara los datos no cazaria un rotulo olvidado en la pantalla.</para>
+    ///
+    /// <para>⚠️ <b>La segunda mitad de esta prueba cambio el 2026-09-09, y hay que saber por
+    /// que.</b> Exigia leer «Listo para asignar», «Asignado a los agentes» y «Lo que no está
+    /// completo» EN Inicio. El dueno lo deshizo: <i>«Listo para asignar debe ser una ventana,
+    /// no debe estar en el home del sistema. Tampoco asignar a los agentes... Lo unico que
+    /// quiero es el calendario y un cuadro»</i>. Los dos primeros se comprueban ahora en
+    /// <c>PruebasDeLaPestanaDelFlujo</c>, que ademas exige que la pestana nueva exista y tenga
+    /// entrada en el menu, y el tercero se convirtio en la cifra del cuadro.</para>
+    ///
+    /// <para><b>Los siete de 2026-09-05 siguen prohibidos y por eso la prueba no se borra:</b>
+    /// que Inicio se haya vaciado aun mas no autoriza a que vuelva ninguno de aquellos.</para>
     /// </remarks>
     [TestMethod]
     public void InicioEnsenaLasDosCosasQuePidioElDuenoYNingunaDeLasSiete()
@@ -124,9 +135,10 @@ public sealed class PruebasSinCuadrosEnInicio
         Assert.IsGreaterThanOrEqualTo(6, rotulos.Count, "Un barrido que no leyó rótulos no comprueba nada.");
         Assert.IsEmpty(siguen, "Rótulos que el dueño no quiere ver en Inicio y siguen ahí: " + string.Join(" · ", siguen));
 
-        Assert.Contains("Listo para asignar", rotulos);
-        Assert.Contains("Asignado a los agentes", rotulos);
-        Assert.Contains("Lo que no está completo", rotulos);
+        // Las dos cosas que quedan desde el 2026-09-09: el cuadro y el calendario.
+        Assert.Contains("Me falta por completar", rotulos);
+        Assert.Contains("Lo que tienen los agentes", rotulos);
+        Assert.Contains("Pulse un día para abrir el grupo que viaja ese día", rotulos);
     }
 
     /// <summary>Los textos escritos que un usuario lee en una pantalla, sin los enlaces.</summary>
@@ -216,7 +228,7 @@ public sealed class PruebasSinCuadrosEnInicio
 
     /// <summary>Los .cs y .xaml de las dos carpetas del terreno.</summary>
     private static List<string> LasFuentes()
-        => [.. new[] { LaCarpeta("Inicio"), LaCarpeta("Grupo") }
+        => [.. new[] { LaCarpeta("Inicio"), LaCarpeta("Grupo"), LaCarpeta("Flujo") }
             .SelectMany(c => Directory.EnumerateFiles(c, "*.*", SearchOption.AllDirectories))
             .Where(a => a.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
                         || a.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))];

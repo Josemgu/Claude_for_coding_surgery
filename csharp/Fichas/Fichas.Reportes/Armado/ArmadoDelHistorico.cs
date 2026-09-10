@@ -76,6 +76,9 @@ public static class ArmadoDelHistorico
     private static readonly Columna[] ColumnasDelHistorico =
     [
         new("N.º de caso", ClaseDeColumna.Texto, 12),
+        // ⚠️ 2026-09-08: la unidad en DOS columnas, el numero delante y como Texto. Ver el
+        // motivo entero en Vocabulario, donde vivia la funcion que las pegaba.
+        new(Vocabulario.RotuloDelNumeroDeUnidad, ClaseDeColumna.Texto, 16),
         new("Unidad", ClaseDeColumna.Crudo, 26),
         new("Fecha de viaje", ClaseDeColumna.Temporal, 14),
         new("Estado de la recomendación", ClaseDeColumna.Crudo, 20),
@@ -150,7 +153,8 @@ public static class ArmadoDelHistorico
                 .Select(a => (IReadOnlyList<string?>)new string?[]
                 {
                     a.Caso.NumeroCaso,
-                    Vocabulario.UnidadConSuNumero(a.Caso.UnidadNombre, a.Caso.UnidadNumero),
+                    Vocabulario.NumeroDeUnidad(a.Caso.UnidadNumero),
+                    Vocabulario.NombreDeUnidad(a.Caso.UnidadNombre),
                     a.Caso.FechaViaje ?? Vocabulario.SinDato,
                     Vocabulario.TextoDelEstado(a.Caso.EstadoRecomendacion),
                     SeccionesDeDireccion.Numero(a.Personas),

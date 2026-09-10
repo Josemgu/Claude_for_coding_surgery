@@ -27,20 +27,20 @@ public sealed class PruebasDelTableroConElQueSeAbre
     /// <remarks>
     /// ⚠️ <b>La eleccion se justifica con sus palabras, no con un gusto.</b> El dice «solo
     /// los que necesitan revisión son los que deben ser revisados». De los seis tableros que
-    /// existen desde el 2026-09-03, el unico que significa eso es
-    /// <see cref="FiltroDeTarjeta.SinRevisar"/>: «nadie ha dicho nada todavia de este
-    /// documento». Los otros cuatro son otra pregunta —lo que el companero ya contesto
-    /// (Incompletas, Completadas), quien lo lleva (SinAsignar) y cuando viaja
-    /// (FechaPasada)—, y «Todo» es exactamente lo que el dijo que sobraba.
+    /// existen, el unico que significa eso es <see cref="FiltroDeTarjeta.MeFalta"/>. Los otros
+    /// tres son otra pregunta —lo que ya esta cerrado (Resuelto), quien lo lleva (SinAsignar) y
+    /// cuando viaja (FechaPasada)—, y «Todo» es exactamente lo que el dijo que sobraba.
     /// <para>
-    /// NO se anade un tablero nuevo, y la entrada del 2026-09-06 lo dice: <i>«los seis
-    /// tableros […] están bien; el defecto es el que sobra»</i>.
+    /// ⛔ <b>Este tablero se llamaba «Sin revisar» y eran seis</b>; el 2026-09-07 se juntó con
+    /// «No completas», que con dos palabras enseñaba lo mismo. NO se anade un tablero nuevo, que
+    /// es lo que dice la entrada del 2026-09-06: <i>«los seis tableros […] están bien; el
+    /// defecto es el que sobra»</i>.
     /// </para>
     /// </remarks>
     [TestMethod]
     public void RevisarAbreEnLoQueHayQueRevisarYNoEnTodo()
     {
-        Assert.AreEqual(FiltroDeTarjeta.SinRevisar, TableroDeRevisar.ElTableroConElQueSeAbre);
+        Assert.AreEqual(FiltroDeTarjeta.MeFalta, TableroDeRevisar.ElTableroConElQueSeAbre);
         Assert.AreNotEqual(FiltroDeTarjeta.Todo, TableroDeRevisar.ElTableroConElQueSeAbre);
     }
 
@@ -54,7 +54,7 @@ public sealed class PruebasDelTableroConElQueSeAbre
     /// se leeria como que los documentos desaparecieron.
     /// </remarks>
     [TestMethod]
-    public void AlAbrirSalenSoloLosSinRevisarYPulsandoTodoSalenTodos()
+    public void AlAbrirSalenSoloLosQueLeFaltanYPulsandoTodoSalenTodos()
     {
         var banco = new BaseDePrueba();
         banco.MeterUnCasoDeCadaEstado();
@@ -63,16 +63,17 @@ public sealed class PruebasDelTableroConElQueSeAbre
         var alAbrir = banco.Tablero.CuantasEn(TableroDeRevisar.ElTableroConElQueSeAbre);
         var enTodo = banco.Tablero.CuantasEn(FiltroDeTarjeta.Todo);
 
-        Assert.AreEqual(4, alAbrir, "De los siete que se metieron, cuatro necesitan revisión.");
+        // ⛔ 2026-09-07: eran 4 —solo los «sin revisar»— y son 5, porque «No completas» se juntó
+        // con este tablero. Sigue siendo MENOS que «Todo», que es lo que la prueba defiende: al
+        // abrir no le salen todos los documentos delante.
+        Assert.AreEqual(5, alAbrir, "Los 4 que nadie miró más el 1 que el compañero devolvió sin completar.");
         Assert.AreEqual(6, enTodo, "Seis sin archivar; el archivado no sale en ningún tablero.");
         Assert.IsLessThan(enTodo, alAbrir, $"Al abrir salen {alAbrir} de {enTodo}, no los {enTodo}.");
         Assert.AreEqual(banco.Tablero.Total, enTodo, "«Todo» sigue siendo exactamente lo cargado.");
 
-        // Los dos que NO salen al abrir son los que el companero ya contesto: uno completa
-        // y uno no completa. Son «lo que ya se revisó», que es lo que el dueno dijo que le
-        // sobraba delante.
-        Assert.AreEqual(1, banco.Tablero.CuantasEn(FiltroDeTarjeta.Completadas));
-        Assert.AreEqual(1, banco.Tablero.CuantasEn(FiltroDeTarjeta.Incompletas));
+        // El que NO sale al abrir es el que ya está cerrado: el que el compañero dio por
+        // completo. Es «lo que ya se revisó», que es lo que el dueño dijo que le sobraba delante.
+        Assert.AreEqual(1, banco.Tablero.CuantasEn(FiltroDeTarjeta.Resuelto));
     }
 
     /// <summary>

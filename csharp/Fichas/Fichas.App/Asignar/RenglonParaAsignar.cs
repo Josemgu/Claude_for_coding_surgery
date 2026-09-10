@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.Contratos.Modelos;
 using Fichas.Reportes.Reglas;
 
@@ -29,8 +30,30 @@ public sealed record RenglonParaAsignar
     /// <summary>Nombre de la unidad, o «sin unidad».</summary>
     public string Unidad { get; init; } = "sin unidad";
 
+    /// <summary>
+    /// El número de la unidad, 6 o 7 dígitos, o vacío si el papel no traía ninguno.
+    /// </summary>
+    /// <remarks>
+    /// Va aparte de <see cref="Unidad"/>, que es texto para leer y lleva «sin unidad» dentro
+    /// cuando no hay nombre. Agrupar por unidad necesita el DATO: el dueño reparte por unidad
+    /// —«Rama San Juan No 325535», «Barrio Marito 656351»— y dos unidades pueden llamarse
+    /// igual, así que el número es lo único que las distingue.
+    /// </remarks>
+    public string UnidadNumero { get; init; } = string.Empty;
+
     /// <summary>La fecha de viaje, o «sin fecha de viaje».</summary>
     public string FechaDeViaje { get; init; } = SinFecha;
+
+    /// <summary>
+    /// La fecha de viaje TAL COMO está en la base, ISO-8601, o vacía si no la hay.
+    /// </summary>
+    /// <remarks>
+    /// Va aparte de <see cref="FechaDeViaje"/> por lo mismo que en
+    /// <c>TarjetaDeDocumento.FechaDeViajeIso</c>: agrupar por día necesita el dato, no la
+    /// frase, y de «sin fecha de viaje» no sale ninguna fecha. Lo usa
+    /// <see cref="GruposParaAsignar"/> para repartir por grupo.
+    /// </remarks>
+    public string FechaDeViajeIso { get; init; } = string.Empty;
 
     /// <summary>Cuantas personas van en el formulario.</summary>
     public int Personas { get; init; }
@@ -54,8 +77,39 @@ public sealed record RenglonParaAsignar
     /// </remarks>
     public string QuienesViajan { get; init; } = SinPersonas;
 
-    /// <summary>La palabra del estado: «sin revisar», «completa» o «no esta completa».</summary>
-    public string PalabraDelEstado { get; init; } = PalabraDe(EstadoDeRecomendacion.SinMarcar);
+    /// <summary>El estado tal como esta guardado; de aqui salen la palabra y el detalle.</summary>
+    /// <remarks>
+    /// ⚠️ Se guarda el VALOR y no la palabra ya escrita, que es lo que habia hasta el
+    /// 2026-09-07. Con la palabra dentro, quien arma el renglon decide como se lee, y eso es
+    /// justamente lo que hacia que dos pantallas dijeran cosas distintas del mismo documento.
+    /// </remarks>
+    public EstadoDeRecomendacion Estado { get; init; } = EstadoDeRecomendacion.SinMarcar;
+
+    /// <summary>Si el dueno lo archivo; archivar es su forma de decir que ya no le queda nada.</summary>
+    public bool Archivado { get; init; }
+
+    /// <summary>Cuantos datos del papel le faltan; 0 si no le falta ninguno.</summary>
+    public int CuantoLeFalta { get; init; }
+
+    /// <summary>Lo que se lee de este documento: una de las dos palabras, y su detalle.</summary>
+    public LoQueSeLeeDeUnDocumento Lectura => LoQueSeLeeDeUnDocumento.De(
+        Estado,
+        Archivado,
+        CuantoLeFalta,
+        sinNingunaPersonaLeida: Personas == 0,
+        quienLoLleva: AsignadoA == SinAsignar ? string.Empty : AsignadoA,
+        firma: string.Empty);
+
+    /// <summary>La palabra del estado: «resuelto» o «me falta», y no hay una tercera.</summary>
+    /// <remarks>
+    /// ⛔ Hasta el 2026-09-07 decia una de tres —«sin revisar», «completa» o «no esta
+    /// completa»—, y venia escrita desde fuera. Lo que decia no se pierde: va en
+    /// <see cref="DetalleDelEstado"/>.
+    /// </remarks>
+    public string PalabraDelEstado => Lectura.Palabra;
+
+    /// <summary>Que falta y a quien le toca; se lee cuando el dueno lo pide, no de entrada.</summary>
+    public string DetalleDelEstado => Lectura.Detalle;
 
     /// <summary>Quien lo lleva vivo ahora mismo, o «sin asignar».</summary>
     public string AsignadoA { get; init; } = SinAsignar;
@@ -133,7 +187,19 @@ public sealed record RenglonParaAsignar
         return nombres.Count == 0 ? SinPersonas : string.Join('\n', nombres);
     }
 
-    /// <summary>La palabra en espanol de cada estado; el color nunca va solo (mockup v2).</summary>
+    /// <summary>
+    /// La palabra de la BASE para cada estado; ya no es la que se lee en las listas.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ <b>Esto era el vocabulario de la pantalla hasta el 2026-09-07</b>, y dejo de
+    /// serlo cuando el dueno colapso las cuatro palabras a dos. Se queda, y con un solo uso: los
+    /// mensajes que nombran lo que se iba a ESCRIBIR en <c>casos.estado_recomendacion</c>
+    /// —<c>AccionesDeRevisar.MarcarAMano</c> avisa de que «completa» y un motivo se
+    /// contradicen—. Ahi «resuelto» seria mentir sobre que columna se estaba tocando.</para>
+    ///
+    /// <para>Lo que se LEE de un documento sale ahora de <see cref="Lectura"/>, y de ningun
+    /// otro sitio.</para>
+    /// </remarks>
     public static string PalabraDe(EstadoDeRecomendacion estado) => estado switch
     {
         EstadoDeRecomendacion.Completa => "completa",

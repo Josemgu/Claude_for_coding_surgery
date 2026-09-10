@@ -151,6 +151,12 @@ public sealed class MotorDeImportacion
         string ruta, LecturaDeUnDocumento lectura, IReadOnlyList<ResultadoDeLaHoja> resultados, double segundos)
     {
         var entraron = resultados.Where(hoja => hoja.Entro).ToArray();
+        var casoIds = entraron
+            .Where(hoja => hoja.CasoId is not null)
+            .Select(hoja => hoja.CasoId!.Value)
+            .Distinct()
+            .ToArray();
+
         return new ResultadoDeUnDocumento(
             RutaPdf: ruta,
             Hojas: lectura.Error is null ? lectura.Hojas.Count : 0,
@@ -160,6 +166,9 @@ public sealed class MotorDeImportacion
             Duplicados: entraron.Count(hoja => hoja.DuplicadoDe is not null),
             Ilegibles: resultados.Count(hoja => !hoja.Entro),
             Error: lectura.Error,
-            Segundos: segundos);
+            Segundos: segundos)
+        {
+            CasoIds = casoIds,
+        };
     }
 }

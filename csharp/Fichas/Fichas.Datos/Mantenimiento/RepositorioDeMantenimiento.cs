@@ -156,6 +156,22 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
     {
         ArgumentNullException.ThrowIfNull(plan);
 
+        // ⛔ Desde el 2026-09-09, IIlegibles.PlanearBorradoDeRenglonesSinCaso devuelve
+        // tambien un PlanDeBorrado. Ejecutarlo por aqui borraria CASOS cuyos ids coinciden
+        // con los de unos renglones: documentos que el dueno no vio en ninguna pregunta.
+        // Los dos planes son del mismo tipo, asi que el cruce compila y solo esto lo para.
+        if (plan.Conteos.Any(conteo =>
+                string.Equals(conteo.Tabla, IIlegibles.TablaDeLosRenglones, StringComparison.Ordinal))
+            && plan.Conteos.Count == 1)
+        {
+            return ResultadoDeBorrado.NoSeBorro(
+                plan.RutaDeLaCopia,
+                Aviso.Problema(
+                    "No se borró nada: ese plan es de los PDF que no se pudieron leer.",
+                    string.Empty,
+                    "Un plan de esos no se ejecuta por aquí. Vuelva a intentarlo desde su botón."));
+        }
+
         if (!plan.SePuedeBorrar)
         {
             return ResultadoDeBorrado.NoSeBorro(

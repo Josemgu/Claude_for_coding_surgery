@@ -3697,6 +3697,218 @@ otros borrados.
 
 ---
 
+## 2026-09-07 — ⚠️ DOS ESTADOS Y NO CUATRO: «resuelto» y «me falta»
+
+Es la decisión más simplificadora que ha tomado el dueño, y llega después de que el
+supervisor le enseñara las cuatro palabras que el programa le estaba poniendo
+delante. Su respuesta, entera:
+
+> «Dos estados nada más: **resuelto** y **me falta**.»
+
+### Lo que había, medido, y por qué le confundía
+
+Cuatro estados a la vista, y **tres los escribe alguien distinto**:
+
+| Palabra | Qué significa | Quién la escribe | Dónde |
+|---|---|---|---|
+| «listo para asignar» | no falta ningún campo del papel | el programa | `ModeloDeCorreccion.Guardado.cs:390` |
+| «completa» / «no completa» | el compañero fue al sistema del obispo | **el Excel del compañero, con su nombre** | `casos.estado_recomendacion` |
+| «confirmada» | las **seis preguntas** de esa persona dicen sí | quien las conteste | `Fichas.Reportes/Reglas/Pasos.cs:42` |
+| «listo para viajar» | esa persona puede viajar | consecuencia de las seis | `LasDosPreguntas.Decir` |
+
+Por eso un renglón podía decir **«listo para asignar · no completada»** a la vez sin
+estar roto, y por eso él marcaba «completa» y el calendario seguía en rojo: el
+calendario cuenta **confirmadas**, que es otra columna.
+
+### La decisión, y el límite que NO se cruza
+
+**A la vista, dos: «resuelto» y «me falta».** Resuelto es que no queda nada que él
+tenga que hacer con ese documento o esa persona. Me falta es que sí.
+
+⚠️ **En la base siguen siendo cuatro, y eso no es negociable.** Lo que se colapsa es
+lo que se le enseña, no lo que se guarda. El motivo no es purismo: las tres
+columnas dicen **quién dijo cada cosa**, y esa es la única defensa del proyecto el
+día que alguien llegue al templo y no pueda entrar. Si se funden en una, deja de
+poder saberse si aquello lo dio por bueno Sandy, lo dio por bueno Miguel, o lo dedujo
+el programa. La regla permanente 5 vive precisamente ahí.
+
+**Cómo se cumplen las dos cosas a la vez:** «me falta» **siempre puede decir qué
+falta y a quién le toca**, y lo dice cuando él lo pide, no de entrada. La cifra que
+ve es una; el detalle está a un clic.
+
+### Lo que esto arrastra, y hay que medirlo antes de tocar
+
+- Los rótulos de `RenglonParaAsignar.PalabraDe`, `TableroDeRevisar` (seis tableros),
+  `LasDosPreguntas.Decir`, `PalabrasDelEstado` y la etiqueta del calendario
+  (`ModelosDeInicio.cs:176`, «N de N confirmadas») dejan de ser el idioma de la
+  pantalla y pasan a ser detalle.
+- **Los seis tableros de Revisar** están hechos sobre las cuatro palabras. Con dos
+  estados, hay que ver cuántos quedan.
+- Los **reportes de los jefes** y el histórico siguen con su vocabulario: no los ve
+  él, los ven los jefes, y ahí la distinción sí importa.
+
+### Lo que esta decisión NO contesta, y sigue abierto
+
+1. Si al marcar algo resuelto quiere decir «verifiqué las seis» o «lo doy por bueno»
+   — con dos estados pesa menos, pero el calendario tiene que saber cuál de las dos
+   pinta.
+2. El archivado en el calendario: tres posturas suyas en cinco días.
+3. Cerrar la asignación al devolver, y de dónde sale entonces el informe del agente.
+4. Si el botón de dar por completo **no aparece** o si algo **lo deshace**.
+
+---
+
+## 2026-09-10 — Lo que el dueño vio probando el v9, seis cosas
+
+Sus palabras, enteras. Dos son defectos de lo que se acaba de entregar; cuatro son
+trabajo nuevo. Nada de esto está programado.
+
+### 1. Desde Revisar, entrar al PDF y añadir o quitar personas
+
+> «En la parte de Revisión quiero que me permita **entrar al PDF como si fuera la
+> parte de Corrección**, y dentro quiero que me permita **eliminar personas o
+> agregar personas** que quizás el escáner no contempló.»
+
+Lo de añadir a mano ya existe en Corrección desde el 09, pero solo cuando el
+documento no tiene **ninguna** persona. Lo que pide es más: añadir una más a un
+documento que ya tiene, y **quitar** una. Quitar una persona sigue sin existir:
+`IPersonas` no tiene `Borrar` (medido el 07, sigue igual). Y desde Revisar no se
+llega al PDF: el planificador lo midió el 07 — «Revisar no navega a ninguna parte».
+
+### 2. ⚠️ DEFECTO: en Corrección el grupo de fecha aparece vacío
+
+> «En la parte Corrección debe aparecer el grupo de fecha, pero **tengo un grupo de
+> fecha y no me aparece nada, está vacío**. Debes verificar esta parte.»
+
+Corrección pasó ayer a ser sitio de paso: **solo enseña lo que le falta algo**. Si
+todos los documentos de ese grupo están resueltos, el grupo sale vacío — y eso es
+lo que él pidió el 07 («si voy a Corrección no debe estar ahí, porque ya está todo
+listo»). **Pero puede ser otra cosa**, y no se puede decidir sin verlo: hay que
+medirlo con su captura o con un caso igual.
+
+### 3. El reporte a los gerentes: nombres, quién lo resolvió y qué se hizo
+
+> «En los reportes a los gerentes **solo aparece el número de la unidad, pero no los
+> nombres** y **quién lo resolvió**. Debe dar un **reporte detallado de lo que se
+> hizo con el líder**. Es importante hacerlo así.»
+
+### 4. Un documento de varias hojas: cada hoja es su información
+
+> «Si un documento tiene más hojas —ejemplo hoja 1 y hoja 2— **los cambios deben
+> cambiar, porque no es la misma información la de la hoja 1 y la hoja 2**. Algo más
+> importante: **debe revisarse por grupo y por persona de manera individual**, y
+> también tener la opción de agruparlos.»
+
+Esto toca lo del 08: cuando varias hojas se juntan en un caso, los campos salen de
+la hoja que lo abrió. Él dice que las hojas **no son la misma información** y que
+los cambios deben ser por hoja. Es la decisión que el programador de las hojas
+devolvió el 08 y quedó abierta.
+
+### 5. Una sección en Revisar con todos de forma individual
+
+> «Puede abrir una nueva sección en Revisar que estén **todos de manera
+> individual**. El número de caso es para saber en qué grupo viajan. En Revisión me
+> gustaría más que aparecieran **los nombres, la fecha en que viajará, la cédula de
+> miembro y su unidad**.»
+
+Es coherente con «el ticket es por persona» del 05: una vista por **persona**, no
+por documento, con esas cuatro cosas.
+
+### 6. ⚠️ DEFECTO: un PDF suyo que el motor no lee
+
+> «El PDF que te envié, ese PDF **no lo lee el motor de lectura, y crea varios que
+> nada que ver**. Mira la diferencia.»
+
+**El PDF no llegó**: lo mandó por una sesión remota que estaba fuera de línea. Sin
+el archivo no se puede medir nada. Pedido.
+
+### Lo que hay que preguntar antes de programar
+
+- Del 2: **una captura** del grupo vacío, para saber si es lo pedido o un defecto.
+- Del 6: **el PDF**.
+- Del 4: ¿«los cambios deben cambiar» quiere decir que al corregir la hoja 2 no
+  se toque la hoja 1? ¿O que cada hoja sea un caso aparte?
+
+  **Contestado el mismo día:** «**Hay veces que serán diferentes los
+  documentos.**» O sea: un PDF de varias hojas **puede** traer documentos
+  distintos —personas y unidades distintas— bajo el mismo archivo. El programa
+  hoy los junta en un caso por número de caso (`GuardadoDeHojas.cs`, medido el
+  08). **Esa suposición se cae.** Cada hoja se lee como lo que es, y agruparlas
+  es una opción suya —sus palabras del 10: «también tener la opción de
+  agruparlos»—, no un automatismo.
+
+---
+
+### Lo que enseña la captura del PDF, y cambia el diagnóstico del 07 y del 08
+
+Mandó una captura de una hoja de **ELTC2609**. Leída por el supervisor, no por el
+programa: es un formulario **rellenado a máquina**, no a mano —el nombre y la
+cédula van tecleados dentro de la fila—, la unidad dice **«Barrio Cantaura
+(339482)»** con el número entre paréntesis dentro del mismo texto, y la estaca
+«Estaca El Tigre Venezuela (429589)». Viaja el 17/09/2026 al templo de Caracas.
+
+**Y el 07 él enseñó OTRA hoja del mismo ELTC2609** que decía «Wanica Branch», con
+estaca 453633 y fecha de mayo. **Mismo número de caso, dos hojas, dos unidades
+distintas, dos personas distintas.** El visor decía «5 / 6»: son seis hojas.
+
+Eso deshace dos conclusiones anteriores:
+
+- **Del 07:** se concluyó que «Barrio Cantaura ()» venía de una línea de otra fila
+  tomada como la banda de la unidad. No: **es la unidad real de una de las hojas**,
+  con el paréntesis vacío como huella de quitarle el número. Lo que él veía «mal» era
+  que el programa le enseñaba la hoja de Wanica con la unidad de Cantaura — **la
+  unidad de otra hoja del mismo caso**, no de otra fila.
+- **Del 08:** el programador de las hojas midió sobre `SURB2609` que las seis hojas
+  decían lo mismo y concluyó que el mecanismo «vale 0 veces en las 20 hojas reales».
+  Era verdad para SURB2609. **ELTC2609 no estaba en la máquina**, y en ELTC2609 las
+  hojas NO dicen lo mismo. El agujero que se dejó abierto ese día —«el valor de la
+  otra hoja no se mete solo en el caso»— es exactamente lo que él está viendo.
+
+### ⚠️ Y el archivo, medido: NO es lo que parecía. Es un formulario rellenado a máquina
+
+Llegó el PDF. Medido por el supervisor con `pypdf`:
+
+```
+hojas: 1
+caracteres en la capa de texto: 2 723
+anotaciones: 105 → /Widget 93 · /FreeText 7 · /Ink 3 · /StrikeOut 1 · /Popup 1
+```
+
+**Una sola hoja, y 93 campos de formulario (`/Widget`).** El nombre, la cédula, las
+fechas y el templo **no están en la capa de texto ni en un `/FreeText`: están dentro
+de los campos del formulario**, tecleados. La única línea de datos que sí está en
+la capa de texto es «Barrio Cantaura (339482) Estaca El Tigre Venezuela (429589)».
+
+Y el lector, medido en `Fichas.Lectura/LecturaDePdf.cs:185`: **«Solo salen las
+`/FreeText` y las `/Ink`. Los demás subtipos se ignoran».** `grep` de `Widget`,
+`AcroForm` o `FormField` sobre `Fichas.Lectura/`: **cero**.
+
+**Eso lo explica todo, y mejor que lo de arriba:**
+
+- «Sin ninguna persona leída» del 07: el programa **no lee campos de formulario**,
+  y al rasterizar sin ellos la tabla sale **en blanco** — que es exactamente lo que
+  enseñaba la captura de ese día. La persona está ahí; el programa no la ve.
+- «Barrio Cantaura ()»: es la única línea de datos que sí está en la capa de texto,
+  partida en número y nombre, con el paréntesis vacío como huella.
+- «Crea varios que nada que ver»: sin las personas y con el caso leído del texto,
+  lo que entra es un cascarón.
+
+**Corrección a lo escrito más arriba:** este archivo tiene **una** hoja, no seis.
+La captura del 07 con «Wanica Branch» y «5 / 6» era de **otro PDF** que el visor
+tenía abierto mientras el panel decía ELTC2609, o de un ELTC2609 distinto que no
+ha llegado. No se puede afirmar cuál; queda dicho.
+
+**Lo que esto significa para el proyecto:** hay **dos clases de documento** y el
+lector solo conoce una. Los siete `CASP2609` son escaneos con correcciones a mano
+—`/FreeText` e `/Ink`—; este es un **formulario rellenable rellenado en el
+ordenador**, y su información vive en `/Widget`. El dueño recibe de los dos.
+
+**Lo que esto pide, y coincide con su punto 4:** un PDF cuyas hojas llevan personas
+y unidades distintas **no es un caso**: son varios. Juntar por número de caso es
+la suposición que falla con sus documentos reales. Hace falta el archivo para
+medir cuántas hojas, cuántas unidades y cuántas personas trae, y qué hizo el
+programa con él.
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

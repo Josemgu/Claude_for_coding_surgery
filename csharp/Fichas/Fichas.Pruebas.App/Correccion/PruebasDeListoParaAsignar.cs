@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Correccion;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
@@ -196,14 +197,30 @@ public sealed class PruebasDeListoParaAsignar
         Assert.AreEqual(0, procedencia.ContarVerificados(TablaDeProcedencia.Personas, PersonaDePrueba));
     }
 
-    /// <summary>El pie lo dice con esas palabras cuando se guarda.</summary>
+    /// <summary>
+    /// El pie lo dice al guardar: ya no le falta ningún dato, y lo que toca ahora es repartirlo.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ 2026-09-07: el pie decía «listo para asignar». Ahora dice «me falta» con el
+    /// detalle «te toca a ti: repartirlo a un compañero», y cuesta leerlo hasta que se ve por
+    /// qué: el dueño definió «resuelto» como <i>«que no queda nada que él tenga que hacer con
+    /// eso»</i>, y a un documento sin huecos y sin repartir le queda que él lo reparta.</para>
+    ///
+    /// <para><b>Lo que la prueba defiende sigue igual:</b> que el pie DIGA que el documento ya
+    /// no tiene huecos, en vez de callárselo. Lo dice el detalle, y con la acción siguiente
+    /// delante, que es más de lo que decía antes.</para>
+    /// </remarks>
     [TestMethod]
-    public void ElPieLoDiceAlGuardar()
+    public void ElPieDiceAlGuardarQueYaNoLeFaltanDatosYQueTocaRepartirlo()
     {
         var (_, modelo) = MontarLeidoEntero();
         var resultado = modelo.Guardar();
 
-        StringAssert.Contains(resultado.LineaDelAcuse, "listo para asignar", StringComparison.Ordinal);
+        Assert.IsTrue(resultado.ListoParaAsignar, "Al papel no le falta ni un dato.");
+        StringAssert.Contains(resultado.LineaDelAcuse, DosEstados.MeFalta, StringComparison.Ordinal);
+        StringAssert.Contains(resultado.LineaDelAcuse, "repartirlo", StringComparison.Ordinal);
+        Assert.DoesNotContain("listo para asignar", resultado.LineaDelAcuse);
+        Assert.DoesNotContain("dato", resultado.LineaDelAcuse, "No le falta ninguno: no se nombran.");
     }
 
     /// <summary>
@@ -220,7 +237,11 @@ public sealed class PruebasDeListoParaAsignar
 
         var resultado = modelo.Guardar();
         Assert.DoesNotContain("listo para asignar", resultado.LineaDelAcuse);
-        StringAssert.Contains(resultado.LineaDelAcuse, "falta 1 campo", StringComparison.Ordinal);
+        // ⛔ 2026-09-07: decía «falta 1 campo por revisar». Dice «le falta 1 dato del papel»,
+        // que es la MISMA frase que ya usaban Inicio y la cola: escrita en tres sitios, cada
+        // pantalla contaba el mismo hueco con otras palabras.
+        StringAssert.Contains(resultado.LineaDelAcuse, DosEstados.MeFalta, StringComparison.Ordinal);
+        StringAssert.Contains(resultado.LineaDelAcuse, "le falta 1 dato", StringComparison.Ordinal);
     }
 
     /// <summary>Un campo leido con poca confianza tampoco deja el documento listo.</summary>

@@ -10,7 +10,7 @@ using Fichas.Reportes.Reglas;
 namespace Fichas.Reportes;
 
 /// <summary>
-/// Los reportes en PDF para los jefes y el historico, sobre los puertos de Fichas.Contratos.
+/// Los informes para los jefes y el historico, sobre los puertos de Fichas.Contratos.
 /// </summary>
 /// <remarks>
 /// ⚠️ <b>NADA de aqui lanza una excepcion por un dato raro</b> (requisito 9 del dueno, «avisar,
@@ -18,12 +18,20 @@ namespace Fichas.Reportes;
 /// puede escribir salen como <see cref="ResultadoDeEscritura"/> con <c>SeEscribio</c> en falso
 /// y su aviso de una linea, igual que todo lo demas del programa.
 ///
-/// <b>El PDF se escribe primero en un archivo temporal al lado del destino y se asciende
+/// <b>El archivo se escribe primero en un temporal al lado del destino y se asciende
 /// despues.</b> Si el disco se llena a la mitad, lo que queda es un archivo <c>.parcial</c> y no
 /// un PDF cortado con el nombre del bueno, que es el que alguien abriria creyendo que esta
 /// entero.
+///
+/// <para>⚠️ <b>El nombre de esta clase se quedo corto el 2026-09-07 y se deja a proposito.</b>
+/// Desde ese dia escribe dos formatos —el dueno pidio <i>«también quiero uno con Excel»</i>— y
+/// se sigue llamando <c>ReportesEnPdf</c>. Renombrarla tocaria <c>Fichas.App/Cascara</c> y
+/// pruebas de otros dos proyectos por un cambio que no arregla nada; queda anotado como deuda
+/// de nombre, no como descuido. Lo que importa es que <b>hay un solo motor</b>: los dos
+/// formatos salen del MISMO <see cref="Documento"/>, y por eso no pueden decir cifras
+/// distintas del mismo mes.</para>
 /// </remarks>
-public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera
+public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesEnExcel
 {
     private readonly ICasos _casos;
     private readonly IPersonas _personas;
@@ -67,14 +75,7 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera
         long companeroId, string desdeIso, string hastaIso, string rutaDestino)
     {
         var companero = _companeros.Obtener(companeroId);
-        if (companero is null)
-        {
-            return ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(
-                $"No hay ningún compañero con el número interno {companeroId}.",
-                nameof(companeroId),
-                "No se escribió ningún PDF. Un compañero desactivado sí se puede reportar: sigue "
-                + "existiendo y sigue teniendo trabajo hecho detrás."));
-        }
+        if (companero is null) return ResultadoDeEscritura.NoSeEscribio(NoHayEseCompanero(companeroId));
 
         var lectura = Periodo.Leer(desdeIso, hastaIso);
         if (lectura.Periodo is null) return ResultadoDeEscritura.NoSeEscribio(lectura.Problema!);
@@ -82,6 +83,14 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera
         var documento = DocumentoDeCompanero(companeroId, lectura.Periodo, _reloj.Ahora());
         return Escribir(documento, rutaDestino, $"Reporte de {companero.Nombre} en {lectura.Periodo.EnTexto()}");
     }
+
+    /// <summary>Lo que se dice cuando el numero interno que llega no es de nadie.</summary>
+    private static Aviso NoHayEseCompanero(long companeroId)
+        => Aviso.Problema(
+            $"No hay ningún compañero con el número interno {companeroId}.",
+            nameof(companeroId),
+            "No se escribió ningún archivo. Un compañero desactivado sí se puede reportar: sigue "
+            + "existiendo y sigue teniendo trabajo hecho detrás.");
 
     /// <summary>Genera el historico completo en PDF y lo deja en la ruta que se diga.</summary>
     public ResultadoDeEscritura GenerarHistorico(string rutaDestino)
@@ -111,6 +120,45 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera
         var documento = DocumentoDeLaSegundaVuelta(categoria, intentos, _reloj.Ahora());
         return Escribir(documento, rutaDestino, $"Reporte de la segunda vuelta a la categoría {categoria}");
     }
+
+    // ---- lo que pide el puerto del Excel ------------------------------------
+
+    /// <summary>Genera el informe del periodo en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
+    /// <remarks>
+    /// Es el MISMO <see cref="Documento"/> que el PDF de dos metodos mas arriba. Lo unico que
+    /// cambia es quien lo escribe: ver <see cref="Formato.LibroDelInforme"/> para que forma
+    /// toma y por que no es «el PDF con bordes».
+    /// </remarks>
+    public ResultadoDeEscritura GenerarReporteDelPeriodoEnExcel(string desdeIso, string hastaIso, string rutaDestino)
+    {
+        var lectura = Periodo.Leer(desdeIso, hastaIso);
+        if (lectura.Periodo is null) return ResultadoDeEscritura.NoSeEscribio(lectura.Problema!);
+
+        return EscribirElExcel(
+            DocumentoDelPeriodo(lectura.Periodo, _reloj.Ahora()),
+            rutaDestino,
+            $"Reporte del período {lectura.Periodo.EnTexto()}");
+    }
+
+    /// <summary>Genera el informe de un companero en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
+    public ResultadoDeEscritura GenerarReporteDeCompaneroEnExcel(
+        long companeroId, string desdeIso, string hastaIso, string rutaDestino)
+    {
+        var companero = _companeros.Obtener(companeroId);
+        if (companero is null) return ResultadoDeEscritura.NoSeEscribio(NoHayEseCompanero(companeroId));
+
+        var lectura = Periodo.Leer(desdeIso, hastaIso);
+        if (lectura.Periodo is null) return ResultadoDeEscritura.NoSeEscribio(lectura.Problema!);
+
+        return EscribirElExcel(
+            DocumentoDeCompanero(companeroId, lectura.Periodo, _reloj.Ahora()),
+            rutaDestino,
+            $"Reporte de {companero.Nombre} en {lectura.Periodo.EnTexto()}");
+    }
+
+    /// <summary>Genera el historico completo en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
+    public ResultadoDeEscritura GenerarHistoricoEnExcel(string rutaDestino)
+        => EscribirElExcel(DocumentoDelHistorico(_reloj.Ahora()), rutaDestino, "Reporte del histórico completo");
 
     // ---- los documentos, sin escribirlos ------------------------------------
 
@@ -204,7 +252,19 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera
             TrabajoDeAgente.En(semana, companeroId, susCasos, todasLasSuyas),
             vivas.Count);
 
-        var recortada = lectura.SoloEstosCasos(vivas, nombre);
+        // ⚠️ 2026-09-08: se recorta con `suyos` —vivas Y retiradas— y no con `vivas`.
+        //
+        // Del dueno, literal: «en el informe del agente igual, aunque ya no lo tenga asignado»
+        // y «que conserve lo retirado». Con `vivas`, este MISMO informe decia 7 arriba —«Lo que
+        // hizo» ya se armaba con todas— y 3 de «Los viajes» en adelante: el trabajo terminado
+        // desaparecia del informe justo por haberse terminado, porque devolver un caso completo
+        // retira su asignacion desde el 2026-09-07.
+        //
+        // ⚠️ Lo que NO cambia: `vivas.Count` sigue entrando en `LoQueHizo` como
+        // `llevaEncimaAhora`. Esa cifra contesta OTRA pregunta —«¿cuánto le queda por delante?»,
+        // y su propio resumen dice «Esa cifra es de hoy, no del período»—, asi que sumarle los
+        // retirados la dejaria sin poder contestarla. Las dos preguntas conviven a proposito.
+        var recortada = lectura.SoloEstosCasos(suyos, nombre);
         var documento = ArmadoDelDocumento.DelPeriodo(recortada, periodo, generadoEn);
 
         return documento with
@@ -249,15 +309,25 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera
     private LecturaParaReportes Leer()
         => LecturaParaReportes.Leer(_casos, _personas, _companeros, _asignaciones, _procedencia);
 
-    /// <summary>Escribe el PDF en esa ruta pasando por un archivo parcial.</summary>
-    private static ResultadoDeEscritura Escribir(Documento documento, string rutaDestino, string deQue)
+    /// <summary>
+    /// Vuelca unos bytes en esa ruta pasando por un archivo parcial. Nulo si salio bien.
+    /// </summary>
+    /// <remarks>
+    /// El contenido se construye DENTRO del <c>try</c> y por eso entra como funcion: es lo que
+    /// hacia antes de que hubiera dos formatos, y sacarlo fuera cambiaria en silencio que
+    /// excepciones se recogen y cuales suben.
+    /// </remarks>
+    /// <param name="contenido">Lo que hay que escribir, todavia sin construir.</param>
+    /// <param name="rutaDestino">Donde queda el archivo.</param>
+    /// <param name="extension">Como acaba el archivo, para poder decirlo si falta la ruta.</param>
+    private static Aviso? Volcar(Func<byte[]> contenido, string rutaDestino, string extension)
     {
         if (string.IsNullOrWhiteSpace(rutaDestino))
         {
-            return ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(
+            return Aviso.Problema(
                 "No se dijo dónde guardar el reporte.",
                 nameof(rutaDestino),
-                "Hace falta la ruta completa del archivo .pdf que se quiere escribir."));
+                $"Hace falta la ruta completa del archivo {extension} que se quiere escribir.");
         }
 
         var parcial = rutaDestino + ".parcial";
@@ -266,19 +336,54 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera
             var carpeta = Path.GetDirectoryName(Path.GetFullPath(rutaDestino));
             if (!string.IsNullOrEmpty(carpeta)) Directory.CreateDirectory(carpeta);
 
-            File.WriteAllBytes(parcial, Maqueta.ConstruirPdf(documento));
+            File.WriteAllBytes(parcial, contenido());
             File.Move(parcial, rutaDestino, overwrite: true);
         }
         catch (Exception causa) when (causa is IOException or UnauthorizedAccessException
                                           or NotSupportedException or ArgumentException)
         {
             Limpiar(parcial);
-            return ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(
+            return Aviso.Problema(
                 "No se pudo escribir el reporte en esa ruta.",
                 nameof(rutaDestino),
                 $"Se intentó escribir «{rutaDestino}» y el sistema contestó: {causa.Message}. "
-                + "No se escribió nada a medias: si quedó algo, era el archivo temporal y se borró."));
+                + "No se escribió nada a medias: si quedó algo, era el archivo temporal y se borró.");
         }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Escribe el informe en <c>.xlsx</c> en esa ruta, y dice cuantas hojas y cuantas filas.
+    /// </summary>
+    /// <remarks>
+    /// Las dos cifras del aviso son las que se pueden comprobar abriendo el archivo. «Escrito»
+    /// a secas no se puede comprobar sin abrirlo, y esta pantalla ya tuvo el fallo de repetir
+    /// lo que dijo quien escribia (ver <c>OperacionDeReporte</c>).
+    /// </remarks>
+    private static ResultadoDeEscritura EscribirElExcel(Documento documento, string rutaDestino, string deQue)
+    {
+        var problema = Volcar(() => LibroDelInforme.EnBytes(documento), rutaDestino, ".xlsx");
+        if (problema is not null) return ResultadoDeEscritura.NoSeEscribio(problema);
+
+        var hojas = documento.Secciones.Count + 1;
+        var filas = LibroDelInforme.CuantasFilasLleva(documento);
+
+        return ResultadoDeEscritura.BienCon(0, Aviso.Informa(
+            $"{deQue} escrito en Excel: {hojas} "
+            + Plural.Palabra(hojas, "hoja", "hojas") + " y "
+            + Plural.Con(filas, "fila", "filas") + ".",
+            string.Empty,
+            $"El archivo está en «{rutaDestino}». La primera hoja es el resumen, con el índice; "
+            + "las demás son una tabla cada una, con la fila 1 fija y el filtro puesto. "
+            + LibroDelInforme.QueEsEsteArchivo));
+    }
+
+    /// <summary>Escribe el PDF en esa ruta pasando por un archivo parcial.</summary>
+    private static ResultadoDeEscritura Escribir(Documento documento, string rutaDestino, string deQue)
+    {
+        var problema = Volcar(() => Maqueta.ConstruirPdf(documento), rutaDestino, ".pdf");
+        if (problema is not null) return ResultadoDeEscritura.NoSeEscribio(problema);
 
         var paginas = Maqueta.RepartirEnPaginas(Maqueta.LineasDelDocumento(documento, [])).Count;
         var perdidos = Maqueta.ContarCaracteresQueNoCaben(documento);

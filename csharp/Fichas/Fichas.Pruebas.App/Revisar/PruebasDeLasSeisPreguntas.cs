@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Revisar;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
@@ -55,10 +56,23 @@ public sealed class PruebasDeLasSeisPreguntas
             documento.Personas.All(t => t.Preguntas.Count == 6),
             "Algun ticket no trae las seis preguntas.");
 
-        Assert.Contains("lista para viajar", documento.Personas[0].FraseDelEstado);
-        Assert.Contains("no lista para viajar", documento.Personas[1].FraseDelEstado);
+        // ⛔ 2026-09-07: la frase decía «lista para viajar · recomendación confirmada» o
+        // «sin mirar · recomendación sin confirmar», con TRES de las cuatro palabras que el
+        // dueño retiró. Lo que estas pruebas defienden es lo que más importa de aquel criterio
+        // y NO cambia: que «sin mirar» y «no lista» sigan siendo cosas distintas, porque dar
+        // por lista a una persona de la que faltan preguntas por mirar es lo que manda a
+        // alguien al templo con la recomendación mal. La palabra es la misma para las dos; el
+        // detalle las separa, y eso es lo que se comprueba.
+        Assert.AreEqual(DosEstados.Resuelto, Palabra(documento.Personas[0].FraseDelEstado));
+        Assert.AreEqual(DosEstados.MeFalta, Palabra(documento.Personas[1].FraseDelEstado));
+        Assert.Contains("dicen que sí", documento.Personas[0].FraseDelEstado);
         Assert.Contains("Entrevistas", documento.Personas[1].FraseDelEstado);
-        Assert.Contains("sin mirar", documento.Personas[2].FraseDelEstado);
+        Assert.AreEqual(DosEstados.MeFalta, Palabra(documento.Personas[2].FraseDelEstado));
+        Assert.Contains("nadie ha contestado", documento.Personas[2].FraseDelEstado);
+        Assert.AreNotEqual(
+            documento.Personas[1].FraseDelEstado,
+            documento.Personas[2].FraseDelEstado,
+            "«sin mirar» y «no lista» dicen la misma palabra y NO el mismo detalle.");
     }
 
     /// <summary>
@@ -95,7 +109,8 @@ public sealed class PruebasDeLasSeisPreguntas
             string.Join(", ", ticket.Preguntas.Select(p => PreguntasDeUnDocumento.DecirLaRespuesta(p.Respuesta))));
 
         Assert.IsNull(ticket.Preguntas[4].Respuesta, "No se pudo volver a dejar en blanco una ya contestada.");
-        Assert.Contains("sin mirar", ticket.FraseDelEstado);
+        Assert.AreEqual(DosEstados.MeFalta, Palabra(ticket.FraseDelEstado));
+        Assert.Contains("nadie ha contestado", ticket.FraseDelEstado);
     }
 
     /// <summary>
@@ -139,7 +154,8 @@ public sealed class PruebasDeLasSeisPreguntas
         // El texto del origen se comprueba en la linea que VUELVE de la base, y no
         // comparando la constante consigo misma: eso pasaria en verde siempre.
         Assert.Contains("a mano en la pantalla", ticket.LineaDeLaFirma);
-        Assert.Contains("lista para viajar", ticket.FraseDelEstado);
+        Assert.AreEqual(DosEstados.Resuelto, Palabra(ticket.FraseDelEstado));
+        Assert.Contains("dicen que sí", ticket.FraseDelEstado);
     }
 
     /// <summary>
@@ -388,4 +404,12 @@ public sealed class PruebasDeLasSeisPreguntas
 
         public int CamposFirmados() => _procedencia.DeRegistro(TablaDeProcedencia.Casos, 1).Count(c => c.Verificado);
     }
+
+    /// <summary>La palabra de estado de una frase: lo que va antes del primer punto medio.</summary>
+    /// <remarks>
+    /// Desde el 2026-09-07 toda frase de una persona empieza por una de las dos palabras del
+    /// dueño y sigue con su detalle. Se parte aquí para que cada prueba diga qué mira: la
+    /// palabra, o lo que la explica.
+    /// </remarks>
+    private static string Palabra(string frase) => frase.Split(" · ")[0];
 }

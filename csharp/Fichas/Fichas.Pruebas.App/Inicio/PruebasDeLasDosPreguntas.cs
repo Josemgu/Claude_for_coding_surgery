@@ -1,3 +1,4 @@
+using Fichas.App.Vocabulario;
 using Fichas.App.Correccion;
 using Fichas.App.Grupo;
 using Fichas.App.Inicio;
@@ -35,7 +36,7 @@ public sealed class PruebasDeLasDosPreguntas
     /// este programa le quita.
     /// </remarks>
     [TestMethod]
-    public void ListoParaAsignarSigueEstandoYAhoraDiceQueSignifica()
+    public void LaFraseDeListoParaAsignarSigueViviendoEnUnSoloSitio()
     {
         // Se comprueba contra lo que el modelo COMPONE y no contra la constante consigo
         // misma: comparar una constante con su propio texto no prueba nada, y el analizador
@@ -44,8 +45,13 @@ public sealed class PruebasDeLasDosPreguntas
         BaseDeInicio.MeterCaso(servicios, "SIGN2609", "2026-09-30");
         var renglon = BaseDeInicio.LeerInicio(servicios).Listos[0];
 
-        Assert.AreEqual(LasDosPreguntas.ListoParaAsignar, renglon.LoQueFaltaTexto,
-            "La frase de la pantalla y la constante tienen que ser la misma, o hay dos redacciones.");
+        // ⛔ 2026-09-07: el RENGLÓN ya no dice «listo para asignar» —dice una de las dos
+        // palabras—, así que aquí ya no se compara con él. Lo que esta prueba defendía sigue
+        // defendido: que la frase larga viva en UN solo sitio y no en dos redacciones. Que el
+        // renglón no la diga se comprueba justo debajo.
+        Assert.AreNotEqual(LasDosPreguntas.ListoParaAsignar, renglon.PalabraDelEstado,
+            "El renglón dice una de las dos palabras del dueño, no el veredicto viejo.");
+        CollectionAssert.Contains(DosEstados.LasDos.ToList(), renglon.PalabraDelEstado);
 
         StringAssert.Contains(
             LasDosPreguntas.ListoParaAsignarConSuSignificado, "listo para asignar", StringComparison.Ordinal);
@@ -57,19 +63,32 @@ public sealed class PruebasDeLasDosPreguntas
     }
 
     /// <summary>
-    /// C17-1, la mitad que se ve. El acuse de Correccion dice la frase Y su significado.
+    /// C17-1, la mitad que se ve. El acuse de Correccion dice la palabra Y qué falta.
     /// </summary>
     /// <remarks>
-    /// Se comprueba aqui y no mirando la pantalla porque <see cref="TextoDelAcuse"/> vive
-    /// fuera del XAML justamente para poder leerlo en una prueba.
+    /// <para>⛔ 2026-09-07: el acuse decía «listo para asignar · el sistema llenó todos los
+    /// campos». Lo que este criterio exige —que la palabra NUNCA salga sola, porque «listo» a
+    /// secas se lee como «listo para viajar»— sigue exigido y ahora se cumple con las dos
+    /// palabras del dueño: nunca salen sin su detalle detrás.</para>
+    ///
+    /// <para>Se comprueba aqui y no mirando la pantalla porque <see cref="TextoDelAcuse"/> vive
+    /// fuera del XAML justamente para poder leerlo en una prueba.</para>
     /// </remarks>
     [TestMethod]
-    public void ElAcuseDeCorreccionDiceLaFraseYQueSignifica()
+    public void ElAcuseDeCorreccionDiceLaPalabraYNuncaLaDiceSola()
     {
-        var listo = TextoDelAcuse.FraseDelDocumento(listo: true, camposQueLeFaltan: 0);
+        var sinHuecos = TextoDelAcuse.FraseDelDocumento(listo: true, camposQueLeFaltan: 0);
+        var conHuecos = TextoDelAcuse.FraseDelDocumento(listo: false, camposQueLeFaltan: 3);
 
-        StringAssert.Contains(listo, "listo para asignar", StringComparison.Ordinal);
-        StringAssert.Contains(listo, "el sistema llenó todos los campos", StringComparison.Ordinal);
+        foreach (var frase in (string[])[sinHuecos, conHuecos])
+        {
+            var palabra = DosEstados.LasDos.Single(dos => frase.StartsWith(dos, StringComparison.Ordinal));
+            Assert.AreNotEqual(palabra, frase, "La palabra nunca sale sola: siempre con su detalle.");
+            StringAssert.Contains(frase, "toca");
+        }
+
+        StringAssert.Contains(sinHuecos, "repartirlo", StringComparison.Ordinal);
+        StringAssert.Contains(conHuecos, "le faltan 3 datos", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -165,9 +184,16 @@ public sealed class PruebasDeLasDosPreguntas
 
         var resumen = BaseDeInicio.LeerInicio(servicios);
 
+        // ⚠️ ESTA es la línea que sostiene la prueba y no cambia: la CIFRA de lo que se puede
+        // repartir mira nuestros campos, y las seis preguntas del sistema del líder no le
+        // tocan. Que la palabra del renglón se haya colapsado a dos el 2026-09-07 no mezcla
+        // nada, y por eso se comprueba además que el detalle no las confunda.
         Assert.AreEqual(1, resumen.Contadores.ListoParaAsignar,
             "«Listo para asignar» mira NUESTROS campos; las seis preguntas no le tocan.");
-        Assert.AreEqual("listo para asignar", resumen.Listos[0].LoQueFaltaTexto);
+        Assert.AreEqual(0, resumen.Listos[0].CuantoLeFalta, "Al papel no le falta ningún dato.");
+        Assert.IsFalse(
+            resumen.Listos[0].DetalleDelEstado.Contains("líder", StringComparison.Ordinal),
+            "Lo que le falta al papel no puede explicarse con las seis preguntas del líder.");
     }
 
     /// <summary>Si la frase dice la palabra suelta, sin decir para que.</summary>

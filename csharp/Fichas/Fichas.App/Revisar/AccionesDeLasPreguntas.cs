@@ -38,6 +38,24 @@ public sealed class AccionesDeLasPreguntas
     /// </remarks>
     public const string OrigenAMano = "a mano en la pantalla";
 
+    /// <summary>
+    /// Lo que se guarda en <c>pasos_origen</c> cuando las seis se marcaron de un tirón.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⛔ <b>Es distinto de <see cref="OrigenAMano"/> a propósito, y ahí está media entrega.</b>
+    /// Las seis columnas quedan idénticas por los dos caminos —seis «sí» son seis «sí»—, así
+    /// que si los dos escribieran el mismo origen no habría forma de saber cuál miró alguien
+    /// pregunta por pregunta y cuál se marcó en bloque. Del pase: <i>«que se vea que fue en
+    /// bloque y no una a una, y que él pueda distinguirlo después»</i>.
+    /// </para>
+    /// <para>
+    /// El texto acaba en la base y se lee en la línea de la firma —«desde las seis marcadas de
+    /// un tirón en la pantalla»—; cambiarlo deja sin reconocer todo lo ya marcado por esta vía.
+    /// </para>
+    /// </remarks>
+    public const string OrigenDeUnTiron = "las seis marcadas de un tirón en la pantalla";
+
     private readonly IPersonas _personas;
     private readonly ICompaneros _companeros;
 
@@ -115,11 +133,35 @@ public sealed class AccionesDeLasPreguntas
     /// <param name="personaId">De quién se contestan las seis.</param>
     /// <param name="respuesta">Las seis, cada una en sí, no o en blanco.</param>
     public ResultadoDeEscritura Guardar(long personaId, RespuestaALosPasos respuesta)
+        => Guardar(personaId, respuesta, OrigenAMano);
+
+    /// <summary>
+    /// Guarda las seis que se marcaron de un tirón, y deja escrito que fue así.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Escribe exactamente lo mismo que <see cref="Guardar(long, RespuestaALosPasos)"/> salvo
+    /// el origen, y pasa por la misma comprobación de quién firma: <b>marcar seis de golpe a
+    /// nombre de quien no fue son seis mentiras, no una</b>.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>No es un botón que escriba solo.</b> Lo llama la ventana cuando él pulsa «Guardar
+    /// las seis» habiendo usado antes el atajo, y el atajo por su cuenta no escribe nada: ver
+    /// <see cref="MarcarLasSeisDeUnTiron"/>.
+    /// </para>
+    /// </remarks>
+    /// <param name="personaId">De quién se marcan las seis.</param>
+    /// <param name="respuesta">Las seis tal como quedaron en la pantalla.</param>
+    public ResultadoDeEscritura GuardarDeUnTiron(long personaId, RespuestaALosPasos respuesta)
+        => Guardar(personaId, respuesta, OrigenDeUnTiron);
+
+    /// <summary>El camino común de los dos: comprobar quién firma y escribir con su origen.</summary>
+    private ResultadoDeEscritura Guardar(long personaId, RespuestaALosPasos respuesta, string origen)
     {
         var quien = QuienContesta();
         if (quien is null) return ResultadoDeEscritura.NoSeEscribio(PorQueNoSePuede());
 
-        return _personas.ResponderLosPasos(personaId, respuesta, quien.Id, OrigenAMano);
+        return _personas.ResponderLosPasos(personaId, respuesta, quien.Id, origen);
     }
 
     /// <summary>Lo que se dice cuando las seis de una persona quedaron guardadas.</summary>

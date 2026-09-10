@@ -54,10 +54,17 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
         Assert.HasCount(2, personas);
         foreach (var renglon in personas)
         {
-            Assert.AreEqual(
-                LasDosPreguntas.ListoParaAsignarConSuSignificado,
+            // ⛔ 2026-09-07: decía «listo para asignar · el sistema llenó todos los campos».
+            // Lo que la prueba defiende no cambia: que el renglón DIGA que a este documento ya
+            // no le falta nada, en vez de callárselo. Ahora lo dice nombrando lo que toca.
+            StringAssert.Contains(
                 renglon.LoQueLeFaltaAlDocumento,
+                "repartirlo",
+                StringComparison.Ordinal,
                 "el renglón tiene que decir que a este documento ya no le falta nada");
+            Assert.IsFalse(
+                renglon.LoQueLeFaltaAlDocumento.Contains("dato", StringComparison.Ordinal),
+                "y no puede nombrar datos que no faltan");
         }
     }
 
@@ -69,7 +76,7 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
 
         var renglon = RenglonesDelDia(servicios).First(r => r.EsUnaPersona);
 
-        Assert.AreEqual("le falta 1 dato", renglon.LoQueLeFaltaAlDocumento);
+        StringAssert.Contains(renglon.LoQueLeFaltaAlDocumento, "le falta 1 dato", StringComparison.Ordinal);
     }
 
     [TestMethod]
@@ -81,7 +88,7 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
 
         var renglon = RenglonesDelDia(servicios).First(r => r.EsUnaPersona);
 
-        Assert.AreEqual("le faltan 2 datos", renglon.LoQueLeFaltaAlDocumento);
+        StringAssert.Contains(renglon.LoQueLeFaltaAlDocumento, "le faltan 2 datos", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -101,10 +108,14 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
         var renglon = RenglonesDelDia(servicios).First(r => r.EsUnaPersona);
 
         Assert.AreEqual("sin ninguna persona leída", renglon.Titulo);
-        Assert.AreEqual(
-            LasDosPreguntas.SinNingunaPersonaLeidaConSuSignificado,
-            renglon.LoQueLeFaltaAlDocumento);
-        StringAssert.Contains(renglon.LoQueLeFaltaAlDocumento, "no hay a quién recomendar");
+        // ⛔ 2026-09-07: decía «sin ninguna persona leída · no hay a quién recomendar». Sigue
+        // diciendo lo que pasa —que no se leyó a nadie— y ahora además dice qué hacer, que es
+        // lo que este renglón necesitaba: desde aquí no se puede añadir a nadie.
+        StringAssert.Contains(renglon.LoQueLeFaltaAlDocumento, "no se leyó ninguna persona");
+        StringAssert.Contains(renglon.LoQueLeFaltaAlDocumento, "Corrección");
+        Assert.IsFalse(
+            renglon.LoQueLeFaltaAlDocumento.Contains("dato", StringComparison.Ordinal),
+            "no le falta un CAMPO: le falta la gente, y decir «le falta 1 dato» sería otra cosa");
     }
 
     /// <summary>Quien no ve la pantalla tambien lo oye; si no, la mitad del arreglo no existe.</summary>
@@ -142,14 +153,28 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
     [TestMethod]
     public void LaFraseSaleDeLasDosPreguntasYNoDeCadaPantalla()
     {
-        Assert.AreEqual(
-            LasDosPreguntas.ListoParaAsignarConSuSignificado,
-            LasDosPreguntas.LoQueLeFaltaAlDocumento(0, sinNingunaPersonaLeida: false));
-        Assert.AreEqual(
-            "le faltan 3 datos",
-            LasDosPreguntas.LoQueLeFaltaAlDocumento(3, sinNingunaPersonaLeida: false));
-        Assert.AreEqual(
-            LasDosPreguntas.SinNingunaPersonaLeidaConSuSignificado,
-            LasDosPreguntas.LoQueLeFaltaAlDocumento(1, sinNingunaPersonaLeida: true));
+        // ⛔ 2026-09-07: las tres frases cambiaron de redacción y la composición se mudó a
+        // `LoQueSeLeeDeUnDocumento`. Lo que esta prueba defiende es lo mismo de siempre: que la
+        // frase salga de UN método y no de cada pantalla, y que las tres respuestas se
+        // distingan entre sí.
+        var sinHuecos = LasDosPreguntas.LoQueLeFaltaAlDocumento(0, sinNingunaPersonaLeida: false);
+        var conTres = LasDosPreguntas.LoQueLeFaltaAlDocumento(3, sinNingunaPersonaLeida: false);
+        var sinNadie = LasDosPreguntas.LoQueLeFaltaAlDocumento(1, sinNingunaPersonaLeida: true);
+
+        StringAssert.Contains(sinHuecos, "repartirlo");
+        StringAssert.Contains(conTres, "le faltan 3 datos");
+        StringAssert.Contains(sinNadie, "no se leyó ninguna persona");
+
+        Assert.AreNotEqual(sinHuecos, conTres);
+        Assert.AreNotEqual(conTres, sinNadie);
+        Assert.AreNotEqual(sinHuecos, sinNadie);
+
+        // Y ninguna de las tres puede traer de vuelta una palabra retirada.
+        foreach (var frase in (string[])[sinHuecos, conTres, sinNadie])
+        {
+            Assert.IsFalse(
+                frase.Contains(LasDosPreguntas.ListoParaAsignar, StringComparison.OrdinalIgnoreCase),
+                $"«{frase}» trae de vuelta «listo para asignar».");
+        }
     }
 }

@@ -1,3 +1,4 @@
+using Fichas.App.Asignar;
 using Fichas.App.Reportes;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Lectura;
@@ -15,7 +16,14 @@ namespace Fichas.App.Paquetes;
 /// </remarks>
 /// <param name="Resumen">La linea de tres cifras y su detalle detras de «ver».</param>
 /// <param name="LoQueTrajo">Lo que caso, lo que no y lo que no se puede dar por bueno.</param>
-public sealed record ResultadoDeLaVuelta(ResumenEnPantalla Resumen, LoQueTrajoElPaquete LoQueTrajo);
+/// <param name="Limpieza">
+/// Cuantas asignaciones se le cerraron por haberlas devuelto completas. Cero cuando no habia
+/// ninguna, y cero tambien cuando la vuelta se monto sin la puerta de retirar.
+/// </param>
+public sealed record ResultadoDeLaVuelta(
+    ResumenEnPantalla Resumen,
+    LoQueTrajoElPaquete LoQueTrajo,
+    ResumenDeRetirada Limpieza);
 
 /// <summary>
 /// La vuelta: leer el Excel que devolvio el companero, aplicar sus marcas y decirlo en UNA linea.
@@ -56,6 +64,7 @@ public sealed class OperacionDeLaVuelta
     private readonly IPaquetes _paquetes;
     private readonly IIlegibles _ilegibles;
     private readonly LoQueVuelve? _loQueVuelve;
+    private readonly LimpiezaAlVolver? _limpieza;
 
     /// <summary>Se ata a los dos puertos que necesita para aplicar y decirlo en una linea.</summary>
     /// <remarks>
@@ -77,6 +86,22 @@ public sealed class OperacionDeLaVuelta
     public OperacionDeLaVuelta(IPaquetes paquetes, IIlegibles ilegibles, ICasos casos, IPersonas personas)
         : this(paquetes, ilegibles)
         => _loQueVuelve = new LoQueVuelve(casos, personas);
+
+    /// <summary>
+    /// La de la pantalla desde el 2026-09-07: ademas de aplicar, deja limpia la carga del agente.
+    /// </summary>
+    /// <remarks>
+    /// <para>Con <paramref name="limpieza"/> puesta, un documento que el companero devuelve
+    /// COMPLETO deja de estar asignado a el. Lo pidio el dueno: <i>«cuando el sube un paquete
+    /// que completo, debe quitarle que ese caso esta asignado a el. Debe quedar limpio»</i>.</para>
+    ///
+    /// <para>Sin ella —la puerta de cuatro puertos— la vuelta aplica igual y no retira nada. Es
+    /// la version honesta de «aqui no», y la usan las pruebas que solo miran lo que se aplica.</para>
+    /// </remarks>
+    public OperacionDeLaVuelta(
+        IPaquetes paquetes, IIlegibles ilegibles, ICasos casos, IPersonas personas, LimpiezaAlVolver limpieza)
+        : this(paquetes, ilegibles, casos, personas)
+        => _limpieza = limpieza;
 
     /// <summary>Lee ese Excel como devuelto por ese companero y aplica lo que traiga.</summary>
     public ResumenEnPantalla Aplicar(Companero companero, string rutaExcel)
@@ -100,10 +125,13 @@ public sealed class OperacionDeLaVuelta
                 $"Se leyó «{rutaExcel}» y no salió ni una persona. Compruebe que es el archivo que "
                 + "devolvió el compañero y que conserva la hoja con la que se generó.");
             avisos.Add(vacio);
+            // No se limpia nada: un archivo sin filas no dice que nadie completara nada, y
+            // retirarle asignaciones por un archivo equivocado seria justo el dano que evita.
             return new ResultadoDeLaVuelta(
                 new ResumenEnPantalla(
                     false, vacio.Linea, ResumenEnPantalla.DetalleDe(lectura.Avisos, vacio.Detalle!), null, avisos),
-                LoQueTrajoElPaquete.Nada(companero.Nombre));
+                LoQueTrajoElPaquete.Nada(companero.Nombre),
+                new ResumenDeRetirada(0, 0, companero.Nombre));
         }
 
         var escritura = lectura.Marcas.Count > 0
@@ -115,16 +143,24 @@ public sealed class OperacionDeLaVuelta
         var noEntraron = nuevas.Count;
         var entraron = filas - noEntraron;
 
+        // ⚠️ Va DESPUES de aplicar y no antes, y ese orden es la mitad del asunto: lo que decide
+        // que asignacion se cierra es el estado que la hoja acaba de escribir en la base. Antes
+        // de aplicar todavia no esta escrito, y se cerrarian las de la vuelta anterior.
+        var limpieza = _limpieza is null
+            ? new ResumenDeRetirada(0, 0, companero.Nombre)
+            : _limpieza.QuitarleLoQueDevolvioCompleto(companero);
+
         return new ResultadoDeLaVuelta(
             new ResumenEnPantalla(
                 entraron > 0,
                 Linea(companero.Nombre, filas, entraron, noEntraron),
-                Detalle(lectura, escritura, nuevas, rutaExcel),
+                Detalle(lectura, escritura, nuevas, rutaExcel, limpieza),
                 null,
                 avisos),
             _loQueVuelve is null
                 ? LoQueTrajoElPaquete.Nada(companero.Nombre)
-                : _loQueVuelve.De(companero.Nombre, lectura.Marcas, nuevas));
+                : _loQueVuelve.De(companero.Nombre, lectura.Marcas, nuevas),
+            limpieza);
     }
 
     /// <summary>La linea de tres cifras: cuantas venian, cuantas entraron y cuantas no.</summary>
@@ -143,9 +179,19 @@ public sealed class OperacionDeLaVuelta
         ResultadoDelExcelDevuelto lectura,
         ResultadoDeEscritura escritura,
         IReadOnlyList<FilaDescartada> nuevas,
-        string rutaExcel)
+        string rutaExcel,
+        ResumenDeRetirada limpieza)
     {
         var trozos = new List<string> { $"Archivo leído: {rutaExcel}" };
+        if (limpieza.Retirados > 0 || limpieza.NoSePudieron > 0)
+        {
+            // Se dice siempre que se toca algo: una asignación que desaparece sin explicación se
+            // lee como que se perdió el trabajo, y es justo lo contrario.
+            trozos.Add(limpieza.Linea
+                + " Se le quitaron porque los devolvió completos; lo que escribió en ellos se "
+                + "queda escrito y sigue saliendo en su informe.");
+        }
+
         if (nuevas.Count > 0)
         {
             trozos.Add("Las filas que NO entraron, con su motivo:"

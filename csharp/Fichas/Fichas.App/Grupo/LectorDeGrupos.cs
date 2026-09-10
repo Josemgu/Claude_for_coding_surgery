@@ -92,7 +92,7 @@ public sealed class LectorDeGrupos
 
         var unidades = delDia
             .GroupBy(ClaveDeUnidad, StringComparer.Ordinal)
-            .Select(grupo => ArmarLaUnidad(grupo, personasPorCaso, duenos, procedencias))
+            .Select(grupo => ArmarLaUnidad(fecha, grupo, personasPorCaso, duenos, procedencias))
             .OrderByDescending(u => u.CuantosDocumentos)
             .ThenBy(u => u.Titulo, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -123,7 +123,7 @@ public sealed class LectorDeGrupos
     public IReadOnlyDictionary<DateOnly, List<PastillaDeDia>> PorDia(
         IReadOnlyDictionary<long, List<Persona>>? personasYaLeidas = null)
     {
-        var todos = LeerLosCasos();
+        var todos = LeerLosCasosDelCalendario();
 
         // ⚠️ Antes se pedia solo CUANTAS personas hay (ICasos.ContarPersonasDe). Desde el
         // criterio C20-3 la pastilla dice cuantas de ellas tienen la recomendacion
@@ -227,6 +227,34 @@ public sealed class LectorDeGrupos
         => _casos.Listar(FiltroDeCasos.Todo, new Pagina(0, int.MaxValue)).Elementos;
 
     /// <summary>
+    /// Los casos del CALENDARIO, que si traen los archivados.
+    /// </summary>
+    /// <remarks>
+    /// <para>⚠️ <b>Es la unica lista del programa que los trae, y lo pidio el dueno el
+    /// 2026-09-07 con estas palabras:</b> <i>«Cuando un paquete entra y marca todo completo,
+    /// debe salir de todos lados EXCEPTO del calendario. Aunque se archive, debe quedarse en el
+    /// calendario marcado en verde, porque estan completos, pero se mueve para abrir espacio a
+    /// otros PDF que necesitan ser procesados»</i>.</para>
+    ///
+    /// <para><b>Esto deshace a medias lo del 2026-09-06</b>, y hay que decir cual mitad. Aquel
+    /// dia dijo <i>«debe pasar a archivado y no aparecer mas en ningun lado»</i>, y su motivo
+    /// era otro: <i>«si se queda en el tablero y DICE ARCHIVADO, lo que hace es que me
+    /// confunda»</i>. Lo que le estorbaba era la ETIQUETA en medio del trabajo, no verlo
+    /// resuelto. Asi que vuelve al calendario y <b>la etiqueta no vuelve</b>: la pastilla dice
+    /// una de las dos palabras y nada mas (<see cref="PastillaDeDia.Etiqueta"/>).</para>
+    ///
+    /// <para>⛔ <b>Y solo al calendario.</b> <see cref="DelDia"/>, Inicio, Asignar, Revisar y la
+    /// ventana de incompletos siguen sin traerlos, que es la otra mitad de su frase: sale de
+    /// todos lados para abrir espacio. Por eso son DOS metodos y no un parametro: un parametro
+    /// se pone en cierto por descuido desde cualquier sitio, y dos metodos con dos nombres
+    /// obligan a venir aqui a leer por que.</para>
+    /// </remarks>
+    private IReadOnlyList<Caso> LeerLosCasosDelCalendario()
+        => _casos.Listar(
+            FiltroDeCasos.Todo with { IncluirArchivados = true },
+            new Pagina(0, int.MaxValue)).Elementos;
+
+    /// <summary>
     /// Las personas de esos documentos, en UNA sola consulta.
     /// </summary>
     /// <remarks>
@@ -281,7 +309,16 @@ public sealed class LectorDeGrupos
     }
 
     /// <summary>Compone la cabecera de una unidad con sus personas dentro.</summary>
+    /// <remarks>
+    /// La fecha entra desde el 2026-09-09 porque la cabecera de la unidad la DICE: el dueno lee
+    /// el renglon entero —«10 personas viajaran el 12 de septiembre»— y con la fecha solo en el
+    /// titulo de la pantalla, ese renglon no dice de que dia habla. Se pasa desde
+    /// <see cref="DelDia"/>, que es quien la sabe, y no se vuelve a leer del caso: dentro de un
+    /// dia todos los documentos tienen la misma, y leerla otra vez seria una segunda fuente que
+    /// algun dia diria otra cosa.
+    /// </remarks>
     private UnidadDelGrupo ArmarLaUnidad(
+        DateOnly fecha,
         IGrouping<string, Caso> unidad,
         IReadOnlyDictionary<long, List<Persona>> personasPorCaso,
         IReadOnlyDictionary<long, string> duenos,
@@ -316,6 +353,7 @@ public sealed class LectorDeGrupos
         return new UnidadDelGrupo(
             primero.UnidadNumero?.Trim() ?? string.Empty,
             primero.UnidadNombre?.Trim() ?? string.Empty,
+            fecha,
             [.. casos.Select(c => c.Id)],
             personas,
             casos.Count(EstaCompleto),
@@ -375,13 +413,24 @@ public sealed class LectorDeGrupos
         // costaba 36 ms medidos que no compraban nada: aqui solo hacen falta dos cifras.
         var cuantasPersonas = 0;
         var confirmadas = 0;
+        var resueltas = 0;
         foreach (var caso in casos)
         {
             if (!personasPorCaso.TryGetValue(caso.Id, out var suyas)) continue;
             cuantasPersonas += suyas.Count;
             foreach (var persona in suyas)
             {
-                if (LasDosPreguntas.EstadoDe(persona) == true) confirmadas++;
+                var confirmada = LasDosPreguntas.EstadoDe(persona) == true;
+                if (confirmada) confirmadas++;
+
+                // ⚠️ Las dos cuentas van aparte y no se pisan. «Confirmada» es una afirmacion
+                // sobre las seis preguntas de esa persona y no se toca: decir que estan
+                // confirmadas las de un archivado seria inventarlo. «Resuelta» es otra cosa —si
+                // al dueno le queda algo que hacer— y ahi archivar SI cuenta, porque archivar es
+                // el gesto con el que el cierra un documento. El calendario pinta la segunda:
+                // «aunque se archive, debe quedarse en el calendario marcado en verde»
+                // (2026-09-07).
+                if (confirmada || caso.Archivado) resueltas++;
             }
         }
 
@@ -392,6 +441,7 @@ public sealed class LectorDeGrupos
             cuantasPersonas,
             casos.Count(EstaCompleto),
             MotivoQueMasSeRepite(casos),
-            confirmadas);
+            confirmadas,
+            resueltas);
     }
 }

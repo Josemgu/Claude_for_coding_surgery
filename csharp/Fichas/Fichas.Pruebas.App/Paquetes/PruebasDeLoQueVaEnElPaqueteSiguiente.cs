@@ -64,7 +64,12 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
         foreach (var yaHecho in deSeptiembre)
             Assert.IsFalse(carga.CasoIds.Contains(yaHecho), $"El documento {yaHecho} ya lo devolvio completo y volvio a entrar.");
 
-        CollectionAssert.AreEquivalent(deSeptiembre.ToList(), carga.YaLosDevolvioCompletos.ToList());
+        // ⚠️ `YaLosDevolvioCompletos` sale VACIA desde el 2026-09-07, y no es que se haya
+        // perdido: es que esos documentos ya no estan asignados a el. La lista solo cuenta lo que
+        // lleva vivo, y devolverlos completos se los quito. Lo que el dueno pidio —que no vuelvan
+        // a ir— se cumple por un camino mas corto, y se comprueba en la base.
+        Assert.IsEmpty(carga.YaLosDevolvioCompletos, "ya no los lleva: la vuelta se los quitó");
+        CollectionAssert.AreEquivalent(deOctubre.ToList(), banco.CasosVivosDe(sandy.Id).ToList());
     }
 
     /// <summary>
@@ -118,16 +123,21 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
     }
 
     /// <summary>
-    /// ⛔ Quitarlo del paquete NO retira su asignacion: sigue viva y sigue contando.
+    /// ⚠️ Devolverlo completo SI le retira la asignacion, y la fila retirada se conserva.
     /// </summary>
     /// <remarks>
-    /// Es la mitad medida de la decision. Retirar la asignacion al devolver cambiaria lo que
-    /// se ve en Asignar, en Inicio y en el informe del agente —que se recorta a sus
-    /// asignaciones VIVAS—; no meterlo en el paquete no cambia ninguna de las tres. El dueno
-    /// pidio no trabajar dos veces, no borrar de quien es el trabajo.
+    /// <para><b>Esta prueba afirmaba lo contrario hasta el 2026-09-07</b> —«quitarlo del paquete
+    /// NO retira su asignacion»— con este motivo: que retirar al devolver borraria del informe
+    /// del agente el trabajo que acababa de hacer. <b>El motivo era falso</b>: el informe pide
+    /// las asignaciones con <c>SoloActivas: false</c>. Y el dueno pidio justo lo otro: <i>«debe
+    /// quitarle que ese caso esta asignado a el. Debe quedar limpio»</i>. Manda el.</para>
+    ///
+    /// <para>Lo que sigue igual, y por eso se comprueba aqui tambien: la fila NO se borra, se
+    /// desactiva. «Quedar limpio» no es «perder de quien era». El detalle esta en
+    /// <see cref="PruebasDeQueElPaqueteCompletoLimpiaLaAsignacion"/>.</para>
     /// </remarks>
     [TestMethod]
-    public void SacarloDelPaqueteNoLeQuitaLaAsignacion()
+    public void DevolverloCompletoLeQuitaLaAsignacionSinBorrarLaFila()
     {
         using var banco = new BaseDelPaquete();
         var sandy = banco.Alta("Agente de prueba uno");
@@ -135,7 +145,8 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
         banco.Dar(sandy, documento);
         banco.IdaYVuelta(sandy, "Sí", documento);
 
-        Assert.AreEqual(1, banco.VivasDe(sandy.Id), "La asignacion sigue viva: quien lo hizo se sigue viendo.");
+        Assert.AreEqual(0, banco.VivasDe(sandy.Id), "lo devolvio completo: tiene que quedarle limpio");
+        Assert.HasCount(1, banco.TodasLasDe(sandy.Id), "la fila se desactiva, no se borra: quien lo hizo se sigue viendo");
         Assert.IsFalse(banco.Ida.Carga(sandy.Id).CasoIds.Contains(documento));
     }
 
@@ -173,9 +184,22 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
             "El documento que volvio sin completar tiene que salir contado en la escalera.");
     }
 
-    /// <summary>La linea que ve el dueno dice, con numeros, lo que NO va y por que.</summary>
+    /// <summary>
+    /// La linea que ve el dueno dice, con numeros, lo que NO va y por que — cuando queda algo
+    /// que decir.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>El montaje cambio el 2026-09-07 y el motivo importa.</b> Antes bastaba con que
+    /// el agente devolviera un documento completo para que la linea dijera «1 ya devuelto
+    /// completo que no vuelve a ir». Ahora devolverlo completo le QUITA la asignacion, asi que
+    /// ese documento ya no le cuenta y no hay nada que decir de el.</para>
+    ///
+    /// <para>La linea no ha muerto: sigue haciendo falta el dia que Miguel <b>le vuelva a
+    /// asignar a mano</b> algo que ese agente ya completo. Es lo que monta esta prueba, y es el
+    /// unico camino que queda para llegar a ella.</para>
+    /// </remarks>
     [TestMethod]
-    public void LaLineaDiceCuantosSeQuedanFueraPorEstarYaHechos()
+    public void SiSeLeVuelveAAsignarLoQueYaCompletoLaLineaLoDiceYNoSeLeManda()
     {
         using var banco = new BaseDelPaquete();
         var sandy = banco.Alta("Agente de prueba uno");
@@ -184,6 +208,9 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
 
         banco.Dar(sandy, hecho);
         banco.IdaYVuelta(sandy, "Sí", hecho);
+        Assert.AreEqual(0, banco.VivasDe(sandy.Id), "el montaje: la vuelta ya se lo quitó");
+
+        banco.Dar(sandy, hecho);
         banco.Dar(sandy, pendiente);
 
         var carga = banco.Ida.Carga(sandy.Id);
@@ -193,6 +220,7 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
         StringAssert.Contains(carga.LineaConLoQueNoVa, "1 caso");
         StringAssert.Contains(carga.LineaConLoQueNoVa, "1 ya devuelto completo");
         Assert.AreEqual("1 caso · 2 personas", carga.Linea);
+        CollectionAssert.AreEquivalent(new List<long> { pendiente }, carga.CasoIds.ToList());
     }
 
     // ---- el montaje ---------------------------------------------------------

@@ -59,16 +59,18 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
 
         _ida = new OperacionDelPaquete(Servicios.Paquetes, Servicios.Asignaciones, Servicios.Casos);
 
-        // Con los cuatro puertos, no con dos: desde el 2026-09-06 la vuelta no solo aplica,
-        // tambien tiene que ensenar lo que trajo para que el dueno lo de por bueno, y eso
-        // sale de los casos y las personas.
-        _vuelta = new OperacionDeLaVuelta(
-            Servicios.Paquetes, Servicios.Ilegibles, Servicios.Casos, Servicios.Personas);
-        _firma = new FirmaEnBloque(Servicios.Procedencia, Servicios.Reloj);
-
         // La MISMA puerta de asignar que usan Asignar y Revisar, no una copia: quitarle los
         // casos a alguien tiene que dejar la base igual que quitarselos uno a uno.
         _reparto = new OperacionDeAsignar(Servicios.Asignaciones, Servicios.Reloj, Servicios.Avisos);
+
+        // Con la limpieza, no solo con los cuatro puertos. Desde el 2026-09-06 la vuelta ensena
+        // lo que trajo para que el dueno lo de por bueno —eso sale de los casos y las personas—
+        // y desde el 2026-09-07 ademas le quita al agente lo que devolvio completo: «debe
+        // quitarle que ese caso esta asignado a el; debe quedar limpio».
+        _vuelta = new OperacionDeLaVuelta(
+            Servicios.Paquetes, Servicios.Ilegibles, Servicios.Casos, Servicios.Personas,
+            new LimpiezaAlVolver(Servicios.Asignaciones, Servicios.Casos, _reparto));
+        _firma = new FirmaEnBloque(Servicios.Procedencia, Servicios.Reloj);
         _subida = new OperacionDeLaSegundaVuelta(
             Servicios.Paquetes, Servicios.ReporteDeLaSegundaVuelta,
             Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros);
@@ -305,6 +307,12 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
             _resumenDeLaVuelta.Ensenar(resumen);
             Servicios?.Avisos.Dejar(resumen.Avisos);
             Acusar(resumen.Linea, "VUELTA");
+
+            // Lo que se le quitó se dice en su propio acuse y no pegado a la línea de la vuelta:
+            // la del pie tiene tope medido de 160 caracteres, y la cifra que le importa al dueño
+            // —cuántas filas entraron— no puede quedar cortada por una frase de después.
+            if (vuelta.Limpieza.Retirados > 0 || vuelta.Limpieza.NoSePudieron > 0)
+                Acusar(vuelta.Limpieza.Linea, "LIMPIEZA");
 
             // Y aqui aparece lo que el dueno revisa. Se pinta DESDE el hilo de la ventana,
             // como los avisos, por el mismo fallo medido el 2026-09-04: tocar controles desde

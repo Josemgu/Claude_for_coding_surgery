@@ -52,6 +52,18 @@ public sealed class ResumenDeLaTanda
     /// <summary>Si la tanda se paro a mitad por decision de Miguel.</summary>
     public bool Cancelada { get; set; }
 
+    /// <summary>Los casos que nacieron en esta tanda, por su numero interno.</summary>
+    /// <remarks>
+    /// No es una cifra del resumen: es con lo que la pantalla compone despues las carpetas
+    /// que esta tanda va a formar en Revisar y lo que entro sin ninguna persona. Se acota a
+    /// LA TANDA a proposito, porque de eso es de lo que habla esa pantalla.
+    /// </remarks>
+    public IReadOnlyList<long> CasosDeLaTanda => [.. _documentos.SelectMany(uno => uno.CasoIds).Distinct()];
+
+    /// <summary>Los PDF que se intentaron leer en esta tanda, con su ruta entera.</summary>
+    public IReadOnlyList<string> RutasDeLaTanda =>
+        [.. _documentos.Select(uno => uno.RutaPdf).Distinct(StringComparer.OrdinalIgnoreCase)];
+
     /// <summary>Suma lo de un documento y devuelve el mismo resultado, para encadenar.</summary>
     public ResultadoDeUnDocumento Anotar(ResultadoDeUnDocumento resultado)
     {

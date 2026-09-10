@@ -15,7 +15,45 @@
         de arriba es el DESTINO, y los casos se leen aparte y enteros.
     -->
     <Grid Margin="{StaticResource MargenDePantalla}" RowSpacing="10">
+        <Grid.Resources>
+
+            <!--
+                UN solo renglon para las dos cosas que trae el panel de grupos: la cabecera de
+                un dia de viaje y una de sus unidades. Se ensena una mitad o la otra segun
+                «EsLaFecha», igual que en la pantalla del grupo (Grupo/PaginaDeGrupo.xaml) y
+                por el mismo motivo: la lista va aplanada, y un repetidor dentro de otro
+                construiria todos los renglones de golpe.
+            -->
+            <DataTemplate x:Key="RenglonDeGrupoPlantilla" x:DataType="asignar:RenglonDeGrupoParaAsignar">
+                <Grid Padding="8,5" ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        FontSize="12.5"
+                        FontWeight="{x:Bind asignar:PinturaDeLosGrupos.Grosor(EsLaFecha), Mode=OneTime}"
+                        Text="{x:Bind Etiqueta, Mode=OneTime}"
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="NoWrap"
+                        ToolTipService.ToolTip="{x:Bind Etiqueta, Mode=OneTime}" />
+
+                    <Button
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{x:Bind NombreDelBoton, Mode=OneTime}"
+                        Click="AlPedirAsignarUnGrupo"
+                        Content="{x:Bind PalabraDelBoton, Mode=OneTime}"
+                        FontSize="11.5"
+                        IsEnabled="{x:Bind SePuedeAsignar, Mode=OneTime}" />
+                </Grid>
+            </DataTemplate>
+        </Grid.Resources>
+
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -98,22 +136,124 @@
             Text="" />
 
         <!--
-            La lista. ItemsView virtualiza y trae su propio desplazamiento con barra
-            visible: con 3 000 casos solo se construyen los renglones que se ven.
-            Seleccion multiple, y Ctrl+A marca todo lo que hay a la vista.
+            La franja de confirmar el reparto de un grupo: dice CUANTOS ANTES de tocar la
+            base, y el que no asigna esta primero. No es un cuadro modal (requisito 4): es la
+            misma forma con la que se pregunta antes de quitarle todos los casos a alguien, en
+            Paquetes/PaginaDePaquetes.xaml. Asignar no borra nada y se puede retirar, asi que
+            no detiene el trabajo.
         -->
-        <ItemsView
-            x:Name="_lista"
+        <Border
+            x:Name="_zonaDeConfirmarElGrupo"
             Grid.Row="3"
-            AutomationProperties.Name="Casos que se pueden asignar"
-            IsTabStop="True"
-            SelectionMode="Multiple">
-            <ItemsView.Layout>
-                <StackLayout Spacing="4" />
-            </ItemsView.Layout>
-            <ItemsView.ItemTemplate>
-                <DataTemplate x:DataType="asignar:RenglonParaAsignar">
-                    <ItemContainer>
+            Padding="10,8"
+            Background="{ThemeResource Papel}"
+            BorderBrush="{ThemeResource Linea}"
+            BorderThickness="1"
+            CornerRadius="3"
+            Visibility="Collapsed">
+            <StackPanel Spacing="8">
+                <TextBlock
+                    x:Name="_lineaDeLoQueSeAsigna"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Foreground="{ThemeResource Tinta}"
+                    Text=""
+                    TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button
+                        AutomationProperties.Name="No asignar nada"
+                        Click="AlPulsarNoAsignarElGrupo"
+                        Content="No asignar nada" />
+                    <Button
+                        x:Name="_botonDeConfirmarElGrupo"
+                        AutomationProperties.Name="Asignarlos ahora"
+                        Click="AlPulsarConfirmarElGrupo"
+                        Content="Asignarlos ahora"
+                        Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!--
+            Los grupos a la izquierda y los documentos a la derecha.
+
+            ⚠️ El panel de grupos NO filtra la lista y no tiene estado propio: es un atajo
+            para repartir un dia entero o una unidad de ese dia sin ir documento por documento
+            (dueno, 2026-09-09: «en asignar debe poder asignarlo por grupo»). La lista de la
+            derecha sigue trayendo TODOS los casos sin archivar, como el 2026-09-05, porque el
+            defecto que el pidio quitar —«no me deja asignar»— era justo el de una pantalla que
+            escondia casos. Agrupar ensena; no impide.
+        -->
+        <Grid Grid.Row="4" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border
+                Grid.Column="0"
+                Background="{ThemeResource Panel}"
+                BorderBrush="{ThemeResource Linea}"
+                BorderThickness="1"
+                CornerRadius="3">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Border
+                        Grid.Row="0"
+                        Padding="10,8"
+                        BorderBrush="{ThemeResource Linea}"
+                        BorderThickness="0,0,0,1">
+                        <TextBlock
+                            x:Name="_tituloDeLosGrupos"
+                            FontSize="12.5"
+                            FontWeight="Bold"
+                            Foreground="{ThemeResource Tinta}"
+                            Text="Los grupos"
+                            TextWrapping="Wrap" />
+                    </Border>
+
+                    <TextBlock
+                        x:Name="_sinGrupos"
+                        Grid.Row="1"
+                        Margin="10,10"
+                        FontSize="12"
+                        Opacity="0.85"
+                        Text="Todavía no hay ningún documento que repartir."
+                        TextWrapping="Wrap"
+                        Visibility="Collapsed" />
+
+                    <ScrollView
+                        Grid.Row="2"
+                        Margin="2,2,2,6"
+                        ContentOrientation="Vertical"
+                        VerticalScrollBarVisibility="Visible">
+                        <ItemsRepeater x:Name="_grupos" ItemTemplate="{StaticResource RenglonDeGrupoPlantilla}" />
+                    </ScrollView>
+                </Grid>
+            </Border>
+
+            <!--
+                La lista. ItemsView virtualiza y trae su propio desplazamiento con barra
+                visible: con 3 000 casos solo se construyen los renglones que se ven.
+                Seleccion multiple, y Ctrl+A marca todo lo que hay a la vista.
+            -->
+            <ItemsView
+                x:Name="_lista"
+                Grid.Column="1"
+                AutomationProperties.Name="Casos que se pueden asignar"
+                IsTabStop="True"
+                SelectionMode="Multiple">
+                <ItemsView.Layout>
+                    <StackLayout Spacing="4" />
+                </ItemsView.Layout>
+                <ItemsView.ItemTemplate>
+                    <DataTemplate x:DataType="asignar:RenglonParaAsignar">
+                        <ItemContainer>
                         <!--
                             El globo lleva a TODOS los que viajan, uno por linea. La fila dice el
                             primero y cuantos mas, porque no se puede estirar; los diez de una
@@ -134,9 +274,10 @@
                                 Text="{x:Bind Detalle}"
                                 TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                    </ItemContainer>
-                </DataTemplate>
-            </ItemsView.ItemTemplate>
-        </ItemsView>
+                        </ItemContainer>
+                    </DataTemplate>
+                </ItemsView.ItemTemplate>
+            </ItemsView>
+        </Grid>
     </Grid>
 </cascara:PaginaDeFichas>
