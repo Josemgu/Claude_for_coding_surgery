@@ -98,12 +98,30 @@ public static class Campos
     ///
     /// <para>Con varias validas gana la de mas a la izquierda: es una regla fija, para no
     /// dejarlo al azar del orden en que el PDF las guarde.</para>
+    ///
+    /// <para><b>Y una nota escrita a mano le gana a un campo tecleado del formulario</b>
+    /// (2026-09-10), este donde este. El campo tecleado es lo que alguien relleno en el
+    /// ordenador; la nota es lo que otra persona escribio encima DESPUES, para corregirlo. Si
+    /// decidiera la posicion, una nota puesta a la derecha del campo perderia contra el valor
+    /// que viene a corregir.</para>
     /// </remarks>
     private static AnotacionDelPdf? MejorCorreccion(
         IReadOnlyList<AnotacionDelPdf> correcciones, Func<string?, string?> darForma)
         => correcciones
             .Where(c => !string.IsNullOrWhiteSpace(c.Texto) && darForma(c.Texto) is not null)
+            .OrderBy(c => Anotaciones.EsCorreccionAMano(c) ? 0 : 1)
+            .ThenBy(c => c.Banda.X0)
+            .FirstOrDefault();
+
+    /// <summary>
+    /// Lo tecleado en el campo del formulario de esta banda, tal cual, o nulo si no hay ninguno.
+    /// </summary>
+    /// <remarks>Con varios, el de mas a la izquierda, por la misma regla fija de arriba.</remarks>
+    private static string? TextoTecleado(IReadOnlyList<AnotacionDelPdf> correcciones)
+        => correcciones
+            .Where(Anotaciones.EsCampoTecleado)
             .OrderBy(c => c.Banda.X0)
+            .Select(c => c.Texto)
             .FirstOrDefault();
 
     /// <summary>
@@ -111,11 +129,20 @@ public static class Campos
     /// </summary>
     /// <remarks>
     /// Pasa de 30 lineas y NO se parte, a proposito: es el arbol de precedencia entero, y
-    /// su valor esta en que las cuatro ramas —correccion, tachon sin correccion, OCR, y
-    /// nada— se leen seguidas y en orden. Repartidas en cuatro funciones, comprobar que
-    /// el orden es el correcto obliga a saltar entre ellas, que es justo donde se cuelan
-    /// los errores de precedencia. Lo que si esta fuera, porque son decisiones
-    /// separables, es que texto cuenta como correccion y como se junta el texto del OCR.
+    /// su valor esta en que las cinco ramas —correccion, tachon sin correccion, tecleado
+    /// sin forma, OCR, y nada— se leen seguidas y en orden. Repartidas en cinco funciones,
+    /// comprobar que el orden es el correcto obliga a saltar entre ellas, que es justo
+    /// donde se cuelan los errores de precedencia. Lo que si esta fuera, porque son
+    /// decisiones separables, es que texto cuenta como correccion y como se junta el texto
+    /// del OCR.
+    ///
+    /// <para><b>La rama del tecleado sin forma</b> (2026-09-10): un campo del formulario
+    /// rellenable con algo tecleado que NO pasa la forma del campo no se inventa ni se
+    /// recorta, y tampoco se calla. Va vacio de valor con lo tecleado a la vista, por la
+    /// misma rama que salva las cedulas terminadas en letra, y asi llega a Correccion sin
+    /// la confianza de una lectura limpia. Va ANTES que el OCR porque, en un formulario
+    /// rellenado a maquina, lo que el OCR lee en esa banda es la pintura del propio campo:
+    /// preferir la lectura al texto exacto seria quedarse con la copia en vez del original.</para>
     /// </remarks>
     /// <param name="normalizar">
     /// Convierte el texto en el valor con formato. Si devuelve nulo, el campo queda sin
@@ -138,6 +165,7 @@ public static class Campos
         var darForma = normalizar ?? (texto => string.IsNullOrEmpty(texto) ? null : texto);
         string? valorOcr = TextoDeLasLineas(lineasOcr);
         string? textoAjeno = TextoDeLasLineas(lineasQueNoSonDeEsteCampo ?? []);
+        string? textoTecleado = TextoTecleado(correcciones);
 
         var correccion = MejorCorreccion(correcciones, darForma);
         if (correccion is not null)
@@ -156,10 +184,15 @@ public static class Campos
         // leyo al lado: sigue siendo un tachon, y callarlo lo haria pasar por «no se leyo».
         if (hayTachon)
         {
-            return valorOcr is not null
-                ? CampoVacio(valorOcr, anuladoPorTachon: true)
+            string? loTachado = textoTecleado ?? valorOcr;
+            return loTachado is not null
+                ? CampoVacio(loTachado, anuladoPorTachon: true)
                 : CampoVacio(textoAjeno, anuladoPorTachon: true, loLeidoEsDeEsteCampo: textoAjeno is null);
         }
+
+        // Hay un campo tecleado en la banda y no paso la forma (si la hubiera pasado, seria
+        // la correccion de arriba). Se enseña tal cual y se manda a revision.
+        if (textoTecleado is not null) return CampoVacio(textoTecleado);
 
         if (lineasOcr.Count > 0)
         {

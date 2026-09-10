@@ -9,6 +9,39 @@
     esta maquina. Sin WindowsPackageType=None el programa exigiria identidad de paquete,
     que aqui pide el Modo de desarrollador: NO esta activado y no se activa.
   -->
+  <!--
+    LA VERSION DEL PROGRAMA. Es el unico sitio donde se escribe a mano; todo lo demas la
+    lee de aqui. Lo pidio el dueno el 2026-09-07 y lo repitio el 2026-09-10: «control de
+    actualizacion», saber cual tiene abierta. Medido ese dia sobre el Fichas.exe compilado
+    antes de tocar nada: FileVersion 1.0.0.0 y ProductVersion «1.0.0+<commit>», que es lo
+    que el SDK pone cuando nadie dice nada.
+
+    Va en el proyecto de la app y no en Directory.Build.props: la version es del PROGRAMA
+    —de Fichas.exe, que es lo que el dueno abre y lo que Windows ensena en Detalles—, no de
+    cada biblioteca de dentro. Las bibliotecas no las ve nadie.
+
+    La forma es un entero, «9», y no «9.0» ni «0.9.0»: el dueno cuenta las entregas como
+    v2…v9 y etiqueta en git «v9». Con «9», la etiqueta es «v» + esto, sin ninguna regla
+    para quitar ceros. Una segunda salida del mismo numero seria «9.1» → «v9.1».
+
+    De aqui MSBuild deriva solo:
+      · AssemblyVersion y FileVersion  ... 9.0.0.0  (Detalles → «Version de archivo»)
+      · InformationalVersion           ... 9        («Version de producto», y lo que lee la cabecera)
+
+    Sube el numero AQUI antes de publicar: publish.ps1 se niega si «v9» ya esta
+    etiquetada, para que no salgan dos paquetes distintos con el mismo numero.
+  -->
+  <PropertyGroup>
+    <Version>10</Version>
+
+    <!--
+      Sin la cola «+commit» en la version de producto: la cabecera y las propiedades del
+      .exe tienen que decir exactamente lo que dice <Version>, y una prueba lo compara
+      letra a letra. El commit del que salio un paquete lo dice la etiqueta de git.
+    -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>Fichas.App</RootNamespace>

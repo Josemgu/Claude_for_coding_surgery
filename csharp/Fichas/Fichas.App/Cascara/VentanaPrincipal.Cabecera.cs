@@ -38,12 +38,16 @@ public sealed partial class VentanaPrincipal
     private DispatcherTimer? _esperaAlTeclear;
     private LoQueSeEncontro _ultimoHallazgo = LoQueSeEncontro.Nada;
 
-    /// <summary>Deja la cabecera lista: la fecha de hoy y el buscador con su motor detras.</summary>
+    /// <summary>
+    /// Deja la cabecera lista: la fecha de hoy, la version del programa y el buscador con su
+    /// motor detras.
+    /// </summary>
     private void MontarLaCabecera()
     {
         _busqueda = new BusquedaDeLaCabecera(_servicios.Casos);
 
         _fechaDeHoy.Text = FechaDeLaCabecera.LargaDelReloj(_servicios.Reloj);
+        _versionDelPrograma.Text = VersionDelPrograma.ComoSeLee;
         _buscador.PlaceholderText = BusquedaDeLaCabecera.ElMarcador;
 
         _esperaAlTeclear = new DispatcherTimer { Interval = LoQueSeEsperaAlTeclear };

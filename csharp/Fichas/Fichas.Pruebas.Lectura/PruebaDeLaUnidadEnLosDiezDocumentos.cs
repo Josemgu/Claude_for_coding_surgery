@@ -40,11 +40,23 @@ public class PruebaDeLaUnidadEnLosDiezDocumentos
     /// <summary>Los diez PDF de esta máquina: siete sueltos, uno de pareja y dos de grupo.</summary>
     private const int DocumentosEsperados = 10;
 
+    /// <summary>
+    /// Los diez son ESCANEOS y se eligen por su número de caso, no con «*.pdf».
+    /// </summary>
+    /// <remarks>
+    /// Hasta el 2026-09-10 se cogía todo lo que hubiera en la carpeta y se exigía que fueran
+    /// diez. Ese día llegaron los formularios rellenados a máquina del caso <c>ELTC2609</c>,
+    /// la carpeta pasó a tener más de diez, y las cinco pruebas de esta clase se quedaron en
+    /// «no concluyente» sin que nadie lo notara: medido sobre master antes de tocar nada,
+    /// 5 omitidas. Los formularios tienen su propia prueba.
+    /// </remarks>
+    private static readonly string[] PatronesDeLosEscaneos = ["*CASP2609*.pdf", "*PARB2609*.pdf", "*SURB2609*.pdf"];
+
     private static IReadOnlyList<HojaLeida> _hojas = [];
 
     private static string[] Documentos()
         => Directory.Exists(CarpetaDeLosDocumentos)
-            ? Directory.GetFiles(CarpetaDeLosDocumentos, "*.pdf").Order().ToArray()
+            ? PatronesDeLosEscaneos.SelectMany(patron => Directory.GetFiles(CarpetaDeLosDocumentos, patron)).Order().ToArray()
             : [];
 
     /// <summary>Se leen UNA vez para toda la clase: son veinte hojas de OCR de verdad.</summary>

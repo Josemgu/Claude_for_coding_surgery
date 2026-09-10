@@ -6,8 +6,6 @@
 # compartido es un choque garantizado, y el dueño pidió expresamente que nadie
 # trabaje en el mismo archivo que otro.
 csharp/Fichas/Fichas.sln
-csharp/Fichas/Directory.Build.props
-csharp/Fichas/publish.ps1
 csharp/Fichas/pruebas.ps1
 csharp/Fichas/.gitignore
 # 2026-09-05: la CARPETA Fichas.Contratos deja de estar congelada entera y se
@@ -79,3 +77,8 @@ csharp/C0-espiga
 # solo pruebas—: hoy un ilegible no se ve en ninguna pantalla.
 #
 # Solo se ANADEN metodos. Nada de lo que ya esta se cambia ni se quita.
+
+# 2026-09-10. Se DESCONGELAN publish.ps1 y Directory.Build.props para el control de
+# version: publish.ps1 tiene que leer la version, negarse si ya esta etiquetada y
+# escribirla en el resumen. TERCERA VEZ que el supervisor autoriza en el pase y se
+# olvida de esta lista (IIlegibles el 09, y ahora estos dos). Se anota por eso.

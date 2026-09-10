@@ -115,6 +115,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <TextBlock
@@ -152,6 +153,28 @@
                         Text="" />
 
                     <!--
+                        LA VERSION DEL PROGRAMA, como la cuenta el dueno: «v9». El texto lo
+                        escribe VersionDelPrograma leyendo el ensamblado; aqui no se escribe
+                        ningun numero a mano. Lo pidio el dueno el 2026-09-07 («control de
+                        actualizacion»): va a recibir versiones nuevas y tiene que saber cual
+                        tiene abierta.
+
+                        Va pegada al buscador, en letra de pie y color secundario, para que se
+                        vea sin estorbar: no compite con el titulo ni con la fecha. El «Style»
+                        es obligatorio aqui, como en la fecha: sin el heredaria los 28 px del
+                        NavigationView.
+                    -->
+                    <TextBlock
+                        x:Name="_versionDelPrograma"
+                        Grid.Column="2"
+                        AutomationProperties.AutomationId="versionDelPrograma"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Style="{StaticResource CaptionTextBlockStyle}"
+                        Text=""
+                        ToolTipService.ToolTip="Versión del programa" />
+
+                    <!--
                         EL BUSCADOR. Que hace y por que hace eso y no lo del mockup esta
                         explicado en Cascara/BusquedaDeLaCabecera.cs, con sus mediciones.
                         En corto: busca de verdad por numero de caso, nombre o MRN; ensena
@@ -160,7 +183,7 @@
                     -->
                     <AutoSuggestBox
                         x:Name="_buscador"
-                        Grid.Column="2"
+                        Grid.Column="3"
                         Width="320"
                         VerticalAlignment="Center"
                         AutomationProperties.Name="Buscar un documento por caso, nombre o MRN"

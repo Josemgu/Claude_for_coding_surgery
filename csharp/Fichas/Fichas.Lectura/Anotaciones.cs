@@ -37,6 +37,20 @@ public static class Anotaciones
     /// <summary>El subtipo de un trazo a mano. Sin texto, pero con color y grosor.</summary>
     public const string SubtipoDeTrazo = "Ink";
 
+    /// <summary>
+    /// Un campo de texto del formulario rellenable, con lo que alguien tecleo dentro.
+    /// </summary>
+    /// <remarks>
+    /// En el PDF es una anotacion <c>/Widget</c> cuyo campo es de tipo <c>/Tx</c>; el nombre
+    /// junta las dos cosas para que no se confunda con una casilla, que tambien es un
+    /// <c>/Widget</c>. Es la segunda clase de documento que recibe el dueño, medida el
+    /// 2026-09-10: un formulario rellenado en el ordenador, donde el nombre, la cedula, las
+    /// fechas y el templo no estan en la imagen ni en una <c>/FreeText</c>, sino tecleados en
+    /// estos campos. Su texto es exacto —no pasa por el OCR— y se trata como una correccion
+    /// escrita: misma precedencia, mismo origen y misma confianza.
+    /// </remarks>
+    public const string SubtipoDeCampoDeTexto = "Widget/Tx";
+
     // Las dos familias, MEDIDAS con `pypdf` sobre los cuatro documentos de referencia el
     // 2026-09-02 (45 tachones y 1 resaltador; 0 sin clasificar) y vueltas a ver el
     // 2026-09-04 en los siete escaneos del dueno, donde los 30 /Ink son todos tachones
@@ -112,9 +126,25 @@ public static class Anotaciones
             ? ClaseDeTrazo.Desconocida
             : ClasificarTrazo(anotacion.Rojo, anotacion.Verde, anotacion.Azul, anotacion.Grosor);
 
-    /// <summary>Cierto cuando la anotacion es una correccion escrita con texto dentro.</summary>
-    public static bool EsCorreccionEscrita(AnotacionDelPdf anotacion)
+    /// <summary>Cierto cuando la anotacion es una nota escrita a mano encima del papel, con texto.</summary>
+    public static bool EsCorreccionAMano(AnotacionDelPdf anotacion)
         => anotacion.Subtipo == SubtipoDeTexto && !string.IsNullOrWhiteSpace(anotacion.Texto);
+
+    /// <summary>
+    /// Cierto cuando la anotacion trae texto exacto que corrige o rellena un campo.
+    /// </summary>
+    /// <remarks>
+    /// Son dos cosas y las dos cuentan: una nota escrita a mano (<c>/FreeText</c>) y un campo
+    /// tecleado del formulario. Las dos son texto del propio PDF, sin OCR de por medio, y por
+    /// eso entran por la misma puerta de la precedencia. Cuando coinciden en una banda, la
+    /// nota a mano gana: <see cref="Campos.ResolverCampo"/> lleva escrito por que.
+    /// </remarks>
+    public static bool EsCorreccionEscrita(AnotacionDelPdf anotacion)
+        => EsCorreccionAMano(anotacion) || EsCampoTecleado(anotacion);
+
+    /// <summary>Cierto cuando la anotacion es un campo del formulario con algo tecleado dentro.</summary>
+    public static bool EsCampoTecleado(AnotacionDelPdf anotacion)
+        => anotacion.Subtipo == SubtipoDeCampoDeTexto && !string.IsNullOrWhiteSpace(anotacion.Texto);
 
     /// <summary>Cierto cuando la anotacion es un tachon que anula lo que hay debajo.</summary>
     public static bool EsTachon(AnotacionDelPdf anotacion) => ClaseDe(anotacion) == ClaseDeTrazo.Tachon;

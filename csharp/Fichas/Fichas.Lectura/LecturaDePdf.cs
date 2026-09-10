@@ -4,6 +4,7 @@ using PDFtoImage;
 using RapidOcrNet;
 using SkiaSharp;
 using UglyToad.PdfPig;
+using UglyToad.PdfPig.AcroForms.Fields;
 using UglyToad.PdfPig.Tokens;
 
 namespace Fichas.Lectura;
@@ -153,6 +154,14 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     /// lado largo es el alto. La escala se baja al <c>double</c> inmediatamente anterior
     /// (ver <see cref="Geometria.EscalaDeRasterizado"/>) para que el mapa de bits salga
     /// justo en el tope y no uno por encima.
+    ///
+    /// <para>⚠️ <b><c>WithFormFill</c> va a cierto, y no es un adorno</b> (2026-09-10). PDFium no
+    /// pinta los campos de un formulario rellenable con solo <c>WithAnnotations</c>: hace
+    /// falta el entorno de relleno de formulario. Medido sobre el PDF del dueño: la casilla
+    /// del nombre salia con <b>0 de 58 011</b> pixeles oscuros sin esta opcion y con 4 431 con
+    /// ella. Sin ella, Miguel veia la tabla en blanco con la persona ahi delante, y el OCR no
+    /// tenia nada que leer. En un escaneo sin formulario no cambia ni un pixel: comprobado
+    /// por SHA-256 del PNG sobre los diez documentos escaneados.</para>
     /// </remarks>
     public ImagenDePagina? RasterizarPagina(string rutaPdf, int pagina, int anchoMaximo)
     {
@@ -169,7 +178,7 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
             using var mapa = Conversion.ToImage(
                 bytes,
                 page: new Index(pagina - 1),
-                options: new RenderOptions(Width: anchoPx, Height: altoPx, WithAnnotations: true));
+                options: new RenderOptions(Width: anchoPx, Height: altoPx, WithAnnotations: true, WithFormFill: true));
 
             using var datos = mapa.Encode(SKEncodedImageFormat.Png, 100);
             return new ImagenDePagina(pagina, mapa.Width, mapa.Height, datos.ToArray());
@@ -182,10 +191,14 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
 
     /// <inheritdoc />
     /// <remarks>
-    /// Solo salen las <c>/FreeText</c> y las <c>/Ink</c>. Los demas subtipos se ignoran a
-    /// proposito: un <c>/Link</c> o un <c>/Popup</c> no dicen nada del formulario. Lo que
-    /// NO se ignora es un <c>/Ink</c> que no se sepa clasificar; ese vuelve igual y
-    /// <see cref="Anotaciones.ClaseDe"/> lo llama desconocido.
+    /// Salen las <c>/FreeText</c>, las <c>/Ink</c> y, desde el 2026-09-10, los campos de
+    /// TEXTO del formulario rellenable —<c>/Widget</c> de tipo <c>/Tx</c>—, que es donde un
+    /// formulario rellenado en el ordenador lleva tecleados el nombre, la cedula, las fechas
+    /// y el templo. Los demas subtipos se ignoran a proposito: un <c>/Link</c> o un
+    /// <c>/Popup</c> no dicen nada del formulario, y las casillas (<c>/Btn</c>) no entran
+    /// todavia: la App no tiene por donde guardarlas. Lo que NO se ignora es un <c>/Ink</c>
+    /// que no se sepa clasificar; ese vuelve igual y <see cref="Anotaciones.ClaseDe"/> lo
+    /// llama desconocido.
     /// </remarks>
     public IReadOnlyList<AnotacionDelPdf> LeerAnotaciones(string rutaPdf, int pagina)
     {
@@ -195,7 +208,7 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
             if (pagina < 1 || pagina > documento.NumberOfPages) return [];
 
             var hoja = documento.GetPage(pagina);
-            var leidas = new List<AnotacionDelPdf>();
+            var leidas = new List<AnotacionDelPdf>(CamposDeTextoDelFormulario(documento, pagina, hoja.Width, hoja.Height));
 
             foreach (var anotacion in hoja.GetAnnotations())
             {
@@ -223,6 +236,47 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
             return [];
         }
     }
+
+    /// <summary>
+    /// Los campos de texto del formulario que caen en esta hoja, vacios incluidos.
+    /// </summary>
+    /// <remarks>
+    /// Se leen por el <c>AcroForm</c> del documento y no por el diccionario de cada
+    /// <c>/Widget</c>, porque el tipo y el valor de un campo pueden venir HEREDADOS de su
+    /// padre (<c>/Parent</c>), y PdfPig resuelve esa herencia al construir el arbol. Un
+    /// campo con varios widgets es un nodo con hijos: se aplana y cada hijo trae su propio
+    /// rectangulo. Los vacios se devuelven con texto nulo: sirven para saber que fila del
+    /// formulario es cada una, aunque no propongan nada.
+    ///
+    /// <para>⛔ El texto sale TAL CUAL lo tecleo alguien (regla permanente 1): con sus
+    /// espacios y sus mayusculas. Darle forma es cosa de <see cref="Normalizacion"/>, igual
+    /// que a lo que lee el OCR.</para>
+    /// </remarks>
+    private static IEnumerable<AnotacionDelPdf> CamposDeTextoDelFormulario(
+        PdfDocument documento, int pagina, double anchoPuntos, double altoPuntos)
+    {
+        if (!documento.TryGetForm(out var formulario) || formulario is null) return [];
+
+        return formulario.Fields
+            .SelectMany(AplanarCampo)
+            .OfType<AcroTextField>()
+            .Where(campo => campo.PageNumber == pagina && campo.Bounds is not null)
+            .Select(campo => new AnotacionDelPdf(
+                Subtipo: Anotaciones.SubtipoDeCampoDeTexto,
+                Texto: string.IsNullOrEmpty(campo.Value) ? null : campo.Value,
+                Banda: Geometria.RectanguloPdfAFracciones(
+                    campo.Bounds!.Value.Left, campo.Bounds.Value.Bottom,
+                    campo.Bounds.Value.Right, campo.Bounds.Value.Top, anchoPuntos, altoPuntos),
+                Rojo: null,
+                Verde: null,
+                Azul: null,
+                Grosor: null))
+            .ToArray();
+    }
+
+    /// <summary>El campo y, si tiene hijos, todos sus descendientes.</summary>
+    private static IEnumerable<AcroFieldBase> AplanarCampo(AcroFieldBase campo)
+        => campo is AcroNonTerminalField padre ? padre.Children.SelectMany(AplanarCampo) : [campo];
 
     /// <summary>El <c>/C</c> de la anotacion en RGB; nulo en los tres si no lo declara.</summary>
     private static (double? Rojo, double? Verde, double? Azul) ColorDe(DictionaryToken diccionario)

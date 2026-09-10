@@ -245,7 +245,7 @@ public static class Personas
     /// porque alli la banda cuelga de un ROTULO y el valor esta debajo, mientras que aqui la
     /// fila ya es el texto y el trazo lo cruza por el medio.</para>
     /// </remarks>
-    private static BandaDeLaPagina FranjaDeTrazos(BandaDeLaPagina fila, double x0, double x1)
+    internal static BandaDeLaPagina FranjaDeTrazos(BandaDeLaPagina fila, double x0, double x1)
     {
         double centro = (fila.Y0 + fila.Y1) / 2.0;
         double mitadDelAlto = (fila.Y1 - fila.Y0) * Bandas.FactorDeAltoDeLaBanda / 2.0;
@@ -324,6 +324,13 @@ public static class Personas
     /// donde acaba la lista, y adivinarlo produce personas que no existen. El numero de
     /// filas descartadas se informa: una fila que se descarta en silencio es una persona
     /// que puede haberse perdido.
+    ///
+    /// <para><b>Dos clases de documento, y se decide aqui cual es</b> (2026-09-10). Si el
+    /// bloque trae campos de texto del formulario con algo tecleado, la hoja es un formulario
+    /// rellenado a maquina y las personas salen de esos campos, por su rectangulo; las lineas
+    /// del OCR de esas filas son la pintura de los mismos campos y no se usan, para no contar
+    /// a cada persona dos veces. Si los campos estan todos vacios —o no hay ninguno, que es
+    /// el caso de los escaneos—, se sigue por el OCR como hasta ahora.</para>
     /// </remarks>
     public static (IReadOnlyList<PersonaExtraida> Personas, int Descartadas) Extraer(
         IReadOnlyList<LineaDeOcr> lineas,
@@ -338,6 +345,12 @@ public static class Personas
         double limite = LimiteDeLaColumnaDeNombres(anclaNombres.Value, anclaCedula.Value);
         var (arriba, abajo) = BloqueDePersonas(anclaNombres.Value, anclaCedula.Value, cierresDelBloque);
         if (abajo is null) return ([], 0);
+
+        var filasDelFormulario = PersonasDelFormulario.FilasDeCampos(anotaciones, arriba, abajo.Value);
+        if (filasDelFormulario.Any(fila => fila.Any(Anotaciones.EsCampoTecleado)))
+        {
+            return (PersonasDelFormulario.Extraer(filasDelFormulario, anotaciones, anclaCedula.Value, limite), 0);
+        }
 
         var candidatas = SoloLasFilasSeguidas(LineasDeNombre(lineas, arriba, abajo.Value, limite));
 
