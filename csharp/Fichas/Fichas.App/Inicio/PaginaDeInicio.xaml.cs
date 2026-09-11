@@ -56,6 +56,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
 
         _inicialesDeLosDias.ItemsSource = FechasEnEspanol.InicialesDeLosDias;
 
+        QuitarLaAsignacionALoArchivadoDeAntes();
+
         if (MedicionDeInicio.EstaPedida)
         {
             _relojDelPintado = Stopwatch.StartNew();
@@ -84,6 +86,34 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
         // Requisito 4 y 9: lo que no cuadra se dice en UNA linea en la franja de la
         // cascara y no detiene nada. Aqui no se abre ni un cuadro.
         Servicios.Avisos.Dejar(resumen.Avisos);
+    }
+
+    /// <summary>
+    /// El caso de los 1 000: lo archivado ANTES del 2026-09-11 con la asignacion viva se limpia
+    /// aqui, al llegar, porque esta es la primera pantalla y la que ensena cuanto lleva cada uno.
+    /// </summary>
+    /// <remarks>
+    /// <para>La regla no vive aqui: es <see cref="Revisar.RetiradaAlArchivar"/>, y se prueba sin
+    /// ventana. Esta pantalla solo la llama ANTES de leer, para que el cuadro que se pinta ya
+    /// diga la cifra buena, y deja una linea en la franja SOLO si retiro algo: una limpieza que
+    /// no encuentra nada no tiene por que saludar.</para>
+    ///
+    /// <para>Se anota lo que costo en el registro por lo mismo que se anota el resumen: esta
+    /// pantalla tiene techo de 200 ms y una pasada que escribe no puede colarse sin medirse.</para>
+    /// </remarks>
+    private void QuitarLaAsignacionALoArchivadoDeAntes()
+    {
+        if (Servicios is null) return;
+
+        var reparto = new Asignar.OperacionDeAsignar(Servicios.Asignaciones, Servicios.Reloj, Servicios.Avisos);
+        var retirada = new Revisar.RetiradaAlArchivar(Servicios.Asignaciones, Servicios.Casos, reparto);
+
+        var cronometro = Stopwatch.StartNew();
+        var limpieza = retirada.QuitarLasDeLoQueYaEstabaArchivado();
+        cronometro.Stop();
+
+        Servicios.Registro.AnotarNavegacion("Inicio limpia lo archivado de antes", cronometro.Elapsed.TotalMilliseconds);
+        if (limpieza.HuboAlgo) Servicios.Avisos.Dejar(Contratos.Modelos.Aviso.Informa(limpieza.Linea));
     }
 
     /// <summary>

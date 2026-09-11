@@ -33,7 +33,11 @@ internal sealed class BaseDePrueba
         Personas = new EspiaDePersonas(Servicios.Personas);
         Lista = new ListaParaAsignar(Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Personas);
         Tablero = new TableroDeRevisar(Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Reloj);
-        Acciones = new AccionesDeRevisar(Servicios.Casos, Reloj, Avisos);
+        // Con la retirada puesta, que es como la monta la pantalla desde el 2026-09-11:
+        // archivar quita la asignacion, y montarlo sin ella mediria una tuberia mas corta.
+        Acciones = new AccionesDeRevisar(
+            Servicios.Casos, Reloj, Avisos,
+            new RetiradaAlArchivar(Servicios.Asignaciones, Servicios.Casos, Operacion));
     }
 
     /// <summary>El reloj parado.</summary>

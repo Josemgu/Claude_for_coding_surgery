@@ -1,5 +1,6 @@
 using Fichas.App.Cascara;
 using Fichas.App.Revisar;
+using Fichas.Pruebas.App.Revisar;
 using Fichas.App.Vocabulario;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
@@ -45,7 +46,7 @@ public sealed class PruebasDeQueLaBaseSigueDiciendoQuienLoDijo
     {
         _reloj = new RelojFijo(ElDiaDeLaPrueba);
         _servicios = new ServiciosFalsos(0, 20260907, _reloj);
-        _acciones = new AccionesDeRevisar(_servicios.Casos, _reloj, new BuzonDeAvisos());
+        _acciones = MontajeDeRevisar.Acciones(_servicios.Casos, _servicios.Asignaciones, _reloj, new BuzonDeAvisos());
         _tablero = new TableroDeRevisar(
             _servicios.Casos, _servicios.Asignaciones, _servicios.Companeros, _reloj);
     }

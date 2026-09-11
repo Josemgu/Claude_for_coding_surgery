@@ -20,6 +20,12 @@ mandan estas.
    inventados causan daño real. Solo OCR determinista y reglas.
 2. **Un solo ejecutable.** El usuario final abre con doble clic. Sin instalación,
    sin Python en la máquina, sin servidor web, sin puertos abiertos.
+   *Precisado por el dueño el 2026-09-11 (`DECISIONES.md`, «EL DUEÑO PIDE
+   INSTALADORES»):* el programa llega a la máquina con un **instalador por usuario,
+   sin administrador** (`Instalar-Fichas-vN.exe`), y actualizar es ejecutar el nuevo
+   encima. Lo que la regla sigue prohibiendo es todo lo demás: nada que instalar
+   aparte, ni Python, ni runtime, ni servidor, ni puertos. Los datos siguen fuera,
+   en `Documentos\Fichas`, y el instalador no los toca.
 3. **Sin pandas.** Solo `openpyxl` para Excel. Pandas infla el ejecutable unos
    40 MB sin aportar nada aquí.
 4. **Español en todo:** variables, funciones, tablas, columnas, comentarios,

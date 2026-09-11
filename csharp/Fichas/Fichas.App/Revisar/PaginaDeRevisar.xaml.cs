@@ -73,8 +73,12 @@ public sealed partial class PaginaDeRevisar : PaginaDeFichas
         if (Servicios is null) return;
 
         _tablero = new TableroDeRevisar(Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Servicios.Reloj);
-        _acciones = new AccionesDeRevisar(Servicios.Casos, Servicios.Reloj, Servicios.Avisos);
         _asignar = new OperacionDeAsignar(Servicios.Asignaciones, Servicios.Reloj, Servicios.Avisos);
+        // Archivar quita la asignacion por la MISMA puerta que asigna y retira esta pantalla
+        // (2026-09-11): si fueran dos operaciones, sus avisos caerian en franjas distintas.
+        _acciones = new AccionesDeRevisar(
+            Servicios.Casos, Servicios.Reloj, Servicios.Avisos,
+            new RetiradaAlArchivar(Servicios.Asignaciones, Servicios.Casos, _asignar));
         _borrar = new OperacionDeBorrar(Servicios.Mantenimiento, Servicios.Avisos, Servicios.Registro);
 
         // Con datos inventados no hay base que copiar, asi que no hay nada que borrar. El

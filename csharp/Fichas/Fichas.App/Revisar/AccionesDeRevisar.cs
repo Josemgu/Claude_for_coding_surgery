@@ -29,24 +29,60 @@ public sealed class AccionesDeRevisar
     private readonly ICasos _casos;
     private readonly IReloj _reloj;
     private readonly BuzonDeAvisos _avisos;
+    private readonly RetiradaAlArchivar _retirada;
 
-    /// <summary>Ata las acciones al repositorio de casos, al reloj y al buzon de la franja.</summary>
-    public AccionesDeRevisar(ICasos casos, IReloj reloj, BuzonDeAvisos avisos)
+    /// <summary>Ata las acciones al repositorio de casos, al reloj, al buzon de la franja y a la retirada.</summary>
+    /// <remarks>
+    /// La retirada entra por aqui y no se monta dentro por lo mismo que la limpieza de la
+    /// vuelta en <c>OperacionDeLaVuelta</c>: montarla sin ella dejaria las pruebas midiendo
+    /// una tuberia mas corta que la del programa.
+    /// </remarks>
+    public AccionesDeRevisar(ICasos casos, IReloj reloj, BuzonDeAvisos avisos, RetiradaAlArchivar retirada)
     {
         _casos = casos;
         _reloj = reloj;
         _avisos = avisos;
+        _retirada = retirada;
     }
 
     /// <summary>
-    /// Archiva de golpe todos los casos marcados. Archivar NO es borrar: pone
-    /// <c>archivado</c> con su fecha y el caso sigue contando en los reportes y en el
-    /// calendario (criterio C8-3), asi que no hace falta preguntar nada.
+    /// Archiva de golpe todos los casos marcados, y a cada uno que queda archivado le quita
+    /// la asignacion a quien lo llevara. Archivar NO es borrar: pone <c>archivado</c> con su
+    /// fecha y el caso sigue contando en los reportes y en el calendario (criterio C8-3), asi
+    /// que no hace falta preguntar nada.
     /// </summary>
+    /// <remarks>
+    /// <para>La asignacion se quita <b>despues</b> de que el archivado haya entrado, y solo
+    /// entonces: si archivar no se pudo escribir, el documento sigue siendo trabajo de quien lo
+    /// lleva. Lo pidio el dueno el 2026-09-11 —<i>«cuando los documentos se archiven, ya no
+    /// aparezcan asignados al agente»</i>— y el como es el de <see cref="RetiradaAlArchivar"/>:
+    /// se desactiva con su fecha, nunca se borra.</para>
+    ///
+    /// <para>⚠️ Desarchivar NO la devuelve. Un documento que vuelve del archivo queda sin
+    /// asignar y el dueno decide a quien va; devolverselo solo al de antes seria decidir por el.</para>
+    /// </remarks>
     public ResumenDeLote ArchivarEnLote(IReadOnlyCollection<long> casoIds)
-        => EnLote(casoIds, id => _casos.Archivar(id, true, _reloj.Hoy()), "archivado", "archivados");
+    {
+        var retirados = 0;
+        var resumen = EnLote(
+            casoIds,
+            id =>
+            {
+                var archivado = _casos.Archivar(id, true, _reloj.Hoy());
+                if (archivado.SeEscribio && _retirada.QuitarLasDe(id) > 0) retirados++;
+                return archivado;
+            },
+            "archivado",
+            "archivados");
+
+        return resumen with { DejanDeEstarAsignados = retirados };
+    }
 
     /// <summary>Desarchiva de golpe: la vuelta atras de lo anterior, y por el mismo camino.</summary>
+    /// <remarks>
+    /// Por el mismo camino en lo que toca al caso; la asignacion que se quito al archivar
+    /// <b>no</b> se devuelve, y eso es a proposito (ver <see cref="ArchivarEnLote"/>).
+    /// </remarks>
     public ResumenDeLote DesarchivarEnLote(IReadOnlyCollection<long> casoIds)
         => EnLote(casoIds, id => _casos.Archivar(id, false, string.Empty), "desarchivado", "desarchivados");
 
@@ -309,17 +345,21 @@ public sealed class AccionesDeRevisar
 /// <param name="NoSePudieron">Cuantos no; su motivo ya esta en la franja.</param>
 /// <param name="ParticipioSingular">Como se dice de uno: «archivado», «desarchivado».</param>
 /// <param name="ParticipioPlural">Como se dice de varios: «archivados», «desarchivados».</param>
+/// <param name="DejanDeEstarAsignados">De los hechos, cuantos llevaban a alguien y ya no; solo al archivar.</param>
 public sealed record ResumenDeLote(
-    int Hechos, int NoSePudieron, string ParticipioSingular, string ParticipioPlural)
+    int Hechos, int NoSePudieron, string ParticipioSingular, string ParticipioPlural, int DejanDeEstarAsignados = 0)
 {
     /// <summary>
     /// La linea de una sola frase que se ensena en el acuse del pie.
     /// </summary>
     /// <remarks>
-    /// Las dos formas se escriben a mano y no las adivina un pluralizador, que es la regla de
+    /// <para>Las dos formas se escriben a mano y no las adivina un pluralizador, que es la regla de
     /// <see cref="Plural"/>: acertaria con «documento» y fallaria con cualquier palabra que no
     /// haga el plural en «-s», y un programa que inventa una palabra en espanol delante de
-    /// quien lo usa es peor que uno repetitivo.
+    /// quien lo usa es peor que uno repetitivo.</para>
+    ///
+    /// <para>Cuando al archivar se le quito la asignacion a alguno, se dice cuantos: un numero
+    /// que baja en el cuadro de los agentes sin explicacion se lee como que algo se perdio.</para>
     /// </remarks>
     public string Linea
     {
@@ -327,10 +367,14 @@ public sealed record ResumenDeLote(
         {
             var hechos = Plural.Con(Hechos, "documento", "documentos")
                 + " " + Plural.Palabra(Hechos, ParticipioSingular, ParticipioPlural);
-            return NoSePudieron == 0
-                ? $"{hechos}."
-                : $"{hechos}; {NoSePudieron} no "
-                  + Plural.Palabra(NoSePudieron, "se pudo", "se pudieron") + " (mira la franja).";
+            var colas = new List<string>();
+            if (DejanDeEstarAsignados > 0)
+                colas.Add($"{DejanDeEstarAsignados} " + Plural.Palabra(DejanDeEstarAsignados, "deja", "dejan") + " de estar "
+                    + Plural.Palabra(DejanDeEstarAsignados, "asignado", "asignados"));
+            if (NoSePudieron > 0)
+                colas.Add($"{NoSePudieron} no " + Plural.Palabra(NoSePudieron, "se pudo", "se pudieron") + " (mira la franja)");
+
+            return colas.Count == 0 ? $"{hechos}." : $"{hechos}; {string.Join("; ", colas)}.";
         }
     }
 }

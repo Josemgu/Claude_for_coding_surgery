@@ -30,7 +30,7 @@ internal sealed class BancoDeCarpetas
         Servicios = new ServiciosFalsos(0, 20260905, Reloj);
         Avisos = new BuzonDeAvisos();
         Tablero = new TableroDeRevisar(Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Reloj);
-        Acciones = new AccionesDeRevisar(Servicios.Casos, Reloj, Avisos);
+        Acciones = MontajeDeRevisar.Acciones(Servicios.Casos, Servicios.Asignaciones, Reloj, Avisos);
     }
 
     /// <summary>El reloj parado.</summary>

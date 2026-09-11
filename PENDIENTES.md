@@ -1200,8 +1200,8 @@ comprobar aquí**; en esta fase se mide de verdad.
 
 - ⛔ **No se cambia a `--onefile`** por ganar un archivo suelto.
 - ⛔ No se añaden funcionalidades. Si algo falta, es deuda para un ciclo nuevo.
-- ⛔ No se instala nada en la máquina de destino: sin instalador, sin Python, sin
-  servicio, sin puerto (regla permanente 2).
+- ~~⛔ No se instala nada en la máquina de destino: sin instalador, sin Python, sin~~
+  ~~servicio, sin puerto (regla permanente 2).~~ Tachado el 2026-09-11: el dueño pidió instaladores; la regla 2 se precisó (DECISIONES.md, «EL DUEÑO PIDE INSTALADORES»). Lo demás —sin Python, sin servicio, sin puerto— sigue.
 
 ### Criterio de aceptación
 

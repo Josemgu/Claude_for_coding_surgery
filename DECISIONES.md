@@ -3909,6 +3909,97 @@ la suposición que falla con sus documentos reales. Hace falta el archivo para
 medir cuántas hojas, cuántas unidades y cuántas personas trae, y qué hizo el
 programa con él.
 
+## 2026-09-11 — EL DUEÑO PIDE INSTALADORES, y la regla 2 se precisa
+
+Sus palabras: *«Haz un instalador para actualizar. Ahora vamos a actualizar el
+programa: haremos instaladores.»* Y antes, el 10: *«la versión que subiste es del
+código, no del programa»* — el programa tiene que estar en GitHub, no solo el código.
+
+**Lo que contradice.** La regla permanente 2 de CLAUDE.md dice «sin instalación», y
+`PENDIENTES.md:1203` lo repite. Lo señaló el programador del instalador, que hizo bien:
+lo que la regla protegía —que el usuario no tenga que instalar Python, ni un servidor,
+ni un runtime, ni abrir puertos— sigue intacto. Lo que cambia es la forma de llegar
+el programa a la máquina: en vez de descomprimir un zip a mano, un instalador. Se
+precisa la regla 2 en CLAUDE.md con esta fecha; no se borra.
+
+**Lo decidido, y medido por el programador (yo leí el guion entero y el diff; NO repetí
+la instalación de ensayo):**
+
+- `csharp/Fichas/instalador/Fichas.iss`, Inno Setup 6. `AppId` **fijo para siempre**
+  (`{943F88A5-F4D4-43CF-ACEC-97D50EE6D45B}`): es lo que le dice a Windows que la v11
+  es el mismo programa que la v10 y debe sustituirla. Si se cambia, se instalan dos.
+- **Por usuario y sin administrador** (`PrivilegesRequired=lowest`,
+  `%LOCALAPPDATA%\Programs\Fichas`). Motivo: en el trabajo del dueño puede no haber
+  permisos de administrador, y una instalación en Archivos de programa los exigiría
+  en CADA actualización. No se ofrece «para todos los usuarios».
+- **Actualizar = ejecutar el instalador nuevo encima.** Cierra Fichas si está abierto
+  (Administrador de reinicios de Windows) y **vacía la carpeta del programa** antes de
+  copiar —la lista de DLL cambia entre versiones y una vieja que sobre puede romper el
+  arranque—, solo si la carpeta ya era una instalación de Fichas. Medido con un
+  señuelo `viejo.dll`: desaparece; 0 archivos sobran, 0 faltan.
+- **`Documentos\Fichas` no se nombra en ninguna sección del guion.** Ni instalar, ni
+  actualizar, ni desinstalar lo tocan. Medido: 1 archivo antes, 1 después de desinstalar.
+- `publish.ps1` construye, después de la carpeta, el zip (`Fichas-vN.zip`, antes se
+  hacía a mano) y el instalador (`Instalar-Fichas-vN.exe`), **al lado** de la carpeta.
+  Con `-Ensayo`, los dos llevan `-ENSAYO`. Si falta Inno Setup, lo dice y el zip sale
+  igual. Ambos llevan la misma guarda de versión que la carpeta.
+- Nada que instalar aparte: `SelfContained` y `WindowsAppSDKSelfContained` son `true`
+  en el csproj (medido por el programador); exige Windows 10 1809 x64.
+- Inno Setup se instaló en esta máquina con winget (6.7.3) con permiso del dueño el
+  2026-09-11.
+
+**Lo que NO cubre:** actualizar una copia que se descomprimió del zip a mano en otra
+carpeta —el instalador no la conoce, instala en la suya y la suelta se queda—. El
+dueño tiene que instalar una vez con el instalador y, de ahí en adelante, actualizar
+con el siguiente. Tampoco se comprueba solo si hay versión nueva: el repositorio es
+privado y haría falta una clave en cada máquina; queda fuera salvo que él lo pida.
+
+**Lo que se sube a cada Release de GitHub a partir de la v11:** el instalador y el zip.
+
+## 2026-09-11 — ARCHIVAR LE QUITA EL DOCUMENTO AL AGENTE
+
+Sus palabras: *«Quiero que cuando los documentos se archiven ya no aparezcan
+asignados al agente, porque llegará un punto en que, si no se hace así, un agente
+puede tener 1 000 casos pero en la realidad solo tiene 10.»*
+
+**Lo que había, medido por el programador en el código y repetido por el supervisor
+en `AccionesDeRevisar.cs:46-47` y `CargaDeUnCompanero.cs:173-181`:** archivar solo
+escribía `archivado = 1`; la asignación seguía viva. Un archivado con asignación
+entraba en el renglón por agente de Inicio y Flujo, en «sin devolver», en el
+desplegable de Paquetes y en el paquete siguiente; y **no** entraba en la cifra grande
+de «casos de los agentes». Inicio decía dos números distintos de lo mismo.
+
+**Lo decidido:**
+
+- Archivar retira **todas** las asignaciones vivas del documento: se desactivan con la
+  fecha de hoy y **nunca se borran**, el mismo gesto que el paquete que vuelve hace con
+  lo completado desde el 2026-09-08. Va por `OperacionDeAsignar.RetirarDelCaso`, la
+  misma puerta que el botón de Asignar, para que los dos caminos dejen la base igual.
+- El acuse lo dice: «2 documentos archivados; 2 dejan de estar asignados».
+- **Desarchivar no devuelve la asignación**: el dueño decide a quién va.
+- **El informe del agente sigue trayendo lo que hizo**, porque lee vivas y retiradas.
+  Medido por el programador sobre el PDF generado: «Documentos que se le asignaron 8 ·
+  Lleva 4 ahora mismo», con los dos archivados en la lista.
+- **El caso de los 1 000, los archivados de antes de hoy con asignación viva:** al
+  llegar a Inicio, el programa los retira solo y lo dice en una línea («2 documentos
+  archivados de antes seguían asignados; ya no. Lo que hizo cada agente con ellos se
+  conserva en su informe»). Es idempotente, no marca ni firma nada (regla 5 intacta),
+  y con 3 000 casos cuesta 54 ms con trabajo y 18 ms sin él. **Lo eligió el supervisor
+  y no el dueño**: la alternativa era un botón. Si él prefiere el botón, se cambia.
+- Nada de esto toca la fecha de archivado.
+
+**Medido por el supervisor tras fusionar:** App 991 pruebas (980 + 11 nuevas); una,
+`ConTresMilDocumentosLeerLaProcedencia…`, roja con la máquina al 62 % (OneDrive y
+otros procesos: 704–786 ms sobre un tope de 700) y verde a solas; `LectorDelInicio.cs`
+no cambió en esta fusión (`git diff --stat` vacío). Los 8 archivos de la App que
+cambiaron: `Revisar/RetiradaAlArchivar.cs` (nuevo), `AccionesDeRevisar.cs`,
+`PaginaDeRevisar.xaml.cs`, `Inicio/PaginaDeInicio.xaml.cs`, `CargaDeUnCompanero.cs`
+(solo el comentario que hacía la pregunta).
+
+**Lo que NO cubre:** `PanelDelEquipo` («lleva N cosas a su nombre», para borrar un
+compañero) sigue contando vivas y retiradas: es otra pregunta. El coste de archivar
+en lote sobre SQLite no se midió (en memoria, 300 documentos: 4 → 45 ms).
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

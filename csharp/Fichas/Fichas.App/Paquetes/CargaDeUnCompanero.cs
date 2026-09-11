@@ -170,9 +170,13 @@ public static class CargaDeUnCompanero
     /// completo OTRO agente no es trabajo que este haya hecho: si se mirara solo el estado, a
     /// este se le quitaria del paquete un caso que nunca ha visto.</para>
     ///
-    /// <para>Los archivados entran en la consulta a proposito. Que un caso archivado deba o no
-    /// ir en un paquete es otra pregunta y tiene su propia regla; dejarlo fuera aqui la
-    /// cambiaria de tapadillo desde el sitio equivocado.</para>
+    /// <para>Los archivados entran en la consulta a proposito, y desde el 2026-09-11 ya no
+    /// deberia haber ninguno con asignacion viva: el dueno contesto la pregunta que este
+    /// parrafo dejaba abierta —<i>«cuando los documentos se archiven, ya no aparezcan asignados
+    /// al agente»</i>— y archivar retira la asignacion (<c>Revisar.RetiradaAlArchivar</c>). Se
+    /// siguen pidiendo con <c>IncluirArchivados: true</c> por lo mismo que antes: esta clase LEE
+    /// las asignaciones vivas y no decide por su cuenta cuales cuentan; si uno se colara vivo,
+    /// se veria aqui en vez de esconderse.</para>
     /// </remarks>
     private static Dictionary<long, EstadoDeRecomendacion> LoQueEsteCompaneroYaDijoDeCadaUno(
         ICasos casos, long companeroId)

@@ -2,6 +2,7 @@ using Fichas.App.Vocabulario;
 using Fichas.App.Cascara;
 using Fichas.App.Inicio;
 using Fichas.App.Revisar;
+using Fichas.Pruebas.App.Revisar;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
@@ -374,7 +375,7 @@ public sealed class PruebasDeInicio
         var servicios = BaseDeInicio.MontarServicios(0);
         var casoId = BaseDeInicio.MeterCaso(
             servicios, "VUEL2609", "2026-09-08", cuantasPersonas: 1, unidadNumero: "9999999");
-        var acciones = new AccionesDeRevisar(servicios.Casos, servicios.Reloj, new BuzonDeAvisos());
+        var acciones = MontajeDeRevisar.Acciones(servicios.Casos, servicios.Asignaciones, servicios.Reloj, new BuzonDeAvisos());
 
         acciones.ArchivarEnLote([casoId]);
         var archivado = BaseDeInicio.LeerInicio(servicios);

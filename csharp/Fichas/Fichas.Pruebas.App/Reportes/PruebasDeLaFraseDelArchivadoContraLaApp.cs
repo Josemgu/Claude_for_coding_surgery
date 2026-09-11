@@ -3,6 +3,7 @@ using Fichas.App.Asignar;
 using Fichas.App.Cascara;
 using Fichas.App.Inicio;
 using Fichas.App.Revisar;
+using Fichas.Pruebas.App.Revisar;
 using Fichas.Contratos.Consultas;
 using Fichas.Datos.Falso;
 using Fichas.Reportes.Armado;
@@ -142,7 +143,7 @@ public sealed class PruebasDeLaFraseDelArchivadoContraLaApp
         Assert.IsGreaterThan(0, antes, "Si el calendario no pintara nada, esto no probaría nada.");
 
         var unoQueSeVe = UnCasoDelCalendario(mundo, resumen);
-        new AccionesDeRevisar(mundo.Casos, mundo.Servicios.Reloj, new BuzonDeAvisos())
+        MontajeDeRevisar.Acciones(mundo.Casos, mundo.Servicios.Asignaciones, mundo.Servicios.Reloj, new BuzonDeAvisos())
             .ArchivarEnLote([unoQueSeVe]);
 
         var despuesDeArchivar = lector.Leer();
