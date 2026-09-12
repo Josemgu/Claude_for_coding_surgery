@@ -100,6 +100,7 @@ public static class TextoDeLaPersonaAMano
     /// Una ruta con caracteres que el sistema no admite NO tumba el cuadro (requisito 9): se
     /// ensena tal cual, que es mas de lo que se sabria callandola.
     /// </remarks>
+    /// <param name="rutaPdf">La ruta guardada en el caso; nula o en blanco devuelve vacio.</param>
     private static string NombreDelArchivo(string? rutaPdf)
     {
         var ruta = ReglasDeCampo.Limpiar(rutaPdf);

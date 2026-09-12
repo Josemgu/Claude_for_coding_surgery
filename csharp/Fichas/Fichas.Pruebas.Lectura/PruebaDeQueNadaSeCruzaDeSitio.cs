@@ -49,12 +49,15 @@ public class PruebaDeQueNadaSeCruzaDeSitio
     // Las coordenadas son las medidas en los siete escaneos reales (ver
     // `PruebaDelTachonEnLasPersonas`): anclas en y 0,222–0,239 y filas de 0,0150 de alto.
 
+    /// <summary>La cabecera «Full Name(s)» donde la mide el OCR en los siete escaneos.</summary>
     private static LineaDeOcr AnclaDeLosNombres()
         => new("Full Name(s)", 1.0, new BandaDeLaPagina(0.1967, 0.2229, 0.2695, 0.2394));
 
+    /// <summary>La cabecera «Membership Record Number» donde la mide el OCR; su borde derecho cierra la columna.</summary>
     private static LineaDeOcr AnclaDeLasCedulas()
         => new("Membership Record Number", 1.0, new BandaDeLaPagina(0.4935, 0.2223, 0.6536, 0.2383));
 
+    /// <summary>La etiqueta «Temple Name», que cierra el bloque de personas por abajo.</summary>
     private static LineaDeOcr CierreDelBloque()
         => new("Temple Name", 1.0, new BandaDeLaPagina(0.06, 0.3400, 0.16, 0.3560));
 
@@ -66,15 +69,24 @@ public class PruebaDeQueNadaSeCruzaDeSitio
     private static LineaDeOcr NombreDeLaSegundaFila(string texto = "Mark Porter")
         => new(texto, 0.98, new BandaDeLaPagina(0.1980, 0.3050, 0.2730, 0.3200));
 
+    /// <summary>La cédula en la columna de la primera fila. El valor por defecto es el del formulario en blanco.</summary>
+    /// <param name="texto">Lo leído; se cambia para simular un cero leído como letra O.</param>
     private static LineaDeOcr CedulaDeLaPrimeraFila(string texto = "055-1111-3853")
         => new(texto, 0.95, new BandaDeLaPagina(0.5280, 0.2900, 0.6230, 0.3030));
 
+    /// <summary>La cédula en la columna de la segunda fila, pegada debajo de la primera.</summary>
+    /// <param name="texto">Lo leído.</param>
     private static LineaDeOcr CedulaDeLaSegundaFila(string texto = "066-2222-133A")
         => new(texto, 0.95, new BandaDeLaPagina(0.5280, 0.3060, 0.6230, 0.3190));
 
+    /// <summary>Extrae las personas de una página sin ninguna anotación, con la relación de aspecto de una carta.</summary>
+    /// <param name="lineas">Las líneas del OCR de la página.</param>
     private static ResultadoDeExtraccion Extraer(params LineaDeOcr[] lineas)
         => new Extraccion(612.0 / 792.0).ProponerCamposDePersonas(lineas, []);
 
+    /// <summary>Los campos propuestos con ese nombre, ordenados por fila del formulario.</summary>
+    /// <param name="resultado">Lo que devolvió la extracción.</param>
+    /// <param name="campo">El nombre de columna: nombre o cédula.</param>
     private static IReadOnlyList<CampoPropuesto> CamposDe(ResultadoDeExtraccion resultado, string campo)
         => resultado.Campos.Where(c => c.Campo == campo).OrderBy(c => c.FilaFormulario).ToArray();
 

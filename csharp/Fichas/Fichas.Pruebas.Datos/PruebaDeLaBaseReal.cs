@@ -30,6 +30,7 @@ public sealed class PruebaDeLaBaseReal
         @"C:\Users\josem\Fichas-entrega\respaldo-base-20260903\fichas.db",
     ];
 
+    /// <summary>Vigila que una copia de un respaldo real llega a la versión al día con el mismo número de filas por tabla; sin respaldo en la máquina, lo dice y prueba con una base generada.</summary>
     [TestMethod]
     public void UnRespaldoDeVerdadMigraAlDiaSinPerderNiUnaFila()
     {
@@ -101,6 +102,7 @@ public sealed class PruebaDeLaBaseReal
             "El total de filas de la base cambio al migrar.");
     }
 
+    /// <summary>Vigila que un respaldo migrado suma las 111 columnas del esquema al día (el nombre dice 108: quedó viejo cuando entraron las de la 18 y la 19; se apunta en la entrega).</summary>
     [TestMethod]
     public void LasColumnasDeUnRespaldoMigradoSonLasCientoOcho()
     {
@@ -206,6 +208,9 @@ public sealed class PruebaDeLaBaseReal
         return conteo;
     }
 
+    /// <summary>Cuántas columnas tiene la tabla, preguntándoselo al motor con <c>PRAGMA table_info</c>.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="tabla">El nombre de la tabla; sale de las listas literales de esta clase, nunca de fuera.</param>
     private static int ContarColumnas(SqliteConnection conexion, string tabla)
     {
         using var orden = conexion.CreateCommand();

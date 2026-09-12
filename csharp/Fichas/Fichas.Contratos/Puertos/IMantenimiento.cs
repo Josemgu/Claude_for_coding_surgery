@@ -39,11 +39,35 @@ namespace Fichas.Contratos.Puertos;
 /// borrar», y «tampoco tengo la opcion de eliminar o quitar agentes del sistema». Hasta
 /// hoy solo se podia archivar, y archivar no quita nada de la base.
 /// </para>
+/// <para>
+/// <b>Quién lo implementa:</b> solo
+/// <c>Fichas.Datos.Mantenimiento.RepositorioDeMantenimiento</c>, con la copia en
+/// <c>RespaldoAntesDeBorrar</c>. <b>No hay doble en <c>Fichas.Datos.Falso</c></b>: sin base
+/// en un archivo no hay nada que copiar, y la app deja este servicio a nulo con
+/// <c>--falso</c>. <b>Quién lo consume:</b> Revisar (<c>PaginaDeRevisar</c> planea,
+/// <c>OperacionDeBorrar</c> ejecuta), Importar (los PDF que entraron sin información) y el
+/// equipo de Asignar (<c>PanelDelEquipo</c>: carga, quitar y reactivar a un compañero).
+/// </para>
+/// <para>
+/// ⚠️ <b>El orden real es cuenta → copia → plan</b>, no copia → cuenta: se cuenta primero
+/// para no copiar la base cuando no hay nada que borrar (medido en el código el 2026-09-11).
+/// Lo que el párrafo de arriba fija, y sigue siendo cierto, es que la copia va ANTES de
+/// preguntar.
+/// </para>
 /// </remarks>
 public interface IMantenimiento
 {
     /// <summary>Prepara el borrado de los documentos marcados: copia la base y cuenta.</summary>
-    /// <param name="casoIds">Los numeros internos de los documentos marcados.</param>
+    /// <remarks>
+    /// Cuenta lo que cuelga de esos casos tabla por tabla (personas, procedencia, contactos,
+    /// asignaciones, renglones ilegibles y los propios casos), hace la copia y devuelve el
+    /// plan. No escribe nada permanente: usa una tabla temporal para los ids. ⚠️ No comprueba
+    /// que los ids existan: con ids que no están, copia igual y da permiso sobre conteos a 0;
+    /// entonces <see cref="PlanDeBorrado.NoHayNadaQueBorrar"/> es lo que tiene que mirar la
+    /// pantalla antes de preguntar.
+    /// </remarks>
+    /// <param name="casoIds">Los numeros internos de los documentos marcados; vacía da un plan sin permiso y sin copia.</param>
+    /// <returns>Un plan con alcance <see cref="AlcanceDelBorrado.Documentos"/>; sin permiso si la copia no se pudo hacer, con el motivo en sus avisos.</returns>
     PlanDeBorrado PlanearDocumentos(IReadOnlyCollection<long> casoIds);
 
     /// <summary>
@@ -56,6 +80,7 @@ public interface IMantenimiento
     /// se pudo leer y las filas del Excel que no entraron: son restos de importaciones que
     /// ya no tienen documento al que apuntar.
     /// </remarks>
+    /// <returns>Un plan con alcance <see cref="AlcanceDelBorrado.TodoEnLimpio"/>. Si la base ya está vacía, vuelve sin permiso, sin copia y con un aviso informativo que lo dice; si la copia falló, sin permiso con su motivo.</returns>
     PlanDeBorrado PlanearEmpezarDeCero();
 
     /// <summary>
@@ -68,6 +93,8 @@ public interface IMantenimiento
     /// el trabajo nuevo y conserva su nombre en todo lo que ya hizo. Nunca se pierde el
     /// rastro de quien hizo que.
     /// </remarks>
+    /// <param name="companeroId">A quién se quiere quitar del equipo.</param>
+    /// <returns>Un plan con alcance <see cref="AlcanceDelBorrado.Companero"/> y su nombre. Sin permiso —y sin copia, porque se comprueba antes de copiar— si no está en la base o si lleva algo; con permiso y su copia si no lleva nada.</returns>
     PlanDeBorrado PlanearCompanero(long companeroId);
 
     /// <summary>
@@ -77,10 +104,22 @@ public interface IMantenimiento
     /// Quien llama tiene que haber preguntado antes: este puerto no puede saber si se
     /// pregunto. Lo que si hace es negarse a ejecutar un plan que ya venia sin permiso, y
     /// volver a contar antes de borrar: entre la pregunta y el «si» pudo cambiar algo.
+    /// <para>
+    /// Lo que se vuelve a comprobar, en este orden: que no sea un plan de renglones
+    /// ilegibles (ese va por <see cref="IIlegibles.BorrarRenglonesSinCaso"/>), que tenga
+    /// permiso, que tenga copia, y —solo para un compañero— que siga sin llevar nada. Para
+    /// documentos y «todo en limpio» se borra en una transacción, hijos antes que padres, y
+    /// los casos que señalaban a un borrado como duplicado se quedan con
+    /// <see cref="Caso.DuplicadoDe"/> a nulo. Si el motor rechaza algo, nada cambió.
+    /// </para>
     /// </remarks>
+    /// <param name="plan">El que devolvió uno de los tres <c>Planear…</c>, tal cual.</param>
+    /// <returns>Borrado con las cifras que devolvió el motor tabla por tabla, o no borrado con su motivo. ⚠️ Para documentos, <see cref="ResultadoDeBorrado.SeBorro"/> vuelve verdadero aunque las cifras sean 0.</returns>
     ResultadoDeBorrado Borrar(PlanDeBorrado plan);
 
     /// <summary>Cuenta lo que un companero lleva a su nombre, columna por columna.</summary>
+    /// <param name="companeroId">De quién.</param>
+    /// <returns>Una entrada por columna que apunta a <c>companeros</c>, con su cifra, también las que dan 0; o <see cref="CargaDeUnCompanero.NoEsta"/> si no está en la base. No escribe nada.</returns>
     CargaDeUnCompanero Carga(long companeroId);
 
     /// <summary>
@@ -89,7 +128,11 @@ public interface IMantenimiento
     /// <remarks>
     /// Es la vuelta atras de <see cref="ICompaneros.Desactivar"/>, y por eso NO pregunta:
     /// lo que se puede deshacer con un boton no necesita un cuadro (requisito 9).
+    /// <b>Escribe</b> <c>activo = 1</c> y <c>desactivado_en = NULL</c>. Es idempotente:
+    /// reactivar a uno ya activo deja lo mismo y no avisa.
     /// </remarks>
+    /// <param name="companeroId">A quién.</param>
+    /// <returns>El id del compañero, o no escrito si no está en la base.</returns>
     ResultadoDeEscritura Reactivar(long companeroId);
 }
 
@@ -144,6 +187,8 @@ public sealed record CargaDeUnCompanero(
     }
 
     /// <summary>El companero que no esta en la base.</summary>
+    /// <param name="companeroId">El id que se preguntó, para poder decirlo.</param>
+    /// <returns>Sin nombre, inactivo y sin detalle; <see cref="NoLlevaNada"/> da verdadero, así que quien lo use tiene que mirar el nombre vacío antes de creerlo.</returns>
     public static CargaDeUnCompanero NoEsta(long companeroId)
         => new(companeroId, string.Empty, false, Array.Empty<ConteoDeTabla>());
 }
@@ -269,10 +314,15 @@ public sealed record PlanDeBorrado
     }
 
     /// <summary>Cuantas filas caen de esa tabla; 0 si la tabla no entra en el plan.</summary>
+    /// <param name="tabla">El nombre de la tabla tal como está en el esquema (<c>casos</c>, <c>personas</c>).</param>
     public int Cuantas(string tabla)
         => Conteos.FirstOrDefault(c => c.Tabla == tabla)?.Filas ?? 0;
 
     /// <summary>Un plan que no sale adelante, con el motivo ya escrito.</summary>
+    /// <param name="alcance">Qué clase de borrado se intentaba.</param>
+    /// <param name="rutaDeLaCopia">Dónde quedó la copia si llegó a hacerse, o nulo; se conserva para que la pregunta pueda nombrarla.</param>
+    /// <param name="avisos">Por qué no se puede; es lo que va a la franja.</param>
+    /// <returns>Sin permiso, sin ids y sin conteos: no hay nada que preguntar.</returns>
     public static PlanDeBorrado NoSePuede(
         AlcanceDelBorrado alcance, string? rutaDeLaCopia, params Aviso[] avisos)
         => new()
@@ -283,6 +333,9 @@ public sealed record PlanDeBorrado
             Avisos = avisos,
         };
 
+    /// <summary>La cifra de esa tabla ya dicha en español, para el título y el botón.</summary>
+    /// <param name="tabla">El nombre de la tabla tal como está en el esquema.</param>
+    /// <returns>«7 documentos», «1 persona»; y «0 documentos» cuando la tabla no entra en el plan, que es por lo que un plan de renglones da un título que no sirve.</returns>
     private string Cuenta(string tabla)
         => Conteos.FirstOrDefault(c => c.Tabla == tabla)?.Dicho ?? "0 documentos";
 }
@@ -333,6 +386,9 @@ public sealed record ResultadoDeBorrado
     }
 
     /// <summary>El resultado de un plan que no salio adelante, con su motivo.</summary>
+    /// <param name="rutaDeLaCopia">La copia del plan, si la había, para que el acuse la nombre igual.</param>
+    /// <param name="avisos">Por qué no se borró; es lo que va a la franja.</param>
+    /// <returns><see cref="SeBorro"/> en falso y sin cifras.</returns>
     public static ResultadoDeBorrado NoSeBorro(string? rutaDeLaCopia, params Aviso[] avisos)
         => new() { SeBorro = false, RutaDeLaCopia = rutaDeLaCopia, Avisos = avisos };
 }

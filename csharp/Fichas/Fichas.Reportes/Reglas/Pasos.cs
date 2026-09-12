@@ -39,6 +39,8 @@ public static class Pasos
     /// la que faltan preguntas por mirar es exactamente lo que manda a alguien al templo con la
     /// recomendacion mal.
     /// </remarks>
+    /// <param name="persona">La persona con sus seis casillas <c>Paso*</c>.</param>
+    /// <returns>Verdadero con los seis en sí; falso con alguno en no; nulo si ninguno es no y alguno está en blanco.</returns>
     public static bool? Estado(Persona persona)
     {
         var valores = LosSeis.Select(paso => paso.Leer(persona)).ToList();
@@ -52,6 +54,8 @@ public static class Pasos
     /// Es lo que hay que decirle al lider cuando se le llama: el nombre del paso donde se quedo
     /// vale mas que cualquier nota escrita a mano.
     /// </remarks>
+    /// <param name="persona">La persona con sus seis casillas <c>Paso*</c>.</param>
+    /// <returns>Los rótulos en el orden de la pantalla del líder; vacía si ninguno está en no. Los que están en blanco no salen.</returns>
     public static IReadOnlyList<string> SinCompletar(Persona persona)
         => LosSeis
             .Where(paso => paso.Leer(persona) == false)

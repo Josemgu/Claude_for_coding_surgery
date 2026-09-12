@@ -34,6 +34,8 @@ public sealed partial class PaginaDeRevisar
     private readonly Dictionary<long, VentanaDeLasPreguntas> _ventanasDePreguntas = [];
 
     /// <summary>Abre —o trae al frente— la ventana de las seis preguntas de ese documento.</summary>
+    /// <param name="quien">El botón de las preguntas; lleva en <c>Tag</c> el número interno de su documento.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlAbrirLasSeisPreguntas(object quien, RoutedEventArgs cuando)
     {
         if (Servicios is null || quien is not Button boton || boton.Tag is not long casoId) return;
@@ -59,6 +61,7 @@ public sealed partial class PaginaDeRevisar
     /// Una ventana de preguntas viva sobre una pantalla que ya no existe seguiria leyendo y
     /// escribiendo en la base sin que nadie la vea desde el programa.
     /// </remarks>
+    /// <param name="cuando">Los datos de la navegación, que se pasan a la base.</param>
     protected override void OnNavigatedFrom(NavigationEventArgs cuando)
     {
         foreach (var ventana in _ventanasDePreguntas.Values.ToList()) ventana.Close();

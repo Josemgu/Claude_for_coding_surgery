@@ -87,6 +87,7 @@ public sealed class PruebasDelColorDeLaTarjeta
     }
 
     /// <summary>La palabra de cada lectura se lee sobre su color, en los dos temas.</summary>
+    /// <param name="tema">«Light» o «Dark», el diccionario del XAML que se mide.</param>
     [TestMethod]
     [DataRow("Light")]
     [DataRow("Dark")]
@@ -116,6 +117,7 @@ public sealed class PruebasDelColorDeLaTarjeta
     }
 
     /// <summary>Los dos colores se distinguen entre sí; si no, el color no indica nada.</summary>
+    /// <param name="tema">«Light» o «Dark», el diccionario del XAML que se mide.</param>
     [TestMethod]
     [DataRow("Light")]
     [DataRow("Dark")]
@@ -232,6 +234,7 @@ public sealed class PruebasDelColorDeLaTarjeta
     // ---- de donde salen las cifras -------------------------------------------
 
     /// <summary>Los colores de un tema, leídos del XAML de Revisar, por clave y color.</summary>
+    /// <param name="tema">«Light» o «Dark»; si el XAML no declara ese diccionario, la prueba falla aquí.</param>
     private static Dictionary<string, string> LosColoresDe(string tema)
     {
         var doc = XDocument.Load(LaPantallaDeRevisar());
@@ -252,6 +255,8 @@ public sealed class PruebasDelColorDeLaTarjeta
     }
 
     /// <summary>La razón de contraste de la WCAG entre dos colores «#RRGGBB».</summary>
+    /// <param name="uno">Un color «#RRGGBB».</param>
+    /// <param name="otro">El otro color «#RRGGBB».</param>
     private static double Contraste(string uno, string otro)
     {
         var a = Luminancia(uno);
@@ -260,6 +265,7 @@ public sealed class PruebasDelColorDeLaTarjeta
     }
 
     /// <summary>La luminancia relativa de la WCAG de un color «#RRGGBB».</summary>
+    /// <param name="color">El color «#RRGGBB».</param>
     private static double Luminancia(string color)
     {
         double Canal(int desde)
@@ -272,6 +278,8 @@ public sealed class PruebasDelColorDeLaTarjeta
     }
 
     /// <summary>Cuánto se separan dos colores, en distancia euclídea sobre los tres canales.</summary>
+    /// <param name="uno">Un color «#RRGGBB».</param>
+    /// <param name="otro">El otro color «#RRGGBB».</param>
     private static double Separacion(string uno, string otro)
         => Math.Sqrt(
             Math.Pow(Byte(uno, 0) - Byte(otro, 0), 2)
@@ -279,6 +287,8 @@ public sealed class PruebasDelColorDeLaTarjeta
             + Math.Pow(Byte(uno, 4) - Byte(otro, 4), 2));
 
     /// <summary>Un canal de un color «#RRGGBB», de 0 a 255.</summary>
+    /// <param name="color">El color «#RRGGBB»; con otra forma la prueba falla aquí.</param>
+    /// <param name="desde">En qué posición de los seis dígitos empieza el canal: 0, 2 o 4.</param>
     private static int Byte(string color, int desde)
     {
         var limpio = color.TrimStart('#');

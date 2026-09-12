@@ -1,5 +1,4 @@
 using Fichas.App.Paquetes;
-using Fichas.App.Reportes;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
 using Fichas.Contratos.Consultas;
@@ -33,6 +32,7 @@ namespace Fichas.Pruebas.App.Reportes;
 [TestClass]
 public sealed class PruebasDeLaSegundaVuelta
 {
+    /// <summary>El día en que se para el reloj de estas pruebas.</summary>
     private const string Hoy = "2026-09-05";
 
     /// <summary>Los dos motivos que el dueno nombro suben al peldano siguiente.</summary>
@@ -261,6 +261,7 @@ public sealed class PruebasDeLaSegundaVuelta
     /// generar. Aqui se pone el doble que escribe de verdad y el motor de PDF de verdad, que es
     /// lo unico que deja mirar los dos archivos hermanos.
     /// </remarks>
+    /// <param name="mundo">El escenario, del que salen los puertos.</param>
     private static OperacionDeLaSegundaVuelta Operacion(Mundo mundo)
         => new(
             new PaquetesDeMentirijilla(
@@ -276,6 +277,17 @@ public sealed class PruebasDeLaSegundaVuelta
     // ---- el escenario, escrito caso por caso --------------------------------
 
     /// <summary>Los siete casos del escenario y los tres companeros de la escalera.</summary>
+    /// <param name="Servicios">Los servicios falsos ya montados.</param>
+    /// <param name="DeCategoriaUno">El compañero del primer peldaño.</param>
+    /// <param name="DeCategoriaDos">El del segundo.</param>
+    /// <param name="DeCategoriaTres">El del tercero.</param>
+    /// <param name="NoSePudoComunicar">El caso no completo con ese motivo; sube.</param>
+    /// <param name="ElLiderNoLoHizo">El caso no completo con ese motivo; sube.</param>
+    /// <param name="OtraRazon">El caso no completo con «otra razón»; se lista aparte.</param>
+    /// <param name="SinMotivo">El caso no completo sin motivo escrito; se queda fuera.</param>
+    /// <param name="CompletaConMotivo">El caso completo, que nunca sube.</param>
+    /// <param name="ArchivadoConMotivo">El caso archivado, que no se mira.</param>
+    /// <param name="TrabadoEnLaDos">El caso que lo intentó la categoría dos; no sube a la dos.</param>
     private sealed record Mundo(
         ServiciosFalsos Servicios,
         Companero DeCategoriaUno,
@@ -320,6 +332,10 @@ public sealed class PruebasDeLaSegundaVuelta
             noSePudo, noLoHizo, otra, sinMotivo, completa, archivado, trabadoEnLaDos);
     }
 
+    /// <summary>Da de alta un compañero en ese peldaño escribiendo la fila a mano en el almacén.</summary>
+    /// <param name="almacen">El almacén falso.</param>
+    /// <param name="nombre">El nombre.</param>
+    /// <param name="categoria">El peldaño; 1 es compañero, más arriba es gerente.</param>
     private static Companero Alta(AlmacenFalso almacen, string nombre, int categoria)
     {
         var id = almacen.SiguienteId();
@@ -342,6 +358,13 @@ public sealed class PruebasDeLaSegundaVuelta
     /// devolvio su hoja. Si la seleccion solo mirara las asignaciones vivas, no encontraria a
     /// nadie que lo hubiera intentado y no subiria nada.
     /// </remarks>
+    /// <param name="almacen">El almacén falso.</param>
+    /// <param name="numero">El número de caso.</param>
+    /// <param name="estado">El estado de la recomendación, tal como se guarda.</param>
+    /// <param name="motivo">El motivo del compañero, tal como se guarda, o nulo.</param>
+    /// <param name="quienLoIntento">El compañero cuya asignación retirada queda en el caso.</param>
+    /// <param name="archivado">Si el caso está archivado.</param>
+    /// <returns>El id del caso.</returns>
     private static long Caso(
         AlmacenFalso almacen, string numero, string estado, string? motivo,
         Companero quienLoIntento, bool archivado = false)
@@ -397,10 +420,14 @@ public sealed class PruebasDeLaSegundaVuelta
 /// </remarks>
 internal sealed class ReporteDeLaSegundaVueltaDeVerdad : IReporteDeLaSegundaVuelta
 {
+    /// <summary>El motor de PDF de verdad.</summary>
     private readonly IReportesDeLaEscalera _motor;
 
+    /// <summary>Envuelve al motor de verdad.</summary>
+    /// <param name="motor">El motor de PDF que sabe escribir la segunda vuelta.</param>
     internal ReporteDeLaSegundaVueltaDeVerdad(IReportesDeLaEscalera motor) => _motor = motor;
 
+    /// <inheritdoc />
     public ResultadoDeEscritura Escribir(int categoria, IReadOnlyList<CasoQueSube> casos, string rutaDestino)
         => _motor.GenerarReporteDeLaSegundaVuelta(
             categoria,

@@ -55,6 +55,11 @@ public sealed class Extraccion : IExtraccion
     /// </summary>
     public const double ProporcionDeCamposFlojosQueMarcaCapturaManual = 0.6;
 
+    /// <summary>
+    /// Ancho partido por alto de la página, fijado en el constructor. Se pasa a
+    /// <see cref="Bandas"/> y a <see cref="Personas"/> para convertir alturas de ancla en
+    /// anchuras de banda sin que la forma de la hoja lo deforme.
+    /// </summary>
     private readonly double _relacionDeAspecto;
 
     /// <summary>Crea la extraccion para paginas de una forma dada.</summary>
@@ -134,6 +139,9 @@ public sealed class Extraccion : IExtraccion
     /// documento, y el unico sitio donde pone `CASP` en ese archivo es su nombre. Ningun
     /// motor arregla eso; se guarda tal cual y se corrige a mano (ADR-0004 §6ter).</para>
     /// </remarks>
+    /// <param name="lineas">Todas las líneas del OCR de la página; solo se usan si ninguna anotación trae el número.</param>
+    /// <param name="anotaciones">Todas las anotaciones de la página; gana la primera con texto que tenga forma de número de caso.</param>
+    /// <returns>El campo con origen anotación u OCR, o <see cref="Campos.CampoVacio"/> si nada tiene la forma.</returns>
     private static CampoExtraido NumeroDeCaso(
         IReadOnlyList<LineaDeOcr> lineas, IReadOnlyList<AnotacionDelPdf> anotaciones)
     {
@@ -171,13 +179,14 @@ public sealed class Extraccion : IExtraccion
     /// <c>unidad_numero</c>, que sale de esta misma banda dos lineas mas arriba. La condicion es
     /// justo esa y ninguna mas —hay texto crudo, no hay nombre, y el crudo da un numero de
     /// unidad valido—; una banda con basura dentro sigue devolviendo su basura para que se vea.</para>
-    /// </remarks>
-    /// <remarks>
-    /// ⚠️ <b>Y solo cuando lo leido es de ESTA banda</b> (añadido el 2026-09-07). Toda la
+    ///
+    /// <para>⚠️ <b>Y solo cuando lo leido es de ESTA banda</b> (añadido el 2026-09-07). Toda la
     /// justificacion de arriba —«no se pierde nada, porque lo que la banda decia esta entero
     /// en <c>unidad_numero</c>»— se cae si el texto NO era de la banda: entonces
-    /// <c>unidad_numero</c> tambien se quedo vacio, y borrarlo aqui lo perderia del todo.
+    /// <c>unidad_numero</c> tambien se quedo vacio, y borrarlo aqui lo perderia del todo.</para>
     /// </remarks>
+    /// <param name="nombre">El nombre de la unidad tal como lo resolvió la precedencia sobre la banda compartida.</param>
+    /// <returns>El mismo campo, o una copia sin <c>ValorOcr</c> cuando ese texto era el número de la unidad.</returns>
     private static CampoExtraido SinRepetirElNumeroDeLaUnidad(CampoExtraido nombre)
         => nombre.Valor is null
            && nombre.LoLeidoEsDeEsteCampo
@@ -186,6 +195,11 @@ public sealed class Extraccion : IExtraccion
             : nombre;
 
     /// <summary>Aplica la precedencia sobre la banda que cuelga de un ancla.</summary>
+    /// <param name="lineas">Todas las líneas del OCR de la página; aquí se filtran a la banda.</param>
+    /// <param name="anotaciones">Todas las anotaciones de la página; aquí se filtran a la banda.</param>
+    /// <param name="ancla">La línea del OCR donde se encontró la etiqueta, o nula si la etiqueta no apareció.</param>
+    /// <param name="normalizar">La forma que el campo exige; nulo cuando el texto no la tiene.</param>
+    /// <returns>El campo resuelto y la banda que se miró. Sin ancla: campo vacío y banda nula, sin lanzar.</returns>
     private (CampoExtraido Campo, BandaDeLaPagina? Banda) CampoDeLaBanda(
         IReadOnlyList<LineaDeOcr> lineas,
         IReadOnlyList<AnotacionDelPdf> anotaciones,
@@ -250,6 +264,9 @@ public sealed class Extraccion : IExtraccion
     /// indistinguible de una lectura limpia, y la cedula es la mitad del par
     /// <c>numero_caso</c> + <c>mrn</c> con el que se reconcilia todo el programa.
     /// </remarks>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <param name="anotaciones">Todas las anotaciones de la página, tachones incluidos.</param>
+    /// <returns>Las personas con nombre o cédula y cuántas filas del bloque se descartaron por venir en blanco.</returns>
     public (IReadOnlyList<PersonaExtraida> Personas, int Descartadas) ExtraerPersonas(
         IReadOnlyList<LineaDeOcr> lineas, IReadOnlyList<AnotacionDelPdf> anotaciones)
     {
@@ -296,6 +313,8 @@ public sealed class Extraccion : IExtraccion
     }
 
     /// <summary>La regla de formato de ese campo, o nula si el campo no tiene ninguna.</summary>
+    /// <param name="campo">El nombre de columna (<c>CampoNumeroDeCaso</c>, <c>CampoCedula</c>…); cualquier otro da nulo.</param>
+    /// <returns>Una función que devuelve el valor con forma o nulo; el nombre de persona solo recorta espacios.</returns>
     public static Func<string?, string?>? NormalizadorDe(string campo) => campo switch
     {
         CampoNumeroDeCaso => Normalizacion.NormalizarNumeroDeCaso,
@@ -308,6 +327,11 @@ public sealed class Extraccion : IExtraccion
         _ => null,
     };
 
+    /// <summary>
+    /// En qué tabla de la base vive ese campo. Solo el nombre y la cédula son de
+    /// <c>personas</c>; todo lo demás, conocido o no, se atribuye a <c>casos</c>.
+    /// </summary>
+    /// <param name="campo">El nombre de columna que viaja en <see cref="CampoPropuesto.Campo"/>.</param>
     private static TablaDeProcedencia TablaDeLa(string campo)
         => campo is CampoNombreDePersona or CampoCedula ? TablaDeProcedencia.Personas : TablaDeProcedencia.Casos;
 
@@ -347,6 +371,13 @@ public sealed class Extraccion : IExtraccion
     /// aviso, que es donde ya se decia, y lo tachado sigue entero en
     /// <see cref="CampoExtraido.ValorOcr"/>.</para>
     /// </remarks>
+    /// <param name="campos">La lista de salida a la que se añade siempre exactamente un campo.</param>
+    /// <param name="avisos">La lista de salida a la que se añade el aviso, si toca uno.</param>
+    /// <param name="tabla">Si el campo es de <c>casos</c> o de <c>personas</c>.</param>
+    /// <param name="nombreDelCampo">El nombre de columna que viaja en el contrato y en el texto del aviso.</param>
+    /// <param name="campo">Lo que resolvió la precedencia para ese campo.</param>
+    /// <param name="banda">La zona del papel que se miró, para poder señalarla; nula si el campo no tiene fila.</param>
+    /// <param name="filaFormulario">El número de fila del bloque de personas, solo para sus campos.</param>
     private static void Anadir(
         List<CampoPropuesto> campos,
         List<Aviso> avisos,

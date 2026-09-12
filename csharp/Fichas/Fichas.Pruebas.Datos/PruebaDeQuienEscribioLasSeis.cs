@@ -35,7 +35,9 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDeQuienEscribioLasSeis
 {
+    /// <summary>La fecha fija de estas pruebas, para que las marcas de tiempo sembradas no dependan del reloj.</summary>
     private const string DiaDeLasPruebas = "2026-09-05";
+    /// <summary>Lo que va en <c>pasos_origen</c> cuando contesta Miguel desde la pantalla.</summary>
     private const string OrigenAMano = "a mano en la pantalla";
 
     /// <summary>
@@ -294,12 +296,20 @@ public sealed class PruebaDeQuienEscribioLasSeis
         LlamoAlLider = true,
     };
 
+    /// <summary>Las seis preguntas contestadas que sí.</summary>
     private static RespuestaALosPasos LasSeisEnSi => new(true, true, true, true, true, true);
 
+    /// <summary>Un compañero guardado por el repositorio de verdad.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="nombre">El nombre.</param>
+    /// <returns>Su id.</returns>
     private static long Companero(SqliteConnection conexion, string nombre)
         => new RepositorioDeCompaneros(conexion)
             .Guardar(new Companero { Nombre = nombre, CreadoEn = DiaDeLasPruebas + " 09:00:00" }).Id;
 
+    /// <summary>Miguel, un caso y una persona sin contestar, listos para que alguien conteste las seis.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <returns>Los tres ids.</returns>
     private static (long Miguel, long Caso, long Persona) SembrarUnDocumento(SqliteConnection conexion)
     {
         var miguel = Companero(conexion, "Miguel");

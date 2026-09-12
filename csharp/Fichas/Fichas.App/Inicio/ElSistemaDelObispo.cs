@@ -164,8 +164,5 @@ public sealed record LoDelSistemaDelObispo(
             ? $"En los próximos {DiasDeLaVentana} días no viaja nadie con la recomendación sin confirmar."
             : Plural.Con(QueApremian.Count, "persona viaja", "personas viajan")
               + $" en los próximos {DiasDeLaVentana} días con la recomendación sin confirmar.";
-
-    /// <summary>Si hay algo que mirar; lo lee la pantalla para no ensenar una lista vacia.</summary>
-    public bool HayTicketsAbiertos => Vencidas.Count > 0 || QueApremian.Count > 0;
 }
 

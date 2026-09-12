@@ -26,9 +26,13 @@ namespace Fichas.App.Reportes;
 /// </remarks>
 public sealed partial class PaginaDeReportes : PaginaDeFichas
 {
+    /// <summary>El bloque de resumen de los jefes y del histórico.</summary>
     private readonly ZonaDeResumen _resumen;
+    /// <summary>El bloque de resumen del informe por agente; aparte para que no pise al otro.</summary>
     private readonly ZonaDeResumen _resumenDelAgente;
+    /// <summary>Quien genera los informes; nula hasta que llegan los servicios.</summary>
     private OperacionDeReporte? _operacion;
+    /// <summary>El último archivo generado, que es lo que abren «Abrir» y «Ver la carpeta»; nulo si todavía no hay ninguno.</summary>
     private string? _ultimoArchivo;
 
     /// <summary>Monta la pantalla.</summary>
@@ -68,6 +72,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     // ---- el informe por agente ----------------------------------------------
 
     /// <summary>Al elegir a quién se enciende el botón; el del Excel, solo si hay motor.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlElegirElAgente(object quien, SelectionChangedEventArgs cuando)
     {
         var hayAgente = _deQuienEsElInforme.SelectedItem is Companero;
@@ -76,6 +82,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     }
 
     /// <summary>Pide dónde guardar el informe de ese agente y lo genera.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerarElInformeDeAgente(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el informe del agente…", Servicios, () =>
         {
@@ -90,6 +98,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
         });
 
     /// <summary>Pide dónde guardar el informe de ese agente en Excel y lo genera.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerarElInformeDeAgenteEnExcel(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el informe del agente en Excel…", Servicios, () =>
         {
@@ -104,29 +114,42 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
         });
 
     /// <summary>Abre o cierra el detalle del informe del agente.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVerElAgente(object quien, RoutedEventArgs cuando) => _resumenDelAgente.AlternarElDetalle();
 
     /// <summary>Cierra el resumen del informe del agente.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCerrarElAgente(object quien, RoutedEventArgs cuando) => _resumenDelAgente.Cerrar();
 
     // ---- el periodo ---------------------------------------------------------
 
     /// <summary>«Este mes», contado sobre el dia de hoy.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarEsteMes(object quien, RoutedEventArgs cuando)
         => PonerElPeriodo(PeriodoDeLaPantalla.DelMesDe(Hoy()));
 
     /// <summary>«Mes anterior», contado sobre el dia de hoy.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarMesAnterior(object quien, RoutedEventArgs cuando)
         => PonerElPeriodo(PeriodoDeLaPantalla.DelMesAnteriorA(Hoy()));
 
     /// <summary>«Últimos 90 días», con hoy dentro de los noventa.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarNoventaDias(object quien, RoutedEventArgs cuando)
         => PonerElPeriodo(PeriodoDeLaPantalla.DeLosUltimosDias(Hoy(), 90));
 
     /// <summary>Al teclear una fecha solo se repinta el titulo; no se valida nada aqui.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlEscribirUnaFecha(object quien, TextChangedEventArgs cuando) => PintarElTitulo();
 
     /// <summary>Escribe el periodo en las dos casillas y repinta el titulo.</summary>
+    /// <param name="periodo">Las dos fechas ISO que se ponen.</param>
     private void PonerElPeriodo(PeriodoDeLaPantalla periodo)
     {
         _desde.Text = periodo.Desde;
@@ -138,8 +161,10 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     private PeriodoDeLaPantalla PeriodoPuesto()
         => new((_desde.Text ?? string.Empty).Trim(), (_hasta.Text ?? string.Empty).Trim());
 
+    /// <summary>Repinta «Período: …» con lo que hay escrito en las casillas, sin validar nada.</summary>
     private void PintarElTitulo() => _tituloDelPeriodo.Text = "Período: " + PeriodoPuesto().EnTexto();
 
+    /// <summary>La fecha de hoy según el reloj de los servicios; sin servicios, lo que haya en «desde».</summary>
     private string Hoy() => Servicios?.Reloj.Hoy() ?? _desde.Text ?? string.Empty;
 
     // ---- generar ------------------------------------------------------------
@@ -152,9 +177,12 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     /// </remarks>
     private static readonly (string QueEs, string Extension) Pdf = ("PDF", ".pdf");
 
+    /// <summary>El formato Excel: cómo se llama en el selector y en qué acaba el archivo.</summary>
     private static readonly (string QueEs, string Extension) Excel = ("Excel", ".xlsx");
 
     /// <summary>Pide donde guardar el informe del periodo y lo genera.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerarElReporte(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el PDF…", Servicios, () =>
         {
@@ -167,6 +195,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
         });
 
     /// <summary>Pide donde guardar el informe del periodo en Excel y lo genera.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerarElReporteEnExcel(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el Excel…", Servicios, () =>
         {
@@ -179,6 +209,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
         });
 
     /// <summary>Pide donde guardar el historico completo y lo genera.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerarElHistorico(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el histórico en PDF…", Servicios, () => GenerarAsync(
             NombreDeArchivo.DelHistorico(Hoy()),
@@ -187,6 +219,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
             _resumen));
 
     /// <summary>Pide donde guardar el historico completo en Excel y lo genera.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerarElHistoricoEnExcel(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el histórico en Excel…", Servicios, () => GenerarAsync(
             NombreDeArchivo.DelHistoricoEnExcel(Hoy()),
@@ -242,6 +276,10 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     /// abrio y lo cerre sin querer» se leen igual desde fuera.
     /// </para>
     /// </remarks>
+    /// <param name="nombrePropuesto">El nombre de archivo que el cuadro trae puesto.</param>
+    /// <param name="queEs">Cómo se llama el tipo en el filtro del cuadro: «PDF» o «Excel».</param>
+    /// <param name="extension">La extensión con su punto.</param>
+    /// <returns>La ruta elegida; nulo si se cerró sin elegir o si no hay ventana principal.</returns>
     private string? ElegirDondeGuardar(string nombrePropuesto, string queEs, string extension)
     {
         if (App.Ventana is null) return null;
@@ -265,6 +303,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     // ---- abrir --------------------------------------------------------------
 
     /// <summary>Abre el ultimo archivo generado con el programa que Windows tenga puesto.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarAbrir(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Abrir el archivo", Servicios, () =>
         {
@@ -273,6 +313,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
         });
 
     /// <summary>Abre en el Explorador la carpeta donde quedo el ultimo archivo.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarAbrirLaCarpeta(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Ver la carpeta", Servicios, () =>
         {
@@ -283,6 +325,8 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     // ---- el historico -------------------------------------------------------
 
     /// <summary>Vuelve a leer el historico de la base.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarRefrescar(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Volver a leer", Servicios, () =>
         {
@@ -312,9 +356,13 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     // ---- el resumen de una linea --------------------------------------------
 
     /// <summary>Abre o cierra el detalle. NO es un cuadro modal: se abre aqui debajo.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVer(object quien, RoutedEventArgs cuando) => _resumen.AlternarElDetalle();
 
     /// <summary>Cierra el resumen entero con la X.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCerrarElResumen(object quien, RoutedEventArgs cuando) => _resumen.Cerrar();
 
     /// <summary>
@@ -345,6 +393,7 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     }
 
     /// <summary>Deja el aviso en la franja si lo hay; si no lo hay, no molesta.</summary>
+    /// <param name="aviso">El aviso, o nulo cuando la acción salió bien.</param>
     private void DejarSiHayAviso(Aviso? aviso)
     {
         if (aviso is not null) Servicios?.Avisos.Dejar(aviso);
@@ -355,6 +404,7 @@ public sealed partial class PaginaDeReportes : PaginaDeFichas
     /// Los tres del Excel vuelven a encenderse solo si este arranque sabe escribirlo: si no, se
     /// quedan apagados como estaban, y no es que la generación los haya roto.
     /// </remarks>
+    /// <param name="bloqueados">Verdadero mientras se genera; falso al terminar, pase lo que pase.</param>
     private void BloquearLosBotones(bool bloqueados)
     {
         var hayAgente = _deQuienEsElInforme.SelectedItem is Companero;

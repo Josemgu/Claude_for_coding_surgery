@@ -27,6 +27,7 @@ public sealed class PruebaDeLasReglasPermanentes
         "%' OR nombre LIKE '%",
     ];
 
+    /// <summary>Vigila que cada intento de inyección vuelve letra por letra y las tablas siguen ahí.</summary>
     [TestMethod]
     public void UnIntentoDeInyeccionSeGuardaComoDatoInerteYSeReleeLiteral()
     {
@@ -63,6 +64,7 @@ public sealed class PruebaDeLasReglasPermanentes
             "No estan las personas que se guardaron.");
     }
 
+    /// <summary>Vigila que un intento de inyección en el filtro de texto no encuentra nada y no se lleva el caso.</summary>
     [TestMethod]
     public void UnIntentoDeInyeccionEnLaBusquedaNoRompeLaConsulta()
     {
@@ -84,6 +86,7 @@ public sealed class PruebaDeLasReglasPermanentes
         Assert.AreEqual(1, baseDePrueba.ContarFilasDe("casos"), "La busqueda se llevo el caso por delante.");
     }
 
+    /// <summary>Vigila que anotar con <c>Verificado = true</c> deja el campo sin firmar y lo avisa (regla permanente 5).</summary>
     [TestMethod]
     public void AnotarLaProcedenciaNuncaMarcaUnCampoComoVerificado()
     {
@@ -131,6 +134,7 @@ public sealed class PruebaDeLasReglasPermanentes
             "Se perdio lo que el OCR leyo, que es lo unico que queda si el campo se corrige.");
     }
 
+    /// <summary>Vigila que solo <c>Firmar</c>, con quién y cuándo, deja <c>verificado = 1</c>.</summary>
     [TestMethod]
     public void FirmarEsElUnicoCaminoAVerificado()
     {
@@ -165,6 +169,7 @@ public sealed class PruebaDeLasReglasPermanentes
         Assert.AreEqual("2026-09-04 10:00:00", campo.VerificadoEn, "La firma no dice CUANDO.");
     }
 
+    /// <summary>Vigila que firmar sin fecha o a nombre de un id que no existe no escribe, y el campo queda sin firmar.</summary>
     [TestMethod]
     public void NoSePuedeFirmarSinDecirQuienNiCuando()
     {
@@ -195,6 +200,7 @@ public sealed class PruebaDeLasReglasPermanentes
             "Alguno de los dos intentos dejo el campo firmado.");
     }
 
+    /// <summary>Vigila que anotar de nuevo un campo firmado lo devuelve a sin firmar.</summary>
     [TestMethod]
     public void VolverAExtraerUnCampoLeQuitaLaFirmaQueTenia()
     {
@@ -240,6 +246,7 @@ public sealed class PruebaDeLasReglasPermanentes
             "Volver a anotar el mismo campo duplico la fila en vez de pisarla.");
     }
 
+    /// <summary>Vigila que tachado, ausente en el papel y vacío se guardan y se releen como tres cosas distintas.</summary>
     [TestMethod]
     public void ElTachonYLoAusenteSonDistintosDeUnCampoVacio()
     {
@@ -280,6 +287,7 @@ public sealed class PruebaDeLasReglasPermanentes
         Assert.IsFalse(campos["no_leido"].AusenteEnElPapel, "Un campo no leido salio como ausente.");
     }
 
+    /// <summary>Vigila que las cuatro coordenadas de la banda vuelven con el mismo valor fraccionario.</summary>
     [TestMethod]
     public void LaBandaSeGuardaEnFraccionesYVuelveIgual()
     {
@@ -305,6 +313,7 @@ public sealed class PruebaDeLasReglasPermanentes
         Assert.AreEqual(0.3125, campo.BandaY1!.Value, 1e-9, "Se perdio el borde inferior.");
     }
 
+    /// <summary>Vigila que el motor rechaza borrar un caso con personas: las claves foráneas están encendidas.</summary>
     [TestMethod]
     public void LasClavesForaneasImpidenBorrarUnCasoConPersonasDentro()
     {
@@ -328,6 +337,7 @@ public sealed class PruebaDeLasReglasPermanentes
         Assert.AreEqual(1, baseDePrueba.ContarFilasDe("casos"), "El caso se borro igual.");
     }
 
+    /// <summary>Vigila que guardar una persona huérfana no escribe y devuelve el fallo como aviso.</summary>
     [TestMethod]
     public void UnaPersonaNoPuedeApuntarAUnCasoQueNoExiste()
     {

@@ -1,6 +1,5 @@
 using Fichas.App.Importar;
 using Fichas.App.Revisar;
-using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 
 namespace Fichas.Pruebas.App.Importar;
@@ -258,6 +257,11 @@ public sealed class PruebasDeLasCarpetasDeLaTanda : BaseDeImportacion
     // ==================================================================
 
     /// <summary>Mete un caso en la base con los tres campos que deciden su carpeta.</summary>
+    /// <param name="numeroCaso">El número de caso; también nombra su PDF de mentira.</param>
+    /// <param name="fechaViaje">La fecha de viaje, o nula.</param>
+    /// <param name="unidadNumero">El número de unidad, o nulo.</param>
+    /// <param name="unidadNombre">El nombre de la unidad, o nulo.</param>
+    /// <returns>El id del caso; falla la prueba si no entró.</returns>
     private long SembrarCaso(string numeroCaso, string? fechaViaje, string? unidadNumero, string? unidadNombre)
     {
         var escrito = Datos.Casos.Guardar(new Caso
@@ -276,10 +280,12 @@ public sealed class PruebasDeLasCarpetasDeLaTanda : BaseDeImportacion
     }
 
     /// <summary>Los casos de esos ids, tal como los leeria la pantalla al acabar la tanda.</summary>
+    /// <param name="casoIds">Los ids sembrados.</param>
     private IReadOnlyList<Caso> CasosDeLaTanda(IReadOnlyList<long> casoIds)
         => [.. casoIds.Select(id => Datos.Casos.Obtener(id)!)];
 
     /// <summary>La ruta de carpetas que Revisar compone HOY para ese caso, preguntandole a el.</summary>
+    /// <param name="casoId">El caso, que se relee de la base.</param>
     private string RutaSegunRevisar(long casoId)
     {
         var caso = Datos.Casos.Obtener(casoId)!;
@@ -300,10 +306,13 @@ public sealed class PruebasDeLasCarpetasDeLaTanda : BaseDeImportacion
     }
 
     /// <summary>La carpeta de esa unidad, para no depender del orden de la lista.</summary>
+    /// <param name="carpetas">Lo que compuso la tanda.</param>
+    /// <param name="unidadNumero">El número de unidad de la carpeta que se busca; tiene que haber una sola.</param>
     private static CarpetaDeLaTanda CarpetaCon(IReadOnlyList<CarpetaDeLaTanda> carpetas, string unidadNumero)
         => carpetas.Single(c => c.UnidadNumero == unidadNumero);
 
     /// <summary>Los motivos de un resultado, para que el fallo de la prueba diga cual fue.</summary>
+    /// <param name="resultado">Lo que devolvió corregir.</param>
     private static string Motivos(ResultadoDeLaCorreccion resultado)
         => string.Join(" | ", resultado.Avisos.Select(aviso => aviso.Linea));
 }

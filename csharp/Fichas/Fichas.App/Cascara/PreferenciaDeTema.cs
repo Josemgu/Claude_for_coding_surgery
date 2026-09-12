@@ -24,9 +24,11 @@ public sealed class PreferenciaDeTema
     /// <summary>La clave dentro del archivo. Sin tildes: es una clave, no un rotulo.</summary>
     private const string LaClave = "tema";
 
+    /// <summary>La carpeta de datos donde vive <c>preferencias.txt</c>; se crea al guardar si no existe.</summary>
     private readonly string _carpetaDeDatos;
 
     /// <summary>Apunta a la carpeta de datos; todavia no toca el disco.</summary>
+    /// <param name="carpetaDeDatos">La misma carpeta de la base, la que resolvió <c>ArgumentosDeArranque</c>.</param>
     public PreferenciaDeTema(string carpetaDeDatos)
     {
         ArgumentNullException.ThrowIfNull(carpetaDeDatos);
@@ -53,6 +55,8 @@ public sealed class PreferenciaDeTema
     /// final dejaria dos lineas de tema despues del segundo cambio, y entonces cual manda
     /// dependeria del orden de lectura.
     /// </remarks>
+    /// <param name="tema">El tema elegido; se escribe con <see cref="TemasDeLaVentana.ComoSeGuarda"/>.</param>
+    /// <returns>Verdadero si el archivo quedó escrito; falso si el disco no dejó, y entonces se sigue con el tema en memoria.</returns>
     public bool Guardar(TemaDeLaVentana tema)
     {
         var lineas = LasLineas().Where(l => !EsLaDelTema(l)).ToList();
@@ -86,6 +90,7 @@ public sealed class PreferenciaDeTema
     }
 
     /// <summary>Si la linea es la del tema; se admite «tema = oscuro» con espacios.</summary>
+    /// <param name="linea">Una línea del archivo tal cual.</param>
     private static bool EsLaDelTema(string linea)
         => linea.TrimStart().StartsWith(LaClave + "=", StringComparison.OrdinalIgnoreCase);
 
@@ -97,6 +102,7 @@ public sealed class PreferenciaDeTema
     /// caracteres que Windows no admite entra por ahi y no por <c>IOException</c>. Sin ellas,
     /// un <c>--carpeta-de-datos</c> mal tecleado tumbaba el arranque en vez de ignorarse.
     /// </remarks>
+    /// <param name="fallo">La excepción que saltó al leer o escribir.</param>
     private static bool EsUnFalloDeDisco(Exception fallo)
         => fallo is IOException or UnauthorizedAccessException or ArgumentException
                  or NotSupportedException or System.Security.SecurityException;

@@ -25,8 +25,11 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLoQueNoEstaEnElPapel
 {
+    /// <summary>El id fijo del caso con el templo vacio.</summary>
     private const long CasoDePrueba = 200;
+    /// <summary>La unica persona del caso.</summary>
     private const long PersonaDePrueba = 201;
+    /// <summary>El companero con el que se firma en la prueba que marca un campo ya firmado.</summary>
     private const long CompaneroDePrueba = 1;
 
     /// <summary>Un caso con el templo vacio, que es como llega de los escaneos del dueno.</summary>

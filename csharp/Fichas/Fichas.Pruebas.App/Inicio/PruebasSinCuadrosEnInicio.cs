@@ -142,6 +142,7 @@ public sealed class PruebasSinCuadrosEnInicio
     }
 
     /// <summary>Los textos escritos que un usuario lee en una pantalla, sin los enlaces.</summary>
+    /// <param name="archivoXaml">La ruta del .xaml; se leen sus atributos <c>Text</c> y <c>Content</c> que no empiezan por «{».</param>
     private static List<string> RotulosDe(string archivoXaml)
         => [.. System.Xml.Linq.XDocument.Load(archivoXaml).Descendants()
             .SelectMany(e => e.Attributes())
@@ -234,6 +235,8 @@ public sealed class PruebasSinCuadrosEnInicio
                         || a.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))];
 
     /// <summary>Una carpeta de la app, buscada subiendo desde donde corre la prueba.</summary>
+    /// <param name="cual">El nombre de la carpeta dentro de <c>Fichas.App</c>: «Inicio», «Grupo» o «Flujo».</param>
+    /// <returns>La ruta completa; si no se encuentra, la prueba queda inconclusa.</returns>
     private static string LaCarpeta(string cual)
     {
         var actual = new DirectoryInfo(AppContext.BaseDirectory);

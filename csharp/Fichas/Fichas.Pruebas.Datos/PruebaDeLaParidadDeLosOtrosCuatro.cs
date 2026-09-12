@@ -26,6 +26,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDeLaParidadDeLosOtrosCuatro
 {
+    /// <summary>La fecha del <see cref="RelojFijo"/> del falso y de las marcas sembradas a mano en el de verdad.</summary>
     private const string DiaDeLasPruebas = "2026-09-05";
 
     // ═══════════════════════════ IPersonas ═══════════════════════════
@@ -483,8 +484,16 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
 
     // ─────────────────────────── el andamio ───────────────────────────
 
+    /// <summary>El trozo que se pide en todas las listas de esta clase: desde 0, 50 filas.</summary>
     private static readonly Pagina PrimeraPagina = new(0, 50);
 
+    /// <summary>Los seis repositorios de verdad sobre una misma base de prueba.</summary>
+    /// <param name="Casos">El de casos.</param>
+    /// <param name="Companeros">El de compañeros.</param>
+    /// <param name="Asignaciones">El de asignaciones.</param>
+    /// <param name="Personas">El de personas.</param>
+    /// <param name="Procedencia">El de procedencia.</param>
+    /// <param name="Ilegibles">El de ilegibles.</param>
     private sealed record Juego(
         RepositorioDeCasos Casos,
         RepositorioDeCompaneros Companeros,
@@ -493,6 +502,13 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
         RepositorioDeProcedencia Procedencia,
         RepositorioDeIlegibles Ilegibles);
 
+    /// <summary>Los seis repositorios falsos sobre un mismo <see cref="AlmacenFalso"/>.</summary>
+    /// <param name="Casos">El de casos.</param>
+    /// <param name="Companeros">El de compañeros.</param>
+    /// <param name="Asignaciones">El de asignaciones.</param>
+    /// <param name="Personas">El de personas.</param>
+    /// <param name="Procedencia">El de procedencia.</param>
+    /// <param name="Ilegibles">El de ilegibles.</param>
     private sealed record JuegoFalso(
         RepositorioDeCasosFalso Casos,
         RepositorioDeCompanerosFalso Companeros,
@@ -501,6 +517,8 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
         RepositorioDeProcedenciaFalso Procedencia,
         RepositorioDeIlegiblesFalso Ilegibles);
 
+    /// <summary>Una base de prueba y un almacén falso con reloj fijo, cada uno con sus seis repositorios.</summary>
+    /// <returns>Los dos juegos y lo que hay que cerrar al terminar (la base de prueba).</returns>
     private static (Juego DeVerdad, JuegoFalso Falso, IDisposable Cerrar) MontarLosDos()
     {
         var baseDePrueba = BaseDePrueba.Nueva();
@@ -525,6 +543,10 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
         return (deVerdad, falso, baseDePrueba);
     }
 
+    /// <summary>El mismo caso guardado en los dos repositorios; los ids no coinciden porque cada almacén numera aparte.</summary>
+    /// <param name="deVerdad">Los repositorios sobre SQLite.</param>
+    /// <param name="falso">Los repositorios sobre el almacén en memoria.</param>
+    /// <returns>El id que dio cada uno.</returns>
     private static (long DeVerdad, long Falso) SembrarUnCasoEnLosDos(Juego deVerdad, JuegoFalso falso)
     {
         var caso = new Caso
@@ -537,6 +559,11 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
         return (deVerdad.Casos.Guardar(caso).Id, falso.Casos.Guardar(caso).Id);
     }
 
+    /// <summary>El mismo compañero guardado en los dos repositorios.</summary>
+    /// <param name="deVerdad">Los repositorios sobre SQLite.</param>
+    /// <param name="falso">Los repositorios sobre el almacén en memoria.</param>
+    /// <param name="nombre">El nombre del compañero.</param>
+    /// <returns>El id que dio cada uno.</returns>
     private static (long DeVerdad, long Falso) SembrarUnCompaneroEnLosDos(
         Juego deVerdad, JuegoFalso falso, string nombre)
     {
@@ -545,6 +572,8 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
         return (deVerdad.Companeros.Guardar(quienEs).Id, falso.Companeros.Guardar(quienEs).Id);
     }
 
+    /// <summary>Una procedencia de OCR con confianza baja sobre <c>fecha_viaje</c>, sin firmar.</summary>
+    /// <param name="casoId">El caso al que apunta.</param>
     private static ProcedenciaDeCampo UnCampo(long casoId) => new()
     {
         Tabla = TablaDeProcedencia.Casos,
@@ -698,6 +727,12 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
             $"{cuando}, el de verdad deja {vivasDeVerdad} asignacion(es) viva(s) y el falso {vivasFalsas}.");
     }
 
+    /// <summary>Que una columna «quién» esté nula en los dos o apunte en cada uno a su propio compañero.</summary>
+    /// <param name="deVerdad">Lo que guardó el de verdad.</param>
+    /// <param name="falso">Lo que guardó el falso.</param>
+    /// <param name="quienDeVerdad">El id del compañero en la base de verdad.</param>
+    /// <param name="quienFalso">El id del compañero en el almacén falso.</param>
+    /// <param name="columna">El nombre de la columna, para el mensaje.</param>
     private static void CompararQuien(
         long? deVerdad, long? falso, long quienDeVerdad, long quienFalso, string columna)
     {
@@ -711,6 +746,10 @@ public sealed class PruebaDeLaParidadDeLosOtrosCuatro
         }
     }
 
+    /// <summary>Que una marca de tiempo esté escrita en los dos o vacía en los dos; el valor no se compara porque los relojes son distintos.</summary>
+    /// <param name="deVerdad">Lo que guardó el de verdad.</param>
+    /// <param name="falso">Lo que guardó el falso.</param>
+    /// <param name="columna">El nombre de la columna, para el mensaje.</param>
     private static void CompararSiLaHay(string? deVerdad, string? falso, string columna)
         => Assert.AreEqual(
             string.IsNullOrEmpty(deVerdad),

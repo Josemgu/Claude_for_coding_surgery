@@ -1,6 +1,5 @@
 
 using Fichas.App.Paquetes;
-using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Lectura;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
@@ -24,6 +23,7 @@ namespace Fichas.Pruebas.App.Reportes;
 [TestClass]
 public sealed class PruebasDeLaVueltaEnPantalla
 {
+    /// <summary>La ruta de mentira del Excel devuelto; el doble no la abre.</summary>
     private const string RutaDelExcel = @"C:\no-importa\devuelto.xlsx";
 
     /// <summary>La linea dice cuantas filas venian, cuantas entraron y cuantas no.</summary>
@@ -179,14 +179,19 @@ public sealed class PruebasDeLaVueltaEnPantalla
 
     // ---- lo que arman las pruebas -----------------------------------------
 
+    /// <summary>Servicios falsos con cero casos, tres compañeros del generador y el reloj parado.</summary>
     private static ServiciosFalsos Base() => new(0, 3, new RelojFijo("2026-09-04"));
 
+    /// <summary>Escribe a Sandy como compañera 1 en el almacén y la devuelve leída por el puerto.</summary>
+    /// <param name="servicios">Los servicios falsos.</param>
     private static Companero Sandy(ServiciosFalsos servicios)
     {
         servicios.Almacen.Companeros[1] = new Companero { Id = 1, Nombre = "Sandy", Activo = true };
         return servicios.Companeros.Obtener(1)!;
     }
 
+    /// <summary>Tantas marcas que casan como se pidan, del mismo caso y con cédulas correlativas.</summary>
+    /// <param name="cuantas">Cuántas marcas.</param>
     private static List<MarcaDelCompanero> Marcas(int cuantas) =>
     [
         .. Enumerable.Range(1, cuantas).Select(numero => new MarcaDelCompanero(
@@ -196,6 +201,8 @@ public sealed class PruebasDeLaVueltaEnPantalla
             FilaExcel: 100 + numero, CasoId: numero)),
     ];
 
+    /// <summary>Tantas filas descartadas como se pidan, cada una con su motivo numerado.</summary>
+    /// <param name="cuantas">Cuántas filas.</param>
     private static List<FilaDescartada> Descartadas(int cuantas) =>
     [
         .. Enumerable.Range(1, cuantas).Select(numero => new FilaDescartada

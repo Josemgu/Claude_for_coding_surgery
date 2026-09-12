@@ -17,6 +17,7 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 public sealed partial class VentanaPrincipal
 {
+    /// <summary>El tema elegido, leído y guardado en la carpeta de datos; nulo hasta que la ventana lo monta.</summary>
     private PreferenciaDeTema? _preferenciaDeTema;
 
     /// <summary>

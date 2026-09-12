@@ -12,8 +12,8 @@ namespace Fichas.Datos;
 /// Portado de <c>datos/arranque.py</c>. DECISIONES.md (2026-09-02) obliga a que el
 /// programa MUESTRE la ruta que resolvio antes de escribir nada, para que se vea si
 /// cayo donde debia. El orden de esta clase es esa obligacion:
-/// <see cref="MostrarRutaDeDatos"/> no crea nada, y <see cref="PrepararLaBase"/> la
-/// llama antes de tocar el disco.
+/// <see cref="MostrarRutaDeDatos"/> no crea nada, y
+/// <see cref="PrepararLaBase(string?, Action{string}?)"/> la llama antes de tocar el disco.
 /// </remarks>
 public static class ArranqueDeLaBase
 {
@@ -28,6 +28,7 @@ public static class ArranqueDeLaBase
     /// </remarks>
     /// <param name="carpetaDeDatos">La carpeta a usar; nula para resolverla por la API.</param>
     /// <param name="escribir">Donde va cada linea; por defecto, la consola.</param>
+    /// <returns>La ruta completa del archivo <c>.db</c>, exista o no.</returns>
     public static string MostrarRutaDeDatos(
         string? carpetaDeDatos = null, Action<string>? escribir = null)
     {
@@ -73,6 +74,7 @@ public static class ArranqueDeLaBase
     /// Si no hay sitio para la copia, o si la migracion fallo. En los dos casos la base
     /// se queda —o se repone— como estaba.
     /// </exception>
+    /// <returns>La conexión abierta, con las claves foráneas encendidas y el esquema al día.</returns>
     public static SqliteConnection PrepararLaBase(
         string? carpetaDeDatos = null, Action<string>? escribir = null)
     {
@@ -116,11 +118,15 @@ public static class ArranqueDeLaBase
     /// <summary>
     /// Lo mismo, leyendo la carpeta de los argumentos de arranque.
     /// </summary>
+    /// <param name="argumentos">Los argumentos de línea de órdenes; se busca <see cref="CarpetaDeDatos.ArgumentoDeCarpeta"/>.</param>
+    /// <param name="escribir">Donde va cada línea; por defecto, la consola.</param>
+    /// <returns>La conexión abierta, igual que la otra sobrecarga.</returns>
     public static SqliteConnection PrepararLaBase(
         IReadOnlyList<string> argumentos, Action<string>? escribir = null)
         => PrepararLaBase(CarpetaDeDatos.LeerCarpetaDeLosArgumentos(argumentos), escribir);
 
     /// <summary>Que version del motor SQLite lleva dentro este ejecutable.</summary>
+    /// <returns>Lo que devuelve <c>sqlite_version()</c>, o «desconocida» si el motor no contesta.</returns>
     private static string LeerLaVersionDelMotor()
     {
         // Se le pregunta al motor en vez de leer una constante del paquete: lo que
@@ -132,6 +138,8 @@ public static class ArranqueDeLaBase
         return Convert.ToString(orden.ExecuteScalar()) ?? "desconocida";
     }
 
+    /// <summary>Cuántas filas tiene <c>casos</c>, archivadas incluidas, para la línea de arranque que dice si la base trae datos.</summary>
+    /// <param name="conexion">La conexión ya migrada.</param>
     private static long ContarCasos(SqliteConnection conexion)
     {
         using var orden = conexion.CreateCommand();

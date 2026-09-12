@@ -41,6 +41,7 @@ public static class ArmadoDelInformeDeAgente
     /// <param name="enElMes">Lo que hizo en la larga.</param>
     /// <param name="enLaSemana">Lo que hizo en la corta.</param>
     /// <param name="llevaEncimaAhora">Cuantos documentos tiene asignados y vivos ahora mismo.</param>
+    /// <returns>Una sección de ocho filas fijas, cuatro columnas y el resumen con lo que lleva hoy.</returns>
     public static Seccion LoQueHizo(
         Periodo mes,
         Periodo semana,
@@ -118,8 +119,15 @@ public static class ArmadoDelInformeDeAgente
             + " ahora mismo. Esa cifra es de hoy, no del período.");
     }
 
+    /// <summary>Una fila de la tabla: el qué, las dos cifras ya escritas y el cómo se cuenta.</summary>
+    /// <param name="que">El rótulo de la primera columna.</param>
+    /// <param name="enElMes">La cifra de la ventana larga.</param>
+    /// <param name="enLaSemana">La cifra de la ventana corta.</param>
+    /// <param name="comoSeCuenta">El denominador y la regla, para la última columna.</param>
     private static IReadOnlyList<string?> Fila(string que, int enElMes, int enLaSemana, string comoSeCuenta)
         => [que, Numero(enElMes), Numero(enLaSemana), comoSeCuenta];
 
+    /// <summary>Un entero como texto sin separador de miles, igual en cualquier cultura.</summary>
+    /// <param name="valor">La cifra.</param>
     private static string Numero(int valor) => valor.ToString(CultureInfo.InvariantCulture);
 }

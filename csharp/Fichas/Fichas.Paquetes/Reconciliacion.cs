@@ -26,11 +26,14 @@ public static class Motivos
         + "por nombre: nunca se empareja por nombre";
 
     /// <summary>La clave no tiene la forma esperada. Lleva dentro la clave que venia escrita.</summary>
+    /// <param name="clave">Lo que traía la celda, tal cual, para que Miguel vea qué se rompió.</param>
     public static string ClaveRota(string clave)
         => $"la clave «{clave}» no tiene la forma esperada (caso, dos puntos y cédula de "
            + "miembro), así que no se puede saber a qué persona se refiere";
 
     /// <summary>Una respuesta que nadie puede interpretar sin inventar. No se aplica media fila.</summary>
+    /// <param name="rotulo">El título impreso de la columna donde estaba.</param>
+    /// <param name="detalle">Lo que dijo <see cref="Pasos.SeEntiendeLaRespuesta"/>: qué venía escrito y qué se esperaba.</param>
     public static string RespuestaIlegible(string rotulo, string detalle)
         => $"en la columna «{rotulo}», {detalle}. Esa persona se quedó sin aplicar entera: "
            + "no se aplica media fila";
@@ -41,6 +44,7 @@ public static class Motivos
         + "puede ser una persona añadida a mano en el Excel, o un MRN retecleado";
 
     /// <summary>El mismo par ya venia en una fila anterior de este mismo archivo.</summary>
+    /// <param name="primera">El número de fila de Excel donde apareció la primera vez; esa es la que se aplicó.</param>
     public static string Repetida(int primera) => $"ese mismo par ya venía en la fila {primera} de este archivo";
 
     /// <summary>
@@ -52,6 +56,7 @@ public static class Motivos
     /// No se escoge una: escribir el trabajo del companero sobre la familia equivocada es
     /// peor que no escribirlo, y esto al menos deja su renglon.
     /// </remarks>
+    /// <param name="cuantas">A cuántas personas lleva el par; siempre dos o más.</param>
     public static string ClaveAmbigua(int cuantas)
         => $"ese número de caso y ese MRN llevan a {cuantas} personas de {cuantas} casos "
            + "distintos, así que no se sabe a cuál se refiere. El número de caso son cuatro "
@@ -127,6 +132,7 @@ public static class Reconciliacion
     /// <param name="companeroId">De quien es el Excel; va en cada renglon descartado.</param>
     /// <param name="rutaExcel">El archivo del que vinieron; va en cada renglon descartado.</param>
     /// <param name="ahora">La marca de tiempo con la que se sellan los descartes.</param>
+    /// <returns>Los renglones que casaron y traen algo, los descartes con su motivo, las filas en blanco y los avisos; nunca lanza por una fila mala.</returns>
     public static ResultadoDeReconciliar Reconciliar(
         LibroLeido libro,
         Func<string?, string?, long?, IReadOnlyList<Persona>> personasQueCasan,
@@ -183,6 +189,8 @@ public static class Reconciliacion
     /// probado, pero es para una hoja que Miguel arme por su cuenta con los titulos en la fila
     /// 1 — no para un paquete generado al que se le borro la columna.</para>
     /// </remarks>
+    /// <param name="libro">Lo leído del archivo; se miran sus títulos.</param>
+    /// <param name="avisos">La lista a la que se añade el problema, si falta la columna.</param>
     private static void AvisarSiFaltaLaColumnaDeLaClave(LibroLeido libro, List<Aviso> avisos)
     {
         var tituloDeLaClave = Columnas.Por(Columnas.ColumnaDeLaClave).Titulo;
@@ -206,6 +214,8 @@ public static class Reconciliacion
     /// no se rechaza nada. Lo que no se hace es callarlo, porque quien mire la vuelta tiene
     /// que saber por que no hay ningun motivo escrito en ninguna fila.
     /// </remarks>
+    /// <param name="libro">Lo leído del archivo; se miran sus títulos.</param>
+    /// <param name="avisos">La lista a la que se añade la información, si falta alguna de las dos.</param>
     private static void AvisarDeLasColumnasQueNoTrae(LibroLeido libro, List<Aviso> avisos)
     {
         var titulos = libro.Titulos.Where(titulo => titulo is not null).ToHashSet(StringComparer.Ordinal)!;
@@ -223,6 +233,24 @@ public static class Reconciliacion
             + "ningún documento saldrá con motivo."));
     }
 
+    /// <summary>
+    /// Decide qué es una fila: un renglón que casó, una fila en blanco, o un descarte con su
+    /// motivo. En este orden: par ilegible, respuesta ilegible, clave incompleta, repetida,
+    /// ambigua, sin par; y solo entonces se mira si trae algo.
+    /// </summary>
+    /// <remarks>
+    /// Pasa de 30 líneas y no se parte a propósito: es la cadena de descartes entera, y su
+    /// valor está en que los seis motivos se lean seguidos y en su orden. Cada rama termina en
+    /// un <c>return</c> y ninguna fila sale por dos sitios.
+    /// </remarks>
+    /// <param name="valores">La fila como diccionario «título → valor».</param>
+    /// <param name="numeroDeFila">El número de fila de Excel, para los motivos y para la huella de repetidas.</param>
+    /// <param name="personasQueCasan">Cómo se resuelve la terna contra la base.</param>
+    /// <param name="yaVistos">Las ternas ya aceptadas en este archivo, con la fila donde aparecieron.</param>
+    /// <param name="renglones">Donde se añade la fila si casó y trae algo.</param>
+    /// <param name="sinNada">Donde se añade su número si casó pero no trae nada.</param>
+    /// <param name="avisos">Donde va el aviso de un motivo que no se entiende.</param>
+    /// <param name="descartar">Qué hacer con el motivo cuando la fila no entra.</param>
     private static void ClasificarUnaFila(
         IReadOnlyDictionary<string, string?> valores,
         int numeroDeFila,
@@ -307,6 +335,9 @@ public static class Reconciliacion
     /// y tirar seis respuestas buenas por una frase escrita a mano seria perder el trabajo
     /// del companero. Se avisa con su fila y con lo que venia escrito, y quien lo lea decide.
     /// </remarks>
+    /// <param name="valores">La fila como diccionario «título → valor».</param>
+    /// <param name="numeroDeFila">El número de fila de Excel, para el aviso.</param>
+    /// <param name="avisos">La lista a la que se añade el aviso si no se entiende.</param>
     private static MotivoDeNoCompletar LeerElMotivo(
         IReadOnlyDictionary<string, string?> valores, int numeroDeFila, List<Aviso> avisos)
     {
@@ -335,6 +366,9 @@ public static class Reconciliacion
     /// <c>numero_caso</c> + <c>mrn</c> no cambia.
     /// </para>
     /// </remarks>
+    /// <param name="valores">La fila como diccionario «título → valor».</param>
+    /// <param name="motivo">Por qué no se pudo leer la terna; nulo cuando sí se pudo.</param>
+    /// <returns>La terna, con el id nulo si vino de las columnas sueltas o de una clave vieja; o nulo con su motivo.</returns>
     private static (string? NumeroCaso, string? Mrn, long? CasoId)? ParDeLaFila(
         IReadOnlyDictionary<string, string?> valores, out string? motivo)
     {
@@ -376,10 +410,14 @@ public static class Reconciliacion
     /// eso seria perder trabajo bueno. NO es inventar un dato: cambiar la caja de una letra no
     /// cambia que caso es. Eso lo distingue del MRN, donde rellenar un cero SI inventaria.
     /// </remarks>
+    /// <param name="valor">El número tal como vino; nulo se queda nulo.</param>
     private static string? NormalizarNumeroDeCaso(string? valor)
         => valor is null ? null : valor.Trim().ToUpperInvariant();
 
     /// <summary>Las siete respuestas de la hoja; nulo con su reparo si alguna no se entiende.</summary>
+    /// <param name="valores">La fila como diccionario «título → valor»; una columna que falte cuenta como en blanco.</param>
+    /// <param name="reparo">El motivo de descarte cuando una respuesta no se entiende; nulo si las siete se leyeron.</param>
+    /// <returns>Las siete por nombre de columna de la base, o nulo si hay reparo.</returns>
     private static Dictionary<string, bool?>? LeerLasRespuestas(
         IReadOnlyDictionary<string, string?> valores, out string? reparo)
     {
@@ -401,6 +439,9 @@ public static class Reconciliacion
         return respuestas;
     }
 
+    /// <summary>El valor de una columna de la fila, buscándola por su título impreso; nulo si la hoja no la trae.</summary>
+    /// <param name="valores">La fila como diccionario «título → valor».</param>
+    /// <param name="nombreDeColumna">El nombre en la base; se traduce a título con <see cref="Columnas.Por"/>.</param>
     private static string? Valor(IReadOnlyDictionary<string, string?> valores, string nombreDeColumna)
         => valores.TryGetValue(Columnas.Por(nombreDeColumna).Titulo, out var valor) ? valor : null;
 
@@ -408,6 +449,12 @@ public static class Reconciliacion
     /// El renglon de un descarte, tal como va a su tabla. Ni el caso ni el MRN se validan:
     /// lo que venia escrito puede ser justo lo que estaba mal.
     /// </summary>
+    /// <param name="numeroDeFila">El número de fila de Excel; va delante del motivo.</param>
+    /// <param name="valores">La fila, de donde se copian caso, MRN y nombre tal como venían.</param>
+    /// <param name="motivo">Uno de los textos de <see cref="Motivos"/>.</param>
+    /// <param name="companeroId">De quién era el Excel.</param>
+    /// <param name="rutaExcel">De qué archivo salió.</param>
+    /// <param name="ahora">La marca de tiempo del descarte.</param>
     private static FilaDescartada Descartar(
         int numeroDeFila,
         IReadOnlyDictionary<string, string?> valores,

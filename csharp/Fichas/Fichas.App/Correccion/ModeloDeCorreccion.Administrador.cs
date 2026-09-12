@@ -3,6 +3,17 @@ using Fichas.Contratos.Modelos;
 
 namespace Fichas.App.Correccion;
 
+/// <summary>
+/// La parte del modelo que lleva el atajo del administrador: dar el documento por completo
+/// sin firmar campo por campo, y decir quien puso la marca vigente.
+/// </summary>
+/// <remarks>
+/// Aplica la decision del dueno del 2026-09-07 (<c>DECISIONES.md</c>, «Su palabra gana a la
+/// del programa»): <i>«Si yo marco algo completo, debe cambiar a completo, no importa si el
+/// sistema diga que está mal»</i>. Por eso ninguna condicion sobre lo que le falte al
+/// documento esconde el boton ni frena la escritura; lo unico que lo frena es no saber a
+/// nombre de quien firmar.
+/// </remarks>
 public sealed partial class ModeloDeCorreccion
 {
     /// <summary>
@@ -52,12 +63,6 @@ public sealed partial class ModeloDeCorreccion
         => _caso is null ? string.Empty : TextoDeLaMarcaDelEstado.Componer(_caso, QuienPusoLaMarca(_caso));
 
     /// <summary>
-    /// Como queda el documento en la lista, en corto; vacia si nadie lo marco.
-    /// </summary>
-    public string ComoQuedoLaMarcaEnLaLista
-        => _caso is null ? string.Empty : TextoDeLaMarcaDelEstado.Corta(_caso, QuienPusoLaMarca(_caso));
-
-    /// <summary>
     /// Da el documento por completo SIN firmar ni un campo. Lo pulsa el administrador.
     /// </summary>
     /// <remarks>
@@ -82,7 +87,17 @@ public sealed partial class ModeloDeCorreccion
     /// viva del dueno, que tiene una sola fila de companero y se llama «Sandy»: la regla
     /// vieja habria dejado la marca firmada por ella. Nunca se firma a nombre de quien no fue.
     /// </para>
+    /// <para>
+    /// ⛔ <b>No mira lo que le falte al documento</b>, y es por decision del dueno del
+    /// 2026-09-07: <i>«Si yo marco algo completo, debe cambiar a completo, no importa si el
+    /// sistema diga que está mal»</i>. Un documento con campos vacios se marca igual; lo que
+    /// falta sigue dicho en los campos, no como pared.
+    /// </para>
     /// </remarks>
+    /// <returns>
+    /// Si se escribio, con un aviso mas que deja dicho que no se firmo ningun campo; si no,
+    /// el motivo en una linea, sin haber tocado la base.
+    /// </returns>
     public ResultadoDeEscritura DarPorCompletoComoAdministrador()
     {
         if (_caso is null)
@@ -113,6 +128,7 @@ public sealed partial class ModeloDeCorreccion
     /// que el documento pase a «completa» sin que nadie diga que los campos siguen sin
     /// comprobar se lee como si se hubieran comprobado.
     /// </remarks>
+    /// <param name="quien">El administrador que pulso el atajo; su nombre va en la linea.</param>
     private static Aviso AvisoDeQueNoSeFirmoNada(Companero quien) => Aviso.Informa(
         $"documento dado por completo por {quien.Nombre}: {ElAdministrador.Origen}",
         string.Empty,
@@ -124,6 +140,7 @@ public sealed partial class ModeloDeCorreccion
     /// Nulo y no un nombre de relleno: un hueco se dice callando el nombre, nunca poniendo
     /// el del primero de la lista.
     /// </remarks>
+    /// <param name="caso">El caso tal como esta en la base, con <c>estado_marcado_por</c>.</param>
     private string? QuienPusoLaMarca(Caso caso)
         => caso.EstadoMarcadoPor is long id ? _companeros.Obtener(id)?.Nombre : null;
 }

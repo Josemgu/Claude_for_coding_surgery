@@ -20,20 +20,35 @@ namespace Fichas.Pruebas.App.Reportes;
 /// </remarks>
 internal sealed class PaquetesDeMentirijilla : IPaquetes
 {
+    /// <summary>Donde se escriben las descartadas, igual que hace la biblioteca de verdad.</summary>
     private readonly IIlegibles _ilegibles;
+    /// <summary>De dónde sale la fecha de las descartadas que se caen al aplicar.</summary>
     private readonly IReloj _reloj;
+    /// <summary>Lo que «lee» del Excel devuelto: las filas que casan.</summary>
     private readonly List<MarcaDelCompanero> _marcasQueCasan;
+    /// <summary>Lo que «lee» del Excel devuelto: las filas que no casan.</summary>
     private readonly List<FilaDescartada> _descartadasAlLeer;
+    /// <summary>Cuántas de las que casan se caen al aplicar, las últimas.</summary>
     private readonly int _cuantasSeCaenAlAplicar;
+    /// <summary>Los bytes que escribe la ida, o nulo para no escribir nada.</summary>
     private readonly byte[]? _contenidoDelExcel;
 
     /// <summary>La ida: escribe esos bytes donde le pidan, o nada si va nulo.</summary>
+    /// <param name="ilegibles">Donde se escriben las descartadas.</param>
+    /// <param name="reloj">De dónde sale la fecha.</param>
+    /// <param name="contenidoDelExcel">Los bytes del Excel de ida, o nulo para no escribir.</param>
     internal PaquetesDeMentirijilla(IIlegibles ilegibles, IReloj reloj, byte[]? contenidoDelExcel = null)
         : this(ilegibles, reloj, [], [], 0, contenidoDelExcel)
     {
     }
 
     /// <summary>La vuelta: esas marcas casan, esas descartadas no, y N de las que casan se caen al aplicar.</summary>
+    /// <param name="ilegibles">Donde se escriben las descartadas.</param>
+    /// <param name="reloj">De dónde sale la fecha.</param>
+    /// <param name="marcasQueCasan">Las filas que casan al leer.</param>
+    /// <param name="descartadasAlLeer">Las filas que no casan al leer.</param>
+    /// <param name="cuantasSeCaenAlAplicar">Cuántas de las que casan se caen al aplicar.</param>
+    /// <param name="contenidoDelExcel">Los bytes del Excel de ida, o nulo para no escribir.</param>
     internal PaquetesDeMentirijilla(
         IIlegibles ilegibles,
         IReloj reloj,

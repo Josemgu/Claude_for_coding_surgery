@@ -17,13 +17,23 @@ namespace Fichas.App.Reportes;
 /// </remarks>
 public sealed class ZonaDeResumen
 {
+    /// <summary>El marco entero del bloque; la X lo esconde.</summary>
     private readonly Border _marco;
+    /// <summary>El renglón de una línea que siempre se ve.</summary>
     private readonly TextBlock _linea;
+    /// <summary>El botón que alterna el detalle; su texto dice «ver» u «ocultar».</summary>
     private readonly Button _ver;
+    /// <summary>El marco del detalle, que empieza cerrado.</summary>
     private readonly Border _marcoDelDetalle;
+    /// <summary>El texto largo de dentro del detalle.</summary>
     private readonly TextBlock _detalle;
 
     /// <summary>Se ata a los cinco controles que la pantalla ya tiene puestos en su XAML.</summary>
+    /// <param name="marco">El marco entero del bloque.</param>
+    /// <param name="linea">El renglón de una línea.</param>
+    /// <param name="ver">El botón de «ver» / «ocultar».</param>
+    /// <param name="marcoDelDetalle">El marco del detalle.</param>
+    /// <param name="detalle">El texto del detalle.</param>
     public ZonaDeResumen(Border marco, TextBlock linea, Button ver, Border marcoDelDetalle, TextBlock detalle)
     {
         _marco = marco;
@@ -34,6 +44,7 @@ public sealed class ZonaDeResumen
     }
 
     /// <summary>Ensena el resumen con el detalle cerrado, que es como tiene que empezar.</summary>
+    /// <param name="resumen">La línea y el detalle que se pintan.</param>
     public void Ensenar(ResumenEnPantalla resumen)
     {
         ArgumentNullException.ThrowIfNull(resumen);

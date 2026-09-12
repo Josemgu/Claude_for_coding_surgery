@@ -25,6 +25,7 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLoQueLeFaltaACadaDocumento
 {
+    /// <summary>Vigila que las tres respuestas —resuelto, le falta un dato, sin ninguna persona— se distingan y salgan de la MISMA composicion que la pantalla del grupo.</summary>
     [TestMethod]
     public void DiceLoMismoQueLaPantallaDelGrupoDeCadaDocumento()
     {

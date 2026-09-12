@@ -129,6 +129,14 @@ public sealed class PruebasDeLasDosPasadasDeProcedencia
     }
 
     /// <summary>Compara los campos de un registro por los dos caminos y cuenta los dudosos.</summary>
+    /// <param name="enBloque">La procedencia leída de toda la base de una vez.</param>
+    /// <param name="deUno">La procedencia leída solo de ese documento.</param>
+    /// <param name="tabla">Si el registro es un caso o una persona.</param>
+    /// <param name="registroId">El número interno del registro.</param>
+    /// <param name="columnas">Las columnas que se comparan, en orden.</param>
+    /// <param name="valores">El valor de cada columna, en el mismo orden.</param>
+    /// <param name="dudosos">Donde se suman los campos que salieron dudosos.</param>
+    /// <returns>Cuántos campos se compararon.</returns>
     private static int CompararUnRegistro(
         ProcedenciasDeUnaPasada enBloque,
         ProcedenciasDeUnaPasada deUno,
@@ -157,6 +165,7 @@ public sealed class PruebasDeLasDosPasadasDeProcedencia
     }
 
     /// <summary>Los cinco valores del caso, en el orden de <see cref="LoQueLeFalta.ColumnasDelCaso"/>.</summary>
+    /// <param name="caso">El documento del que se sacan.</param>
     private static IReadOnlyList<string?> ValoresDelCaso(Caso caso)
         => [caso.NumeroCaso, caso.UnidadNumero, caso.UnidadNombre, caso.FechaViaje, caso.TemploNombre];
 }

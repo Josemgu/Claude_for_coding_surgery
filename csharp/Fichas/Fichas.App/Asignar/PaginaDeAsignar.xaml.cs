@@ -22,8 +22,11 @@ namespace Fichas.App.Asignar;
 /// </remarks>
 public sealed partial class PaginaDeAsignar : PaginaDeFichas
 {
+    /// <summary>Quien lee lo que se ofrece; nulo hasta que llegan los servicios en <see cref="AlLlegar"/>.</summary>
     private ListaParaAsignar? _lectura;
+    /// <summary>La única puerta de asignar y retirar; nula hasta <see cref="AlLlegar"/>.</summary>
     private OperacionDeAsignar? _asignar;
+    /// <summary>El panel flotante de altas y bajas del equipo; nulo hasta <see cref="AlLlegar"/>.</summary>
     private PanelDelEquipo? _equipo;
 
     /// <summary>Los renglones del panel de grupos, en el mismo orden en que se pintaron.</summary>
@@ -132,6 +135,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     }
 
     /// <summary>Asigna lo marcado al companero elegido, por la unica puerta que hay.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarAsignar(object quien, RoutedEventArgs cuando)
     {
         if (_asignar is null || _destinos.SelectedItem is not Companero destino) return;
@@ -146,6 +151,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     }
 
     /// <summary>Retira lo marcado: desactiva las asignaciones vivas, nunca las borra.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarRetirar(object quien, RoutedEventArgs cuando)
     {
         if (_asignar is null) return;
@@ -174,6 +181,7 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     /// suma de los grupos no fuera el total ofrecido, habria documentos que no estan en ningun
     /// grupo y nadie lo sabria.</para>
     /// </remarks>
+    /// <param name="ofrecidos">Los renglones que acaba de servir la lista, todos.</param>
     private void PintarLosGrupos(IReadOnlyList<RenglonParaAsignar> ofrecidos)
     {
         var grupos = GruposParaAsignar.Armar(ofrecidos);
@@ -199,6 +207,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     /// primero. Un grupo son quince documentos de golpe, y en este programa todo lo que toca
     /// muchos a la vez dice cuantos antes de hacerlo.
     /// </remarks>
+    /// <param name="quien">El botón del renglón del panel; por él se sabe qué grupo es.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirAsignarUnGrupo(object quien, RoutedEventArgs cuando)
     {
         if (_asignar is null || QueGrupoSePulso(quien) is not RenglonDeGrupoParaAsignar renglon) return;
@@ -224,6 +234,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     }
 
     /// <summary>Se echa atras: se cierra la franja y en la base no se ha escrito nada.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarNoAsignarElGrupo(object quien, RoutedEventArgs cuando)
     {
         EsconderLaFranjaDelGrupo();
@@ -231,6 +243,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     }
 
     /// <summary>Ahora si: se asigna el grupo entero por la unica puerta y se dice cuantos fueron.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarConfirmarElGrupo(object quien, RoutedEventArgs cuando)
     {
         if (_asignar is null || _grupoQueEspera is not RenglonDeGrupoParaAsignar renglon) return;
@@ -264,6 +278,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     /// camino que <c>PaginaDeGrupo.QueSePulso</c>, y sube por el arbol visual porque entre el
     /// boton y el repetidor hay una rejilla de por medio.
     /// </remarks>
+    /// <param name="donde">El control que se pulsó, a cualquier profundidad dentro del renglón.</param>
+    /// <returns>El renglón del panel, o nulo si el control no cuelga del repetidor de grupos.</returns>
     private RenglonDeGrupoParaAsignar? QueGrupoSePulso(object? donde)
     {
         var actual = donde as DependencyObject;
@@ -283,6 +299,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     }
 
     /// <summary>Abre el panel del equipo anclado a su boton.</summary>
+    /// <param name="quien">El botón «Equipo», al que se ancla el panel.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarEquipo(object quien, RoutedEventArgs cuando)
     {
         if (_equipo is null || quien is not FrameworkElement boton) return;
@@ -315,6 +333,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
         => _lista.SelectedItems.OfType<RenglonParaAsignar>().Select(r => r.CasoId).ToList();
 
     /// <summary>Ctrl+A: marca todo lo que hay a la vista; si ya estaba todo, lo desmarca.</summary>
+    /// <param name="quien">El atajo que se pulsó.</param>
+    /// <param name="cuando">Los datos del atajo; se marca como atendido para que no siga subiendo.</param>
     private void AlPulsarMarcarTodo(KeyboardAccelerator quien, KeyboardAcceleratorInvokedEventArgs cuando)
     {
         cuando.Handled = true;
@@ -324,6 +344,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     }
 
     /// <summary>Al cambiar lo marcado, solo se recuenta: la lista no se reconstruye.</summary>
+    /// <param name="quien">La lista.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCambiarLaSeleccion(ItemsView quien, ItemsViewSelectionChangedEventArgs cuando)
         => ContarLoMarcado();
 
@@ -334,6 +356,8 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     /// Lo unico que si se cierra es la pregunta del grupo: decia un nombre y el desplegable ya
     /// pone otro. Ver <see cref="EsconderLaFranjaDelGrupo"/>.
     /// </remarks>
+    /// <param name="quien">El desplegable de destinos.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCambiarDeDestino(object quien, SelectionChangedEventArgs cuando)
     {
         EsconderLaFranjaDelGrupo();
@@ -341,9 +365,12 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     }
 
     /// <summary>Al escribir en el buscador se relee la lista con el texto puesto.</summary>
+    /// <param name="quien">El buscador.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlEscribirEnElBuscador(object quien, TextChangedEventArgs cuando) => Repintar();
 
     /// <summary>Dice una linea en el acuse del pie; NO abre ningun cuadro (requisito 9).</summary>
+    /// <param name="linea">La frase, ya en español y de una sola línea.</param>
     private static void Acusar(string linea)
     {
         if (App.Ventana is VentanaPrincipal ventana) ventana.AcuseDelPie.Decir(linea);

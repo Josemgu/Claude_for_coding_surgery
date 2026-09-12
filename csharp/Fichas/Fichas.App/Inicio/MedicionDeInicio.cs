@@ -45,9 +45,14 @@ public static class MedicionDeInicio
     /// <summary>Donde se escribe el informe: el valor que sigue a la bandera, o el escritorio de trabajo.</summary>
     public static string Ruta { get; } = LeerLaRuta();
 
+    /// <summary>
+    /// Los argumentos con los que arrancó el programa, leídos una vez; el primero es la ruta del
+    /// ejecutable, como siempre en <see cref="Environment.GetCommandLineArgs"/>.
+    /// </summary>
     private static readonly string[] Banderas = Environment.GetCommandLineArgs();
 
     /// <summary>Anexa una linea al informe; si no se puede escribir, no se detiene nada.</summary>
+    /// <param name="linea">La línea, sin salto al final; se añade el del sistema.</param>
     public static void Anotar(string linea)
     {
         try
@@ -68,6 +73,8 @@ public static class MedicionDeInicio
     /// Se cuentan tambien los contenedores de fila realizados, que es lo que delata a una
     /// lista que construyo un renglon por cada dato en vez de por cada hueco visible.
     /// </remarks>
+    /// <param name="raiz">Desde dónde se cuenta; la raíz misma cuenta como uno.</param>
+    /// <returns>Cuántos elementos hay en total y cuántos de ellos son contenedores de fila.</returns>
     public static (int Todos, int Contenedores) ContarElementosVivos(DependencyObject raiz)
     {
         var todos = 0;
@@ -102,6 +109,9 @@ public static class MedicionDeInicio
     /// Sin esto, «la barra se ve» seria una opinion sobre una captura. Es el mismo
     /// metodo de la espiga C0, que es lo que hace comparables las dos mediciones.
     /// </remarks>
+    /// <param name="raiz">Desde dónde se buscan las barras.</param>
+    /// <param name="referencia">Respecto a qué elemento se dan las coordenadas; normalmente la página.</param>
+    /// <returns>Una línea legible con cada barra, o «NINGUNA» si no hay ninguna con tamaño.</returns>
     public static string DescribirLasBarras(DependencyObject raiz, UIElement referencia)
     {
         var descripciones = new List<string>();
@@ -142,6 +152,7 @@ public static class MedicionDeInicio
     /// renglones como huecos se ven, y no tantos como datos hay detras. Si esta cifra
     /// crece con los datos, no hay virtualizacion y la fase no cierra.
     /// </remarks>
+    /// <param name="repetidor">El <c>ItemsRepeater</c> cuyos hijos se cuentan.</param>
     public static int RenglonesRealizados(DependencyObject repetidor)
         => VisualTreeHelper.GetChildrenCount(repetidor);
 
@@ -154,6 +165,8 @@ public static class MedicionDeInicio
     /// Se mira el hijo de dentro del recuadro y no el recuadro: el recuadro ya viene
     /// estirado al alto que le puso la rejilla, y preguntarle a el daria siempre que si.
     /// </remarks>
+    /// <param name="repetidor">El repetidor cuyas celdas se miran.</param>
+    /// <returns>El alto en píxeles que pide la celda más alta, con su relleno; 0 si no hay ninguna.</returns>
     public static double AltoQuePideElContenido(DependencyObject repetidor)
     {
         var mayor = 0.0;
@@ -172,10 +185,13 @@ public static class MedicionDeInicio
     }
 
     /// <summary>El hueco interior de un recuadro, o cero si el elemento no es un recuadro.</summary>
+    /// <param name="elemento">El elemento que se mira; solo un <see cref="Border"/> tiene relleno propio.</param>
     private static Thickness Padding(this FrameworkElement elemento)
         => elemento is Border recuadro ? recuadro.Padding : new Thickness(0);
 
     /// <summary>Escribe un numero con punto decimal, para que la cifra no cambie con el idioma.</summary>
+    /// <param name="valor">El número.</param>
+    /// <param name="decimales">Cuántos decimales; uno por defecto.</param>
     public static string Cifra(double valor, int decimales = 1)
         => valor.ToString("F" + decimales.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
 

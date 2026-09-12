@@ -27,6 +27,8 @@ internal static class MigracionesQueRehacenTablas
     // VERSION 2 — `unidad_numero` admite 6 O 7 digitos.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 2: <c>unidad_numero</c> admite 6 o 7 dígitos (DECISIONES.md 2026-09-02, «unidad_numero admite 6 o 7 dígitos: manda el papel»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion2 =
         "unidad_numero admite 6 o 7 digitos: se reconstruye 'casos' con el CHECK " +
         "corregido (DECISIONES.md 2026-09-02).";
@@ -64,6 +66,8 @@ internal static class MigracionesQueRehacenTablas
         )
         """;
 
+    /// <summary>Paso 5 del procedimiento oficial para la versión 2: copia las diez columnas de <c>casos</c> a <c>casos_version_2</c>, nombradas una a una en los dos lados.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Si una columna cambia de sitio, este INSERT sigue copiando por nombre y no por posición.</remarks>
     private const string CopiaDeLosDatosALaVersion2 = """
         INSERT INTO casos_version_2
             (id, numero_caso, unidad_numero, fecha_viaje, captura_manual, archivado,
@@ -75,6 +79,7 @@ internal static class MigracionesQueRehacenTablas
         """;
 
     /// <summary>Reconstruye <c>casos</c> para que <c>unidad_numero</c> admita 6 o 7 digitos.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion2(SqliteConnection conexion)
     {
         Aplicar(conexion, 2, () => ReconstructorDeTablas.Reconstruir(conexion, _ =>
@@ -92,6 +97,8 @@ internal static class MigracionesQueRehacenTablas
     // VERSION 7 — `numero_caso` admite NULL.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 7: <c>numero_caso</c> admite NULL para no tirar una página cuyo número no se leyó (DECISIONES.md 2026-09-02, «Un PDF de grupo pierde 11 de 12 personas»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion7 =
         "'casos.numero_caso' admite NULL: una pagina cuyo numero no se pudo leer se " +
         "guarda igual, pendiente de identificar, en vez de tirarse entera.";
@@ -132,6 +139,8 @@ internal static class MigracionesQueRehacenTablas
         )
         """;
 
+    /// <summary>Paso 5 del procedimiento oficial para la versión 7: copia las doce columnas de <c>casos</c> a <c>casos_version_7</c>, nombradas una a una en los dos lados.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Si una columna cambia de sitio, este INSERT sigue copiando por nombre y no por posición.</remarks>
     private const string CopiaDeLosDatosALaVersion7 = """
         INSERT INTO casos_version_7
             (id, numero_caso, unidad_numero, fecha_viaje, captura_manual, archivado,
@@ -145,6 +154,7 @@ internal static class MigracionesQueRehacenTablas
         """;
 
     /// <summary>Reconstruye <c>casos</c> para que <c>numero_caso</c> pueda quedarse sin saber.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion7(SqliteConnection conexion)
     {
         Aplicar(conexion, 7, () => ReconstructorDeTablas.Reconstruir(conexion, _ =>
@@ -162,6 +172,8 @@ internal static class MigracionesQueRehacenTablas
     // VERSION 12 — `numero_caso` deja de ser UNICO, y aqui va LA desviacion.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 12: <c>numero_caso</c> deja de ser único y pierde su CHECK de forma (DECISIONES.md 2026-09-03, «El número de caso deja de ser la identidad del caso», y 2026-09-04, «El CHECK del número de caso se quita en el programa nuevo»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion12 =
         "'casos.numero_caso' deja de ser UNICO y pierde su CHECK de forma: el numero " +
         "es una unidad y un mes, no una familia, y lo que venga se guarda y se avisa " +
@@ -217,6 +229,8 @@ internal static class MigracionesQueRehacenTablas
         )
         """;
 
+    /// <summary>Paso 5 del procedimiento oficial para la versión 12: copia las trece columnas de <c>casos</c> a <c>casos_version_12</c>, nombradas una a una en los dos lados.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Si una columna cambia de sitio, este INSERT sigue copiando por nombre y no por posición.</remarks>
     private const string CopiaDeLosDatosALaVersion12 = """
         INSERT INTO casos_version_12
             (id, numero_caso, unidad_numero, fecha_viaje, captura_manual, archivado,
@@ -230,6 +244,7 @@ internal static class MigracionesQueRehacenTablas
         """;
 
     /// <summary>Reconstruye <c>casos</c> sin el UNIQUE y sin el CHECK de forma del numero.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion12(SqliteConnection conexion)
     {
         Aplicar(conexion, 12, () => ReconstructorDeTablas.Reconstruir(conexion, _ =>
@@ -253,6 +268,8 @@ internal static class MigracionesQueRehacenTablas
     // VERSION 15 — la cedula de miembro puede terminar en LETRA.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 15: la cédula de miembro puede terminar en letra (DECISIONES.md 2026-09-04, «La cédula PUEDE terminar en letra»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion15 =
         "la cedula de miembro puede terminar en letra: se reconstruye 'personas' con " +
         "el CHECK de mrn corregido (DECISIONES.md 2026-09-04).";
@@ -331,6 +348,8 @@ internal static class MigracionesQueRehacenTablas
         )
         """;
 
+    /// <summary>Paso 5 del procedimiento oficial para la versión 15: copia las veinticinco columnas de <c>personas</c> a <c>personas_version_15</c>, nombradas una a una en los dos lados.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Si una columna cambia de sitio, este INSERT sigue copiando por nombre y no por posición.</remarks>
     private const string CopiaDeLosDatosALaVersion15 = """
         INSERT INTO personas_version_15
             (id, caso_id, mrn, nombre, fila_formulario,
@@ -354,6 +373,7 @@ internal static class MigracionesQueRehacenTablas
         """;
 
     /// <summary>Reconstruye <c>personas</c> para que <c>mrn</c> admita una letra al final.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion15(SqliteConnection conexion)
     {
         Aplicar(conexion, 15, () => ReconstructorDeTablas.Reconstruir(conexion, _ =>
@@ -370,6 +390,8 @@ internal static class MigracionesQueRehacenTablas
     // VERSION 16 — quita el CHECK del numero de caso venga la base de donde venga.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 16: el CHECK de forma de <c>numero_caso</c> se retira también en las bases que migró el Python (DECISIONES.md 2026-09-04, «El CHECK del número de caso se quita en el programa nuevo»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion16 =
         "'casos.numero_caso' pierde su CHECK de forma tambien en las bases que ya " +
         "paso el Python: la 12 del Python lo conservaba y la del C# no, asi que dos " +
@@ -451,6 +473,8 @@ internal static class MigracionesQueRehacenTablas
         )
         """;
 
+    /// <summary>Paso 5 del procedimiento oficial para la versión 16: copia las veinte columnas de <c>casos</c> a <c>casos_version_16</c>, nombradas una a una en los dos lados.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Si una columna cambia de sitio, este INSERT sigue copiando por nombre y no por posición.</remarks>
     private const string CopiaDeLosDatosALaVersion16 = """
         INSERT INTO casos_version_16
             (id, numero_caso, unidad_numero, fecha_viaje, captura_manual, archivado,
@@ -468,6 +492,7 @@ internal static class MigracionesQueRehacenTablas
         """;
 
     /// <summary>Reconstruye <c>casos</c> sin el CHECK del numero, venga de donde venga la base.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion16(SqliteConnection conexion)
     {
         Aplicar(conexion, 16, () => ReconstructorDeTablas.Reconstruir(conexion, _ =>
@@ -486,6 +511,8 @@ internal static class MigracionesQueRehacenTablas
     // VERSION 17 — la cedula de miembro se guarda como venga y se senala.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 17: <c>personas.mrn</c> pierde su CHECK de forma: una cédula mal leída se guarda y se señala (DECISIONES.md 2026-09-04, requisito 9 del dueño).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion17 =
         "'personas.mrn' pierde su CHECK de forma: una cedula mal leida se guarda y se " +
         "senala en la pantalla, no se rechaza. Lo que un CHECK tira aqui no es un dato, " +
@@ -572,6 +599,8 @@ internal static class MigracionesQueRehacenTablas
         )
         """;
 
+    /// <summary>Paso 5 del procedimiento oficial para la versión 17: copia las veinticinco columnas de <c>personas</c> a <c>personas_version_17</c>, nombradas una a una en los dos lados.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Si una columna cambia de sitio, este INSERT sigue copiando por nombre y no por posición.</remarks>
     private const string CopiaDeLosDatosALaVersion17 = """
         INSERT INTO personas_version_17
             (id, caso_id, mrn, nombre, fila_formulario,
@@ -595,6 +624,7 @@ internal static class MigracionesQueRehacenTablas
         """;
 
     /// <summary>Reconstruye <c>personas</c> sin el CHECK de forma del MRN.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion17(SqliteConnection conexion)
     {
         Aplicar(conexion, 17, () => ReconstructorDeTablas.Reconstruir(conexion, _ =>
@@ -608,6 +638,11 @@ internal static class MigracionesQueRehacenTablas
     }
 
     /// <summary>Ejecuta los pasos de una migracion traduciendo el fallo del motor.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base; solo se comprueba que no sea nula.</param>
+    /// <param name="version">El número de la migración, para nombrarla en el error.</param>
+    /// <param name="pasos">La reconstrucción entera, ya cerrada sobre la conexión.</param>
+    /// <exception cref="ErrorDeMigracion">Envuelve cualquier <see cref="SqliteException"/> con la versión y el mensaje del motor en español.</exception>
+    /// <remarks>Aquí el mensaje «la base se queda en la versión anterior» sí es exacto: cada reconstrucción va dentro de la transacción de <see cref="ReconstructorDeTablas.Reconstruir"/>, que se deshace entera.</remarks>
     private static void Aplicar(SqliteConnection conexion, int version, Action pasos)
     {
         ArgumentNullException.ThrowIfNull(conexion);
@@ -625,6 +660,9 @@ internal static class MigracionesQueRehacenTablas
         }
     }
 
+    /// <summary>Atajo a <see cref="ReconstructorDeTablas.Ejecutar"/> para que cada migración se lea sin el nombre de la clase delante.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <param name="instruccion">Una sola instrucción SQL sin parámetros.</param>
     private static void Ejecutar(SqliteConnection conexion, string instruccion)
         => ReconstructorDeTablas.Ejecutar(conexion, instruccion);
 }

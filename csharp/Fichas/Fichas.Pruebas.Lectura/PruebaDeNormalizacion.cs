@@ -15,6 +15,7 @@ public class PruebaDeNormalizacion
 {
     // --- Cedula de miembro (MRN) -------------------------------------------------
 
+    /// <summary>Vigila que una cédula de once dígitos salga con sus guiones y sin el texto de alrededor.</summary>
     [TestMethod]
     public void LaCedulaDeOnceDigitosSeGuardaTalCual()
         => Assert.AreEqual("055-1115-4668", Normalizacion.NormalizarCedula("MRN 055-1115-4668 "));
@@ -31,10 +32,12 @@ public class PruebaDeNormalizacion
             "la letra no se sube a mayuscula: eso seria corregir lo leido");
     }
 
+    /// <summary>Vigila que la letra solo se admita en la última posición: en medio, no hay cédula.</summary>
     [TestMethod]
     public void UnaCedulaConLaLetraEnMedioNoEsUnaCedula()
         => Assert.IsNull(Normalizacion.NormalizarCedula("055-11A1-3853"));
 
+    /// <summary>Vigila que un nombre, un nulo o solo blancos den nulo, no una excepción ni una cadena vacía.</summary>
     [TestMethod]
     public void UnTextoSinCedulaDevuelveNulo()
     {
@@ -45,6 +48,7 @@ public class PruebaDeNormalizacion
 
     // --- Numero de caso ----------------------------------------------------------
 
+    /// <summary>Vigila que el número de caso se saque de dentro de un texto con más cosas.</summary>
     [TestMethod]
     public void ElNumeroDeCasoSonCuatroLetrasYCuatroDigitos()
         => Assert.AreEqual("CASP2609", Normalizacion.NormalizarNumeroDeCaso("Caso: CASP2609"));
@@ -58,12 +62,14 @@ public class PruebaDeNormalizacion
     public void UnNumeroDeCasoMalLeidoPeroConLaFormaBuenaEntraIgual()
         => Assert.AreEqual("CASD2609", Normalizacion.NormalizarNumeroDeCaso("CASD2609"));
 
+    /// <summary>Vigila que «casp2609» dé nulo: subirlo a mayúsculas escondería que el OCR pudo leer mal las cifras también.</summary>
     [TestMethod]
     public void ElNumeroDeCasoEnMinusculasNoSeSubeAMayuscula()
         => Assert.IsNull(Normalizacion.NormalizarNumeroDeCaso("casp2609"));
 
     // --- Fecha -------------------------------------------------------------------
 
+    /// <summary>Vigila las tres formas con el mes en letras: mes-día-año inglés, día-mes-año inglés abreviado y «de … de» español.</summary>
     [TestMethod]
     public void LaFechaConElMesEnLetrasSaleEnIso()
     {
@@ -84,6 +90,7 @@ public class PruebaDeNormalizacion
         Assert.AreEqual("2026-09-08", Normalizacion.NormalizarFecha("2026-09-08"));
     }
 
+    /// <summary>Vigila que con los dos números de 12 o menos no se elija un orden.</summary>
     [TestMethod]
     public void UnaFechaAmbiguaEnCifrasNoSeAdivina()
         => Assert.IsNull(Normalizacion.NormalizarFecha("05-10-2027"),
@@ -97,12 +104,14 @@ public class PruebaDeNormalizacion
     public void UnRangoDeFechasNoEsUnaFechaDeViaje()
         => Assert.IsNull(Normalizacion.NormalizarFecha("September 8-11, 2026"));
 
+    /// <summary>Vigila que un 31 de febrero dé nulo en vez de moverse al 28 o al 3 de marzo.</summary>
     [TestMethod]
     public void UnDiaQueNoExisteNoSeRedondea()
         => Assert.IsNull(Normalizacion.NormalizarFecha("February 31, 2026"));
 
     // --- Unidad ------------------------------------------------------------------
 
+    /// <summary>Vigila los dos largos que manda el papel, con el nombre delante y un guion en medio.</summary>
     [TestMethod]
     public void LaUnidadAdmiteSeisOSieteDigitos()
     {
@@ -110,10 +119,12 @@ public class PruebaDeNormalizacion
         Assert.AreEqual("7000015", Normalizacion.NormalizarNumeroDeUnidad("Kingstown, St. Vincent - 7000015"));
     }
 
+    /// <summary>Vigila que una cifra de ocho dígitos dé nulo en vez de perder los dos últimos.</summary>
     [TestMethod]
     public void UnaCifraDeOtroLargoNoSeRecorta()
         => Assert.IsNull(Normalizacion.NormalizarNumeroDeUnidad("Rama - 12345678"));
 
+    /// <summary>Vigila que el nombre salga sin el número ni el guion, y conserve su coma y su punto.</summary>
     [TestMethod]
     public void ElNombreDeLaUnidadSaleSinSuNumero()
     {
@@ -123,6 +134,7 @@ public class PruebaDeNormalizacion
 
     // --- Templo ------------------------------------------------------------------
 
+    /// <summary>Vigila que el templo solo pierda los espacios de sobra y nunca se complete contra una lista.</summary>
     [TestMethod]
     public void ElTemploSoloJuntaEspaciosYNoSeCorrigeContraNingunCatalogo()
     {

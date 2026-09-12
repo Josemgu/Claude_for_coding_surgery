@@ -23,6 +23,7 @@ namespace Fichas.Pruebas.App.Cascara;
 [TestClass]
 public sealed class PruebasDelTemaElegido
 {
+    /// <summary>La carpeta de datos de cada prueba, temporal y propia; nunca la del dueño.</summary>
     private string _carpeta = string.Empty;
 
     /// <summary>Una carpeta propia por prueba: nunca la del dueno.</summary>

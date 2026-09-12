@@ -1,5 +1,4 @@
 using Fichas.App.Asignar;
-using Fichas.App.Cascara;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Puertos;
 using Fichas.Reportes.Reglas;
@@ -30,11 +29,17 @@ namespace Fichas.App.Revisar;
 /// </remarks>
 public sealed class RetiradaAlArchivar
 {
+    /// <summary>De dónde se leen las asignaciones vivas; nunca se escribe por aquí.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>De dónde se leen los documentos archivados, para el caso de los 1 000.</summary>
     private readonly ICasos _casos;
+    /// <summary>La única puerta que retira: la misma que usa el botón de Asignar.</summary>
     private readonly OperacionDeAsignar _reparto;
 
     /// <summary>Se ata a los dos puertos que hacen falta para leer, y a la puerta de retirar.</summary>
+    /// <param name="asignaciones">El puerto de asignaciones, solo para leer.</param>
+    /// <param name="casos">El puerto de documentos, solo para leer.</param>
+    /// <param name="reparto">La operación de asignar y retirar, por la que se retira.</param>
     public RetiradaAlArchivar(IAsignaciones asignaciones, ICasos casos, OperacionDeAsignar reparto)
     {
         _asignaciones = asignaciones;
@@ -55,6 +60,8 @@ public sealed class RetiradaAlArchivar
     /// botón de la tarjeta y sería ruido aquí: archivar trescientos documentos sin asignar
     /// no puede dejar trescientas franjas.</para>
     /// </remarks>
+    /// <param name="casoId">El documento que acaba de quedar archivado.</param>
+    /// <returns>Cuántas asignaciones vivas tenía y se retiraron; cero si no tenía o si retirar no entró.</returns>
     public int QuitarLasDe(long casoId)
     {
         var vivas = _asignaciones.VivasDeCaso(casoId);

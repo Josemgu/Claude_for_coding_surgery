@@ -58,6 +58,7 @@ public static class MotivosDeLaHoja
 
     // La frase normalizada de cada opción, que es como se compara al volver. Se calcula del
     // propio menu para que cambiar una frase no obligue a acordarse de cambiar dos sitios.
+    /// <summary>Cada opción del menú, normalizada con <see cref="Pasos.Normalizar"/>, y el motivo que significa.</summary>
     private static readonly Dictionary<string, MotivoDeNoCompletar> PorLaFrase = new()
     {
         [Pasos.Normalizar(Opciones[0])] = MotivoDeNoCompletar.NoSePudoComunicar,
@@ -66,6 +67,7 @@ public static class MotivosDeLaHoja
     };
 
     /// <summary>La frase que se lee en el menú para un motivo; vacío para el que no lo tiene.</summary>
+    /// <param name="motivo">El motivo guardado en la base; <see cref="MotivoDeNoCompletar.SinMotivo"/> da la cadena vacía.</param>
     public static string Decir(MotivoDeNoCompletar motivo) => motivo switch
     {
         MotivoDeNoCompletar.NoSePudoComunicar => Opciones[0],

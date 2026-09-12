@@ -15,7 +15,13 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDelEncuadre
 {
+    /// <summary>
+    /// El ancho de una hoja carta (8,5 × 11) escalada al tope de 3500 px de alto:
+    /// 3500 × 8,5 / 11 = 2704,5. Asi los numeros de las pruebas son los de un papel real.
+    /// </summary>
     private const double AnchoDeLaHoja = 2705;
+
+    /// <summary>El alto de esa hoja: el tope de 3500 px con el que rasteriza la lectura.</summary>
     private const double AltoDeLaHoja = 3500;
 
     /// <summary>Una banda en fracciones se convierte en un rectangulo de la hoja.</summary>

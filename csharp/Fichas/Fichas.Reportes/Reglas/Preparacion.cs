@@ -75,10 +75,13 @@ public static class Preparacion
     /// todavia se puede arreglar, y contar a esa persona entre las perdidas seria darla por
     /// perdida antes de tiempo.
     /// </remarks>
+    /// <param name="fechaViaje">La fecha «AAAA-MM-DD» del caso, o nula si no consta.</param>
+    /// <param name="diaDeHoy">El día de hoy en «AAAA-MM-DD»; entra desde fuera, aquí no se mira el reloj.</param>
     public static bool YaViajo(string? fechaViaje, string diaDeHoy)
         => fechaViaje is not null && string.CompareOrdinal(fechaViaje, diaDeHoy) < 0;
 
     /// <summary>Si los seis pasos de esa persona constan en «Sí». Ni uno menos.</summary>
+    /// <param name="persona">La persona con sus seis casillas <c>Paso*</c>; una en blanco ya cuenta como no completa.</param>
     public static bool TieneLaPreparacionCompleta(Persona persona) => Pasos.Estado(persona) == true;
 
     /// <summary>Por que esa persona viajo sin la preparacion completa, y en que se quedo.</summary>
@@ -88,6 +91,8 @@ public static class Preparacion
     /// trabajo que no se hizo. Cuando se sabe en que paso se quedo, se dice: es lo que hay que
     /// hablar con el lider.
     /// </remarks>
+    /// <param name="persona">La persona que viajó sin la preparación completa.</param>
+    /// <returns><see cref="NadieLaMiro"/>, <see cref="NoEstaCompleta"/>, o esta última con los pasos que faltan.</returns>
     public static string QuePaso(Persona persona)
     {
         if (Pasos.Estado(persona) != false) return NadieLaMiro;
@@ -99,6 +104,8 @@ public static class Preparacion
     }
 
     /// <summary>Las cuatro cifras del encabezado, contadas una sola vez.</summary>
+    /// <param name="personas">Todas las personas cuyo caso cae en el periodo.</param>
+    /// <param name="diaDeHoy">El día de hoy en «AAAA-MM-DD», para partir entre viajaron y por viajar.</param>
     public static Recuento Recontar(IReadOnlyList<PersonaConSuCaso> personas, string diaDeHoy)
     {
         var viajaron = personas.Where(f => YaViajo(f.FechaViaje, diaDeHoy)).ToList();
@@ -120,6 +127,8 @@ public static class Preparacion
     /// Sobre ocho personas un porcentaje engana mas de lo que informa, y es la razon que da el
     /// proyecto viejo para no ponerlos en ningun sitio de este documento.
     /// </remarks>
+    /// <param name="recuento">Las cuatro cifras ya contadas por <see cref="Recontar"/>.</param>
+    /// <returns>Una de tres frases: nadie viajó, todos salieron verificados, o N de M salieron sin verificar.</returns>
     public static string Titular(Recuento recuento)
     {
         if (recuento.Viajaron.Count == 0)
@@ -153,6 +162,10 @@ public static class Preparacion
     /// id entra solo al final para desempatar dos casos que comparten numero: sin el, el orden
     /// entre esos dos dependeria del azar y el informe saldria distinto cada vez.
     /// </remarks>
+    /// <param name="personas">Todas las personas del periodo; se agrupan por caso.</param>
+    /// <param name="diaDeHoy">El día de hoy en «AAAA-MM-DD».</param>
+    /// <param name="companerosPorCaso">Los nombres de quien lleva cada caso, por id de caso; un caso ausente sale como <see cref="Vocabulario.SinAgente"/>.</param>
+    /// <returns>Un renglón por caso, ordenados por fecha, número e id.</returns>
     public static IReadOnlyList<RenglonDeViaje> ResumenPorCaso(
         IReadOnlyList<PersonaConSuCaso> personas,
         string diaDeHoy,

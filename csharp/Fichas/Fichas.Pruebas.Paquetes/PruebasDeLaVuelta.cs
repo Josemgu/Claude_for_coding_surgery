@@ -18,10 +18,14 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDeLaVuelta
 {
+    /// <summary>La base en memoria de esta prueba, montada en <see cref="Preparar"/>.</summary>
     private BaseInventada _base = null!;
+    /// <summary>La carpeta temporal donde se escriben los <c>.xlsx</c>; se borra en <see cref="Recoger"/>.</summary>
     private string _carpeta = null!;
+    /// <summary>El número interno del compañero de prueba al que se le genera el paquete.</summary>
     private long _sandy;
 
+    /// <summary>Monta la base en memoria, la carpeta temporal y el compañero de cada prueba.</summary>
     [TestInitialize]
     public void Preparar()
     {
@@ -30,6 +34,7 @@ public class PruebasDeLaVuelta
         _sandy = _base.Companero("Sandy");
     }
 
+    /// <summary>Borra la carpeta temporal; ningún <c>.xlsx</c> se queda en el disco.</summary>
     [TestCleanup]
     public void Recoger()
     {
@@ -37,9 +42,15 @@ public class PruebasDeLaVuelta
         catch (IOException) { /* si Windows todavia tiene la manija, la carpeta temporal la limpia el sistema */ }
     }
 
+    /// <summary>La ruta de un archivo dentro de la carpeta temporal de la prueba.</summary>
+    /// <param name="nombre">El nombre del archivo; por defecto el del paquete.</param>
     private string Ruta(string nombre = "por_verificar.xlsx") => Path.Combine(_carpeta, nombre);
 
     /// <summary>Rellena las siete columnas de respuesta de una fila, como haria el companero.</summary>
+    /// <param name="ruta">El <c>.xlsx</c> a modificar.</param>
+    /// <param name="filaExcel">La fila de Excel, base 1; la primera persona va en la 7.</param>
+    /// <param name="respuesta">Lo que se escribe en los seis pasos; nulo los deja como están.</param>
+    /// <param name="llamo">Lo que se escribe en «¿Llamó al líder?»; nulo la deja como está.</param>
     private static void Contestar(string ruta, int filaExcel, string? respuesta, string? llamo = null)
     {
         using var libro = new XLWorkbook(ruta);
@@ -52,6 +63,11 @@ public class PruebasDeLaVuelta
         libro.Save();
     }
 
+    /// <summary>Escribe —o vacía, con nulo— una celda cualquiera de una fila, como si el compañero tocara lo que no debe.</summary>
+    /// <param name="ruta">El <c>.xlsx</c> a modificar.</param>
+    /// <param name="fila">La fila de Excel, base 1.</param>
+    /// <param name="nombreDeColumna">El nombre de la columna en la base, no su título.</param>
+    /// <param name="valor">El texto, o nulo para vaciar la celda.</param>
     private static void Escribir(string ruta, int fila, string nombreDeColumna, string? valor)
     {
         using var libro = new XLWorkbook(ruta);
@@ -150,6 +166,7 @@ public class PruebasDeLaVuelta
             _sandy, guardado.EstadoDelCompaneroPor, "el nombre de Sandy se perdió al corregir encima");
     }
 
+    /// <summary>Vigila que un solo «No» entre seis marque el documento no completo y la persona «incompleta».</summary>
     [TestMethod]
     public void ConUnPasoEnNoElDocumentoVuelveMarcadoNoCompleta()
     {
@@ -263,6 +280,7 @@ public class PruebasDeLaVuelta
 
     // ─────────────────────────── los descartes ───────────────────────────
 
+    /// <summary>Vigila que con la celda de la clave vacía la fila caiga en descartados con su motivo, con el nombre guardado pero nunca usado para casar.</summary>
     [TestMethod]
     public void UnaClaveBorradaDaSuMotivoYNoSeBuscaPorNombre()
     {
@@ -279,6 +297,7 @@ public class PruebasDeLaVuelta
         Assert.AreEqual("Elena", vuelta.Descartadas[0].Nombre, "el nombre se guarda para poder mirarla, no para casarla");
     }
 
+    /// <summary>Vigila que una clave sin la forma se descarte con un motivo que repite lo que venía escrito.</summary>
     [TestMethod]
     public void UnaClaveConFormaRaraDaSuMotivoYLoQueVeniaEscrito()
     {
@@ -294,6 +313,7 @@ public class PruebasDeLaVuelta
         StringAssert.Contains(vuelta.Descartadas[0].Motivo, "esto no es una clave");
     }
 
+    /// <summary>Vigila que una clave con forma pero sin par en la base se descarte y no cree ninguna persona nueva.</summary>
     [TestMethod]
     public void UnaFilaQueNoCasaConNadieDaSuMotivoYNoSeInserta()
     {
@@ -309,6 +329,7 @@ public class PruebasDeLaVuelta
         Assert.HasCount(1, _base.Almacen.Personas, "no se inserta ninguna persona nueva");
     }
 
+    /// <summary>Vigila que «más o menos» en un paso descarte la fila entera, nombrando la columna y el texto.</summary>
     [TestMethod]
     public void UnaRespuestaQueNadiePuedeInterpretarDejaLaFilaEnteraSinAplicar()
     {
@@ -324,6 +345,7 @@ public class PruebasDeLaVuelta
         StringAssert.Contains(vuelta.Descartadas[0].Motivo, "5. Entrevistas");
     }
 
+    /// <summary>Vigila que «pendiente», que no está en el menú, se lea como «No»: el menú es una ayuda, no una reja.</summary>
     [TestMethod]
     public void UnaRespuestaEscritaAManoQueSeEntiendeSeAceptaAunqueNoSalgaDelMenu()
     {
@@ -338,6 +360,7 @@ public class PruebasDeLaVuelta
         Assert.IsFalse(vuelta.Marcas[0].PasoEntrevistas, "«pendiente» es un no escrito a mano, y el menú es una ayuda, no una reja");
     }
 
+    /// <summary>Vigila que la segunda fila con la misma clave se descarte nombrando la fila donde ya venía.</summary>
     [TestMethod]
     public void LaMismaClaveDosVecesEnElMismoArchivoDejaLaSegundaConSuMotivo()
     {
@@ -405,6 +428,7 @@ public class PruebasDeLaVuelta
 
     // ─────────────────────── companero y archivo bloqueado ───────────────────────
 
+    /// <summary>Vigila que un compañero inexistente no deje archivo y el aviso diga su número.</summary>
     [TestMethod]
     public void GenerarParaUnCompaneroQueNoExisteNoEscribeNadaYLoDice()
     {
@@ -435,6 +459,7 @@ public class PruebasDeLaVuelta
         Assert.AreEqual(tamanoAntes, new FileInfo(Ruta()).Length, "el .xlsx que ya estaba se queda intacto");
     }
 
+    /// <summary>Vigila que una ruta inexistente vuelva como problema en la franja, no como excepción.</summary>
     [TestMethod]
     public void LeerUnArchivoQueNoExisteDevuelveSuAvisoYNoLevanta()
     {

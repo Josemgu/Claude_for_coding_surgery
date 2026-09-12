@@ -27,8 +27,11 @@ namespace Fichas.App.Revisar;
 /// </remarks>
 public sealed class OperacionDeBorrar
 {
+    /// <summary>El puerto que copia y borra; nulo con datos inventados, y entonces no se borra nada.</summary>
     private readonly IMantenimiento? _mantenimiento;
+    /// <summary>La franja de la cáscara, donde se dice por qué no se pudo.</summary>
     private readonly BuzonDeAvisos _avisos;
+    /// <summary>El cuaderno <c>fichas.log</c>: todo borrado y todo borrado cancelado quedan anotados.</summary>
     private readonly Registro _registro;
 
     /// <summary>Ata la operacion al puerto, al buzon de la franja y al cuaderno.</summary>
@@ -105,6 +108,9 @@ public sealed class OperacionDeBorrar
     /// El boton por defecto es el que NO borra: si alguien pulsa Intro sin leer, no pasa
     /// nada. Y el texto se puede seleccionar para poder copiar la ruta de la copia.
     /// </remarks>
+    /// <param name="plan">El plan ya armado, con su pregunta y dónde quedó la copia.</param>
+    /// <param name="raiz">La raíz visual sobre la que se levanta el cuadro.</param>
+    /// <returns>Cierto solo si pulsó el botón que borra.</returns>
     private static async Task<bool> LoConfirma(PlanDeBorrado plan, XamlRoot raiz)
     {
         var cuerpo = new TextBlock

@@ -46,6 +46,7 @@ namespace Fichas.Pruebas.App.Importar;
 [TestClass]
 public sealed class PruebasDeDeQueHojaSaleCadaCampo : BaseDeImportacion
 {
+    /// <summary>La ruta de mentira del PDF de grupo; no se abre ningún archivo.</summary>
     private const string Documento = "C:/pdfs/grupo.pdf";
 
     /// <summary>

@@ -514,6 +514,10 @@ public sealed class PruebasDeQueCorreccionEsUnSitioDePaso
             AusenteEnElPapel = true,
         });
 
+    /// <summary>Escribe la fecha de viaje de un documento como la escribe Correccion al guardar: el valor y su procedencia manual.</summary>
+    /// <param name="servicios">La base inventada de la prueba.</param>
+    /// <param name="casoId">El documento al que se le pone la fecha.</param>
+    /// <param name="fechaIso">La fecha en AAAA-MM-DD.</param>
     private static void PonerleLaFecha(ServiciosFalsos servicios, long casoId, string fechaIso)
     {
         var caso = servicios.Almacen.Casos[casoId];

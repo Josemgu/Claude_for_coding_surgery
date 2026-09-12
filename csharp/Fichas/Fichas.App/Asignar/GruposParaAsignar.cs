@@ -86,6 +86,8 @@ public static class GruposParaAsignar
     /// renglones de verdad buscándolos por su número de caso. Así el orden lo pone el árbol y
     /// lo que se pinta sigue siendo lo que leyó esta pantalla.
     /// </remarks>
+    /// <param name="fecha">El grupo de fecha tal como lo devolvió el árbol.</param>
+    /// <param name="porCaso">Los renglones de esta pantalla, por id de caso.</param>
     private static IReadOnlyList<UnidadDeUnaFecha> UnidadesDe(
         GrupoDeFecha fecha, IReadOnlyDictionary<long, RenglonParaAsignar> porCaso)
         => [.. fecha.Unidades.Select(unidad => new UnidadDeUnaFecha(
@@ -105,6 +107,7 @@ public static class GruposParaAsignar
     /// cambia otra vez por su renglón antes de salir. Lo que la ventana enseña es siempre el
     /// <see cref="RenglonParaAsignar"/> que leyó la pantalla.</para>
     /// </remarks>
+    /// <param name="renglon">El renglón que se va a agrupar.</param>
     private static TarjetaDeDocumento ComoTarjeta(RenglonParaAsignar renglon)
         => new()
         {
@@ -177,6 +180,7 @@ public sealed record RenglonDeGrupoParaAsignar(
     string FechaIso)
 {
     /// <summary>La cabecera de un día, con los documentos del día entero.</summary>
+    /// <param name="grupo">El grupo de ese día.</param>
     public static RenglonDeGrupoParaAsignar DeLaFecha(GrupoDeUnaFecha grupo)
     {
         ArgumentNullException.ThrowIfNull(grupo);
@@ -184,14 +188,12 @@ public sealed record RenglonDeGrupoParaAsignar(
     }
 
     /// <summary>Una unidad de un día, con los documentos de esa unidad.</summary>
+    /// <param name="unidad">La unidad, con sus documentos ya dentro.</param>
     public static RenglonDeGrupoParaAsignar DeLaUnidad(UnidadDeUnaFecha unidad)
     {
         ArgumentNullException.ThrowIfNull(unidad);
         return new(false, unidad.Etiqueta, unidad.Carpeta, unidad.CasosDeLaUnidad, string.Empty);
     }
-
-    /// <summary>Si es una unidad dentro de un día; la otra mitad de la plantilla.</summary>
-    public bool EsUnaUnidad => !EsLaFecha;
 
     /// <summary>Si su botón tiene algo que asignar; con cero no se enciende.</summary>
     public bool SePuedeAsignar => Casos.Count > 0;

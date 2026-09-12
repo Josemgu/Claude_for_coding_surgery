@@ -106,12 +106,14 @@ public sealed class BusquedaDeLaCabecera(ICasos casos)
         return new LoQueSeEncontro(renglones, trozo.TotalDisponible, Resumen(trozo.TotalDisponible));
     }
 
-    /// <summary>Si lo tecleado da para una consulta que sirva de algo.</summary>
+    /// <summary>Si lo tecleado da para una consulta que sirva de algo: llega al mínimo de letras y no es solo comodines.</summary>
+    /// <param name="limpio">Lo tecleado ya sin espacios por los lados.</param>
     private static bool MerecePreguntar(string limpio)
         => limpio.Length >= LetrasMinimas
            && limpio.Any(letra => !LosComodinesDeLike.Contains(letra));
 
-    /// <summary>Un caso, escrito como se lee en el desplegable.</summary>
+    /// <summary>Un caso, escrito como se lee en el desplegable; sin número de caso se dice, no se deja en blanco.</summary>
+    /// <param name="caso">El caso tal como vino de la base.</param>
     private static DocumentoEncontrado Renglon(Caso caso) => new(
         caso.Id,
         string.IsNullOrWhiteSpace(caso.NumeroCaso) ? "sin número de caso" : caso.NumeroCaso,
@@ -119,6 +121,7 @@ public sealed class BusquedaDeLaCabecera(ICasos casos)
         FechaDeLaCabecera.CortaDeLoGuardado(caso.FechaViaje));
 
     /// <summary>La unidad del caso: su nombre, su numero, o que no se leyó.</summary>
+    /// <param name="caso">El caso; se miran <c>UnidadNombre</c> y <c>UnidadNumero</c>, en ese orden.</param>
     private static string LaUnidadDe(Caso caso)
     {
         if (!string.IsNullOrWhiteSpace(caso.UnidadNombre)) return caso.UnidadNombre;

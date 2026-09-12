@@ -40,7 +40,8 @@ public static partial class CarpetasDeLaTanda
     /// <summary>
     /// Las carpetas que formaran esos documentos, tal como se veran en Revisar.
     /// </summary>
-    /// <param name="casos">Los casos que entraron en la tanda.</param>
+    /// <param name="casos">Los casos que entraron en la tanda; los nulos se saltan.</param>
+    /// <returns>Una carpeta por unidad, en el orden en que Revisar las pinta; vacía si no hay casos.</returns>
     public static IReadOnlyList<CarpetaDeLaTanda> Componer(IEnumerable<Caso> casos)
     {
         ArgumentNullException.ThrowIfNull(casos);
@@ -82,6 +83,10 @@ public static partial class CarpetasDeLaTanda
     /// <param name="fechaDeViaje">La fecha de viaje en <c>AAAA-MM-DD</c>, o vacio para dejarla sin poner.</param>
     /// <param name="unidadNumero">El numero de unidad, 6 o 7 digitos, o vacio.</param>
     /// <param name="unidadNombre">El nombre de la unidad, o vacio.</param>
+    /// <returns>
+    /// Con <c>SeEscribio</c> falso y los reparos como avisos cuando una entrada no vale o la
+    /// carpeta no tiene documentos; si no, cuántos documentos quedaron escritos.
+    /// </returns>
     public static ResultadoDeLaCorreccion Corregir(
         ICasos casos,
         CarpetaDeLaTanda carpeta,
@@ -109,6 +114,11 @@ public static partial class CarpetasDeLaTanda
     }
 
     /// <summary>Escribe los tres campos en cada documento de la carpeta y cuenta los que entraron.</summary>
+    /// <param name="casos">Por donde se escribe.</param>
+    /// <param name="carpeta">La carpeta cuyos documentos se corrigen.</param>
+    /// <param name="fecha">La fecha ya limpia y comprobada; vacía deja la columna en nulo.</param>
+    /// <param name="numero">El número de unidad ya limpio y comprobado; vacío deja la columna en nulo.</param>
+    /// <param name="nombre">El nombre de la unidad ya limpio; vacío deja la columna en nulo.</param>
     private static ResultadoDeLaCorreccion Escribir(
         ICasos casos, CarpetaDeLaTanda carpeta, string fecha, string numero, string nombre)
     {
@@ -146,6 +156,8 @@ public static partial class CarpetasDeLaTanda
     /// El nombre de la unidad NO se comprueba: es texto de una etiqueta de papel y no hay
     /// forma de saber cual es correcto. Lo que si tiene forma son la fecha y el numero.
     /// </remarks>
+    /// <param name="fecha">La fecha ya sin espacios; vacía no es un reparo.</param>
+    /// <param name="numero">El número de unidad ya sin espacios; vacío no es un reparo.</param>
     private static IReadOnlyList<Aviso> LoQueNoSePuedeEscribir(string fecha, string numero)
     {
         var reparos = new List<Aviso>();
@@ -177,6 +189,7 @@ public static partial class CarpetasDeLaTanda
     /// los cinco repositorios y una tanda recien importada solo tiene los casos delante.
     /// Los cuatro campos son los que <see cref="ArbolDeRevisar"/> lee, y no hay mas.
     /// </remarks>
+    /// <param name="caso">El caso recién importado.</param>
     private static TarjetaDeDocumento TarjetaMinima(Caso caso) => new()
     {
         CasoId = caso.Id,
@@ -189,14 +202,20 @@ public static partial class CarpetasDeLaTanda
     };
 
     /// <summary>Una fecha ISO-8601 estricta y que exista de verdad; el 31 de febrero no.</summary>
+    /// <param name="texto">Lo que escribió el dueño, ya sin espacios.</param>
     private static bool EsUnaFecha(string texto)
         => DateOnly.TryParseExact(
             texto, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
 
+    /// <summary>Sin espacios por los lados, y nulo se vuelve vacío para poder comparar largos.</summary>
+    /// <param name="texto">Lo que trae la caja de la pantalla.</param>
     private static string Limpio(string? texto) => texto?.Trim() ?? string.Empty;
 
+    /// <summary>Lo contrario de <see cref="Limpio"/>: vacío se guarda como nulo, que es como la base dice «sin poner».</summary>
+    /// <param name="texto">El texto ya limpio.</param>
     private static string? ONulo(string texto) => texto.Length == 0 ? null : texto;
 
+    /// <summary>Seis o siete cifras seguidas: lo que admite <c>unidad_numero</c> (DECISIONES.md, 2026-09-02, «manda el papel»).</summary>
     [GeneratedRegex(@"^\d{6,7}$")]
     private static partial Regex PatronDeUnidad();
 }

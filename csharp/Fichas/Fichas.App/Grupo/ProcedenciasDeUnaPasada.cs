@@ -71,6 +71,10 @@ public sealed class ProcedenciasDeUnaPasada
     /// <summary>Que campos de cada PERSONA tienen fila, por id de persona.</summary>
     private readonly IReadOnlyDictionary<long, IReadOnlyList<string>> _camposDePersonas;
 
+    /// <summary>Guarda lo leído y deriva qué registros pesan; solo se llega por las dos lecturas y por <see cref="Ninguna"/>.</summary>
+    /// <param name="filas">Las filas que pesan en el veredicto, por su clave.</param>
+    /// <param name="camposDeCasos">Qué campos de cada caso tienen fila.</param>
+    /// <param name="camposDePersonas">Qué campos de cada persona tienen fila.</param>
     private ProcedenciasDeUnaPasada(
         Dictionary<ClaveDeCampo, ProcedenciaDeCampo> filas,
         IReadOnlyDictionary<long, IReadOnlyList<string>> camposDeCasos,
@@ -90,6 +94,9 @@ public sealed class ProcedenciasDeUnaPasada
     /// miles de cadenas para tirarlas acto seguido. La pantalla de Correccion se queda con la
     /// suya, que alli son once campos y ademas la lee el XAML.
     /// </remarks>
+    /// <param name="Tabla">Si la fila es del caso o de una persona.</param>
+    /// <param name="RegistroId">El número interno de la fila.</param>
+    /// <param name="Campo">El nombre de la columna, en español y con guion bajo.</param>
     private readonly record struct ClaveDeCampo(TablaDeProcedencia Tabla, long RegistroId, string Campo);
 
     /// <summary>
@@ -190,6 +197,9 @@ public sealed class ProcedenciasDeUnaPasada
     }
 
     /// <summary>Si de ese campo consta alguna fila, pese o no en el veredicto.</summary>
+    /// <param name="tabla">Si el campo es del caso o de una persona.</param>
+    /// <param name="registroId">El número interno de la fila.</param>
+    /// <param name="campo">El nombre de la columna.</param>
     private bool TieneFila(TablaDeProcedencia tabla, long registroId, string campo)
     {
         var donde = tabla == TablaDeProcedencia.Casos ? _camposDeCasos : _camposDePersonas;
@@ -204,6 +214,10 @@ public sealed class ProcedenciasDeUnaPasada
     }
 
     /// <summary>Apunta las filas de un registro en los dos sitios.</summary>
+    /// <param name="deUnRegistro">Las filas de procedencia de ese registro, tal como las dio el puerto.</param>
+    /// <param name="registroId">El número interno del registro.</param>
+    /// <param name="filas">Donde se apuntan por su clave.</param>
+    /// <param name="campos">Donde se apunta qué campos tienen fila, por registro.</param>
     private static void Apuntar(
         IReadOnlyList<ProcedenciaDeCampo> deUnRegistro,
         long registroId,

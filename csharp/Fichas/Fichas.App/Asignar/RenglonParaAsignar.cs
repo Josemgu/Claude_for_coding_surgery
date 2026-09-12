@@ -158,6 +158,7 @@ public sealed record RenglonParaAsignar
     /// pintada en la lista por descuido. Es una decision, no un olvido — ver
     /// <see cref="SinNombreLeido"/>.
     /// </remarks>
+    /// <param name="nombre">El nombre tal como está en la base; nulo o en blanco dan la palabra.</param>
     public static string NombreDeQuienViaja(string? nombre)
         => string.IsNullOrWhiteSpace(nombre) ? SinNombreLeido : nombre.Trim();
 
@@ -169,6 +170,7 @@ public sealed record RenglonParaAsignar
     /// y un renglon recortado no se distingue de uno que no tenia mas gente. La cuenta, en
     /// cambio, cabe siempre. Los diez enteros estan en <see cref="QuienesViajan"/>.
     /// </remarks>
+    /// <param name="nombres">Los nombres ya dichos, en el orden del formulario.</param>
     public static string ComoSeDiceQuienViaja(IReadOnlyList<string> nombres)
     {
         ArgumentNullException.ThrowIfNull(nombres);
@@ -181,6 +183,7 @@ public sealed record RenglonParaAsignar
     }
 
     /// <summary>Todos los que viajan, uno por linea, para el globo de ayuda.</summary>
+    /// <param name="nombres">Los nombres ya dichos, en el orden del formulario.</param>
     public static string ComoSeDicenTodosLosQueViajan(IReadOnlyList<string> nombres)
     {
         ArgumentNullException.ThrowIfNull(nombres);
@@ -200,6 +203,7 @@ public sealed record RenglonParaAsignar
     /// <para>Lo que se LEE de un documento sale ahora de <see cref="Lectura"/>, y de ningun
     /// otro sitio.</para>
     /// </remarks>
+    /// <param name="estado">El estado tal como se iba a escribir.</param>
     public static string PalabraDe(EstadoDeRecomendacion estado) => estado switch
     {
         EstadoDeRecomendacion.Completa => "completa",

@@ -23,10 +23,16 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelExcelDeLosTresInformes
 {
+    /// <summary>El primer día del periodo de todas las pruebas.</summary>
     private const string Desde = "2026-09-01";
+    /// <summary>El último día del periodo de todas las pruebas.</summary>
     private const string Hasta = "2026-09-30";
+    /// <summary>Los casos de la base falsa; bastan para que haya archivados y MRN con cero delante.</summary>
     private const int CuantosCasos = 300;
 
+    /// <summary>El motor sobre la base falsa con reloj fijo.</summary>
+    /// <param name="servicios">Los servicios falsos, para buscar un compañero.</param>
+    /// <param name="casos">Cuántos casos genera la base.</param>
     private static ReportesEnPdf Montar(out ServiciosFalsos servicios, int casos = CuantosCasos)
     {
         servicios = BaseDePrueba.Montar(casos);
@@ -35,9 +41,13 @@ public class PruebaDelExcelDeLosTresInformes
             servicios.Asignaciones, servicios.Procedencia, servicios.Reloj);
     }
 
+    /// <summary>Una ruta única en la carpeta temporal, para que dos pruebas en paralelo no se pisen.</summary>
+    /// <param name="nombre">Cómo acaba el archivo.</param>
     private static string RutaTemporal(string nombre)
         => Path.Combine(Path.GetTempPath(), "fichas-pruebas-reportes", $"{Guid.NewGuid():N}-{nombre}");
 
+    /// <summary>El compañero de número interno más bajo; con la misma semilla, siempre el mismo.</summary>
+    /// <param name="servicios">Los servicios falsos montados.</param>
     private static long PrimerCompanero(ServiciosFalsos servicios)
         => servicios.Companeros
             .Listar(new FiltroDeCompaneros(SoloActivos: false), new Pagina(0, int.MaxValue))
@@ -45,6 +55,7 @@ public class PruebaDelExcelDeLosTresInformes
 
     // ─────────────────────── los tres escriben un .xlsx que abre ───────────────────────
 
+    /// <summary>Vigila que el .xlsx del periodo se vuelve a abrir con el resumen delante y una hoja por sección.</summary>
     [TestMethod]
     public void ElInformeDelPeriodoEnExcelAbreYTieneUnaHojaPorSeccion()
     {
@@ -65,6 +76,7 @@ public class PruebaDelExcelDeLosTresInformes
         finally { Borrar(ruta); }
     }
 
+    /// <summary>Vigila que la hoja del histórico tiene tantas columnas como la sección y sus filas más la cabecera.</summary>
     [TestMethod]
     public void ElHistoricoEnExcelAbreYTraeSusFilas()
     {
@@ -87,6 +99,7 @@ public class PruebaDelExcelDeLosTresInformes
         finally { Borrar(ruta); }
     }
 
+    /// <summary>Vigila que la primera hoja tras el resumen del informe de agente es «Lo que hizo».</summary>
     [TestMethod]
     public void ElInformeDeAgenteEnExcelAbreYAbreConLoQueHizo()
     {
@@ -141,6 +154,7 @@ public class PruebaDelExcelDeLosTresInformes
 
     // ─────────────────────── avisar, nunca impedir ───────────────────────
 
+    /// <summary>Vigila que un periodo del revés no deja archivo y devuelve aviso, sin lanzar.</summary>
     [TestMethod]
     public void UnPeriodoDelRevesNoEscribeNingunExcelYLoDice_NoLanza()
     {
@@ -154,6 +168,7 @@ public class PruebaDelExcelDeLosTresInformes
         Assert.IsNotEmpty(resultado.Avisos);
     }
 
+    /// <summary>Vigila que un id de compañero inexistente no deja archivo y el aviso nombra el id.</summary>
     [TestMethod]
     public void UnCompaneroQueNoExisteNoEscribeNingunExcelYLoDice_NoLanza()
     {
@@ -167,6 +182,7 @@ public class PruebaDelExcelDeLosTresInformes
         StringAssert.Contains(resultado.Avisos[0].Linea, "-7");
     }
 
+    /// <summary>Vigila que una ruta en blanco devuelve aviso, sin lanzar.</summary>
     [TestMethod]
     public void UnaRutaVaciaNoEscribeNadaYLoDice_NoLanza()
     {
@@ -224,6 +240,8 @@ public class PruebaDelExcelDeLosTresInformes
         Assert.IsInstanceOfType<IReportesEnExcel>(reportes);
     }
 
+    /// <summary>Borra el archivo y su <c>.parcial</c> si quedaron, para no dejar restos en la carpeta temporal.</summary>
+    /// <param name="ruta">La ruta del <c>.xlsx</c>.</param>
     private static void Borrar(string ruta)
     {
         if (File.Exists(ruta)) File.Delete(ruta);

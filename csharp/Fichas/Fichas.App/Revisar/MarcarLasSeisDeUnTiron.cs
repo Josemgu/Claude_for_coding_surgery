@@ -58,6 +58,8 @@ public static class MarcarLasSeisDeUnTiron
     /// columna que le toca por su posición, y una lista compuesta aparte podría desalinearse
     /// el día que se renombre una pregunta.
     /// </remarks>
+    /// <param name="ticket">La persona cuyas seis se proponen; no puede ser nulo.</param>
+    /// <returns>Seis preguntas nuevas con la respuesta en «sí»; el ticket no se toca.</returns>
     public static IReadOnlyList<PreguntaDeUnaPersona> LoQuePropone(TicketDeUnaPersona ticket)
     {
         ArgumentNullException.ThrowIfNull(ticket);

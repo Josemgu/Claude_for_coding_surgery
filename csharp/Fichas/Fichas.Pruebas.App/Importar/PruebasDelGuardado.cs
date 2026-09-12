@@ -272,6 +272,7 @@ public sealed class PruebasDelGuardado : BaseDeImportacion
     }
 
     /// <summary>Los motivos de los renglones que dejo un archivo.</summary>
+    /// <param name="rutaPdf">El PDF cuyos renglones se listan.</param>
     private string[] RenglonesDe(string rutaPdf)
         => Datos.Ilegibles
             .Listar(new Contratos.Consultas.FiltroDeIlegibles(RutaPdf: rutaPdf),

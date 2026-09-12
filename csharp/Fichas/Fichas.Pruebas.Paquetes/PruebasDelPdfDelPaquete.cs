@@ -19,10 +19,14 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDelPdfDelPaquete
 {
+    /// <summary>La base en memoria de esta prueba, montada en <see cref="Montar"/>.</summary>
     private BaseInventada _banco = null!;
+    /// <summary>La carpeta temporal donde se fabrican los PDF y se escribe el unido; se borra en <see cref="Recoger"/>.</summary>
     private string _carpeta = null!;
+    /// <summary>El número interno del compañero de prueba al que se le genera el paquete.</summary>
     private long _sandy;
 
+    /// <summary>Monta la base en memoria, la carpeta temporal y el compañero de cada prueba.</summary>
     [TestInitialize]
     public void Montar()
     {
@@ -31,6 +35,7 @@ public class PruebasDelPdfDelPaquete
         _sandy = _banco.Companero("Sandy");
     }
 
+    /// <summary>Borra la carpeta temporal con los PDF fabricados.</summary>
     [TestCleanup]
     public void Recoger()
     {
@@ -38,10 +43,13 @@ public class PruebasDelPdfDelPaquete
         catch (IOException) { /* una carpeta temporal que no se deja borrar no invalida la medicion */ }
     }
 
+    /// <summary>La ruta de un archivo de salida dentro de la carpeta temporal.</summary>
+    /// <param name="nombre">El nombre del archivo, con su extensión.</param>
     private string Destino(string nombre) => Path.Combine(_carpeta, nombre);
 
     // ─────────────── el criterio principal: N casos, N hojas, en orden ───────────────
 
+    /// <summary>Vigila el criterio principal: tres casos del mismo número dan tres hojas, en el orden de sus renglones y no en el del archivo.</summary>
     [TestMethod]
     public void ConTresCasosElPdfTraeLasTresHojasEnElOrdenDelExcel()
     {
@@ -64,6 +72,7 @@ public class PruebasDelPdfDelPaquete
             "las hojas van en el orden de los casos, que es el del Excel; no en el del archivo de origen");
     }
 
+    /// <summary>Vigila que las hojas sigan el orden de los casos pedidos aunque sus páginas en el escaneo vayan al revés.</summary>
     [TestMethod]
     public void ElOrdenDelPdfEsElMismoQueElDeLasFilasDelExcel()
     {
@@ -98,6 +107,7 @@ public class PruebasDelPdfDelPaquete
             "fila 1 del Excel -> hoja 1 del PDF, y asi con todas");
     }
 
+    /// <summary>Vigila que un escaneo de grupo aporte una hoja distinta a cada caso que la pida.</summary>
     [TestMethod]
     public void DosCasosDelMismoArchivoEnHojasDistintasSalenLosDos()
     {
@@ -113,6 +123,7 @@ public class PruebasDelPdfDelPaquete
         CollectionAssert.AreEqual(new[] { "FAMILIA-A", "FAMILIA-B" }, PdfDePrueba.RotulosDe(ruta).ToArray());
     }
 
+    /// <summary>Vigila que un documento duplicado lleve su hoja dos veces, para no descolocar lo de abajo.</summary>
     [TestMethod]
     public void DosCasosQueApuntanALaMismaHojaLaRepitenEnVezDeQuitarla()
     {
@@ -133,6 +144,7 @@ public class PruebasDelPdfDelPaquete
 
     // ─────────────── lo que falla y NO tumba el paquete ───────────────
 
+    /// <summary>Vigila que un archivo que ya no está deje una hoja de aviso en su sitio y el aviso nombre el caso.</summary>
     [TestMethod]
     public void SiLaRutaDeUnCasoYaNoExisteElPdfLlevaSuAvisoYSeDiceCual()
     {
@@ -261,6 +273,7 @@ public class PruebasDelPdfDelPaquete
             "sin renglón en el Excel no hay correspondencia que sostener, así que no hay hoja");
     }
 
+    /// <summary>Vigila que un archivo que no es un PDF no tumbe el paquete: su hoja se sustituye y las demás salen.</summary>
     [TestMethod]
     public void UnPdfQueNoSePuedeLeerSeQuedaFueraYElRestoSale()
     {
@@ -284,6 +297,7 @@ public class PruebasDelPdfDelPaquete
         Assert.IsTrue(resultado.Avisos.Any(aviso => aviso.Linea.Contains("ROTO2609", StringComparison.Ordinal)));
     }
 
+    /// <summary>Vigila que pedir la hoja 9 de un archivo de 2 deje una hoja de aviso que diga cuántas tiene.</summary>
     [TestMethod]
     public void UnCasoCuyaHojaNoExisteDentroDelArchivoSeQuedaFueraConSuMotivo()
     {
@@ -304,6 +318,7 @@ public class PruebasDelPdfDelPaquete
         Assert.IsTrue(resultado.Avisos.Any(aviso => aviso.Linea.Contains("FUER2609", StringComparison.Ordinal)));
     }
 
+    /// <summary>Vigila que un caso tecleado a mano, sin escaneo, deje una hoja de aviso que diga que no hay archivo.</summary>
     [TestMethod]
     public void UnCasoSinRutaDePdfSeQuedaFueraConSuMotivo()
     {
@@ -349,6 +364,7 @@ public class PruebasDelPdfDelPaquete
 
     // ─────────────── las fronteras que no se cruzan ───────────────
 
+    /// <summary>Vigila que un caso sin gente no aporte hoja: tampoco tiene renglón en el Excel.</summary>
     [TestMethod]
     public void UnCasoSinPersonasNoLlevaHojaPorqueTampocoTieneFilaEnElExcel()
     {
@@ -366,6 +382,7 @@ public class PruebasDelPdfDelPaquete
         CollectionAssert.AreEqual(new[] { "HOJA-UNO" }, PdfDePrueba.RotulosDe(ruta).ToArray());
     }
 
+    /// <summary>Vigila que una familia de varias personas lleve una sola hoja aunque tenga varios renglones.</summary>
     [TestMethod]
     public void UnCasoConVariasPersonasLlevaSuHojaUnaSolaVez()
     {
@@ -384,6 +401,7 @@ public class PruebasDelPdfDelPaquete
             "el documento es uno aunque viajen tres: tres filas del Excel, una sola hoja");
     }
 
+    /// <summary>Vigila la regla permanente 5: generar el PDF lee la base y no escribe en ella.</summary>
     [TestMethod]
     public void GenerarElPdfNoTocaElEstadoDeNingunCaso()
     {
@@ -398,6 +416,7 @@ public class PruebasDelPdfDelPaquete
         Assert.AreEqual(antes, _banco.Almacen.Casos[caso], "generar el PDF no puede cambiar ni una columna");
     }
 
+    /// <summary>Vigila que un compañero inexistente no deje archivo y el aviso lo diga.</summary>
     [TestMethod]
     public void SinCompaneroNoSeGeneraNadaYSeDice()
     {
@@ -413,6 +432,7 @@ public class PruebasDelPdfDelPaquete
         Assert.IsGreaterThan(0, resultado.Avisos.Count);
     }
 
+    /// <summary>Vigila que el Excel y el PDF sean independientes: sin ningún escaneo, el Excel sale y el PDF avisa.</summary>
     [TestMethod]
     public void ElExcelSigueSaliendoIgualAunqueElPdfNoSePuedaHacer()
     {

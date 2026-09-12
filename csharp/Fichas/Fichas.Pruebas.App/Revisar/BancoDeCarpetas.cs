@@ -97,9 +97,14 @@ internal sealed class BancoDeCarpetas
         }).Id;
 
     /// <summary>Archiva un caso por el mismo camino que la pantalla: la acción de verdad.</summary>
+    /// <param name="casoId">El documento que se archiva.</param>
     public void Archivar(long casoId) => Acciones.ArchivarEnLote([casoId]);
 
     /// <summary>Mete una persona en un caso; es lo que va dentro de la carpeta de la unidad.</summary>
+    /// <param name="casoId">El documento al que pertenece.</param>
+    /// <param name="nombre">Su nombre, inventado.</param>
+    /// <param name="mrn">Su cédula de miembro, inventada.</param>
+    /// <returns>El número interno de la persona.</returns>
     public long MeterPersona(long casoId, string nombre, string mrn)
         => Servicios.Personas.Guardar(new Persona
         {
@@ -110,6 +115,7 @@ internal sealed class BancoDeCarpetas
         }).Id;
 
     /// <summary>Carga el tablero como lo carga la pantalla: sin los archivados.</summary>
+    /// <param name="texto">Lo que habría escrito en el buscador; vacío para no filtrar.</param>
     public IReadOnlyList<TarjetaDeDocumento> ComoLoVeLaPantalla(string texto = "")
     {
         Tablero.Cargar(texto, conArchivados: false);

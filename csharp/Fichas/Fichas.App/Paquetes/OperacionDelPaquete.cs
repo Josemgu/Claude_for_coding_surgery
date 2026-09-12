@@ -22,11 +22,17 @@ namespace Fichas.App.Paquetes;
 /// </remarks>
 public sealed class OperacionDelPaquete
 {
+    /// <summary>El generador del Excel y del PDF unido.</summary>
     private readonly IPaquetes _paquetes;
+    /// <summary>Por donde se leen las asignaciones vivas del compañero.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>Por donde se lee qué dijo el compañero de cada caso y cuántas personas tiene.</summary>
     private readonly ICasos _casos;
 
     /// <summary>Se ata a los tres puertos que necesita y a nada mas.</summary>
+    /// <param name="paquetes">El generador del Excel y del PDF.</param>
+    /// <param name="asignaciones">Repositorio de asignaciones.</param>
+    /// <param name="casos">Repositorio de casos.</param>
     public OperacionDelPaquete(IPaquetes paquetes, IAsignaciones asignaciones, ICasos casos)
     {
         _paquetes = paquetes;
@@ -35,6 +41,7 @@ public sealed class OperacionDelPaquete
     }
 
     /// <summary>Lo que lleva ese companero, para pintarlo antes de generar nada.</summary>
+    /// <param name="companeroId">El compañero elegido en el desplegable.</param>
     public CargaDelCompanero Carga(long companeroId)
         => CargaDeUnCompanero.Leer(_asignaciones, _casos, companeroId);
 
@@ -46,6 +53,9 @@ public sealed class OperacionDelPaquete
     /// se envia igual, el companero la abre y no sabe que mirar; decirlo aqui es decirlo en el
     /// unico momento en que todavia se le pueden asignar casos sin gastar el trabajo de nadie.
     /// </remarks>
+    /// <param name="companero">A quién va el paquete.</param>
+    /// <param name="ruta">Dónde queda el Excel; el PDF va al lado con la extensión cambiada.</param>
+    /// <returns>Con <c>SalioBien</c> falso y sin ruta si no lleva nada, si el Excel no se escribió o si no está donde se dijo.</returns>
     public ResumenEnPantalla Generar(Companero companero, string ruta)
     {
         ArgumentNullException.ThrowIfNull(companero);
@@ -111,6 +121,7 @@ public sealed class OperacionDelPaquete
     /// mira de pasada; el detras de «ver» lo abre quien esta comprobando por que un paquete
     /// trae menos casos de los que esperaba, y ese necesita el numero y la razon juntos.
     /// </remarks>
+    /// <param name="carga">Lo que lleva el compañero, con lo que va y lo que no.</param>
     private static string LoQueVaYLoQueNo(CargaDelCompanero carga)
     {
         var renglon = $"Casos que van dentro: {carga.CasoIds.Count}. Personas: {carga.Personas}.";
@@ -138,6 +149,9 @@ public sealed class OperacionDelPaquete
     /// «No tiene nada» se arregla en Asignar; «ya lo devolvió todo completo» no se arregla,
     /// esta bien asi, y lo que hay que decirle es cuantos y donde estan.
     /// </remarks>
+    /// <param name="companero">A quién iba a ir.</param>
+    /// <param name="carga">Su carga, con cero casos que van.</param>
+    /// <returns>Una advertencia si no tiene nada; una información si ya lo devolvió todo completo.</returns>
     private static Aviso NoHayNadaQueMandarle(Companero companero, CargaDelCompanero carga)
     {
         if (carga.YaLosDevolvioCompletos.Count == 0)
@@ -180,6 +194,11 @@ public sealed class OperacionDelPaquete
     /// —en el detalle y en la franja—, nunca deshacer lo que sí salió. Y se MIRA el archivo,
     /// igual que con el Excel: que la biblioteca conteste «escrito» no es que esté.</para>
     /// </remarks>
+    /// <param name="companero">A quién va.</param>
+    /// <param name="casoIds">Los documentos que van en el paquete, en el orden del Excel.</param>
+    /// <param name="rutaDelExcel">La ruta del Excel ya escrito; el PDF toma su nombre.</param>
+    /// <param name="avisos">La lista de avisos del paquete, a la que se añaden los del PDF.</param>
+    /// <returns>La cola para la línea (vacía si no salió) y el párrafo del detalle que dice qué pasó.</returns>
     private (string Cola, string Detalle) JuntarLosDocumentos(
         Companero companero, IReadOnlyList<long> casoIds, string rutaDelExcel, List<Aviso> avisos)
     {

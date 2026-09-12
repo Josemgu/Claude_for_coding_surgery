@@ -83,25 +83,67 @@ public sealed record FirmaDeLosPasos(long? Por, string? En, string? Origen)
 /// ⚠️ <b>Los dos tipos de arriba viven en este archivo y no en <c>Modelos</c>.</b> No es la
 /// carpeta que les tocaria: estan aqui porque <c>Fichas.Contratos</c> esta congelado salvo
 /// este archivo, y moverlos es un cambio de una linea el dia que se descongele.
+/// <para>
+/// <b>Quién lo implementa:</b> <c>Fichas.Datos.Repositorios.RepositorioDePersonas</c> sobre
+/// SQLite y <c>Fichas.Datos.Falso.RepositorioDePersonasFalso</c> en memoria. <b>Quién lo
+/// consume:</b> Corrección (guardar, persona a mano, la cola y los grupos), Importar,
+/// Revisar (la ventana de las seis preguntas), las lecturas de Inicio, Grupo y Asignar,
+/// <c>Fichas.Paquetes</c> (anota la propuesta del Excel) y <c>Fichas.Reportes</c>.
+/// </para>
 /// </remarks>
 public interface IPersonas
 {
     /// <summary>Devuelve un trozo de la lista de personas que cumplen el filtro, con el total detras.</summary>
+    /// <remarks>Orden: por caso, y dentro del caso por fila del formulario, con las que no tienen fila al final.</remarks>
+    /// <param name="filtro">Qué personas; <see cref="FiltroDePersonas.Todo"/> para todas.</param>
+    /// <param name="trozo">Qué parte; más allá del final vuelve vacío.</param>
+    /// <returns>Nunca nulo: sin nada, un trozo vacío con total 0.</returns>
     PaginaDe<Persona> Listar(FiltroDePersonas filtro, Pagina trozo);
 
     /// <summary>Cuenta cuantas personas cumplen el filtro, sin traerlas.</summary>
+    /// <param name="filtro">El mismo que en <see cref="Listar"/>.</param>
+    /// <returns>0 si ninguna.</returns>
     int Contar(FiltroDePersonas filtro);
 
     /// <summary>Devuelve una persona por su id, o nulo si no esta.</summary>
+    /// <param name="id">La clave primaria; 0 o un id que no existe da nulo, sin lanzar.</param>
+    /// <returns>La persona, o nulo si no hay fila.</returns>
     Persona? Obtener(long id);
 
     /// <summary>Devuelve todas las personas de un caso, que nunca son muchas.</summary>
+    /// <param name="casoId">El caso; uno que no existe da la lista vacía.</param>
+    /// <returns>En el orden del formulario (fila, y luego id); vacía si no tiene ninguna. Sin paginar: un formulario trae seis renglones como mucho.</returns>
     IReadOnlyList<Persona> DeCaso(long casoId);
 
     /// <summary>Guarda una persona nueva o cambia una existente; un MRN corto entra y sale avisado.</summary>
+    /// <remarks>
+    /// <b>Escribe</b> las 24 columnas de la persona; con <see cref="Persona.Id"/> en 0 da de
+    /// alta y devuelve el id nuevo, con un id cambia esa fila entera. <b>No escribe</b>
+    /// <c>pasos_por</c>, <c>pasos_en</c> ni <c>pasos_origen</c>: la firma de las seis
+    /// preguntas es de <see cref="ResponderLosPasos"/>. Avisa sin impedir cuando el MRN no
+    /// tiene la forma 3-4-4 (la última posición puede ser letra: lo dijo el dueño el
+    /// 2026-09-04 y se comprobó en dos escaneos suyos). ⚠️ Una fila sin nombre y sin MRN la
+    /// rechaza el esquema (<c>CHECK</c> desde la versión 1) y el doble la rechaza igual desde
+    /// el 2026-09-05; la base real deja que sea el motor quien lo diga.
+    /// </remarks>
+    /// <param name="persona">La persona completa; lo que no venga se guarda como nulo.</param>
+    /// <returns>El id (nuevo o el mismo) con sus avisos, o no escrito con su motivo.</returns>
     ResultadoDeEscritura Guardar(Persona persona);
 
     /// <summary>Anota lo que el companero propuso sobre una persona, con su firma; no verifica nada.</summary>
+    /// <remarks>
+    /// <b>Escribe</b> <c>estado_propuesto</c>, <c>nota_companero</c>, los seis <c>paso_*</c>,
+    /// <c>llamo_al_lider</c>, y <c>propuesto_por</c> / <c>propuesto_en</c> con el compañero y
+    /// el reloj. <b>Y solo si alguna de las seis viene contestada</b>, firma también
+    /// <c>pasos_por</c> / <c>pasos_en</c> / <c>pasos_origen</c> («su Excel de vuelta»): quien
+    /// escribe las seis queda como quien las contestó; una hoja que solo dice el estado no
+    /// toca la firma que hubiera. <b>Nunca toca</b> <c>procedencia_campo.verificado</c>. Lo
+    /// llama solo <c>Fichas.Paquetes</c>. No se escribe si la persona no existe.
+    /// </remarks>
+    /// <param name="personaId">A quién se le anota.</param>
+    /// <param name="propuesta">Una persona de la que solo se leen los campos de la propuesta; el resto se ignora.</param>
+    /// <param name="companeroId">Quién lo propone; queda en <c>propuesto_por</c>.</param>
+    /// <returns>El id de la persona, o no escrito con su motivo.</returns>
     ResultadoDeEscritura AnotarPropuesta(long personaId, Persona propuesta, long companeroId);
 
     /// <summary>
@@ -130,6 +172,7 @@ public interface IPersonas
     /// <param name="respuesta">Las seis, cada una en si, no o en blanco.</param>
     /// <param name="companeroId">Quien las contesta; nunca se inventa un nombre.</param>
     /// <param name="origen">Por que via; texto libre, sin catalogo.</param>
+    /// <returns>El id de la persona, o no escrito si no existe. Repetirlo deja las mismas seis con la marca de tiempo nueva; no hay aviso de «ya estaba».</returns>
     ResultadoDeEscritura ResponderLosPasos(
         long personaId, RespuestaALosPasos respuesta, long companeroId, string origen);
 
@@ -142,5 +185,7 @@ public interface IPersonas
     /// nadie contesto todavia sale con <see cref="FirmaDeLosPasos.SinFirmar"/>, y no
     /// ausente, para que quien pinte no tenga que distinguir «no esta» de «no contestada».
     /// </remarks>
+    /// <param name="casoId">El caso; uno sin personas o que no existe da el diccionario vacío.</param>
+    /// <returns>Una entrada por persona del caso, con su firma o <see cref="FirmaDeLosPasos.SinFirmar"/>; nunca nulo.</returns>
     IReadOnlyDictionary<long, FirmaDeLosPasos> FirmasDeLosPasosDelCaso(long casoId);
 }

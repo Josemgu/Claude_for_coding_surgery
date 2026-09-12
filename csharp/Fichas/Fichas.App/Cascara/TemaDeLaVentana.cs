@@ -33,6 +33,7 @@ public static class TemasDeLaVentana
     /// Sin tildes NO por descuido: es una clave de archivo, no un rotulo, y va como van los
     /// identificadores de todo el proyecto. Lo que lee el dueno es <see cref="ComoSeLee"/>.
     /// </remarks>
+    /// <param name="tema">El tema; cualquier valor que no sea claro ni oscuro se guarda como «windows».</param>
     public static string ComoSeGuarda(TemaDeLaVentana tema) => tema switch
     {
         TemaDeLaVentana.Claro => "claro",
@@ -41,6 +42,7 @@ public static class TemasDeLaVentana
     };
 
     /// <summary>El rotulo que se lee en la pantalla, en español.</summary>
+    /// <param name="tema">El tema; cualquier valor que no sea claro ni oscuro se lee «El de Windows».</param>
     public static string ComoSeLee(TemaDeLaVentana tema) => tema switch
     {
         TemaDeLaVentana.Claro => "Claro",
@@ -55,6 +57,7 @@ public static class TemasDeLaVentana
     /// No lanza nunca. Un archivo de preferencias roto no puede dejar al dueno con un icono
     /// que no abre: es la misma regla que ya siguen los argumentos de la linea de ordenes.
     /// </remarks>
+    /// <param name="guardado">Lo que había detrás de <c>tema=</c> en el archivo; nulo, espacios y mayúsculas se toleran.</param>
     public static TemaDeLaVentana Interpretar(string? guardado) => guardado?.Trim().ToLowerInvariant() switch
     {
         "claro" => TemaDeLaVentana.Claro,

@@ -40,6 +40,7 @@ public static class FechaDelCalendario
     /// papel por OCR y puede traer cualquier cosa dentro. Vacio es lo honesto, porque es
     /// justo lo que el arbol de Revisar hace con ella —dejarla en «sin fecha de viaje»—.
     /// </remarks>
+    /// <param name="fechaIso">La fecha tal como está en la base, <c>AAAA-MM-DD</c>; nula o mal formada devuelve nulo.</param>
     public static DateTimeOffset? Leer(string? fechaIso)
     {
         if (!DateOnly.TryParseExact(
@@ -58,6 +59,7 @@ public static class FechaDelCalendario
     /// guardar es el dia que la persona ve escrito en el calendario, no el que salga de
     /// mirar ese mismo instante desde otro meridiano.
     /// </remarks>
+    /// <param name="delCalendario">Lo que devuelve el <c>CalendarDatePicker</c>; nulo cuando no hay fecha elegida.</param>
     public static string Escribir(DateTimeOffset? delCalendario)
         => delCalendario is null
             ? string.Empty

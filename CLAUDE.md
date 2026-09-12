@@ -28,6 +28,9 @@ mandan estas.
    en `Documentos\Fichas`, y el instalador no los toca.
 3. **Sin pandas.** Solo `openpyxl` para Excel. Pandas infla el ejecutable unos
    40 MB sin aportar nada aquí.
+   *Desde el C# (2026-09-04):* el Excel lo hace `ClosedXML`; la regla que queda es
+   la misma —ninguna biblioteca gorda que no aporte— y no se añade un paquete al
+   programa sin decir en `DECISIONES.md` cuánto pesa y para qué.
 4. **Español en todo:** variables, funciones, tablas, columnas, comentarios,
    textos de interfaz y mensajes de error.
 5. **Nada se marca como verificado automáticamente.** El sistema propone, Miguel
@@ -59,27 +62,32 @@ no. Deshacer una de ellas rehace el trabajo.
 
 ## 3. Tecnología
 
+Desde el 2026-09-04 el programa es C# (`csharp/Fichas`, ver la memoria
+«reescribir Fichas en C# con WinUI 3»). El Python original se retiró del
+repositorio el 2026-09-11 por orden del dueño; queda en el historial de git.
+Los paquetes, medidos en los `.csproj` el 2026-09-11:
+
 | Para | Se usa |
 |---|---|
-| Leer anotaciones del PDF | `pypdf` |
-| Rasterizar páginas | `pypdfium2` |
-| Filtrar la imagen | `opencv` (solo `medianBlur`) |
-| OCR | `RapidOCR` con modelos PP-OCRv5 del grupo latino |
-| Base de datos | `sqlite3` de la biblioteca estándar |
-| Excel | `openpyxl` |
-| Empaquetado | `PyInstaller` en modo `--onedir` |
+| Ventanas | WinUI 3 (`Microsoft.WindowsAppSDK` 2.4.0), sin paquete MSIX |
+| Leer anotaciones y campos del PDF | `PdfPig` 0.1.11 |
+| Rasterizar páginas | `PDFtoImage` 5.4.0 (PDFium, con `WithFormFill`) |
+| OCR | `RapidOcrNet` 4.1.0 con tres modelos `.onnx` PP-OCR |
+| Base de datos | `Microsoft.Data.Sqlite` 10.0.11 |
+| Excel | `ClosedXML` 0.105.1 |
+| Publicación | `dotnet publish` autocontenido (`publish.ps1`), zip e instalador Inno Setup 6 |
 
-Sin pandas. Sin ningún servicio de red. Sin llamadas a modelos de lenguaje en
+Sin ningún servicio de red que escuche. Sin llamadas a modelos de lenguaje en
 tiempo de ejecución.
 
 ## 4. Dónde vive cada cosa
 
 - **La base SQLite y el Excel espejo:** `Documentos\Fichas`, fuera de la carpeta
   del programa. Si van dentro, una actualización se lleva los datos.
-- **El código:** en este repositorio.
-- **Los modelos `.onnx`:** empaquetados con `--add-data` y resueltos en tiempo de
-  ejecución; dentro del ejecutable la carpeta no está donde el código espera.
-
+- **El código:** en este repositorio, en `csharp/Fichas`.
+- **Los modelos `.onnx`:** los trae el paquete `RapidOcrNet` y `publish.ps1` se
+  niega a publicar si no salen los tres en la carpeta; un paquete sin ellos
+  arranca y no lee nada.
 ## 5. Los cuatro documentos de trabajo
 
 - `ESTADO.md` — dónde quedamos.

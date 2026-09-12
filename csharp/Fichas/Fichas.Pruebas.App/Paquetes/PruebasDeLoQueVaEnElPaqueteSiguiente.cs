@@ -226,6 +226,9 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
     // ---- el montaje ---------------------------------------------------------
 
     /// <summary>Un documento de esa fecha con dos personas dentro, y devuelve su id.</summary>
+    /// <param name="banco">El banco de la prueba.</param>
+    /// <param name="fechaViaje">La fecha de viaje del documento.</param>
+    /// <param name="numero">El número de caso; sus cuatro cifras hacen distintas a las cédulas.</param>
     private static long UnDocumentoConGente(BaseDelPaquete banco, string fechaViaje, string numero)
     {
         var casoId = banco.Caso(numero, fechaViaje);
@@ -235,6 +238,10 @@ public sealed class PruebasDeLoQueVaEnElPaqueteSiguiente
     }
 
     /// <summary>Dos documentos de la misma fecha: el primero con dos personas y el segundo con una.</summary>
+    /// <param name="banco">El banco de la prueba.</param>
+    /// <param name="fechaViaje">La fecha de viaje de los dos.</param>
+    /// <param name="primero">El número de caso del primero.</param>
+    /// <param name="segundo">El número de caso del segundo.</param>
     private static IReadOnlyList<long> DosDocumentosConGente(
         BaseDelPaquete banco, string fechaViaje, string primero, string segundo)
     {

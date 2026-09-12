@@ -14,31 +14,37 @@ namespace Fichas.Datos.Falso;
 /// </remarks>
 public static class GeneradorFalso
 {
+    /// <summary>Dieciséis nombres corrientes; se combinan con un apellido de la lista de abajo y no son de nadie.</summary>
     private static readonly string[] NombresDePila =
     [
         "Maria", "Jose", "Ana", "Luis", "Carmen", "Pedro", "Rosa", "Juan",
         "Elena", "Miguel", "Sandra", "Carlos", "Lucia", "Rafael", "Marta", "Andres",
     ];
 
+    /// <summary>Catorce apellidos; los tres primeros son a propósito de nadie, y el resto son apellidos corrientes.</summary>
     private static readonly string[] Apellidos =
     [
         "Fulano", "Mengano", "Anonimo", "Ramirez", "Santana", "Del Rosario", "Peralta",
         "Mejia", "Nunez", "Castillo", "Fernandez", "Aquino", "Reyes", "Cabrera",
     ];
 
+    /// <summary>Nombres de unidad con la forma de los que traen los formularios; ninguno está tomado de un PDF real.</summary>
     private static readonly string[] Unidades =
     [
         "Castries Branch", "Paramaribo Branch", "Santo Domingo Este", "Barahona",
         "San Cristobal", "La Vega", "Puerto Plata",
     ];
 
+    /// <summary>Los tres templos a los que viajan los casos inventados.</summary>
     private static readonly string[] Templos =
     [
         "Santo Domingo Dominican Republic", "Caracas Venezuela", "Port-au-Prince Haiti",
     ];
 
+    /// <summary>Las cuatro letras con las que empieza un número de caso; se combinan con cuatro dígitos de año y mes.</summary>
     private static readonly string[] LetrasDeCaso = ["BARC", "CASP", "CASD", "SDQE", "LVEG", "PPLT"];
 
+    /// <summary>Los ocho compañeros del equipo inventado; el primero es Miguel, y los dos últimos entran desactivados.</summary>
     private static readonly string[] NombresDeCompaneros =
     [
         "Miguel", "Sandy", "Ramon", "Yudelka", "Franklin", "Altagracia", "Wilkin", "Noemi",
@@ -50,6 +56,7 @@ public static class GeneradorFalso
     /// <param name="cantidadDeCasos">Cuantos casos se inventan; 3 000 es la cifra del requisito 5.</param>
     /// <param name="semilla">La semilla del sorteo; la misma semilla da la misma base.</param>
     /// <param name="reloj">El reloj desde el que se cuentan las fechas de viaje.</param>
+    /// <returns>Un almacén con 8 compañeros (6 activos), los casos pedidos con entre 1 y 4 personas cada uno, asignaciones para cerca de la mitad, unos pocos ilegibles y la procedencia de cada campo. Con 3 000 casos y la semilla 20260904: 7 531 personas, 1 490 asignaciones, 12 ilegibles (medido por su prueba).</returns>
     public static AlmacenFalso Generar(int cantidadDeCasos, int semilla, IReloj reloj)
     {
         var almacen = new AlmacenFalso(reloj, semilla);
@@ -71,6 +78,8 @@ public static class GeneradorFalso
     }
 
     /// <summary>Da de alta los companeros; los dos ultimos entran desactivados a proposito.</summary>
+    /// <remarks>No consume el sorteo: son siempre los mismos ocho, dados de alta hace 400 días y, los dos de baja, hace 30. Todos con el rol y la categoría por defecto.</remarks>
+    /// <param name="almacen">Dónde se escriben; sus ids son los ocho primeros del contador.</param>
     private static void InventarCompaneros(AlmacenFalso almacen)
     {
         var creadoEn = almacen.Reloj.HoyMasDias(-400);
@@ -90,6 +99,9 @@ public static class GeneradorFalso
     }
 
     /// <summary>Inventa los casos y, por cada uno, entre una y cuatro personas.</summary>
+    /// <param name="almacen">Dónde se escriben.</param>
+    /// <param name="sorteo">El sorteo ya empezado; el orden caso-personas-caso-personas es parte de lo que la semilla reproduce.</param>
+    /// <param name="cuantos">Cuántos casos; ya viene saneado a 0 o más.</param>
     private static void InventarCasosConSusPersonas(AlmacenFalso almacen, SorteoDeterminista sorteo, int cuantos)
     {
         for (var i = 0; i < cuantos; i++)
@@ -101,6 +113,18 @@ public static class GeneradorFalso
     }
 
     /// <summary>Compone un caso con su numero, su fecha de viaje y su estado.</summary>
+    /// <remarks>
+    /// Lo que reparte: 6 de cada 100 sin número de caso; el número repite el par letras-mes en
+    /// muchos documentos, como desde la migración 12; 8 de cada 100 con fecha se archivan; 5 de
+    /// cada 100 entran como captura manual; 15 de cada 100 sin templo. Los que tienen estado
+    /// lo llevan como si lo hubiera marcado un paquete devuelto, con el mismo compañero en
+    /// las dos mitades del desdoble de la migración 14.
+    /// </remarks>
+    /// <param name="almacen">De donde salen el reloj y el número de compañeros.</param>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
+    /// <param name="casoId">El id ya repartido para este caso.</param>
+    /// <param name="orden">Su posición, base 0; decide el lote del PDF (50 por archivo), la hoja (1 a 6) y los cuatro dígitos del número.</param>
+    /// <returns>El caso completo; el que llama lo escribe en el almacén.</returns>
     private static Caso InventarUnCaso(AlmacenFalso almacen, SorteoDeterminista sorteo, long casoId, int orden)
     {
         var fechaViaje = InventarFechaDeViaje(almacen, sorteo);
@@ -143,6 +167,10 @@ public static class GeneradorFalso
     }
 
     /// <summary>Reparte las fechas de viaje: unas pocas ya pasaron, unas cuantas caen en los proximos 7 dias.</summary>
+    /// <remarks>De cada 100: 8 sin fecha, 12 ya viajaron (hace 1 a 59 días), 12 en la franja roja (hoy a hoy más 7), y el resto entre 8 y 179 días.</remarks>
+    /// <param name="almacen">De donde sale el reloj.</param>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
+    /// <returns>Una fecha ISO-8601, o nulo para el caso al que todavía no se le sabe la fecha.</returns>
     private static string? InventarFechaDeViaje(AlmacenFalso almacen, SorteoDeterminista sorteo)
     {
         var dado = sorteo.Hasta(100);
@@ -153,6 +181,9 @@ public static class GeneradorFalso
     }
 
     /// <summary>Elige el estado de la recomendacion; la mayoria sigue sin marcar.</summary>
+    /// <remarks>De cada 100: 55 sin marcar, 25 completas, 20 no completas. Se devuelve el texto de la columna y no el enumerado porque es lo que la base guarda.</remarks>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
+    /// <returns><c>completa</c>, <c>no_completa</c> o nulo.</returns>
     private static string? InventarEstado(SorteoDeterminista sorteo)
     {
         var dado = sorteo.Hasta(100);
@@ -161,6 +192,15 @@ public static class GeneradorFalso
     }
 
     /// <summary>Inventa entre una y cuatro personas del caso, con sus casillas y sus pasos.</summary>
+    /// <remarks>
+    /// Todas comparten apellido, como una familia en el mismo formulario. 12 de cada 100 van sin
+    /// MRN, que son las que rompen la reconciliación; el MRN se compone como texto para que
+    /// conserve el cero de delante. <c>PudoViajar</c> y <c>MotivoNoViajo</c> se dejan siempre a
+    /// nulo: nadie los ha contestado todavía.
+    /// </remarks>
+    /// <param name="almacen">Dónde se escriben.</param>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
+    /// <param name="casoId">El caso al que pertenecen.</param>
     private static void InventarLasPersonasDe(AlmacenFalso almacen, SorteoDeterminista sorteo, long casoId)
     {
         var cuantas = sorteo.Entre(1, 5);
@@ -202,6 +242,8 @@ public static class GeneradorFalso
     }
 
     /// <summary>Los tres valores de una casilla: marcada, no marcada, o nadie la miro.</summary>
+    /// <remarks>De cada 100: 20 sin mirar (nulo), 50 marcadas, 30 no marcadas.</remarks>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
     private static bool? InventarCasilla(SorteoDeterminista sorteo)
     {
         var dado = sorteo.Hasta(100);
@@ -210,6 +252,9 @@ public static class GeneradorFalso
     }
 
     /// <summary>Asigna a un companero activo aproximadamente la mitad de los casos.</summary>
+    /// <remarks>Una asignación viva por caso elegido, fechada entre hoy y hace 29 días; los archivados también entran, que es el caso de los 1 000 que Inicio limpia al llegar.</remarks>
+    /// <param name="almacen">Dónde se escriben; si no hay ningún activo no se asigna nada.</param>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
     private static void InventarAsignaciones(AlmacenFalso almacen, SorteoDeterminista sorteo)
     {
         var activos = almacen.Companeros.Values.Where(c => c.Activo).Select(c => c.Id).ToList();
@@ -232,6 +277,9 @@ public static class GeneradorFalso
     }
 
     /// <summary>Deja unos pocos renglones de documentos que no se pudieron leer.</summary>
+    /// <remarks>Uno más uno por cada 100 casos, con tope de 12; ninguno apunta a un caso.</remarks>
+    /// <param name="almacen">Dónde se escriben.</param>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
     private static void InventarIlegibles(AlmacenFalso almacen, SorteoDeterminista sorteo)
     {
         var cuantos = Math.Min(12, 1 + (almacen.Casos.Count / 100));

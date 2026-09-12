@@ -1,4 +1,3 @@
-using Fichas.App.Importar;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Lectura;
@@ -27,9 +26,11 @@ namespace Fichas.Pruebas.App.Importar;
 [TestClass]
 public sealed class MedicionDelDocumentoDeSeisHojas : BaseDeImportacion
 {
+    /// <summary>Dónde está el PDF real en esta máquina; si no está, la prueba dice «no tengo el material» y no falla.</summary>
     private const string CarpetaDeLosDocumentos =
         @"C:\Users\josem\.claude\uploads\e38428f3-e062-41e5-92f2-566aacd26e92";
 
+    /// <summary>El formulario de grupo de seis hojas, tal como se subió.</summary>
     private const string ElDeSeisHojas = "cb2f18be-SURB2609_Suriname_Group_Complete.pdf";
 
     /// <summary>
@@ -153,11 +154,15 @@ public sealed class MedicionDelDocumentoDeSeisHojas : BaseDeImportacion
         return Directory.Exists(carpeta) ? carpeta : null;
     }
 
+    /// <summary>El valor que esa hoja leyó en un campo del caso, o nulo si no lo trae.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campo">El nombre de la columna del caso.</param>
     private static string? DeLaHoja(HojaLeida hoja, string campo)
         => hoja.Campos.FirstOrDefault(
             uno => uno.Tabla == TablaDeProcedencia.Casos && uno.Campo == campo)?.Valor;
 
     /// <summary>Deja los dígitos en «·»; son datos de personas de verdad.</summary>
+    /// <param name="valor">Lo leído; nulo se imprime vacío.</param>
     private static string Enmascarar(string? valor)
         => valor is null ? "" : new string([.. valor.Select(letra => char.IsDigit(letra) ? '·' : letra)]);
 }

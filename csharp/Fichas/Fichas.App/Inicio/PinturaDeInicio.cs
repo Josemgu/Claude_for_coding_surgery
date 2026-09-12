@@ -140,13 +140,17 @@ public static class PinturaDeInicio
     // ---- lo que decide un color segun el estado ------------------------------
 
     /// <summary>La fecha del renglon: en rojo cuando el caso ya viajo y sigue abierto.</summary>
+    /// <param name="esVencido">Si el caso ya viajó y sigue sin «completa».</param>
     public static Brush TintaDeLaFecha(bool esVencido) => esVencido ? RojoMarca : TintaSuave;
 
     /// <summary>Y en negrita, para que el vencido se distinga sin depender solo del color.</summary>
+    /// <param name="esVencido">Si el caso ya viajó y sigue sin «completa».</param>
     public static FontWeight GrosorDeLaFecha(bool esVencido)
         => esVencido ? FontWeights.Bold : FontWeights.Normal;
 
     /// <summary>El fondo de una celda: papel, o el sombreado de los 7 dias de la ventana.</summary>
+    /// <param name="esDelMes">Si la celda es del mes que se enseña o relleno de los bordes.</param>
+    /// <param name="enLaVentana">Si cae en los 7 días contando hoy; manda sobre lo anterior.</param>
     public static Brush FondoDelDia(bool esDelMes, bool enLaVentana)
     {
         if (enLaVentana) return Elegir(ClaroFondoDeLaVentana, OscuroFondoDeLaVentana);
@@ -154,12 +158,15 @@ public static class PinturaDeInicio
     }
 
     /// <summary>El borde de una celda; el de hoy es la tinta, para que se vea de lejos.</summary>
+    /// <param name="esHoy">Si la celda es el día de hoy.</param>
     public static Brush BordeDelDia(bool esHoy) => esHoy ? Tinta : Linea;
 
     /// <summary>Hoy lleva 2 px de borde; el resto, 1 px.</summary>
+    /// <param name="esHoy">Si la celda es el día de hoy.</param>
     public static Thickness GrosorDelDia(bool esHoy) => esHoy ? BordeDeHoy : BordeNormal;
 
     /// <summary>El numero del dia: apagado si la celda es relleno de otro mes.</summary>
+    /// <param name="esDelMes">Si la celda es del mes que se enseña.</param>
     public static Brush TintaDelDia(bool esDelMes) => esDelMes ? TintaSuave : Apagado;
 
     /// <summary>
@@ -209,6 +216,7 @@ public static class PinturaDeInicio
     /// desaparece del grupo. El color acompana a la frase, no la sustituye: la frase
     /// («el PDF no está en su ruta») es lo que se lee, y por eso se puede probar sin ventana.
     /// </remarks>
+    /// <param name="hayQueMirarlo">Si el renglón trae algo que el dueño tiene que mirar, como un PDF que no está.</param>
     public static Brush TintaDelDetalle(bool hayQueMirarlo) => hayQueMirarlo ? RojoMarca : TintaSuave;
 
     /// <summary>
@@ -217,40 +225,71 @@ public static class PinturaDeInicio
     /// una conversion implicita que un dia deje de funcionar esconderia media pantalla sin
     /// que nadie lo note.
     /// </summary>
+    /// <param name="si">Si el elemento tiene que verse.</param>
     public static Visibility SeVe(bool si) => si ? Visibility.Visible : Visibility.Collapsed;
 
     // ---- las dos paletas -----------------------------------------------------
 
+    /// <summary>En tema claro: --papel, el fondo de tarjeta y del día del mes; #FFFFFF.</summary>
     private static readonly SolidColorBrush ClaroPapel = Pintar(0xFF, 0xFF, 0xFF);
+    /// <summary>En tema claro: --panel, el fondo de la pantalla; #F4F5F7.</summary>
     private static readonly SolidColorBrush ClaroPanel = Pintar(0xF4, 0xF5, 0xF7);
+    /// <summary>En tema claro: --panel-hondo, la cabecera de una unidad o fecha; #E9EBEF.</summary>
     private static readonly SolidColorBrush ClaroPanelHondo = Pintar(0xE9, 0xEB, 0xEF);
+    /// <summary>En tema claro: --linea, el borde normal; #D3D7DE.</summary>
     private static readonly SolidColorBrush ClaroLinea = Pintar(0xD3, 0xD7, 0xDE);
+    /// <summary>En tema claro: --tinta, el texto normal; #1A1D21.</summary>
     private static readonly SolidColorBrush ClaroTinta = Pintar(0x1A, 0x1D, 0x21);
+    /// <summary>En tema claro: --tinta-suave, el texto secundario; #46505C.</summary>
     private static readonly SolidColorBrush ClaroTintaSuave = Pintar(0x46, 0x50, 0x5C);
+    /// <summary>En tema claro: --apagado, el día de otro mes y las notas al pie; #646C77.</summary>
     private static readonly SolidColorBrush ClaroApagado = Pintar(0x64, 0x6C, 0x77);
+    /// <summary>En tema claro: --gris-marca, lo que se ve sin llamar; #5B6470.</summary>
     private static readonly SolidColorBrush ClaroGrisMarca = Pintar(0x5B, 0x64, 0x70);
+    /// <summary>En tema claro: el acento de lo completo; #1B6E3C.</summary>
     private static readonly SolidColorBrush ClaroVerdeMarca = Pintar(0x1B, 0x6E, 0x3C);
+    /// <summary>En tema claro: el acento de lo que lleva un compañero; #8A5B00.</summary>
     private static readonly SolidColorBrush ClaroAmbarMarca = Pintar(0x8A, 0x5B, 0x00);
+    /// <summary>En tema claro: el acento de lo vencido; #B3261E.</summary>
     private static readonly SolidColorBrush ClaroRojoMarca = Pintar(0xB3, 0x26, 0x1E);
+    /// <summary>En tema claro: el acento del acuse de asignar; #1B4F8A.</summary>
     private static readonly SolidColorBrush ClaroAzulMarca = Pintar(0x1B, 0x4F, 0x8A);
+    /// <summary>En tema claro: el fondo de la pastilla completa; #E7F5EC.</summary>
     private static readonly SolidColorBrush ClaroVerdeFondo = Pintar(0xE7, 0xF5, 0xEC);
+    /// <summary>En tema claro: el fondo de la pastilla a la que le falta alguien; #FDE7E7.</summary>
     private static readonly SolidColorBrush ClaroRojoFondo = Pintar(0xFD, 0xE7, 0xE7);
+    /// <summary>En tema claro: el sombreado de los 7 días de la ventana; #FFF7F7.</summary>
     private static readonly SolidColorBrush ClaroFondoDeLaVentana = Pintar(0xFF, 0xF7, 0xF7);
 
+    /// <summary>En tema oscuro: --papel, el fondo de tarjeta y del día del mes; #1F2328.</summary>
     private static readonly SolidColorBrush OscuroPapel = Pintar(0x1F, 0x23, 0x28);
+    /// <summary>En tema oscuro: --panel, el fondo de la pantalla; #14171A.</summary>
     private static readonly SolidColorBrush OscuroPanel = Pintar(0x14, 0x17, 0x1A);
+    /// <summary>En tema oscuro: --panel-hondo, la cabecera de una unidad o fecha; #2A3037.</summary>
     private static readonly SolidColorBrush OscuroPanelHondo = Pintar(0x2A, 0x30, 0x37);
+    /// <summary>En tema oscuro: --linea, el borde normal; #3C444D.</summary>
     private static readonly SolidColorBrush OscuroLinea = Pintar(0x3C, 0x44, 0x4D);
+    /// <summary>En tema oscuro: --tinta, el texto normal; #F2F4F7.</summary>
     private static readonly SolidColorBrush OscuroTinta = Pintar(0xF2, 0xF4, 0xF7);
+    /// <summary>En tema oscuro: --tinta-suave, el texto secundario; #C3CBD4.</summary>
     private static readonly SolidColorBrush OscuroTintaSuave = Pintar(0xC3, 0xCB, 0xD4);
+    /// <summary>En tema oscuro: --apagado, el día de otro mes y las notas al pie; #9CA6B1.</summary>
     private static readonly SolidColorBrush OscuroApagado = Pintar(0x9C, 0xA6, 0xB1);
+    /// <summary>En tema oscuro: --gris-marca, lo que se ve sin llamar; #ADB6C0.</summary>
     private static readonly SolidColorBrush OscuroGrisMarca = Pintar(0xAD, 0xB6, 0xC0);
+    /// <summary>En tema oscuro: el acento de lo completo; #63D293.</summary>
     private static readonly SolidColorBrush OscuroVerdeMarca = Pintar(0x63, 0xD2, 0x93);
+    /// <summary>En tema oscuro: el acento de lo que lleva un compañero; #EBB54D.</summary>
     private static readonly SolidColorBrush OscuroAmbarMarca = Pintar(0xEB, 0xB5, 0x4D);
+    /// <summary>En tema oscuro: el acento de lo vencido; #F5867C.</summary>
     private static readonly SolidColorBrush OscuroRojoMarca = Pintar(0xF5, 0x86, 0x7C);
+    /// <summary>En tema oscuro: el acento del acuse de asignar; #8CBCEE.</summary>
     private static readonly SolidColorBrush OscuroAzulMarca = Pintar(0x8C, 0xBC, 0xEE);
+    /// <summary>En tema oscuro: el fondo de la pastilla completa; #14331F.</summary>
     private static readonly SolidColorBrush OscuroVerdeFondo = Pintar(0x14, 0x33, 0x1F);
+    /// <summary>En tema oscuro: el fondo de la pastilla a la que le falta alguien; #3B1C1A.</summary>
     private static readonly SolidColorBrush OscuroRojoFondo = Pintar(0x3B, 0x1C, 0x1A);
+    /// <summary>En tema oscuro: el sombreado de los 7 días de la ventana; #2E1F20.</summary>
     private static readonly SolidColorBrush OscuroFondoDeLaVentana = Pintar(0x2E, 0x1F, 0x20);
 
     /// <summary>Borde de 1 px, el de cualquier dia.</summary>
@@ -272,9 +311,14 @@ public static class PinturaDeInicio
     // prueba que toque este tipo lanza COMException antes de llegar a la regla.
 
     /// <summary>El de la paleta que toca segun el tema con el que se esta pintando.</summary>
+    /// <param name="claro">El pincel del tema claro.</param>
+    /// <param name="oscuro">El pincel del tema oscuro.</param>
     private static Brush Elegir(Brush claro, Brush oscuro) => EsOscuro ? oscuro : claro;
 
     /// <summary>Compone un pincel a partir de sus tres componentes, opaco.</summary>
+    /// <param name="rojo">Componente rojo, 0 a 255.</param>
+    /// <param name="verde">Componente verde, 0 a 255.</param>
+    /// <param name="azul">Componente azul, 0 a 255.</param>
     private static SolidColorBrush Pintar(byte rojo, byte verde, byte azul)
         => new(Color.FromArgb(0xFF, rojo, verde, azul));
 }

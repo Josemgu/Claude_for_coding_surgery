@@ -14,6 +14,7 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelPeriodo
 {
+    /// <summary>Vigila que un periodo bien escrito se lee con sus dos fechas y sin aviso.</summary>
     [TestMethod]
     public void LosDosExtremosEntran()
     {
@@ -25,6 +26,7 @@ public class PruebaDelPeriodo
         Assert.IsNull(lectura.Problema);
     }
 
+    /// <summary>Vigila que la tarde del último día entra y el primer segundo del día siguiente no.</summary>
     [TestMethod]
     public void SiguienteAHastaEsElDiaDeDespuesParaLasMarcasConHora()
     {
@@ -37,6 +39,7 @@ public class PruebaDelPeriodo
         Assert.IsFalse(periodo.ContieneMarcaConHora(null));
     }
 
+    /// <summary>Vigila que desde y hasta iguales se aceptan y se escriben como «el 15 de septiembre de 2026».</summary>
     [TestMethod]
     public void UnPeriodoDeUnSoloDiaEsLegitimo()
     {
@@ -46,6 +49,7 @@ public class PruebaDelPeriodo
         Assert.AreEqual("el 15 de septiembre de 2026", periodo.EnTexto());
     }
 
+    /// <summary>Vigila que un periodo del revés devuelve aviso en vez de lanzar, como manda «avisar, nunca impedir».</summary>
     [TestMethod]
     public void UnPeriodoDelRevesNoSeLanza_SeAvisa()
     {
@@ -56,6 +60,7 @@ public class PruebaDelPeriodo
         StringAssert.Contains(lectura.Problema!.Linea, "del revés");
     }
 
+    /// <summary>Vigila que una fecha ilegible devuelve aviso en vez de lanzar.</summary>
     [TestMethod]
     public void UnaFechaQueNoEsFechaNoSeLanza_SeAvisa()
     {
@@ -65,24 +70,16 @@ public class PruebaDelPeriodo
         Assert.IsNotNull(lectura.Problema);
     }
 
-    [TestMethod]
-    public void ElMesEnteroVaDelDiaUnoAlUltimo()
-    {
-        Assert.AreEqual("2026-09-30", Periodo.DelMes(2026, 9).Periodo!.Hasta);
-        Assert.AreEqual("2026-02-28", Periodo.DelMes(2026, 2).Periodo!.Hasta);
-        Assert.AreEqual("2024-02-29", Periodo.DelMes(2024, 2).Periodo!.Hasta);
-        Assert.AreEqual("2026-12-31", Periodo.DelMes(2026, 12).Periodo!.Hasta);
-    }
-
+    /// <summary>Vigila que el mes sale en español aunque la máquina esté en otro idioma.</summary>
     [TestMethod]
     public void ElTextoDelPeriodoVaEnEspanolYNoDependeDelIdiomaDelSistema()
     {
         var periodo = Periodo.Leer("2026-09-01", "2026-09-30").Periodo!;
 
         Assert.AreEqual("del 1 de septiembre de 2026 al 30 de septiembre de 2026", periodo.EnTexto());
-        Assert.AreEqual("2026-09-01_a_2026-09-30", periodo.NombreCorto());
     }
 
+    /// <summary>Vigila que el primer y el último día entran, el anterior y el siguiente no, y nulo no.</summary>
     [TestMethod]
     public void ContieneFechaDeViajeMiraLosDosExtremos()
     {

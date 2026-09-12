@@ -7,24 +7,32 @@ namespace Fichas.Datos.Falso;
 /// <summary>Las personas inventadas. Cumple <see cref="IPersonas"/> sin tocar ningun archivo.</summary>
 public sealed class RepositorioDePersonasFalso : IPersonas
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public RepositorioDePersonasFalso(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Devuelve un trozo de la lista de personas que cumplen el filtro, con el total detras.</summary>
+    /// <param name="filtro">Qué personas entran; ver <see cref="Filtrar"/>.</param>
+    /// <param name="trozo">Qué página se pide.</param>
     public PaginaDe<Persona> Listar(FiltroDePersonas filtro, Pagina trozo) => Trozos.Cortar(Filtrar(filtro), trozo);
 
     /// <summary>Cuenta cuantas personas cumplen el filtro, sin traerlas.</summary>
+    /// <param name="filtro">Qué personas entran.</param>
     public int Contar(FiltroDePersonas filtro) => Filtrar(filtro).Count;
 
     /// <summary>Devuelve una persona por su id, o nulo si no esta.</summary>
+    /// <param name="id">El número interno.</param>
     public Persona? Obtener(long id) => _almacen.Personas.TryGetValue(id, out var persona) ? persona : null;
 
     /// <summary>Devuelve todas las personas de un caso, en el orden del formulario.</summary>
+    /// <param name="casoId">El caso; uno que no existe da la lista vacía.</param>
     public IReadOnlyList<Persona> DeCaso(long casoId) => _almacen.PersonasDe(casoId);
 
     /// <summary>Guarda una persona nueva o cambia una existente; un MRN corto entra y sale avisado.</summary>
+    /// <param name="persona">La persona; sin nombre ni MRN no entra, como en la base de verdad.</param>
     public ResultadoDeEscritura Guardar(Persona persona)
     {
         // Una fila sin nombre Y sin MRN no es una persona: el formulario trae seis
@@ -68,6 +76,9 @@ public sealed class RepositorioDePersonasFalso : IPersonas
     /// contesto alguien que no fue. Y las seis EN BLANCO no cuentan: un Excel que solo dice el
     /// estado no es trabajo suyo sobre las preguntas, y ahi no se toca la firma que hubiera.
     /// </remarks>
+    /// <param name="personaId">La persona; si no existe, no se escribe y se dice.</param>
+    /// <param name="propuesta">De dónde se copian el estado propuesto, la nota, los seis pasos y «llamó al líder».</param>
+    /// <param name="companeroId">Quién lo propuso; queda como firma de los pasos si contestó alguno.</param>
     public ResultadoDeEscritura AnotarPropuesta(long personaId, Persona propuesta, long companeroId)
     {
         ArgumentNullException.ThrowIfNull(propuesta);
@@ -103,6 +114,7 @@ public sealed class RepositorioDePersonasFalso : IPersonas
     }
 
     /// <summary>Si el Excel del companero contesto alguna de las seis; <c>LlamoAlLider</c> no cuenta.</summary>
+    /// <param name="propuesta">Lo que trajo el Excel.</param>
     private static bool ContestaAlgunaDeLasSeis(Persona propuesta)
         => propuesta.PasoPreparacion is not null
         || propuesta.PasoInformacion is not null
@@ -122,6 +134,10 @@ public sealed class RepositorioDePersonasFalso : IPersonas
     /// verdad la comprueba <c>PruebaDeContestarLosPasos</c> corriendo la misma operacion
     /// contra los dos.
     /// </remarks>
+    /// <param name="personaId">La persona; si no existe, no se escribe y se dice.</param>
+    /// <param name="respuesta">Las seis respuestas.</param>
+    /// <param name="companeroId">Quién contestó.</param>
+    /// <param name="origen">Desde dónde; en blanco se guarda como nulo.</param>
     public ResultadoDeEscritura ResponderLosPasos(
         long personaId, RespuestaALosPasos respuesta, long companeroId, string origen)
     {
@@ -151,6 +167,7 @@ public sealed class RepositorioDePersonasFalso : IPersonas
     /// Toda persona del caso sale, tambien la que nadie contesto: sale
     /// <see cref="FirmaDeLosPasos.SinFirmar"/> en vez de faltar, igual que en el de verdad.
     /// </remarks>
+    /// <param name="casoId">El caso cuyas personas se miran.</param>
     public IReadOnlyDictionary<long, FirmaDeLosPasos> FirmasDeLosPasosDelCaso(long casoId)
         => _almacen.PersonasDe(casoId).ToDictionary(
             persona => persona.Id,
@@ -159,6 +176,7 @@ public sealed class RepositorioDePersonasFalso : IPersonas
                 : FirmaDeLosPasos.SinFirmar);
 
     /// <summary>Mira la persona y devuelve lo que hay que senalar; NUNCA impide guardar (requisito 9).</summary>
+    /// <param name="persona">La persona que se va a guardar.</param>
     private static List<Aviso> RevisarSinImpedir(Persona persona)
     {
         var avisos = new List<Aviso>();
@@ -192,12 +210,14 @@ public sealed class RepositorioDePersonasFalso : IPersonas
     /// en letra, impresa y nitida. Exigir once digitos costaba 2 de cada 7 cedulas de
     /// sus documentos: el OCR las leia bien y esta regla las tiraba.
     /// </summary>
+    /// <param name="mrn">El MRN tal como se leyó.</param>
     private static bool TieneFormaDeMrn(string mrn)
         => mrn.Length == 13 && mrn[3] == '-' && mrn[8] == '-'
            && mrn.Where((_, i) => i is not 3 and not 8 and not 12).All(char.IsAsciiDigit)
            && (char.IsAsciiDigit(mrn[12]) || char.IsAsciiLetter(mrn[12]));
 
     /// <summary>Aplica los filtros simples y devuelve la lista ordenada por caso y fila.</summary>
+    /// <param name="filtro">Los campos del filtro: un solo caso, sin MRN, o un texto en nombre o MRN.</param>
     private List<Persona> Filtrar(FiltroDePersonas filtro)
     {
         IEnumerable<Persona> personas = _almacen.Personas.Values;

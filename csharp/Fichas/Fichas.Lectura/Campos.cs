@@ -62,6 +62,10 @@ public static class Campos
     public const double ConfianzaDeUnaAnotacion = 1.0;
 
     /// <summary>Un campo que no se pudo leer. Se marca para revision, no se rellena.</summary>
+    /// <param name="valorOcr">Lo que se leyó en la banda, para enseñárselo a Miguel; nulo si no se leyó nada.</param>
+    /// <param name="anuladoPorTachon">Cierto cuando el campo queda vacío porque un tachón cruzaba la banda.</param>
+    /// <param name="loLeidoEsDeEsteCampo">Falso cuando <paramref name="valorOcr"/> viene de al lado y no se puede atribuir a este campo.</param>
+    /// <returns>Un campo sin valor, con origen <see cref="OrigenDeCampo.Vacio"/> y <c>NecesitaRevision</c> siempre cierto.</returns>
     public static CampoExtraido CampoVacio(
         string? valorOcr = null, bool anuladoPorTachon = false, bool loLeidoEsDeEsteCampo = true)
         => new(null, OrigenDeCampo.Vacio, null, valorOcr, anuladoPorTachon,
@@ -74,6 +78,8 @@ public static class Campos
     /// Se guarda entero aunque luego no se use: existe para que Miguel vea QUE leyo la
     /// maquina cuando corrija, y un texto recortado no le sirve para decidir.
     /// </remarks>
+    /// <param name="lineas">Las líneas del OCR de la banda, ya en orden de lectura.</param>
+    /// <returns>Los textos no vacíos unidos por un espacio, o nulo si ninguna línea traía texto.</returns>
     private static string? TextoDeLasLineas(IReadOnlyList<LineaDeOcr> lineas)
     {
         var partes = lineas
@@ -105,6 +111,9 @@ public static class Campos
     /// decidiera la posicion, una nota puesta a la derecha del campo perderia contra el valor
     /// que viene a corregir.</para>
     /// </remarks>
+    /// <param name="correcciones">Las anotaciones con texto que solapan la banda del campo.</param>
+    /// <param name="darForma">La forma del campo: devuelve nulo cuando el texto no la tiene.</param>
+    /// <returns>La anotación que corrige este campo, o nula si ninguna produce un valor con forma.</returns>
     private static AnotacionDelPdf? MejorCorreccion(
         IReadOnlyList<AnotacionDelPdf> correcciones, Func<string?, string?> darForma)
         => correcciones
@@ -117,6 +126,7 @@ public static class Campos
     /// Lo tecleado en el campo del formulario de esta banda, tal cual, o nulo si no hay ninguno.
     /// </summary>
     /// <remarks>Con varios, el de mas a la izquierda, por la misma regla fija de arriba.</remarks>
+    /// <param name="correcciones">Las anotaciones que solapan la banda del campo, de cualquier subtipo.</param>
     private static string? TextoTecleado(IReadOnlyList<AnotacionDelPdf> correcciones)
         => correcciones
             .Where(Anotaciones.EsCampoTecleado)
@@ -144,6 +154,9 @@ public static class Campos
     /// rellenado a maquina, lo que el OCR lee en esa banda es la pintura del propio campo:
     /// preferir la lectura al texto exacto seria quedarse con la copia en vez del original.</para>
     /// </remarks>
+    /// <param name="lineasOcr">Las líneas del OCR que caben en la banda del campo; vacía si no se leyó nada ahí.</param>
+    /// <param name="correcciones">Las anotaciones con texto (<c>/FreeText</c> o campo tecleado) que solapan la banda.</param>
+    /// <param name="hayTachon">Cierto si un tachón rojo cruza la banda: anula el OCR y, sin corrección, deja el campo vacío.</param>
     /// <param name="normalizar">
     /// Convierte el texto en el valor con formato. Si devuelve nulo, el campo queda sin
     /// valor y marcado —se leyo algo pero no tenia la forma esperada—, y lo leido viaja
@@ -155,6 +168,7 @@ public static class Campos
     /// esta en el. Su texto <b>nunca</b> sale como valor; se conserva para poder enseñarlo
     /// y solo se mira cuando la banda propia no dio nada.
     /// </param>
+    /// <returns>El campo con su valor, su origen y su confianza; nunca nulo, y nunca con un valor tachado.</returns>
     public static CampoExtraido ResolverCampo(
         IReadOnlyList<LineaDeOcr> lineasOcr,
         IReadOnlyList<AnotacionDelPdf> correcciones,

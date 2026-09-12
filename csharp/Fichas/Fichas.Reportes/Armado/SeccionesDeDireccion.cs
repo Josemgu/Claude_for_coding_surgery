@@ -1,5 +1,4 @@
 using System.Globalization;
-using Fichas.Contratos.Modelos;
 using Fichas.Reportes.Consultas;
 using Fichas.Reportes.Modelo;
 using Fichas.Reportes.Reglas;
@@ -39,6 +38,7 @@ namespace Fichas.Reportes.Armado;
 /// </remarks>
 public static class SeccionesDeDireccion
 {
+    /// <summary>Las seis columnas de la sección que abre el informe; «Qué pasó» es la que dice en qué paso se quedó.</summary>
     private static readonly Columna[] ColumnasDeQuienViajoSinVerificar =
     [
         new("Persona", ClaseDeColumna.Crudo, 30),
@@ -51,6 +51,7 @@ public static class SeccionesDeDireccion
         new("Qué pasó", ClaseDeColumna.Crudo, 40),
     ];
 
+    /// <summary>Las ocho columnas de «Los viajes», las del informe viejo; «País» sale siempre como que no consta.</summary>
     private static readonly Columna[] ColumnasDeLosViajes =
     [
         new("Caso", ClaseDeColumna.Texto, 12),
@@ -63,18 +64,21 @@ public static class SeccionesDeDireccion
         new(Vocabulario.SinLaPreparacionCompleta, ClaseDeColumna.Crudo, 18),
     ];
 
+    /// <summary>Las dos columnas de «A qué van al templo».</summary>
     private static readonly Columna[] ColumnasDeLasOrdenanzas =
     [
         new("A qué va al templo", ClaseDeColumna.Crudo, 34),
         new("Personas", ClaseDeColumna.Crudo, 12),
     ];
 
+    /// <summary>Las dos columnas de «Dónde se traban las preparaciones».</summary>
     private static readonly Columna[] ColumnasDeLosPasosTrabados =
     [
         new("Paso del sistema del líder", ClaseDeColumna.Crudo, 34),
         new("Veces sin completar", ClaseDeColumna.Crudo, 20),
     ];
 
+    /// <summary>Las cuatro columnas de «Unidades con preparaciones sin completar»; el número de unidad va delante y como texto.</summary>
     private static readonly Columna[] ColumnasDeLasUnidades =
     [
         // ⚠️ 2026-09-08: la unidad en DOS columnas, el numero delante y como Texto. Aqui ademas
@@ -85,6 +89,7 @@ public static class SeccionesDeDireccion
         new(Vocabulario.SinLaPreparacionCompleta, ClaseDeColumna.Crudo, 18),
     ];
 
+    /// <summary>Las cuatro columnas de «El equipo»; «Sin mirar» es la que habla del reparto de trabajo.</summary>
     private static readonly Columna[] ColumnasDelEquipo =
     [
         new("Agente", ClaseDeColumna.Crudo, 26),
@@ -99,6 +104,7 @@ public static class SeccionesDeDireccion
     /// viajaron, la tercera dice cuantas quedan por delante —que es sobre las que todavia se
     /// puede hacer algo— y la cuarta da el tamano del periodo.
     /// </remarks>
+    /// <param name="recuento">Las cuatro cifras ya contadas por <see cref="Preparacion.Recontar"/>.</param>
     public static Portada Portada(Recuento recuento)
         => new(
             Vocabulario.TitularDeLaPortada,
@@ -118,6 +124,8 @@ public static class SeccionesDeDireccion
     /// Es la seccion que ABRE el informe y por eso lleva ella la aclaracion de la palabra: quien
     /// lo lee se la encuentra antes que ninguna tabla que la use.
     /// </remarks>
+    /// <param name="sinCompletar">Las personas que ya viajaron sin los seis pasos en sí; una por fila.</param>
+    /// <returns>La sección, con tabla vacía y resumen «0 personas viajaron sin verificar» si no hay ninguna.</returns>
     public static Seccion QuienViajoSinVerificar(IReadOnlyList<PersonaConSuCaso> sinCompletar)
     {
         var filas = sinCompletar
@@ -153,6 +161,8 @@ public static class SeccionesDeDireccion
     }
 
     /// <summary>Un renglon por caso, con quien lo lleva en la misma fila.</summary>
+    /// <param name="renglones">Los viajes ya contados por <see cref="Preparacion.ResumenPorCaso"/>, en su orden.</param>
+    /// <returns>La sección; un caso que aún no salió lleva una raya en «Sin verificar».</returns>
     public static Seccion LosViajes(IReadOnlyList<RenglonDeViaje> renglones)
     {
         var filas = renglones
@@ -188,6 +198,8 @@ public static class SeccionesDeDireccion
     }
 
     /// <summary>A que van al templo las personas del periodo, contado por ordenanza.</summary>
+    /// <param name="personas">Todas las personas del periodo; se cuentan sus casillas <c>Ord*</c>.</param>
+    /// <returns>La sección, sin resumen; con una segunda nota si alguien no trae ninguna casilla marcada.</returns>
     public static Seccion AQueVan(IReadOnlyList<PersonaConSuCaso> personas)
     {
         var suyas = personas.Select(f => f.Persona).ToList();
@@ -222,6 +234,8 @@ public static class SeccionesDeDireccion
     /// Sale SOLO si hay algun paso marcado que no; una tabla de ceros no dice nada y ocupa el
     /// sitio de lo que si.
     /// </remarks>
+    /// <param name="personas">Todas las personas del periodo; se cuentan sus pasos marcados que no.</param>
+    /// <returns>La sección ordenada de más a menos veces, o nulo si ningún paso está marcado que no.</returns>
     public static Seccion? DondeSeTraban(IReadOnlyList<PersonaConSuCaso> personas)
     {
         var cuentas = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -259,6 +273,8 @@ public static class SeccionesDeDireccion
     /// informes del mismo periodo podrian listar las mismas unidades en distinto orden y leerse
     /// como si algo hubiera cambiado.
     /// </remarks>
+    /// <param name="personas">Todas las personas del periodo; se agrupan por el par (número, nombre) de su unidad.</param>
+    /// <returns>Solo las unidades con alguien sin la preparación completa, o nulo si no hay ninguna.</returns>
     public static Seccion? LasUnidades(IReadOnlyList<PersonaConSuCaso> personas)
     {
         // ⚠️ 2026-09-08: la clave es el PAR (número, nombre) y ya no la cadena pegada.
@@ -315,6 +331,9 @@ public static class SeccionesDeDireccion
     /// Un caso asignado a varios companeros hace que esa persona cuente para los dos: el informe
     /// contesta «¿a quién le pregunto por esta persona?», y la respuesta son los dos.
     /// </remarks>
+    /// <param name="personas">Todas las personas del periodo.</param>
+    /// <param name="companerosPorCaso">Los nombres de quien lleva cada caso, por id; un caso ausente cuenta como <see cref="Vocabulario.SinAgente"/>.</param>
+    /// <returns>Una fila por agente, de más a menos personas; nunca nula.</returns>
     public static Seccion ElEquipo(
         IReadOnlyList<PersonaConSuCaso> personas,
         IReadOnlyDictionary<long, IReadOnlyList<string>> companerosPorCaso)
@@ -365,5 +384,6 @@ public static class SeccionesDeDireccion
     }
 
     /// <summary>Un numero escrito siempre igual, sin depender del idioma del sistema.</summary>
+    /// <param name="valor">La cifra.</param>
     internal static string Numero(int valor) => valor.ToString(CultureInfo.InvariantCulture);
 }

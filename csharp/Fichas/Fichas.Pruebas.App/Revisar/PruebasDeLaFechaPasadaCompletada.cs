@@ -144,6 +144,7 @@ public sealed class PruebasDeLaFechaPasadaCompletada
     /// —que nadie afirme que está completo— se comprueba donde vive esa afirmación: en
     /// <c>casos.estado_recomendacion</c>, que sigue diciendo «no completa», y en el detalle, que
     /// dice quién lo cerró y no dice que nadie lo completara.</para>
+    /// </remarks>
     [TestMethod]
     public void ElArchivadoQueTodaviaNoHaViajadoNoSeLlamaCompletadoEnNingunSitio()
     {

@@ -7,18 +7,24 @@ namespace Fichas.Datos.Falso;
 /// <summary>Los renglones ilegibles inventados. Cumple <see cref="IIlegibles"/> sin tocar ningun archivo.</summary>
 public sealed class RepositorioDeIlegiblesFalso : IIlegibles
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public RepositorioDeIlegiblesFalso(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Devuelve un trozo de la lista de documentos ilegibles, con el total detras.</summary>
+    /// <param name="filtro">Qué renglones entran; ver <see cref="Filtrar"/>.</param>
+    /// <param name="trozo">Qué página se pide.</param>
     public PaginaDe<RenglonIlegible> Listar(FiltroDeIlegibles filtro, Pagina trozo) => Trozos.Cortar(Filtrar(filtro), trozo);
 
     /// <summary>Cuenta cuantos renglones ilegibles cumplen el filtro, sin traerlos.</summary>
+    /// <param name="filtro">Qué renglones entran.</param>
     public int Contar(FiltroDeIlegibles filtro) => Filtrar(filtro).Count;
 
     /// <summary>Anota que un PDF o una pagina no se pudo leer, con su codigo de motivo.</summary>
+    /// <param name="renglon">El renglón; con <c>Id</c> 0 se le da uno nuevo y, sin <c>RegistradoEn</c>, el instante del reloj.</param>
     public ResultadoDeEscritura Registrar(RenglonIlegible renglon)
     {
         // Esta tabla NO tiene unicidad a proposito: el mismo archivo puede dejar varios
@@ -30,6 +36,9 @@ public sealed class RepositorioDeIlegiblesFalso : IIlegibles
     }
 
     /// <summary>Devuelve un trozo de las filas del Excel que no entraron, con el total detras.</summary>
+    /// <param name="companeroId">Solo las de ese compañero, o nulo para todas.</param>
+    /// <param name="trozo">Qué página se pide.</param>
+    /// <returns>De la más reciente a la más vieja.</returns>
     public PaginaDe<FilaDescartada> ListarDescartadas(long? companeroId, Pagina trozo)
     {
         var filas = _almacen.Descartadas.Values
@@ -41,6 +50,7 @@ public sealed class RepositorioDeIlegiblesFalso : IIlegibles
     }
 
     /// <summary>Anota una fila del Excel que no caso con nadie, tal como venia escrita.</summary>
+    /// <param name="fila">La fila; su compañero tiene que existir, el contenido no se mira.</param>
     public ResultadoDeEscritura RegistrarDescartada(FilaDescartada fila)
     {
         // Del CONTENIDO no se valida nada: esta tabla existe para guardar lo que NO entro,
@@ -73,6 +83,7 @@ public sealed class RepositorioDeIlegiblesFalso : IIlegibles
     /// borra. Un falso que borrara de su diccionario dejaria pasar en verde una prueba
     /// sobre un camino que en la base de verdad exige copiar antes.
     /// </remarks>
+    /// <param name="renglonIds">Los renglones que se querían borrar; no se miran.</param>
     public PlanDeBorrado PlanearBorradoDeRenglonesSinCaso(IReadOnlyCollection<long> renglonIds)
         => PlanDeBorrado.NoSePuede(
             AlcanceDelBorrado.Documentos,
@@ -84,6 +95,7 @@ public sealed class RepositorioDeIlegiblesFalso : IIlegibles
                 + "Cierre el programa y ábralo normal."));
 
     /// <summary>Aqui nunca se borra nada, por lo mismo que nunca se planea.</summary>
+    /// <param name="plan">El plan; no se mira.</param>
     public ResultadoDeBorrado BorrarRenglonesSinCaso(PlanDeBorrado plan)
         => ResultadoDeBorrado.NoSeBorro(
             null,
@@ -93,6 +105,7 @@ public sealed class RepositorioDeIlegiblesFalso : IIlegibles
                 "Nada se borra sin haber copiado antes la base, y con «--falso» no hay base."));
 
     /// <summary>Aplica los filtros simples y devuelve la lista de lo mas reciente a lo mas viejo.</summary>
+    /// <param name="filtro">Un trozo de la ruta del PDF, y el código de motivo exacto.</param>
     private List<RenglonIlegible> Filtrar(FiltroDeIlegibles filtro)
     {
         IEnumerable<RenglonIlegible> renglones = _almacen.Ilegibles.Values;

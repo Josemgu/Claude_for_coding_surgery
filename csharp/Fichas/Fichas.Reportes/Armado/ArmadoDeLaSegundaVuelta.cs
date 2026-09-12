@@ -61,6 +61,7 @@ public static class ArmadoDeLaSegundaVuelta
         + "la casilla existiera. En los dos casos, lo que dijo el agente hay que preguntárselo "
         + "a él.";
 
+    /// <summary>Las nueve columnas de la única tabla; la última es lo que escribió el agente.</summary>
     private static readonly Columna[] Columnas =
     [
         new("Caso", ClaseDeColumna.Texto, 12),
@@ -82,6 +83,7 @@ public static class ArmadoDeLaSegundaVuelta
     /// <param name="casos">Los casos, por id.</param>
     /// <param name="personasDelCaso">Las personas de cada caso, por id de caso.</param>
     /// <param name="generadoEn">La marca de tiempo; entra desde fuera, no se lee el reloj.</param>
+    /// <returns>Un documento de una sola sección; un intento cuyo caso no está en <paramref name="casos"/> se salta sin aviso.</returns>
     public static Documento Armar(
         int categoria,
         IReadOnlyList<IntentoAnterior> intentos,
@@ -137,6 +139,10 @@ public static class ArmadoDeLaSegundaVuelta
     }
 
     /// <summary>La portada: a que peldano va, cuanta gente, y por que motivo.</summary>
+    /// <param name="categoria">El peldaño que recibe la vuelta.</param>
+    /// <param name="intentos">Los documentos que suben; se cuentan por motivo.</param>
+    /// <param name="personas">Cuántas personas hay en total en esos documentos.</param>
+    /// <param name="conComentario">Cuántas de ellas traen comentario del agente.</param>
     private static Portada PortadaDeLaVuelta(
         int categoria, IReadOnlyList<IntentoAnterior> intentos, int personas, int conComentario)
     {
@@ -158,6 +164,9 @@ public static class ArmadoDeLaSegundaVuelta
             ]);
     }
 
+    /// <summary>La única sección: las tres notas que explican la tabla, las filas y el resumen.</summary>
+    /// <param name="filas">Una fila por persona, ya escritas.</param>
+    /// <param name="conComentario">Cuántas de esas filas traen comentario, para la tercera nota.</param>
     private static Seccion Seccion(IReadOnlyList<IReadOnlyList<string?>> filas, int conComentario)
         => new(
             TituloDeLaSeccion,

@@ -45,17 +45,25 @@ public static partial class ReglasDeFormato
     /// </remarks>
     public const int LargoMaximoDelNombreDeUnidad = 120;
 
+    /// <summary>Cuatro letras mayúsculas y cuatro dígitos, como <c>CASP2609</c>: la unidad y el mes.</summary>
+    /// <returns>La expresión generada en compilación.</returns>
     [GeneratedRegex(@"^[A-Z]{4}[0-9]{4}$")]
     private static partial Regex PatronDeNumeroDeCaso();
 
     // El ultimo caracter puede ser un digito o una LETRA (DECISIONES.md, 2026-09-04).
+    /// <summary>La cédula de miembro en patrón 3-4-4, con el último carácter dígito o letra.</summary>
+    /// <returns>La expresión generada en compilación.</returns>
     [GeneratedRegex(@"^[0-9]{3}-[0-9]{4}-[0-9]{3}[0-9A-Za-z]$")]
     private static partial Regex PatronDeMrn();
 
     // 6 o 7 digitos, no 6: 4 de las 9 paginas reales traen `7000011`.
+    /// <summary>El número de unidad: seis o siete dígitos.</summary>
+    /// <returns>La expresión generada en compilación.</returns>
     [GeneratedRegex(@"^[0-9]{6,7}$")]
     private static partial Regex PatronDeUnidad();
 
+    /// <summary>Una fecha <c>AAAA-MM-DD</c> por su forma; que exista lo comprueba <see cref="RevisarFechaViaje"/> con los tres grupos.</summary>
+    /// <returns>La expresión generada en compilación.</returns>
     [GeneratedRegex(@"^([0-9]{4})-([0-9]{2})-([0-9]{2})$")]
     private static partial Regex PatronDeFecha();
 
@@ -68,6 +76,8 @@ public static partial class ReglasDeFormato
     /// MRN y la fecha ya leidos. Y NO se inventa un numero: nulo significa «todavia no
     /// se sabe», y se teclea a mano (regla permanente 1).
     /// </remarks>
+    /// <param name="numeroCaso">El número tal como llegó; nulo si no se leyó.</param>
+    /// <returns>Nulo si es nulo o tiene la forma habitual; si no, un aviso sobre <c>numero_caso</c>.</returns>
     public static Aviso? RevisarNumeroCaso(string? numeroCaso)
     {
         if (numeroCaso is null)
@@ -96,6 +106,8 @@ public static partial class ReglasDeFormato
     /// en minuscula, en minuscula queda. Corregir lo leido es lo que la regla
     /// permanente 1 prohibe, y da igual que la correccion parezca inofensiva.
     /// </remarks>
+    /// <param name="mrn">La cédula tal como llegó; nulo si no se leyó.</param>
+    /// <returns>Nulo si es nulo o cumple el patrón 3-4-4; si no, un aviso sobre <c>mrn</c> con los dos ejemplos.</returns>
     public static Aviso? RevisarMrn(string? mrn)
     {
         if (mrn is null)
@@ -116,6 +128,8 @@ public static partial class ReglasDeFormato
     }
 
     /// <summary>Revisa el numero de unidad: 6 o 7 digitos. Acepta nulo.</summary>
+    /// <param name="unidadNumero">El número de unidad tal como llegó; nulo si no se leyó.</param>
+    /// <returns>Nulo si es nulo o son 6 o 7 dígitos; si no, un aviso sobre <c>unidad_numero</c>.</returns>
     public static Aviso? RevisarUnidadNumero(string? unidadNumero)
     {
         if (unidadNumero is null)
@@ -143,6 +157,8 @@ public static partial class ReglasDeFormato
     /// Por eso se construye la fecha de verdad antes de darla por buena. La restriccion
     /// de la base es el respaldo, no el validador.
     /// </remarks>
+    /// <param name="fechaViaje">La fecha tal como llegó; nulo si no se leyó.</param>
+    /// <returns>Nulo si es nulo o es un día real; un aviso distinto según falle la forma o el calendario.</returns>
     public static Aviso? RevisarFechaViaje(string? fechaViaje)
     {
         if (fechaViaje is null)
@@ -178,6 +194,8 @@ public static partial class ReglasDeFormato
     }
 
     /// <summary>Revisa el nombre de la unidad: texto sin espacios de sobra y no muy largo.</summary>
+    /// <param name="unidadNombre">El nombre tal como llegó; se mide sin los espacios de los extremos.</param>
+    /// <returns>Nulo si cabe en <see cref="LargoMaximoDelNombreDeUnidad"/>; si no, un aviso sobre <c>unidad_nombre</c>.</returns>
     public static Aviso? RevisarUnidadNombre(string? unidadNombre)
     {
         if (unidadNombre is null)
@@ -200,6 +218,9 @@ public static partial class ReglasDeFormato
     }
 
     /// <summary>Revisa una pagina de PDF: se cuentan desde 1, no desde 0. Acepta nulo.</summary>
+    /// <param name="paginaPdf">El número de página; nulo si no se sabe.</param>
+    /// <param name="campo">El nombre de la columna que va en el aviso, porque <c>casos</c> y <c>personas</c> tienen cada una la suya.</param>
+    /// <returns>Nulo si es nulo o es al menos 1; si no, un aviso.</returns>
     public static Aviso? RevisarPaginaPdf(int? paginaPdf, string campo = "pagina_pdf")
     {
         if (paginaPdf is null or >= 1)
@@ -222,6 +243,9 @@ public static partial class ReglasDeFormato
     /// reprogramado a otro mes, que es una cosa que pasa. Es la regla permanente 5
     /// —el sistema propone, Miguel confirma— aplicada a una fecha.
     /// </remarks>
+    /// <param name="numeroCaso">El número de caso; sus cuatro dígitos son <c>AAMM</c>.</param>
+    /// <param name="fechaViaje">La fecha de viaje en <c>AAAA-MM-DD</c>.</param>
+    /// <returns>Nulo si falta alguno, si alguno no tiene forma, o si el periodo coincide; si no, un aviso sobre <c>fecha_viaje</c>.</returns>
     public static Aviso? RevisarMesCruzado(string? numeroCaso, string? fechaViaje)
     {
         if (fechaViaje is null
@@ -251,6 +275,8 @@ public static partial class ReglasDeFormato
     /// <summary>
     /// Junta en una lista los avisos que no sean nulos.
     /// </summary>
+    /// <param name="avisos">Lo que devolvieron las reglas, nulos incluidos.</param>
+    /// <returns>Solo los que no son nulos, en el mismo orden; vacía si no hay ninguno.</returns>
     public static IReadOnlyList<Aviso> Juntar(params Aviso?[] avisos)
     {
         ArgumentNullException.ThrowIfNull(avisos);
@@ -264,6 +290,9 @@ public static partial class ReglasDeFormato
     /// Requisito 4 del dueno, «ni un parrafo en pantalla»: un OCR desbocado puede traer
     /// media pagina, y pegarla entera en un aviso convierte la franja en un muro.
     /// </remarks>
+    /// <param name="valor">El texto recibido.</param>
+    /// <param name="largo">Cuántos caracteres se enseñan antes de los puntos suspensivos.</param>
+    /// <returns>El valor entero si cabe; si no, el principio, «…» y cuántos caracteres tenía.</returns>
     private static string Recortar(string valor, int largo = 60)
         => valor.Length <= largo ? valor : valor[..largo] + "… (" + valor.Length + " caracteres)";
 }

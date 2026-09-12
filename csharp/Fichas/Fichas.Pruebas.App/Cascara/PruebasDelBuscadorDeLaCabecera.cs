@@ -404,10 +404,15 @@ public sealed class PruebasDelBuscadorDeLaCabecera
     /// </remarks>
     private sealed class CasosEspiados(ICasos deVerdad) : ICasos
     {
+        /// <summary>Cuántas veces se llamó a <see cref="Listar"/>: es lo que se mide.</summary>
         public int CuantasVecesSePregunto { get; private set; }
 
+        /// <summary>El trozo que se pidió la última vez, para afirmar cuánto se pidió.</summary>
         public Pagina ElUltimoTrozo { get; private set; }
 
+        /// <summary>Cuenta la consulta, se queda con el trozo y delega en el de verdad.</summary>
+        /// <param name="filtro">Lo que se busca.</param>
+        /// <param name="trozo">Qué página y de qué tamaño.</param>
         public PaginaDe<Caso> Listar(FiltroDeCasos filtro, Pagina trozo)
         {
             CuantasVecesSePregunto++;
@@ -415,24 +420,47 @@ public sealed class PruebasDelBuscadorDeLaCabecera
             return deVerdad.Listar(filtro, trozo);
         }
 
+        /// <summary>Delega en el de verdad; no se cuenta.</summary>
+        /// <param name="filtro">Lo que se busca.</param>
         public int Contar(FiltroDeCasos filtro) => deVerdad.Contar(filtro);
 
+        /// <summary>Delega en el de verdad; no se cuenta.</summary>
+        /// <param name="id">El caso que se pide.</param>
         public Caso? Obtener(long id) => deVerdad.Obtener(id);
 
+        /// <summary>Delega en el de verdad; no se cuenta.</summary>
+        /// <param name="casoIds">Los casos de los que se quiere el número de personas.</param>
         public IReadOnlyDictionary<long, int> ContarPersonasDe(IReadOnlyList<long> casoIds)
             => deVerdad.ContarPersonasDe(casoIds);
 
+        /// <summary>Delega en el de verdad; no se cuenta.</summary>
+        /// <param name="caso">El caso a guardar.</param>
         public ResultadoDeEscritura Guardar(Caso caso) => deVerdad.Guardar(caso);
 
+        /// <summary>Delega en el de verdad; no se cuenta.</summary>
+        /// <param name="casoId">El caso.</param>
+        /// <param name="estado">El estado que se le pone.</param>
+        /// <param name="companeroId">Quién lo marca.</param>
+        /// <param name="origen">De dónde viene la marca.</param>
         public ResultadoDeEscritura MarcarEstado(
             long casoId, EstadoDeRecomendacion estado, long companeroId, string origen)
             => deVerdad.MarcarEstado(casoId, estado, companeroId, origen);
 
+        /// <summary>Delega en el de verdad; no se cuenta.</summary>
+        /// <param name="casoId">El caso.</param>
+        /// <param name="estado">El estado que dijo el compañero.</param>
+        /// <param name="motivo">Por qué no se completó, si no se completó.</param>
+        /// <param name="companeroId">Quién lo dijo.</param>
+        /// <param name="origen">De dónde viene la marca.</param>
         public ResultadoDeEscritura MarcarEstadoDelCompanero(
             long casoId, EstadoDeRecomendacion estado, MotivoDeNoCompletar motivo,
             long companeroId, string origen)
             => deVerdad.MarcarEstadoDelCompanero(casoId, estado, motivo, companeroId, origen);
 
+        /// <summary>Delega en el de verdad; no se cuenta.</summary>
+        /// <param name="casoId">El caso.</param>
+        /// <param name="archivado">Si se archiva o se desarchiva.</param>
+        /// <param name="fechaDeArchivado">La fecha que queda escrita.</param>
         public ResultadoDeEscritura Archivar(long casoId, bool archivado, string fechaDeArchivado)
             => deVerdad.Archivar(casoId, archivado, fechaDeArchivado);
     }

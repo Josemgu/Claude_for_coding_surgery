@@ -9,6 +9,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDelArranque
 {
+    /// <summary>Vigila que mostrar la ruta solo escribe líneas: ni carpeta ni archivo, y dice la carpeta y el motor.</summary>
     [TestMethod]
     public void MostrarLaRutaNoCreaNiCarpetaNiArchivo()
     {
@@ -29,6 +30,7 @@ public sealed class PruebaDelArranque
             "No dijo con que motor va a trabajar.");
     }
 
+    /// <summary>Vigila que una carpeta bajo OneDrive produce una línea «AVISO:» y no una excepción.</summary>
     [TestMethod]
     public void SeAvisaCuandoLaCarpetaCaeBajoOneDriveYNoSeDetieneElPrograma()
     {
@@ -44,6 +46,7 @@ public sealed class PruebaDelArranque
             "nombres y MRN de personas reales.");
     }
 
+    /// <summary>El control: una carpeta normal no produce ningún «AVISO:», o el aviso dejaría de significar algo.</summary>
     [TestMethod]
     public void NoSeAvisaDeOneDriveCuandoLaCarpetaEsNormal()
     {
@@ -58,6 +61,7 @@ public sealed class PruebaDelArranque
             "Aviso de OneDrive en una carpeta que no tiene nada que ver.");
     }
 
+    /// <summary>Vigila que preparar una base nueva la deja en la versión al día y lo dice con «creada» y el conteo de casos.</summary>
     [TestMethod]
     public void PrepararLaBaseLaCreaConElEsquemaAlDiaYLoDice()
     {
@@ -94,6 +98,7 @@ public sealed class PruebaDelArranque
         }
     }
 
+    /// <summary>Vigila que la segunda apertura dice «abierta», no «creada», y sigue al día.</summary>
     [TestMethod]
     public void ArrancarDosVecesSobreLaMismaBaseNoLaVuelveACrear()
     {
@@ -128,6 +133,7 @@ public sealed class PruebaDelArranque
         }
     }
 
+    /// <summary>Vigila que <c>--carpeta-de-datos</c> pasado por argumentos es donde acaba el archivo.</summary>
     [TestMethod]
     public void ElArgumentoDeCarpetaLlegaHastaDondeSeEscribeDeVerdad()
     {
@@ -151,6 +157,8 @@ public sealed class PruebaDelArranque
         }
     }
 
+    /// <summary>Suelta las conexiones agrupadas y borra la carpeta temporal; si Windows la retiene, no tumba la prueba.</summary>
+    /// <param name="carpeta">La carpeta de la prueba.</param>
     private static void Limpiar(string carpeta)
     {
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();

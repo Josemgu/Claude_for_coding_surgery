@@ -23,15 +23,19 @@ namespace Fichas.Pruebas.Lectura;
 [TestClass]
 public class PruebaDeLosCamposTecleados
 {
+    /// <summary>La cabecera «Nombre(s) de pila» donde la mide el OCR en los siete escaneos.</summary>
     private static LineaDeOcr AnclaDeLosNombres()
         => new("Nombre(s) de pila", 1.0, new BandaDeLaPagina(0.1967, 0.2229, 0.2695, 0.2394));
 
+    /// <summary>La cabecera «Número de cédula de miembro» donde la mide el OCR; su borde derecho (0,6536) cierra la columna.</summary>
     private static LineaDeOcr AnclaDeLasCedulas()
         => new("Número de cédula de miembro", 1.0, new BandaDeLaPagina(0.4935, 0.2223, 0.6536, 0.2383));
 
+    /// <summary>La etiqueta «Nombre del templo», que además cierra el bloque de personas por abajo.</summary>
     private static LineaDeOcr AnclaDelTemplo()
         => new("Nombre del templo", 1.0, new BandaDeLaPagina(0.06, 0.3400, 0.16, 0.3560));
 
+    /// <summary>La etiqueta «Fecha de viaje al templo»; su banda de valor es donde se colocan los campos tecleados del caso.</summary>
     private static LineaDeOcr AnclaDeLaFechaDeViaje()
         => new("Fecha de viaje al templo", 1.0, new BandaDeLaPagina(0.06, 0.4300, 0.25, 0.4430));
 
@@ -39,27 +43,55 @@ public class PruebaDeLosCamposTecleados
     private static IReadOnlyList<LineaDeOcr> SoloLasEtiquetas()
         => [AnclaDeLosNombres(), AnclaDeLasCedulas(), AnclaDelTemplo(), AnclaDeLaFechaDeViaje()];
 
+    /// <summary>Los bordes verticales de la fila del bloque de personas, con 0,018 de paso entre filas.</summary>
+    /// <param name="numero">La fila física, base 1.</param>
     private static (double Y0, double Y1) Fila(int numero)
         => (0.2890 + (numero - 1) * 0.0180, 0.3040 + (numero - 1) * 0.0180);
 
+    /// <summary>Un campo de texto del formulario (<c>/Widget</c> de tipo <c>/Tx</c>) con lo tecleado y su rectángulo.</summary>
+    /// <param name="texto">Lo tecleado; nulo o en blanco es un campo vacío.</param>
+    /// <param name="x0">Borde izquierdo.</param>
+    /// <param name="x1">Borde derecho.</param>
+    /// <param name="y0">Borde superior.</param>
+    /// <param name="y1">Borde inferior.</param>
     private static AnotacionDelPdf CampoTecleado(string? texto, double x0, double x1, double y0, double y1)
         => new(Anotaciones.SubtipoDeCampoDeTexto, texto, new BandaDeLaPagina(x0, y0, x1, y1), null, null, null, null);
 
+    /// <summary>El campo del nombre de esa fila, en la columna medida del formulario del dueño (x 0,059 a 0,411).</summary>
+    /// <param name="fila">La fila física, base 1.</param>
+    /// <param name="texto">Lo tecleado, o nulo.</param>
     private static AnotacionDelPdf NombreTecleado(int fila, string? texto)
         => CampoTecleado(texto, 0.059, 0.411, Fila(fila).Y0, Fila(fila).Y1);
 
+    /// <summary>El campo de la cédula de esa fila, en la columna medida del formulario del dueño (x 0,413 a 0,736).</summary>
+    /// <param name="fila">La fila física, base 1.</param>
+    /// <param name="texto">Lo tecleado, o nulo.</param>
     private static AnotacionDelPdf CedulaTecleada(int fila, string? texto)
         => CampoTecleado(texto, 0.413, 0.736, Fila(fila).Y0, Fila(fila).Y1);
 
+    /// <summary>Una nota escrita a mano (<c>/FreeText</c>) con su texto y su rectángulo.</summary>
+    /// <param name="texto">Lo escrito en la nota.</param>
+    /// <param name="x0">Borde izquierdo.</param>
+    /// <param name="x1">Borde derecho.</param>
+    /// <param name="y0">Borde superior.</param>
+    /// <param name="y1">Borde inferior.</param>
     private static AnotacionDelPdf CorreccionAMano(string texto, double x0, double x1, double y0, double y1)
         => new(Anotaciones.SubtipoDeTexto, texto, new BandaDeLaPagina(x0, y0, x1, y1), null, null, null, null);
 
+    /// <summary>Extrae las personas de una página que solo tiene las etiquetas impresas y estas anotaciones.</summary>
+    /// <param name="anotaciones">Los campos tecleados y las notas de la página.</param>
     private static ResultadoDeExtraccion Personas(params AnotacionDelPdf[] anotaciones)
         => new Extraccion(612.0 / 792.0).ProponerCamposDePersonas(SoloLasEtiquetas(), anotaciones);
 
+    /// <summary>Extrae los campos del caso de una página que solo tiene las etiquetas impresas y estas anotaciones.</summary>
+    /// <param name="anotaciones">Los campos tecleados y las notas de la página.</param>
     private static ResultadoDeExtraccion Caso(params AnotacionDelPdf[] anotaciones)
         => new Extraccion(612.0 / 792.0).ProponerCamposDelCaso(SoloLasEtiquetas(), anotaciones);
 
+    /// <summary>El único campo propuesto con ese nombre (y esa fila, si se pide); falla la prueba si no está.</summary>
+    /// <param name="resultado">Lo que devolvió la extracción.</param>
+    /// <param name="campo">El nombre de columna.</param>
+    /// <param name="fila">La fila del formulario, solo para los campos de personas.</param>
     private static CampoPropuesto CampoDe(ResultadoDeExtraccion resultado, string campo, int? fila = null)
     {
         var propuesto = resultado.Campos.SingleOrDefault(c => c.Campo == campo && (fila is null || c.FilaFormulario == fila));

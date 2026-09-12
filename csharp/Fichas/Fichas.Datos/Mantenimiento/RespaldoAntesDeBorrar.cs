@@ -87,6 +87,10 @@ public static class RespaldoAntesDeBorrar
     }
 
     /// <summary>«fichas-antes-de-borrar-20260905-143012.db», al lado de la base.</summary>
+    /// <param name="rutaDeLaBase">La base abierta; la copia toma su carpeta, su nombre y su extensión.</param>
+    /// <param name="cuando">La hora, escrita como <c>yyyyMMdd-HHmmss</c>.</param>
+    /// <param name="vuelta">1 para el primer intento; a partir de 2 se añade <c>-N</c> para no pisar una copia del mismo segundo.</param>
+    /// <returns>La ruta completa de la copia; no comprueba si existe.</returns>
     public static string NombreDeLaCopia(string rutaDeLaBase, DateTime cuando, int vuelta = 1)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rutaDeLaBase);
@@ -108,6 +112,8 @@ public static class RespaldoAntesDeBorrar
     /// es el archivo que el MOTOR tiene abierto como <c>main</c>. Una base en memoria
     /// devuelve una ruta vacia, y entonces no hay nada que copiar y no se borra.
     /// </remarks>
+    /// <param name="conexion">La conexión viva.</param>
+    /// <returns>La ruta del archivo <c>main</c>, o nulo si es una base en memoria.</returns>
     private static string? RutaDeLaBaseAbierta(SqliteConnection conexion)
     {
         using var orden = conexion.CreateCommand();
@@ -124,6 +130,9 @@ public static class RespaldoAntesDeBorrar
     }
 
     /// <summary>El aviso de que no cabe la copia, o nulo si cabe.</summary>
+    /// <param name="rutaDeLaBase">La base cuyo tamaño se multiplica por <see cref="VecesElTamanoQueHacenFalta"/>.</param>
+    /// <param name="espacioLibre">Cómo saber los bytes libres de la unidad de una ruta.</param>
+    /// <returns>Nulo si cabe, o si no se pudo medir el tamaño; si no, el aviso con la cifra en MiB.</returns>
     private static Aviso? QueFaltaDeSitio(string rutaDeLaBase, Func<string, long> espacioLibre)
     {
         long tamano;
@@ -148,6 +157,8 @@ public static class RespaldoAntesDeBorrar
     }
 
     /// <summary>Cuantos bytes quedan libres en la unidad donde vive esa ruta.</summary>
+    /// <param name="ruta">Cualquier ruta de la unidad.</param>
+    /// <returns>Los bytes libres, o <see cref="long.MaxValue"/> si no se pudo preguntar, para no bloquear el borrado por eso.</returns>
     private static long EspacioLibreDeLaUnidad(string ruta)
     {
         try
@@ -162,6 +173,9 @@ public static class RespaldoAntesDeBorrar
     }
 
     /// <summary>Un nombre libre: sobrescribir seria perder justo el respaldo recien hecho.</summary>
+    /// <param name="rutaDeLaBase">La base que se va a copiar.</param>
+    /// <param name="cuando">La hora que va en el nombre.</param>
+    /// <returns>Una ruta que todavía no existe en la carpeta de la base.</returns>
     private static string SitioLibreParaLaCopia(string rutaDeLaBase, DateTime cuando)
     {
         var candidato = NombreDeLaCopia(rutaDeLaBase, cuando);
@@ -175,6 +189,9 @@ public static class RespaldoAntesDeBorrar
         return candidato;
     }
 
+    /// <summary>Bytes en mebibytes con un decimal, para el mensaje de disco lleno.</summary>
+    /// <param name="bytes">La cifra en bytes.</param>
+    /// <returns>Por ejemplo «12.5 MiB».</returns>
     private static string EnMiB(long bytes)
         => (bytes / 1024d / 1024d).ToString("0.0", CultureInfo.InvariantCulture) + " MiB";
 }
@@ -188,5 +205,6 @@ public sealed record ResultadoDeLaCopia(string? Ruta, Aviso? Fallo)
     public bool HayCopia => Ruta is not null;
 
     /// <summary>La copia que no se pudo hacer, con su motivo.</summary>
+    /// <param name="fallo">Por qué no se hizo, ya redactado para la pantalla.</param>
     public static ResultadoDeLaCopia NoSePudo(Aviso fallo) => new(null, fallo);
 }

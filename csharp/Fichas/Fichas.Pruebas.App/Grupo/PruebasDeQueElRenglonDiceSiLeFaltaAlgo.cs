@@ -38,11 +38,13 @@ namespace Fichas.Pruebas.App.Grupo;
 public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
 {
     /// <summary>El grupo del dia tal como lo pinta la pantalla, ya aplanado en renglones.</summary>
+    /// <param name="servicios">Donde está montado el 17 de septiembre.</param>
     private static IReadOnlyList<RenglonDelGrupo> RenglonesDelDia(Fichas.Datos.Falso.ServiciosFalsos servicios)
         => BaseDeInicio.LectorDeGruposDe(servicios)
             .DelDia(new DateOnly(2026, 9, 17))
             .EnUnaSolaLista();
 
+    /// <summary>Vigila que un documento entero lo diga en su renglón —«repartirlo»— y no nombre datos que no faltan.</summary>
     [TestMethod]
     public void UnDocumentoAlQueNoLeFaltaNadaLoDiceEnSuRenglon()
     {
@@ -68,6 +70,7 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
         }
     }
 
+    /// <summary>Vigila que, sin templo, el renglón diga «le falta 1 dato».</summary>
     [TestMethod]
     public void UnDocumentoAlQueLeFaltaUnDatoLoDiceYDiceCuantos()
     {
@@ -79,6 +82,7 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
         StringAssert.Contains(renglon.LoQueLeFaltaAlDocumento, "le falta 1 dato", StringComparison.Ordinal);
     }
 
+    /// <summary>Vigila que, sin templo y sin cédula, el renglón diga «le faltan 2 datos», en plural.</summary>
     [TestMethod]
     public void DosDatosQueFaltanSeDicenEnPlural()
     {
@@ -173,7 +177,7 @@ public sealed class PruebasDeQueElRenglonDiceSiLeFaltaAlgo
         foreach (var frase in (string[])[sinHuecos, conTres, sinNadie])
         {
             Assert.IsFalse(
-                frase.Contains(LasDosPreguntas.ListoParaAsignar, StringComparison.OrdinalIgnoreCase),
+                frase.Contains("listo para asignar", StringComparison.OrdinalIgnoreCase),
                 $"«{frase}» trae de vuelta «listo para asignar».");
         }
     }

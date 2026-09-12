@@ -7,21 +7,32 @@ namespace Fichas.Datos.Falso;
 /// <summary>Los casos inventados. Cumple <see cref="ICasos"/> sin tocar ningun archivo.</summary>
 public sealed class RepositorioDeCasosFalso : ICasos
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public RepositorioDeCasosFalso(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Devuelve un trozo de la lista de casos que cumplen el filtro, con el total detras.</summary>
+    /// <remarks>
+    /// Igual que el de verdad en qué filtra y en qué orden devuelve; se diferencia en que
+    /// filtra en memoria sobre el diccionario y ordena las fechas como texto ISO.
+    /// </remarks>
+    /// <param name="filtro">Qué casos entran; ver <see cref="Filtrar"/> para cada campo.</param>
+    /// <param name="trozo">Qué página se pide.</param>
     public PaginaDe<Caso> Listar(FiltroDeCasos filtro, Pagina trozo) => Trozos.Cortar(Filtrar(filtro), trozo);
 
     /// <summary>Cuenta cuantos casos cumplen el filtro, sin traerlos.</summary>
+    /// <param name="filtro">Qué casos entran.</param>
     public int Contar(FiltroDeCasos filtro) => Filtrar(filtro).Count;
 
     /// <summary>Devuelve un caso por su id, o nulo si no esta.</summary>
+    /// <param name="id">El número interno.</param>
     public Caso? Obtener(long id) => _almacen.Casos.TryGetValue(id, out var caso) ? caso : null;
 
     /// <summary>Cuenta las personas de cada caso de la lista que se le pase, en una sola pasada.</summary>
+    /// <param name="casoIds">Los casos; cada uno sale en el resultado aunque tenga cero personas.</param>
     public IReadOnlyDictionary<long, int> ContarPersonasDe(IReadOnlyList<long> casoIds)
     {
         var pedidos = casoIds.ToHashSet();
@@ -34,6 +45,7 @@ public sealed class RepositorioDeCasosFalso : ICasos
     }
 
     /// <summary>Guarda un caso nuevo o cambia uno existente; un numero raro entra y sale avisado.</summary>
+    /// <param name="caso">El caso; con <c>Id</c> 0 se le da uno nuevo, si no se sustituye el que tenga.</param>
     public ResultadoDeEscritura Guardar(Caso caso)
     {
         var avisos = RevisarSinImpedir(caso);
@@ -54,6 +66,10 @@ public sealed class RepositorioDeCasosFalso : ICasos
     /// desdoblo para que la correccion de Miguel no pisara el nombre del companero. Lo
     /// que dijo una hoja se escribe con <see cref="MarcarEstadoDelCompanero"/>.
     /// </remarks>
+    /// <param name="casoId">El caso; si no existe, no se escribe y se dice.</param>
+    /// <param name="estado">El estado vigente que se escribe.</param>
+    /// <param name="companeroId">Quién lo marca.</param>
+    /// <param name="origen">De dónde vino la marca, tal como se guarda en <c>estado_marcado_origen</c>.</param>
     public ResultadoDeEscritura MarcarEstado(long casoId, EstadoDeRecomendacion estado, long companeroId, string origen)
     {
         if (!_almacen.Casos.TryGetValue(casoId, out var caso))
@@ -70,6 +86,11 @@ public sealed class RepositorioDeCasosFalso : ICasos
     }
 
     /// <summary>Escribe lo que dijo la hoja de un companero: el estado vigente Y su registro.</summary>
+    /// <param name="casoId">El caso; si no existe, no se escribe y se dice.</param>
+    /// <param name="estado">Lo que dijo la hoja.</param>
+    /// <param name="motivo">Por qué no está completa, si no lo está; va al motivo del compañero y nunca al vigente.</param>
+    /// <param name="companeroId">De quién era la hoja.</param>
+    /// <param name="origen">De dónde vino la marca.</param>
     public ResultadoDeEscritura MarcarEstadoDelCompanero(
         long casoId,
         EstadoDeRecomendacion estado,
@@ -100,6 +121,9 @@ public sealed class RepositorioDeCasosFalso : ICasos
     }
 
     /// <summary>Archiva o desarchiva un caso; archivar exige fecha y desarchivar la quita.</summary>
+    /// <param name="casoId">El caso; si no existe, no se escribe y se dice.</param>
+    /// <param name="archivado">Verdadero para archivar, falso para devolverlo al trabajo.</param>
+    /// <param name="fechaDeArchivado">La fecha ISO; si va en blanco al archivar, se pone la de hoy del reloj.</param>
     public ResultadoDeEscritura Archivar(long casoId, bool archivado, string fechaDeArchivado)
     {
         if (!_almacen.Casos.TryGetValue(casoId, out var caso))
@@ -114,6 +138,7 @@ public sealed class RepositorioDeCasosFalso : ICasos
     }
 
     /// <summary>Mira el caso y devuelve lo que hay que senalar; NUNCA impide guardar (requisito 9).</summary>
+    /// <param name="caso">El caso que se va a guardar.</param>
     private static List<Aviso> RevisarSinImpedir(Caso caso)
     {
         var avisos = new List<Aviso>();
@@ -139,17 +164,20 @@ public sealed class RepositorioDeCasosFalso : ICasos
     }
 
     /// <summary>Cuatro letras mayusculas y cuatro digitos, que es lo que el papel trae.</summary>
+    /// <param name="numero">El número tal como se leyó.</param>
     private static bool TieneFormaDeNumeroDeCaso(string numero)
         => numero.Length == 8
            && numero.Take(4).All(c => c is >= 'A' and <= 'Z')
            && numero.Skip(4).All(char.IsAsciiDigit);
 
     /// <summary>Forma ISO-8601 de solo fecha, comprobada por posiciones y no por libreria.</summary>
+    /// <param name="fecha">El texto tal como se leyó.</param>
     private static bool TieneFormaDeFecha(string fecha)
         => fecha.Length == 10 && fecha[4] == '-' && fecha[7] == '-'
            && fecha.Where((_, i) => i is not 4 and not 7).All(char.IsAsciiDigit);
 
     /// <summary>Aplica los filtros simples y devuelve la lista ordenada por fecha de viaje.</summary>
+    /// <param name="filtro">Los campos del filtro; el texto busca en número, unidad y en el nombre o MRN de sus personas.</param>
     private List<Caso> Filtrar(FiltroDeCasos filtro)
     {
         var hoy = _almacen.Reloj.Hoy();

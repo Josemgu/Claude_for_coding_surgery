@@ -44,6 +44,9 @@ public static class NombreDeHoja
     }
 
     /// <summary>El nombre de una pestana: su numero, su titulo limpio y recortado.</summary>
+    /// <param name="numero">El orden de la sección, base 1; va delante y es lo que garantiza que dos nombres no coincidan.</param>
+    /// <param name="titulo">El título de la sección; vacío da «sección N».</param>
+    /// <returns>Nunca más de <see cref="LargoMaximo"/> caracteres y sin espacio al final.</returns>
     private static string Una(int numero, string titulo)
     {
         var limpio = Limpiar(titulo);
@@ -55,6 +58,8 @@ public static class NombreDeHoja
     }
 
     /// <summary>Quita lo que Excel no admite y los espacios de los extremos.</summary>
+    /// <param name="titulo">El título tal como llega; nulo cuenta como vacío.</param>
+    /// <returns>El título con cada signo prohibido cambiado por un guion, no borrado, para que la longitud no engañe.</returns>
     private static string Limpiar(string? titulo)
         => new string((titulo ?? string.Empty)
             .Select(letra => LoQueExcelNoAdmite.Contains(letra) ? '-' : letra)

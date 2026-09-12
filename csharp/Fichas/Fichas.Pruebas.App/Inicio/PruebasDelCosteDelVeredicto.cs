@@ -158,6 +158,7 @@ public sealed class PruebasDelCosteDelVeredicto
     }
 
     /// <summary>Cronometra algo varias veces y devuelve la mejor marca, en milisegundos.</summary>
+    /// <param name="que">Lo que se cronometra; corre una vez de calentamiento y luego <c>Pasadas</c> veces.</param>
     private static double LaMejorDe(Action que)
     {
         que();   // calentamiento: la primera pasada paga el compilador en caliente

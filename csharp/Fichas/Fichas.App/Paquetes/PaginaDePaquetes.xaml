@@ -138,7 +138,6 @@
                                     Click="AlPulsarNoQuitarNada"
                                     Content="No quitar nada" />
                                 <Button
-                                    x:Name="_botonDeConfirmarElQuitar"
                                     AutomationProperties.Name="Quitárselos ahora"
                                     Click="AlPulsarConfirmarElQuitar"
                                     Content="Quitárselos ahora" />

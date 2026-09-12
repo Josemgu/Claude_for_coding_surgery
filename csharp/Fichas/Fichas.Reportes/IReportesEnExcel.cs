@@ -34,6 +34,7 @@ public interface IReportesEnExcel
     /// <param name="desdeIso">El primer dia del periodo, incluido, en ISO-8601.</param>
     /// <param name="hastaIso">El ultimo dia del periodo, incluido, en ISO-8601.</param>
     /// <param name="rutaDestino">Donde queda el archivo.</param>
+    /// <returns>Nunca lanza por un dato raro: con <c>SeEscribio</c> en falso y su aviso si el periodo no se lee o la ruta falla.</returns>
     ResultadoDeEscritura GenerarReporteDelPeriodoEnExcel(string desdeIso, string hastaIso, string rutaDestino);
 
     /// <summary>Genera el informe de un companero en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
@@ -41,10 +42,12 @@ public interface IReportesEnExcel
     /// <param name="desdeIso">El primer dia del periodo, incluido, en ISO-8601.</param>
     /// <param name="hastaIso">El ultimo dia del periodo, incluido, en ISO-8601.</param>
     /// <param name="rutaDestino">Donde queda el archivo.</param>
+    /// <returns>Con <c>SeEscribio</c> en falso y su aviso si el compañero no existe, el periodo no se lee o la ruta falla.</returns>
     ResultadoDeEscritura GenerarReporteDeCompaneroEnExcel(
         long companeroId, string desdeIso, string hastaIso, string rutaDestino);
 
     /// <summary>Genera el historico completo en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
     /// <param name="rutaDestino">Donde queda el archivo.</param>
+    /// <returns>Con <c>SeEscribio</c> en falso solo si la ruta falla; sin archivados se escribe igual.</returns>
     ResultadoDeEscritura GenerarHistoricoEnExcel(string rutaDestino);
 }

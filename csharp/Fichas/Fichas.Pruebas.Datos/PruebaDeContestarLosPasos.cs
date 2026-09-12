@@ -32,8 +32,11 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDeContestarLosPasos
 {
+    /// <summary>La fecha fija de estas pruebas, para que las marcas de tiempo sembradas no dependan del reloj.</summary>
     private const string DiaDeLasPruebas = "2026-09-05";
+    /// <summary>Lo que va en <c>pasos_origen</c> cuando contesta Miguel desde la pantalla.</summary>
     private const string OrigenAMano = "a mano en la pantalla";
+    /// <summary>Una ruta inventada de Excel de vuelta; no se abre ningún archivo.</summary>
     private const string RutaDelExcelDeSandy = @"C:\Fichas\paquetes\sandy-2609.xlsx";
 
     /// <summary>
@@ -380,9 +383,13 @@ public sealed class PruebaDeContestarLosPasos
         persona.PasoListoParaElTemplo,
     ];
 
+    /// <summary>Las seis casillas como texto («sí, no, en blanco…») para los mensajes de fallo.</summary>
+    /// <param name="seis">Los seis pasos en su orden.</param>
     private static string Enumerar(bool?[] seis)
         => string.Join(", ", seis.Select(v => v switch { true => "sí", false => "no", _ => "en blanco" }));
 
+    /// <summary>Cuántas filas de <c>procedencia_campo</c> están firmadas: tiene que seguir en cero después de contestar.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
     private static long Firmados(SqliteConnection conexion)
     {
         using var orden = conexion.CreateCommand();

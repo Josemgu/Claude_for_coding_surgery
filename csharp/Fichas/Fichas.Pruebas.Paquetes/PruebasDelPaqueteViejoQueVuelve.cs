@@ -32,10 +32,14 @@ public class PruebasDelPaqueteViejoQueVuelve
         "¿Llamó al líder?", "¿Por qué no se completó?", "Comentario", "clave",
     ];
 
+    /// <summary>La base en memoria de esta prueba, montada en <see cref="Preparar"/>.</summary>
     private BaseInventada _base = null!;
+    /// <summary>La carpeta temporal donde se escriben los <c>.xlsx</c>; se borra en <see cref="Recoger"/>.</summary>
     private string _carpeta = null!;
+    /// <summary>El número interno del compañero de prueba al que se le genera el paquete.</summary>
     private long _sandy;
 
+    /// <summary>Monta la base en memoria, la carpeta temporal y el compañero de cada prueba.</summary>
     [TestInitialize]
     public void Preparar()
     {
@@ -44,6 +48,7 @@ public class PruebasDelPaqueteViejoQueVuelve
         _sandy = _base.Companero("Sandy");
     }
 
+    /// <summary>Borra la carpeta temporal; ningún <c>.xlsx</c> se queda en el disco.</summary>
     [TestCleanup]
     public void Recoger()
     {
@@ -51,6 +56,8 @@ public class PruebasDelPaqueteViejoQueVuelve
         catch (IOException) { /* si Windows todavia tiene la manija, la carpeta temporal la limpia el sistema */ }
     }
 
+    /// <summary>La ruta de un archivo dentro de la carpeta temporal de la prueba.</summary>
+    /// <param name="nombre">El nombre del archivo; por defecto el del paquete viejo.</param>
     private string Ruta(string nombre = "paquete_viejo.xlsx") => Path.Combine(_carpeta, nombre);
 
     /// <summary>
@@ -61,6 +68,8 @@ public class PruebasDelPaqueteViejoQueVuelve
     /// las cinco lineas de cabecera encima, los rotulos en la fila 6 y la clave a la vista en la
     /// ultima columna. Lo demas —colores, anchos, menus— no lo lee nadie al volver.
     /// </remarks>
+    /// <param name="ruta">Dónde dejar el <c>.xlsx</c>.</param>
+    /// <param name="gente">Una entrada por persona: caso, MRN, id del caso y nombre, en el orden de las filas.</param>
     private void EscribirHojaDeDieciocho(string ruta, IReadOnlyList<(string Caso, string Mrn, long CasoId, string Nombre)> gente)
     {
         using var libro = new XLWorkbook();
@@ -90,6 +99,10 @@ public class PruebasDelPaqueteViejoQueVuelve
     }
 
     /// <summary>Rellena las siete de si o no de una fila, en las posiciones de la hoja vieja.</summary>
+    /// <param name="ruta">El <c>.xlsx</c> a modificar.</param>
+    /// <param name="filaExcel">La fila de Excel, base 1.</param>
+    /// <param name="respuesta">Lo que se escribe en los seis pasos, columnas 9 a 14.</param>
+    /// <param name="llamo">Lo que se escribe en «¿Llamó al líder?», columna 15.</param>
     private static void ContestarEnLaHojaVieja(string ruta, int filaExcel, string respuesta, string llamo)
     {
         using var libro = new XLWorkbook(ruta);

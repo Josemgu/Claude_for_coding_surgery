@@ -31,6 +31,10 @@ public static class PersonasDelFormulario
     /// <para>Entran los campos vacios tambien: son los que dicen que fila del formulario es
     /// cada una, y por eso <c>FilaFormulario</c> aqui es la fila FISICA del papel, base 1.</para>
     /// </remarks>
+    /// <param name="anotaciones">Todas las anotaciones de la página; solo se miran los campos de texto del formulario.</param>
+    /// <param name="arriba">Borde superior del bloque de personas, en fracción de página.</param>
+    /// <param name="abajo">Borde inferior del bloque.</param>
+    /// <returns>Las filas de arriba abajo, cada una con sus campos de izquierda a derecha; vacía si no hay campos en el bloque.</returns>
     public static IReadOnlyList<IReadOnlyList<AnotacionDelPdf>> FilasDeCampos(
         IReadOnlyList<AnotacionDelPdf> anotaciones, double arriba, double abajo)
     {
@@ -62,6 +66,10 @@ public static class PersonasDelFormulario
     /// que no son de texto y no llegan aqui, pero el corte se conserva por si un formulario
     /// distinto pusiera un campo de texto en esa zona.
     /// </remarks>
+    /// <param name="fila">Los campos de una fila, como los dio <see cref="FilasDeCampos"/>.</param>
+    /// <param name="desde">Borde izquierdo de la columna, incluido.</param>
+    /// <param name="hasta">Borde derecho de la columna, excluido.</param>
+    /// <returns>El campo cuyo borde izquierdo cae más a la izquierda dentro de la columna, o nulo.</returns>
     private static AnotacionDelPdf? CampoDeLaColumna(
         IReadOnlyList<AnotacionDelPdf> fila, double desde, double hasta)
         => fila.Where(campo => campo.Banda.X0 >= desde && campo.Banda.X0 < hasta)
@@ -77,6 +85,10 @@ public static class PersonasDelFormulario
     /// para el nombre, solo juntar los espacios— y si no la tiene va a revision con lo
     /// tecleado a la vista. El tachon se pregunta sobre la columna, como en los escaneos.
     /// </remarks>
+    /// <param name="campo">El campo del formulario de esa columna, o nulo si la fila no tiene ninguno ahí.</param>
+    /// <param name="anotaciones">Todas las anotaciones de la página, para buscar el tachón.</param>
+    /// <param name="columna">La franja de la columna donde un trazo rojo cuenta.</param>
+    /// <param name="normalizar">La forma que se le pide a lo tecleado.</param>
     private static CampoExtraido CampoTecleadoResuelto(
         AnotacionDelPdf? campo,
         IReadOnlyList<AnotacionDelPdf> anotaciones,
@@ -94,6 +106,7 @@ public static class PersonasDelFormulario
     /// Miguel, y no <see cref="Normalizacion.NombreSinLaCedula"/>, que existe para una caja
     /// del OCR que se trago dos columnas: un campo del formulario es una sola columna.
     /// </remarks>
+    /// <param name="texto">Lo tecleado en el campo del nombre.</param>
     private static string? NombreTecleado(string? texto)
         => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
 
@@ -105,6 +118,11 @@ public static class PersonasDelFormulario
     /// persona, y tampoco se cuenta como descartada: no se leyo nada que tirar. La banda de
     /// la persona es la fila entera del formulario, del campo del nombre al de la cedula.
     /// </remarks>
+    /// <param name="filas">Las filas del bloque tal como las dio <see cref="FilasDeCampos"/>; su índice es la fila física.</param>
+    /// <param name="anotaciones">Todas las anotaciones de la página, para los tachones.</param>
+    /// <param name="anclaCedula">La caja de la cabecera de cédulas: su borde derecho cierra la columna.</param>
+    /// <param name="limiteDeLosNombres">La <c>x</c> que separa la columna del nombre de la de la cédula.</param>
+    /// <returns>Una persona por fila con algo tecleado, numerada por su fila física; nunca nula.</returns>
     public static IReadOnlyList<PersonaExtraida> Extraer(
         IReadOnlyList<IReadOnlyList<AnotacionDelPdf>> filas,
         IReadOnlyList<AnotacionDelPdf> anotaciones,

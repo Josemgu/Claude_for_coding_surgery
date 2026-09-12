@@ -45,6 +45,9 @@ public static class ListaDeArchivados
     private const int TamanoDelTrozo = 500;
 
     /// <summary>Lee los archivados de la base y los deja escritos en renglones.</summary>
+    /// <param name="casos">Por donde se cuentan y se listan.</param>
+    /// <param name="tope">Cuántos renglones como mucho; las pruebas lo bajan para medir el corte.</param>
+    /// <returns>La cuenta total, los renglones que caben y si el tope dejó alguno fuera.</returns>
     public static HistoricoEnPantalla Leer(ICasos casos, int tope = TopeDeRenglones)
     {
         ArgumentNullException.ThrowIfNull(casos);
@@ -62,6 +65,8 @@ public static class ListaDeArchivados
     }
 
     /// <summary>Recorre la base por trozos y se queda con los archivados hasta llenar el tope.</summary>
+    /// <param name="casos">Por donde se listan.</param>
+    /// <param name="tope">Cuántos como mucho; al llenarlo se deja de recorrer.</param>
     private static List<Caso> ReunirLosArchivados(ICasos casos, int tope)
     {
         var encontrados = new List<Caso>();
@@ -82,6 +87,8 @@ public static class ListaDeArchivados
     /// incompleto que alguien tiene que poder ver, y sustituirlo por el dia de hoy seria
     /// inventarlo.
     /// </remarks>
+    /// <param name="caso">El caso archivado.</param>
+    /// <param name="personasPorCaso">Cuántas personas tiene cada caso; el que no esté cuenta cero.</param>
     private static string Renglon(Caso caso, IReadOnlyDictionary<long, int> personasPorCaso)
     {
         var personas = personasPorCaso.TryGetValue(caso.Id, out var cuantas) ? cuantas : 0;

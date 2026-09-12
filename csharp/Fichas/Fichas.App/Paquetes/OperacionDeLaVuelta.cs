@@ -61,9 +61,13 @@ public sealed class OperacionDeLaVuelta
     /// </remarks>
     private const int TopeDeMotivos = 50;
 
+    /// <summary>Por donde se lee el Excel devuelto y se aplican sus marcas.</summary>
     private readonly IPaquetes _paquetes;
+    /// <summary>Por donde se cuentan las filas descartadas, antes y después de aplicar.</summary>
     private readonly IIlegibles _ilegibles;
+    /// <summary>Quien arma lo que hay que revisar; nulo con la puerta de dos puertos, y entonces la vuelta no trae nada que revisar.</summary>
     private readonly LoQueVuelve? _loQueVuelve;
+    /// <summary>Quien le quita al compañero lo que devolvió completo; nulo con las puertas de dos y cuatro puertos, y entonces no se retira nada.</summary>
     private readonly LimpiezaAlVolver? _limpieza;
 
     /// <summary>Se ata a los dos puertos que necesita para aplicar y decirlo en una linea.</summary>
@@ -72,6 +76,8 @@ public sealed class OperacionDeLaVuelta
     /// para ensenar lo que trajo hacen falta los casos y las personas. Es la version honesta
     /// de «aquí no», la misma que usa <c>Servicios.Mantenimiento</c> con <c>--falso</c>.
     /// </remarks>
+    /// <param name="paquetes">Por donde se lee el Excel y se aplican las marcas.</param>
+    /// <param name="ilegibles">Por donde se cuentan las descartadas.</param>
     public OperacionDeLaVuelta(IPaquetes paquetes, IIlegibles ilegibles)
     {
         _paquetes = paquetes;
@@ -83,6 +89,10 @@ public sealed class OperacionDeLaVuelta
     /// Es la que usa la pantalla desde el 2026-09-06, cuando el dueno movio su firma de los
     /// documentos a los paquetes que vuelven de los agentes.
     /// </remarks>
+    /// <param name="paquetes">Por donde se lee el Excel y se aplican las marcas.</param>
+    /// <param name="ilegibles">Por donde se cuentan las descartadas.</param>
+    /// <param name="casos">Por donde se vuelven a leer los documentos que volvieron.</param>
+    /// <param name="personas">Por donde se vuelve a encontrar a cada persona.</param>
     public OperacionDeLaVuelta(IPaquetes paquetes, IIlegibles ilegibles, ICasos casos, IPersonas personas)
         : this(paquetes, ilegibles)
         => _loQueVuelve = new LoQueVuelve(casos, personas);
@@ -98,16 +108,31 @@ public sealed class OperacionDeLaVuelta
     /// <para>Sin ella —la puerta de cuatro puertos— la vuelta aplica igual y no retira nada. Es
     /// la version honesta de «aqui no», y la usan las pruebas que solo miran lo que se aplica.</para>
     /// </remarks>
+    /// <param name="paquetes">Por donde se lee el Excel y se aplican las marcas.</param>
+    /// <param name="ilegibles">Por donde se cuentan las descartadas.</param>
+    /// <param name="casos">Por donde se vuelven a leer los documentos que volvieron.</param>
+    /// <param name="personas">Por donde se vuelve a encontrar a cada persona.</param>
+    /// <param name="limpieza">Quien retira al compañero lo que devolvió completo.</param>
     public OperacionDeLaVuelta(
         IPaquetes paquetes, IIlegibles ilegibles, ICasos casos, IPersonas personas, LimpiezaAlVolver limpieza)
         : this(paquetes, ilegibles, casos, personas)
         => _limpieza = limpieza;
 
     /// <summary>Lee ese Excel como devuelto por ese companero y aplica lo que traiga.</summary>
+    /// <param name="companero">Quien devolvió el Excel; su nombre es el que queda escrito en el estado.</param>
+    /// <param name="rutaExcel">El archivo devuelto, con su ruta completa.</param>
     public ResumenEnPantalla Aplicar(Companero companero, string rutaExcel)
         => AplicarYRevisar(companero, rutaExcel).Resumen;
 
     /// <summary>Lo mismo, y ademas lo que trajo, para que el dueno lo mire y lo de por bueno.</summary>
+    /// <remarks>
+    /// Aplica la regla definitiva del Excel de los compañeros (DECISIONES.md, 2026-09-03): el
+    /// estado lo escribe la hoja con el nombre del compañero y sin confirmación; la firma de
+    /// campos sigue siendo de Miguel y se hace aparte, con <see cref="FirmaEnBloque"/>.
+    /// </remarks>
+    /// <param name="companero">Quien devolvió el Excel.</param>
+    /// <param name="rutaExcel">El archivo devuelto, con su ruta completa.</param>
+    /// <returns>Un Excel sin filas devuelve <c>SalioBien</c> falso, nada que revisar y cero retiradas, sin tocar la base.</returns>
     public ResultadoDeLaVuelta AplicarYRevisar(Companero companero, string rutaExcel)
     {
         ArgumentNullException.ThrowIfNull(companero);
@@ -164,6 +189,10 @@ public sealed class OperacionDeLaVuelta
     }
 
     /// <summary>La linea de tres cifras: cuantas venian, cuantas entraron y cuantas no.</summary>
+    /// <param name="quien">El nombre del compañero.</param>
+    /// <param name="filas">Cuántas filas traía el Excel, casaran o no.</param>
+    /// <param name="entraron">Cuántas quedaron aplicadas.</param>
+    /// <param name="noEntraron">Cuántas se descartaron, al leer o al aplicar.</param>
     private static string Linea(string quien, int filas, int entraron, int noEntraron)
     {
         var cola = noEntraron == 0
@@ -175,6 +204,11 @@ public sealed class OperacionDeLaVuelta
     }
 
     /// <summary>Lo que se ve al pulsar «ver»: los avisos y el motivo de cada fila que no entro.</summary>
+    /// <param name="lectura">Lo que devolvió leer el Excel, con sus avisos.</param>
+    /// <param name="escritura">Lo que devolvió aplicar las marcas, con sus avisos.</param>
+    /// <param name="nuevas">Las descartadas que no estaban antes de esta vuelta.</param>
+    /// <param name="rutaExcel">El archivo leído.</param>
+    /// <param name="limpieza">Cuántas asignaciones se retiraron; si alguna, se dice por qué.</param>
     private static string Detalle(
         ResultadoDelExcelDevuelto lectura,
         ResultadoDeEscritura escritura,
@@ -209,6 +243,7 @@ public sealed class OperacionDeLaVuelta
     }
 
     /// <summary>Una fila descartada escrita para leerla: donde estaba y por que no entro.</summary>
+    /// <param name="fila">La fila descartada, con lo que traía y su motivo.</param>
     private static string Renglon(FilaDescartada fila)
         => $"  · Fila {fila.FilaExcel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "?"}"
          + $" · caso {fila.NumeroCaso ?? "sin número"}"
@@ -216,14 +251,19 @@ public sealed class OperacionDeLaVuelta
          + $" · {fila.Nombre ?? "sin nombre"}: {fila.Motivo}";
 
     /// <summary>Los numeros internos de las descartadas que ese companero ya tenia.</summary>
+    /// <param name="companeroId">El compañero.</param>
     private HashSet<long> IdsDeLasDescartadas(long companeroId)
         => [.. LeerLasDescartadas(companeroId).Select(fila => fila.Id)];
 
     /// <summary>Las descartadas de ese companero que NO estaban antes.</summary>
+    /// <param name="companeroId">El compañero.</param>
+    /// <param name="antes">Los ids que ya tenía antes de aplicar.</param>
+    /// <returns>Las nuevas, ordenadas por la fila del Excel.</returns>
     private List<FilaDescartada> DescartadasNuevas(long companeroId, HashSet<long> antes)
         => [.. LeerLasDescartadas(companeroId).Where(fila => !antes.Contains(fila.Id)).OrderBy(fila => fila.FilaExcel)];
 
     /// <summary>Todas las descartadas de ese companero, pedidas por trozos.</summary>
+    /// <param name="companeroId">El compañero.</param>
     private List<FilaDescartada> LeerLasDescartadas(long companeroId)
     {
         var todas = new List<FilaDescartada>();

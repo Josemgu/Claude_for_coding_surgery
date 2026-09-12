@@ -12,6 +12,7 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 public sealed partial class Acuse : UserControl
 {
+    /// <summary>El cronómetro de cuatro segundos que apaga la línea; se reinicia con cada acuse.</summary>
     private readonly DispatcherTimer _cronometro = new();
 
     /// <summary>Monta el control con su cronometro de cuatro segundos.</summary>
@@ -22,10 +23,8 @@ public sealed partial class Acuse : UserControl
         _cronometro.Tick += AlCumplirseElTiempo;
     }
 
-    /// <summary>Lo que dice ahora mismo el acuse; lo lee la prueba sin abrir ventana.</summary>
-    public string LoQueDice => _texto.Text;
-
-    /// <summary>Ensena una linea en el pie y arranca el cronometro para apagarla.</summary>
+    /// <summary>Ensena una linea en el pie y arranca el cronometro para apagarla. Un acuse nuevo sustituye al anterior y vuelve a contar desde cero.</summary>
+    /// <param name="linea">Lo que se enseña, ya escrito en español y en una sola línea.</param>
     public void Decir(string linea)
     {
         _texto.Text = linea;
@@ -42,6 +41,7 @@ public sealed partial class Acuse : UserControl
     /// abrio con datos inventados. Eso no puede desaparecer a los cuatro segundos, porque
     /// entonces cualquier cifra que se lea despues parece real.
     /// </remarks>
+    /// <param name="linea">La línea que se queda fija hasta que se cierre el programa.</param>
     public void DecirSiempre(string linea)
     {
         LoQueSeQuedaFijo = linea;
@@ -53,6 +53,8 @@ public sealed partial class Acuse : UserControl
     public string? LoQueSeQuedaFijo { get; private set; }
 
     /// <summary>Apaga el acuse cuando se cumple el tiempo, o repone la linea fija.</summary>
+    /// <param name="quien">El cronómetro; no se usa.</param>
+    /// <param name="cuando">Los datos del tic; no se usan.</param>
     private void AlCumplirseElTiempo(object? quien, object cuando)
     {
         _cronometro.Stop();

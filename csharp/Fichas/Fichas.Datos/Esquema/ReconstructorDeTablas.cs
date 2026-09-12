@@ -61,6 +61,8 @@ internal static class ReconstructorDeTablas
     }
 
     /// <summary>Paso 10 del procedimiento oficial, antes de confirmar la transaccion.</summary>
+    /// <param name="conexion">La conexión con la transacción todavía abierta.</param>
+    /// <exception cref="ErrorDeMigracion">Si <c>PRAGMA foreign_key_check</c> devuelve alguna fila; quien llama deshace la transacción.</exception>
     private static void ComprobarQueNoQuedaronHuerfanos(SqliteConnection conexion)
     {
         using var orden = conexion.CreateCommand();
@@ -85,6 +87,8 @@ internal static class ReconstructorDeTablas
     /// <summary>
     /// Que las claves foraneas volvieron a quedar encendidas al terminar.
     /// </summary>
+    /// <param name="conexion">La conexión, ya fuera de la transacción.</param>
+    /// <exception cref="ErrorDeMigracion">Si <c>PRAGMA foreign_keys</c> no devuelve 1.</exception>
     private static void ComprobarQueSeVolvieronAEncender(SqliteConnection conexion)
     {
         using var orden = conexion.CreateCommand();
@@ -101,6 +105,8 @@ internal static class ReconstructorDeTablas
     }
 
     /// <summary>Ejecuta una instruccion suelta sobre la conexion.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <param name="instruccion">Una sola instrucción SQL sin parámetros; el texto sale siempre de constantes de este ensamblado, nunca de la pantalla ni de un archivo.</param>
     internal static void Ejecutar(SqliteConnection conexion, string instruccion)
     {
         using var orden = conexion.CreateCommand();
@@ -119,11 +125,14 @@ internal static class ReconstructorDeTablas
 public sealed class ErrorDeMigracion : InvalidOperationException
 {
     /// <summary>Con el motivo escrito en espanol.</summary>
+    /// <param name="mensaje">Qué falló y en qué estado quedó la base, para la pantalla y el registro.</param>
     public ErrorDeMigracion(string mensaje) : base(mensaje)
     {
     }
 
     /// <summary>Con el motivo y la causa de debajo.</summary>
+    /// <param name="mensaje">Qué falló y en qué estado quedó la base.</param>
+    /// <param name="causa">La excepción del motor o del sistema de archivos que lo provocó.</param>
     public ErrorDeMigracion(string mensaje, Exception causa) : base(mensaje, causa)
     {
     }

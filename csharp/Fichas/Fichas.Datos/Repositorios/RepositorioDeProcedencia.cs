@@ -16,12 +16,15 @@ namespace Fichas.Datos.Repositorios;
 /// </remarks>
 public sealed class RepositorioDeProcedencia : RepositorioBase, IProcedencia
 {
+    /// <summary>Las 16 columnas de <c>procedencia_campo</c> que se leen, en el orden exacto en que <c>Leer</c> las espera por posición.</summary>
+    /// <remarks>Si se añade una columna aquí, hay que añadirla al final y darle su índice en <c>Leer</c>: la lectura es por posición, no por nombre.</remarks>
     private const string Columnas =
         "id, tabla, registro_id, campo, origen, confianza, valor_ocr, verificado, " +
         "verificado_por, verificado_en, banda_x0, banda_y0, banda_x1, banda_y1, " +
         "anulado_por_tachon, ausente_en_el_papel";
 
     /// <summary>Trabaja sobre una conexion ya abierta con el esquema aplicado.</summary>
+    /// <param name="conexion">La conexión abierta; no puede ser nula.</param>
     public RepositorioDeProcedencia(SqliteConnection conexion) : base(conexion)
     {
     }
@@ -233,6 +236,9 @@ public sealed class RepositorioDeProcedencia : RepositorioBase, IProcedencia
     }
 
     /// <summary>Si ese campo tiene hoy una firma puesta.</summary>
+    /// <param name="tabla">Casos o personas.</param>
+    /// <param name="registroId">El id de la fila en esa tabla.</param>
+    /// <param name="campo">El nombre de la columna anotada.</param>
     private bool EstaFirmado(TablaDeProcedencia tabla, long registroId, string campo)
         => ContarCon(
             "SELECT COUNT(*) FROM procedencia_campo WHERE tabla = $tabla " +
@@ -244,6 +250,8 @@ public sealed class RepositorioDeProcedencia : RepositorioBase, IProcedencia
                 orden.Parameters.AddWithValue("$campo", campo);
             }) > 0;
 
+    /// <summary>Si hay una fila en <c>companeros</c> con ese id, activo o no: una firma de un desactivado sigue siendo suya.</summary>
+    /// <param name="companeroId">El id del compañero.</param>
     private bool ExisteElCompanero(long companeroId)
     {
         using var orden = Conexion.CreateCommand();
@@ -254,6 +262,8 @@ public sealed class RepositorioDeProcedencia : RepositorioBase, IProcedencia
     }
 
     /// <summary>El texto que la columna <c>tabla</c> guarda para cada valor.</summary>
+    /// <param name="tabla">El valor del enumerado.</param>
+    /// <returns>«personas» o «casos»; cualquier otro valor cae en «casos».</returns>
     internal static string EscribirTabla(TablaDeProcedencia tabla) => tabla switch
     {
         TablaDeProcedencia.Personas => "personas",
@@ -261,12 +271,15 @@ public sealed class RepositorioDeProcedencia : RepositorioBase, IProcedencia
     };
 
     /// <summary>Lee el texto de la columna <c>tabla</c> sin lanzar nunca.</summary>
+    /// <param name="texto">Lo que la columna guarda; nulo o desconocido caen en <see cref="TablaDeProcedencia.Casos"/>.</param>
     internal static TablaDeProcedencia LeerTabla(string? texto)
         => string.Equals(texto, "personas", StringComparison.Ordinal)
             ? TablaDeProcedencia.Personas
             : TablaDeProcedencia.Casos;
 
     /// <summary>El texto que la columna <c>origen</c> guarda para cada valor.</summary>
+    /// <param name="origen">El valor del enumerado.</param>
+    /// <returns>Una de las cuatro claves; un valor fuera del enumerado cae en «ocr».</returns>
     internal static string EscribirOrigen(OrigenDeCampo origen) => origen switch
     {
         OrigenDeCampo.Anotacion => "anotacion",
@@ -284,6 +297,7 @@ public sealed class RepositorioDeProcedencia : RepositorioBase, IProcedencia
     /// mas conservador: dice «lo leyo una maquina», que es lo que obliga a mirarlo.
     /// Caer en <c>Manual</c> afirmaria que alguien lo tecleo, y eso seria inventar.
     /// </remarks>
+    /// <param name="texto">Lo que la columna guarda.</param>
     internal static OrigenDeCampo LeerOrigen(string? texto) => texto switch
     {
         "anotacion" => OrigenDeCampo.Anotacion,
@@ -292,6 +306,8 @@ public sealed class RepositorioDeProcedencia : RepositorioBase, IProcedencia
         _ => OrigenDeCampo.Ocr,
     };
 
+    /// <summary>Convierte una fila en una procedencia de campo, columna por columna y en el orden de <c>Columnas</c>.</summary>
+    /// <param name="lector">El lector posicionado en la fila.</param>
     private static ProcedenciaDeCampo Leer(SqliteDataReader lector) => new()
     {
         Id = lector.GetInt64(0),

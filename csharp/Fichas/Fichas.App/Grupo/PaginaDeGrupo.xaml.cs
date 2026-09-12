@@ -32,23 +32,29 @@ namespace Fichas.App.Grupo;
 /// </remarks>
 public sealed partial class PaginaDeGrupo : Page
 {
+    /// <summary>Lo último que se pintó, en el orden del repetidor; por posición se sabe qué renglón se pulsó.</summary>
     private IReadOnlyList<RenglonDelGrupo> _renglonesDelGrupo = [];
+    /// <summary>Los compañeros activos, en el mismo orden que el desplegable; el índice elegido apunta aquí.</summary>
     private IReadOnlyList<Companero> _elEquipo = [];
 
+    /// <summary>Los servicios del programa; llegan con <see cref="LlegadaAlGrupo"/> y hasta entonces son nulos.</summary>
     private Servicios? _servicios;
+    /// <summary>El día cuyo grupo se enseña; llega con <see cref="LlegadaAlGrupo"/>.</summary>
     private DateOnly _fecha;
+    /// <summary>El grupo tal como se leyó la última vez; nulo hasta el primer pintado.</summary>
     private GrupoDelDia? _grupo;
+    /// <summary>Lo que tardó la última lectura del grupo, para el registro y el informe de medición.</summary>
     private double _milisegundosDelGrupo;
+    /// <summary>Cuántas veces se ha medido el pintado; se mide dos y a la segunda se deja de escuchar.</summary>
     private int _cuantasVecesSeMidio;
+    /// <summary>El cronómetro del pintado; solo existe cuando la medición está pedida.</summary>
     private Stopwatch? _relojDelPintado;
 
     /// <summary>Monta la pantalla.</summary>
     public PaginaDeGrupo() => InitializeComponent();
 
-    /// <summary>Cuanto costo leer el grupo la ultima vez, en milisegundos.</summary>
-    public double MilisegundosDelGrupo => _milisegundosDelGrupo;
-
     /// <summary>Recoge el dia y los servicios que trae la navegacion, y pinta.</summary>
+    /// <param name="cuando">Trae en <c>Parameter</c> la <see cref="LlegadaAlGrupo"/>; con otra cosa no se pinta nada.</param>
     protected override void OnNavigatedTo(NavigationEventArgs cuando)
     {
         base.OnNavigatedTo(cuando);
@@ -124,6 +130,8 @@ public sealed partial class PaginaDeGrupo : Page
     }
 
     /// <summary>El dueno cambio de tema: se vuelve a pintar entera con la paleta nueva.</summary>
+    /// <param name="quien">La página cuyo tema cambió.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCambiarElTema(FrameworkElement quien, object cuando)
     {
         PonerLaPaletaDelTema();
@@ -141,6 +149,8 @@ public sealed partial class PaginaDeGrupo : Page
     }
 
     /// <summary>Vuelve a la pantalla de Inicio.</summary>
+    /// <param name="quien">El botón de volver.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirVolver(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || _servicios is null) return;
@@ -148,6 +158,14 @@ public sealed partial class PaginaDeGrupo : Page
     }
 
     /// <summary>Asigna al companero elegido todos los documentos del dia.</summary>
+    /// <param name="quien">El botón de asignar el grupo entero.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
+    /// <remarks>
+    /// Es la decisión del dueño del 2026-09-07 (§9, «Asignar por grupo»): <i>«en asignar debe
+    /// poder asignarlo por grupo. Cargar todos los documentos en un solo lugar no me conviene
+    /// para nada»</i>. El lote sale de <see cref="GrupoDelDia.LosQueSePuedenAsignar"/>, que
+    /// desde el 2026-09-06 no trae ningún archivado.
+    /// </remarks>
     private void AlPedirAsignarElGrupo(object quien, RoutedEventArgs cuando)
     {
         if (_grupo is null) return;
@@ -155,6 +173,12 @@ public sealed partial class PaginaDeGrupo : Page
     }
 
     /// <summary>Asigna al companero elegido los documentos de la unidad cuya cabecera se pulso.</summary>
+    /// <param name="quien">El botón de la cabecera de la unidad que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
+    /// <remarks>
+    /// La misma decisión del 2026-09-07 (§9), un escalón más abajo: el dueño habla con un
+    /// líder por unidad, y asignar la unidad entera es el gesto que corresponde a esa llamada.
+    /// </remarks>
     private void AlPedirAsignarLaUnidad(object quien, RoutedEventArgs cuando)
     {
         if (QueSePulso(quien) is not RenglonDelGrupo renglon || !renglon.EsCabecera) return;
@@ -170,6 +194,8 @@ public sealed partial class PaginaDeGrupo : Page
     /// la cascara con su motivo. Despues se vuelve a pintar, porque asignar cambia quien
     /// lleva cada documento y la lista lo ensena.
     /// </remarks>
+    /// <param name="casoIds">Los documentos que se asignan.</param>
+    /// <param name="deQue">De qué se habla en el acuse: «el grupo entero» o el título de la unidad.</param>
     private void Asignar(IReadOnlyCollection<long> casoIds, string deQue)
     {
         if (_servicios is null) return;
@@ -199,6 +225,8 @@ public sealed partial class PaginaDeGrupo : Page
     }
 
     /// <summary>Pulsar una persona abre su documento en Correccion, que es donde se verifica.</summary>
+    /// <param name="quien">El botón del renglón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarUnaPersona(object quien, RoutedEventArgs cuando)
     {
         if (QueSePulso(quien) is not RenglonDelGrupo renglon) return;
@@ -227,6 +255,7 @@ public sealed partial class PaginaDeGrupo : Page
     /// otra pestana y pierde el grupo. Se le pasa el nombre del sitio y no solo un aviso de
     /// que hay vuelta: «‹ Volver» a secas no dice a donde se va.
     /// </remarks>
+    /// <param name="casoId">El documento que se abre en Corrección.</param>
     private void Verificar(long casoId)
     {
         if (Frame is null || _servicios is null) return;
@@ -251,6 +280,8 @@ public sealed partial class PaginaDeGrupo : Page
     /// <c>ItemsRepeater</c> con una plantilla de <c>x:Bind</c> lo tiene vacio, porque las
     /// ataduras compiladas se actualizan por otro camino. Medido el 2026-09-04 en Inicio.
     /// </remarks>
+    /// <param name="donde">El control que se pulsó, en cualquier profundidad dentro de un renglón.</param>
+    /// <returns>El renglón pulsado, o nulo si el control no cuelga del repetidor.</returns>
     private RenglonDelGrupo? QueSePulso(object? donde)
     {
         var actual = donde as DependencyObject;
@@ -279,6 +310,8 @@ public sealed partial class PaginaDeGrupo : Page
     /// COLOCADA y no al asignar la lista: cronometrar lo segundo daria una cifra bonita
     /// y falsa.
     /// </remarks>
+    /// <param name="quien">La página que terminó de colocarse.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlTerminarDeColocar(object? quien, object cuando)
     {
         if (_relojDelPintado is null) return;
@@ -304,6 +337,8 @@ public sealed partial class PaginaDeGrupo : Page
     }
 
     /// <summary>Vuelca al informe las cifras del C13-5: cuanto tarda y cuantos elementos quedan vivos.</summary>
+    /// <param name="deQuePasada">Si es la primera vez o el repintado, dicho en palabras para el informe.</param>
+    /// <param name="milisegundosHastaColocar">Lo que tardó el pintado hasta quedar colocado.</param>
     private void EscribirElInforme(string deQuePasada, double milisegundosHastaColocar)
     {
         var pantalla = MedicionDeInicio.ContarElementosVivos(_desplazamientoDeLaPantalla);

@@ -97,6 +97,9 @@ public static class TrabajoDeAgente
     /// Un periodo mas corto que N dias devuelve el periodo entero: no se puede mirar mas atras
     /// de lo que se pidio sin contar dias que el informe dice que no mira.
     /// </remarks>
+    /// <param name="periodo">El periodo entero que se pidió.</param>
+    /// <param name="dias">Cuántos días de cola; menos de uno se trata como uno.</param>
+    /// <returns>El periodo que termina donde el pedido y empieza N-1 días antes, o en <c>Desde</c> si eso cae antes.</returns>
     public static Periodo LaColaDe(Periodo periodo, int dias)
     {
         ArgumentNullException.ThrowIfNull(periodo);
@@ -108,10 +111,15 @@ public static class TrabajoDeAgente
         return Periodo.Leer(desde, periodo.Hasta).Periodo!;
     }
 
+    /// <summary>Cuántos de esos casos llevan ese motivo escrito por el compañero.</summary>
+    /// <param name="casos">Los casos que el agente marcó como no completos.</param>
+    /// <param name="motivo">El motivo que se cuenta.</param>
     private static int ConMotivo(IReadOnlyList<Caso> casos, MotivoDeNoCompletar motivo)
         => casos.Count(caso => caso.MotivoQueDijoElCompanero == motivo);
 
     /// <summary>Si esa marca con hora cae dentro del periodo; nula nunca cae.</summary>
+    /// <param name="marca">Una marca «AAAA-MM-DD HH:mm:ss», o nula o vacía.</param>
+    /// <param name="periodo">La ventana; el límite de arriba es <see cref="Periodo.SiguienteAHasta"/>.</param>
     private static bool Cae(string? marca, Periodo periodo)
         => !string.IsNullOrEmpty(marca)
            && string.CompareOrdinal(marca, periodo.Desde) >= 0

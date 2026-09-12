@@ -48,6 +48,7 @@ namespace Fichas.App.Completar;
 /// </remarks>
 public sealed class ColaDeCompletar
 {
+    /// <summary>Los documentos que quedan, en orden; de aqui se SACA al avanzar y nunca se anade.</summary>
     private readonly List<RenglonDeCaso> _pendientes;
 
     /// <summary>Monta la cola con sus documentos ya en orden y con el denominador de la base.</summary>
@@ -105,6 +106,7 @@ public sealed class ColaDeCompletar
         => TextoDeLaCola.LineaDelDenominador(Quedan, CasosNoArchivados, CasosEnLaBase);
 
     /// <summary>«3 de 8», o vacio si ese documento no esta en la cola.</summary>
+    /// <param name="casoId">El documento que se busca.</param>
     public string PosicionDe(long casoId)
     {
         var donde = _pendientes.FindIndex(documento => documento.CasoId == casoId);
@@ -112,6 +114,7 @@ public sealed class ColaDeCompletar
     }
 
     /// <summary>El renglon de ese documento, o nulo si ya no esta en la cola.</summary>
+    /// <param name="casoId">El documento que se busca.</param>
     public RenglonDeCaso? RenglonDe(long casoId)
         => _pendientes.Find(documento => documento.CasoId == casoId);
 
@@ -162,6 +165,9 @@ public sealed class ColaDeCompletar
     /// delante, hacia atras. Los que ya no tienen huecos se quitan de la cola segun se
     /// encuentran, para no volver a tropezar con ellos en la siguiente vuelta.
     /// </remarks>
+    /// <param name="desde">El hueco que dejo el resuelto; se acota al final de la lista si era el ultimo.</param>
+    /// <param name="todaviaLeFalta">Pregunta al almacen si a un candidato le sigue faltando algo.</param>
+    /// <returns>El primer candidato que sigue pidiendo algo, o nulo si no queda ninguno.</returns>
     private long? ElQueTocaDesde(int desde, Func<long, bool> todaviaLeFalta)
     {
         var donde = Math.Min(desde, _pendientes.Count - 1);

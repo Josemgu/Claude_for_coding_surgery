@@ -47,17 +47,22 @@ public static class TextoDelVisor
     /// Aqui si cabe la frase larga, porque va sobre la hoja vacia y no en el pie. Y dice que
     /// los campos se corrigen igual: negarse a pintar seria impedir por no poder.
     /// </remarks>
+    /// <param name="hoja">Que hoja se pedia, base 1.</param>
+    /// <param name="ruta">La ruta del escaneo, para que se sepa cual.</param>
     public static string HojaQueNoSePudoAbrir(int hoja, string ruta)
         => $"No se pudo abrir la hoja {hoja} de «{ruta}». Los campos se corrigen igual, sin la imagen "
            + "al lado; lo que no se puede es iluminar donde estaba cada dato en el papel.";
 
     /// <summary>Deja el texto en un solo renglon, sin dobles espacios.</summary>
+    /// <param name="texto">El mensaje del fallo, que puede traer saltos de renglon; nulo devuelve vacio.</param>
     private static string EnUnaLinea(string? texto)
         => string.IsNullOrWhiteSpace(texto)
             ? string.Empty
             : string.Join(' ', texto.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
     /// <summary>Recorta con puntos suspensivos; lo que se corta es la cola del mensaje.</summary>
+    /// <param name="texto">La linea entera.</param>
+    /// <param name="largoMaximo">Cuantos caracteres caben, contando los puntos suspensivos.</param>
     private static string Recortar(string texto, int largoMaximo)
         => texto.Length <= largoMaximo ? texto : string.Concat(texto.AsSpan(0, largoMaximo - 1), "…");
 }

@@ -26,14 +26,18 @@ public static class BaseDeInicio
     public const int Semilla = 20260904;
 
     /// <summary>Monta los servicios falsos con el reloj parado, para que el calendario no cambie manana.</summary>
+    /// <param name="cuantosCasos">Cuántos casos inventa el generador.</param>
     public static ServiciosFalsos MontarServicios(int cuantosCasos)
         => new(cuantosCasos, Semilla, new RelojFijo(Hoy));
 
     /// <summary>Lee el resumen de Inicio tal como lo lee la pagina al llegar.</summary>
+    /// <param name="servicios">Los servicios falsos.</param>
+    /// <param name="desplazamientoDeMes">Cuántos meses mover el calendario; 0 es el de hoy.</param>
     public static ResumenDeInicio LeerInicio(ServiciosFalsos servicios, int desplazamientoDeMes = 0)
         => LectorDe(servicios).Leer(desplazamientoDeMes);
 
     /// <summary>El lector de Inicio atado a unos servicios falsos.</summary>
+    /// <param name="servicios">Los servicios falsos.</param>
     public static LectorDelInicio LectorDe(ServiciosFalsos servicios)
     {
         ArgumentNullException.ThrowIfNull(servicios);
@@ -59,6 +63,7 @@ public static class BaseDeInicio
     }
 
     /// <summary>El lector de lo que no esta completo.</summary>
+    /// <param name="servicios">Los servicios falsos.</param>
     public static LectorDeIncompletos LectorDeIncompletosDe(ServiciosFalsos servicios)
     {
         ArgumentNullException.ThrowIfNull(servicios);
@@ -68,6 +73,7 @@ public static class BaseDeInicio
     }
 
     /// <summary>Trae todos los casos de la base, archivados incluidos.</summary>
+    /// <param name="servicios">Los servicios falsos.</param>
     public static IReadOnlyList<Caso> TodosLosCasos(ServiciosFalsos servicios)
     {
         ArgumentNullException.ThrowIfNull(servicios);
@@ -170,6 +176,11 @@ public static class BaseDeInicio
     /// que es lo que la importacion escribe cuando el lector no leyo nada.
     /// </para>
     /// </remarks>
+    /// <param name="servicios">Donde se anota.</param>
+    /// <param name="tabla">Si el registro es un caso o una persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="columnas">Los nombres de columna, en orden.</param>
+    /// <param name="valores">El valor de cada columna, en el mismo orden; nulo o en blanco es un hueco.</param>
     private static void AnotarLaProcedencia(
         ServiciosFalsos servicios,
         TablaDeProcedencia tabla,
@@ -192,6 +203,11 @@ public static class BaseDeInicio
     }
 
     /// <summary>Ata un documento a un companero, como si se le hubiera asignado.</summary>
+    /// <remarks>Escribe directo en el almacén, sin pasar por el motor: no se comprueba nada.</remarks>
+    /// <param name="servicios">Donde se escribe.</param>
+    /// <param name="casoId">El documento.</param>
+    /// <param name="companeroId">A quién.</param>
+    /// <returns>El id de la asignación.</returns>
     public static long Asignar(ServiciosFalsos servicios, long casoId, long companeroId)
     {
         ArgumentNullException.ThrowIfNull(servicios);
@@ -208,6 +224,7 @@ public static class BaseDeInicio
     }
 
     /// <summary>El id del primer companero activo de la base inventada.</summary>
+    /// <param name="servicios">Los servicios falsos.</param>
     public static long PrimerCompaneroActivo(ServiciosFalsos servicios)
     {
         ArgumentNullException.ThrowIfNull(servicios);
@@ -267,6 +284,9 @@ public static class BaseDeInicio
     }
 
     /// <summary>Deja a una persona con sus seis preguntas en si: lista para viajar.</summary>
+    /// <param name="servicios">Donde vive la base inventada.</param>
+    /// <param name="casoId">El documento del que es la persona.</param>
+    /// <param name="fila">Su fila del formulario.</param>
     public static void DejarListaParaViajar(ServiciosFalsos servicios, long casoId, int fila)
         => ContestarLasSeisDe(servicios, casoId, fila, true, true, true, true, true, true);
 
@@ -274,6 +294,9 @@ public static class BaseDeInicio
     /// Deja a una persona con cinco preguntas en si y la quinta en no: no lista, y se sabe
     /// en cual se quedo.
     /// </summary>
+    /// <param name="servicios">Donde vive la base inventada.</param>
+    /// <param name="casoId">El documento del que es la persona.</param>
+    /// <param name="fila">Su fila del formulario.</param>
     public static void DejarNoListaParaViajar(ServiciosFalsos servicios, long casoId, int fila)
         => ContestarLasSeisDe(servicios, casoId, fila, true, true, true, true, false, true);
 }

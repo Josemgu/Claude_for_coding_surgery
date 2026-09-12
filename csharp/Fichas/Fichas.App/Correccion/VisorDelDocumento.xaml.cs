@@ -54,35 +54,64 @@ public readonly record struct MedidaDelArrastre(
 /// </remarks>
 public sealed partial class VisorDelDocumento : UserControl
 {
+    /// <summary>Desplazar sin animacion: dos ordenes en el mismo turno se pisarian a media transicion.</summary>
     private static readonly ScrollingScrollOptions SinAnimacion =
         new(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore);
 
+    /// <summary>Ampliar sin animacion, por lo mismo.</summary>
     private static readonly ScrollingZoomOptions SinAnimacionAlAmpliar =
         new(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore);
 
+    /// <summary>Mide cada tramo del arrastre; se reinicia en cada movimiento del raton.</summary>
     private readonly Stopwatch _cronometroDelArrastre = new();
 
+    /// <summary>Ancho de la hoja rasterizada, en pixeles; 850 hasta que llega la de verdad.</summary>
     private double _anchoDeLaHoja = 850;
+
+    /// <summary>Alto de la hoja rasterizada, en pixeles; 1100 hasta que llega la de verdad.</summary>
     private double _altoDeLaHoja = 1100;
+
+    /// <summary>La banda iluminada ahora, en fracciones de la hoja; nula apaga el resalte.</summary>
     private BandaDeLaPagina? _banda;
+
+    /// <summary>Si hay un arrastre en curso; lo enciende apretar y lo apaga soltar o perder la captura.</summary>
     private bool _arrastrando;
 
     // De donde arranco el arrastre, y donde estaba la vista entonces. El papel se lleva a
     // una posicion ABSOLUTA calculada desde aqui, y no sumando saltos: un movimiento del
     // raton que se pierda por el camino —y se pierden— no puede perderse para siempre.
+    /// <summary>Donde estaba el puntero al apretar, en coordenadas del lienzo.</summary>
     private Point _dondeEmpezoElArrastre;
+
+    /// <summary>Donde estaba la vista a lo ancho al apretar; el arrastre se calcula desde aqui.</summary>
     private double _offsetAlEmpezarX;
+
+    /// <summary>Donde estaba la vista a lo alto al apretar.</summary>
     private double _offsetAlEmpezarY;
+
+    /// <summary>La ultima posicion a lo ancho que se le PIDIO al lienzo; se compara con la que movio.</summary>
     private double _ultimoPedidoX;
+
+    /// <summary>La ultima posicion a lo alto que se le PIDIO al lienzo.</summary>
     private double _ultimoPedidoY;
+
+    /// <summary>Que puntero arrastra; los movimientos de otro puntero se ignoran.</summary>
     private uint _punteroQueArrastra;
+
     // Si la hoja sigue «a lo ancho». Empieza en si, y solo lo apaga un zoom a mano. Medido en
     // este pase: con una bandera de «ya se ajusto una vez», al llegar la hoja de verdad —que
     // mide 1700 px y no los 850 de arranque— el ajuste NO se rehacia y el visor se quedaba
     // al 73 % de una hoja que ya no era esa.
+    /// <summary>Si la hoja sigue «a lo ancho»; mientras lo este, cambiar de tamano o de hoja vuelve a ajustarla.</summary>
     private bool _enModoAncho = true;
+
+    /// <summary>Cuantos movimientos del raton lleva el arrastre en curso.</summary>
     private int _tramosDeEsteArrastre;
+
+    /// <summary>Lo que han costado entre todos, en milisegundos; de aqui sale la media.</summary>
     private double _sumaDeEsteArrastre;
+
+    /// <summary>El tramo mas lento del arrastre en curso, en milisegundos.</summary>
     private double _peorDeEsteArrastre;
 
     // La escala PEDIDA, que no es la que tiene el ScrollView hasta el turno siguiente.
@@ -93,6 +122,7 @@ public sealed partial class VisorDelDocumento : UserControl
     // 36 % y tras «Ancho» decia 50 %— y, peor, dos pulsaciones seguidas de «+» calculaban
     // las dos el mismo paso. La escala pedida se guarda aqui y se sincroniza con la de
     // verdad en «ViewChanged», que es cuando la vista ya cambio.
+    /// <summary>La escala PEDIDA al lienzo, que va un turno por delante de la suya; ver la nota de arriba.</summary>
     private double _zoomPedido = 1.0;
 
     /// <summary>Monta el visor y ata el raton. Nace vacio hasta que le den una hoja.</summary>
@@ -156,6 +186,9 @@ public sealed partial class VisorDelDocumento : UserControl
     /// <see cref="NoSePudoPintar"/>.
     /// </para>
     /// </remarks>
+    /// <param name="imagen">La hoja rasterizada, o nula si no se pudo abrir.</param>
+    /// <param name="totalDeHojas">Cuantas hojas tiene el PDF; 0 si no se sabe.</param>
+    /// <param name="motivoSiNoHay">Lo que se escribe sobre el papel en blanco cuando no hay imagen.</param>
     public void MostrarHoja(ImagenDePagina? imagen, int totalDeHojas, string motivoSiNoHay)
     {
         TotalDeHojas = totalDeHojas;
@@ -194,6 +227,7 @@ public sealed partial class VisorDelDocumento : UserControl
     /// ocurrieron. <b>Atrapar para callar esta prohibido; atrapar para convertirlo en una
     /// linea que Miguel puede leer es lo contrario.</b>
     /// </remarks>
+    /// <param name="imagen">La hoja con sus bytes PNG; aqui ya se sabe que trae alguno.</param>
     private async Task ComponerYPintar(ImagenDePagina imagen)
     {
         try
@@ -219,6 +253,7 @@ public sealed partial class VisorDelDocumento : UserControl
     }
 
     /// <summary>Escribe el motivo sobre el panel, o lo quita si no hay motivo que dar.</summary>
+    /// <param name="motivo">El texto para el panel; vacio esconde el marco.</param>
     private void Decir(string motivo)
     {
         _sinImagen.Text = motivo;
@@ -233,6 +268,7 @@ public sealed partial class VisorDelDocumento : UserControl
     /// ilumina su renglon en la imagen del documento. Si el campo no tiene banda guardada, se
     /// apaga el resalte y la hoja se queda donde estaba: no se mueve la vista a ciegas.
     /// </remarks>
+    /// <param name="banda">Donde estaba el campo, en fracciones de la hoja; nula apaga el resalte y no mueve la vista.</param>
     public void Enfocar(BandaDeLaPagina? banda)
     {
         _banda = banda;
@@ -262,6 +298,8 @@ public sealed partial class VisorDelDocumento : UserControl
     }
 
     /// <summary>Lleva el zoom a esa escala dejando quieto lo que hay bajo ese punto del panel.</summary>
+    /// <param name="zoomNuevo">La escala a la que se va.</param>
+    /// <param name="punto">El punto del panel que tiene que quedarse quieto.</param>
     private void AmpliarA(double zoomNuevo, Vector2 punto)
     {
         // La escala de partida es la PEDIDA, no la que tiene el control: la suya todavia
@@ -348,6 +386,7 @@ public sealed partial class VisorDelDocumento : UserControl
     private void AlPulsarHojaSiguiente(object quien, RoutedEventArgs cuando) => PedirLaHoja(Hoja + 1);
 
     /// <summary>Pide una hoja acotando a lo que el PDF tiene.</summary>
+    /// <param name="hoja">La hoja que se quiere, base 1; fuera de rango no se pide nada.</param>
     private void PedirLaHoja(int hoja)
     {
         if (hoja < 1) return;

@@ -16,7 +16,8 @@ public class PaginaDeFichas : Page
     /// <summary>Los servicios de la app; hay que esperar a <see cref="AlLlegar"/> para usarlos.</summary>
     public Servicios? Servicios { get; private set; }
 
-    /// <summary>Recoge los servicios que trae la navegacion y avisa a la pantalla.</summary>
+    /// <summary>Recoge los servicios que trae la navegacion y avisa a la pantalla. Si el parámetro no es un <see cref="Cascara.Servicios"/>, la propiedad queda nula y <see cref="AlLlegar"/> corre igual.</summary>
+    /// <param name="cuando">Los datos de la navegación; en <c>Parameter</c> viene el <see cref="Cascara.Servicios"/>.</param>
     protected override void OnNavigatedTo(NavigationEventArgs cuando)
     {
         base.OnNavigatedTo(cuando);

@@ -67,13 +67,22 @@ public enum FiltroDeTarjeta
 /// </remarks>
 public sealed class TableroDeRevisar
 {
+    /// <summary>De dónde se leen los documentos, de una sola pasada.</summary>
     private readonly ICasos _casos;
+    /// <summary>De dónde se lee quién lleva cada documento.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>De dónde salen los nombres de los compañeros, activos y dados de baja.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>De dónde sale «hoy», para saber qué fecha de viaje ya pasó.</summary>
     private readonly IReloj _reloj;
+    /// <summary>Lo que dejó la última <see cref="Cargar"/>; los cinco tableros se cuentan sobre esto.</summary>
     private List<TarjetaDeDocumento> _tarjetas = [];
 
     /// <summary>Ata el tablero a los tres repositorios y al reloj.</summary>
+    /// <param name="casos">El puerto de documentos.</param>
+    /// <param name="asignaciones">El puerto de asignaciones.</param>
+    /// <param name="companeros">El puerto del equipo.</param>
+    /// <param name="reloj">De dónde sale «hoy».</param>
     public TableroDeRevisar(ICasos casos, IAsignaciones asignaciones, ICompaneros companeros, IReloj reloj)
     {
         _casos = casos;
@@ -174,6 +183,9 @@ public sealed class TableroDeRevisar
     /// un numero, y agruparlos diria que viajan juntos papeles que solo comparten que no se
     /// les pudo leer nada.</para>
     /// </remarks>
+    /// <param name="cargados">Los documentos que ya se leyeron con el filtro puesto.</param>
+    /// <param name="filtro">El filtro con el que se leyeron; si trae texto, se vuelve a preguntar sin él.</param>
+    /// <returns>Cuántos documentos hay por número de caso, sin los que no traen número.</returns>
     private Dictionary<string, int> CuantosPorNumeroDeCaso(IReadOnlyList<Caso> cargados, FiltroDeCasos filtro)
     {
         var todos = string.IsNullOrWhiteSpace(filtro.Texto)
@@ -191,6 +203,7 @@ public sealed class TableroDeRevisar
     }
 
     /// <summary>El numero de caso sin espacios de sobra; vacio si el papel no traia ninguno.</summary>
+    /// <param name="numeroCaso">Lo que la base guarda como número de caso.</param>
     private static string ClaveDelNumero(string? numeroCaso)
         => string.IsNullOrWhiteSpace(numeroCaso) ? string.Empty : numeroCaso.Trim();
 
@@ -207,6 +220,8 @@ public sealed class TableroDeRevisar
     /// <see cref="TarjetaDeDocumento.ComponerMarcaDeDuplicado"/> lo dice en la tarjeta en vez
     /// de callarse, porque un duplicado sin marca es justo el defecto que esto cierra.</para>
     /// </remarks>
+    /// <param name="casos">Los documentos ya leídos en esta carga.</param>
+    /// <returns>El original de cada duplicado, por su número interno; el que no se pudo leer no está.</returns>
     private Dictionary<long, Caso> LosOriginalesDeLosDuplicados(IReadOnlyList<Caso> casos)
     {
         var originales = new Dictionary<long, Caso>();
@@ -226,9 +241,12 @@ public sealed class TableroDeRevisar
         => Enum.GetValues<FiltroDeTarjeta>().ToDictionary(f => f, f => _tarjetas.Count(t => Entra(t, f)));
 
     /// <summary>Cuantas tarjetas hay en ese tablero.</summary>
+    /// <param name="filtro">El tablero que se cuenta.</param>
     public int CuantasEn(FiltroDeTarjeta filtro) => _tarjetas.Count(t => Entra(t, filtro));
 
     /// <summary>Las tarjetas de ese tablero, en el trozo que se pida.</summary>
+    /// <param name="filtro">El tablero del que se ven tarjetas.</param>
+    /// <param name="trozo">Desde cuál y cuántas; se recorta a lo que hay sin lanzar.</param>
     public IReadOnlyList<TarjetaDeDocumento> Ver(FiltroDeTarjeta filtro, Pagina trozo)
     {
         var suyas = _tarjetas.Where(t => Entra(t, filtro)).ToList();
@@ -238,13 +256,16 @@ public sealed class TableroDeRevisar
     }
 
     /// <summary>Todas las tarjetas de ese tablero, sin trocear. Es lo que se marca con Ctrl+A.</summary>
+    /// <param name="filtro">El tablero del que se sacan todas.</param>
     public IReadOnlyList<TarjetaDeDocumento> Todas(FiltroDeTarjeta filtro)
         => _tarjetas.Where(t => Entra(t, filtro)).ToList();
 
     /// <summary>La tarjeta de un caso, o nula si no esta cargada.</summary>
+    /// <param name="casoId">El número interno del documento.</param>
     public TarjetaDeDocumento? De(long casoId) => _tarjetas.FirstOrDefault(t => t.CasoId == casoId);
 
     /// <summary>El nombre en espanol de cada tablero, tal como se pinta en su pastilla.</summary>
+    /// <param name="filtro">El tablero cuya pastilla se pinta.</param>
     public static string NombreDe(FiltroDeTarjeta filtro) => filtro switch
     {
         FiltroDeTarjeta.MeFalta => DosEstados.MeFaltaEnCabecera,
@@ -265,6 +286,8 @@ public sealed class TableroDeRevisar
     /// ningun contador ni en ningun aviso». Sin esta condicion, encender «Ver los archivados»
     /// sumaria a esa pastilla documentos cuya pregunta ya esta contestada.
     /// </remarks>
+    /// <param name="tarjeta">La tarjeta que se mira.</param>
+    /// <param name="filtro">El tablero en el que se pregunta si entra.</param>
     private static bool Entra(TarjetaDeDocumento tarjeta, FiltroDeTarjeta filtro) => filtro switch
     {
         // ⚠️ Los dos primeros salen de la MISMA lectura y no de dos condiciones sueltas: asi no
@@ -280,6 +303,13 @@ public sealed class TableroDeRevisar
     };
 
     /// <summary>Compone una tarjeta con lo ya leido; no vuelve a preguntar por documento.</summary>
+    /// <param name="caso">El documento tal como está en la base.</param>
+    /// <param name="personas">Cuántas personas tiene cada documento, por número interno.</param>
+    /// <param name="nombres">El nombre de cada compañero por su número, para la firma.</param>
+    /// <param name="portadores">Quién lleva vivo cada documento, por número interno.</param>
+    /// <param name="originales">El original de cada duplicado, por número interno.</param>
+    /// <param name="comparten">Cuántos documentos hay por número de caso.</param>
+    /// <param name="hoy">La fecha de hoy en ISO-8601.</param>
     private static TarjetaDeDocumento Componer(
         Caso caso,
         IReadOnlyDictionary<long, int> personas,
@@ -323,6 +353,8 @@ public sealed class TableroDeRevisar
     }
 
     /// <summary>Si esa fecha de viaje ya paso. Las fechas son ISO-8601, asi que se comparan como texto.</summary>
+    /// <param name="fechaViaje">La fecha de viaje tal como está en la base; sin fecha, no ha pasado.</param>
+    /// <param name="hoy">La fecha de hoy en ISO-8601.</param>
     private static bool EsFechaPasada(string? fechaViaje, string hoy)
         => !string.IsNullOrWhiteSpace(fechaViaje) && string.CompareOrdinal(fechaViaje, hoy) < 0;
 
@@ -333,6 +365,8 @@ public sealed class TableroDeRevisar
             .Elementos.ToDictionary(c => c.Id, c => c.Nombre);
 
     /// <summary>Quien lleva vivo cada caso, en UNA pasada por las asignaciones vivas.</summary>
+    /// <param name="nombres">El nombre de cada compañero por su número; el que no está se dice «compañero borrado».</param>
+    /// <returns>Por número interno de documento, el nombre de quien lo lleva; con dos vivos, los dos separados por coma.</returns>
     private Dictionary<long, string> QuienLlevaCada(IReadOnlyDictionary<long, string> nombres)
     {
         var portadores = new Dictionary<long, string>();

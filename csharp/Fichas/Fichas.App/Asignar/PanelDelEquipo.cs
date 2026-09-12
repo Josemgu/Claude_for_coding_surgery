@@ -41,14 +41,26 @@ namespace Fichas.App.Asignar;
 /// </remarks>
 public sealed class PanelDelEquipo
 {
+    /// <summary>El equipo: se lee entero, desactivados incluidos, y por aquí se desactiva.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>
+    /// Reactivar, la carga de cada uno y el borrado de verdad; nulo con datos inventados
+    /// (<c>--falso N</c>), y entonces esas tres cosas se dicen y no se hacen.
+    /// </summary>
     private readonly IMantenimiento? _mantenimiento;
+    /// <summary>El único sitio del programa autorizado a preguntar antes de borrar; aquí se le pide quitar a alguien.</summary>
     private readonly OperacionDeBorrar _borrar;
+    /// <summary>Con qué instante se fecha una baja.</summary>
     private readonly IReloj _reloj;
+    /// <summary>La franja de la cáscara, donde van los avisos de cada escritura.</summary>
     private readonly BuzonDeAvisos _avisos;
+    /// <summary>Cómo se dice una línea en el acuse del pie; la pone la página que abre el panel.</summary>
     private readonly Action<string> _acusar;
+    /// <summary>La regla del alta y del puesto, sin ventana; este panel solo la llama.</summary>
     private readonly PuestosDelEquipo _puestos;
+    /// <summary>La lista de renglones, uno por compañero; se vacía y se rehace en cada <see cref="Repintar"/>.</summary>
     private readonly StackPanel _cuerpo = new() { Spacing = 6, MinWidth = 380 };
+    /// <summary>La caja del nombre del alta; se vacía al dar de alta.</summary>
     private readonly TextBox _nombreNuevo = new() { PlaceholderText = "Nombre del compañero nuevo" };
 
     /// <summary>Que entra siendo el que se da de alta; el defecto es «Compañero».</summary>
@@ -63,9 +75,16 @@ public sealed class PanelDelEquipo
         MinWidth = 120,
     };
 
+    /// <summary>El panel flotante abierto ahora mismo; nulo hasta <see cref="Abrir"/>, y se cierra antes de preguntar por un borrado.</summary>
     private Flyout? _panel;
 
     /// <summary>Ata el panel a los puertos que necesita y a como se dice una linea.</summary>
+    /// <param name="companeros">El equipo.</param>
+    /// <param name="mantenimiento">Reactivar, carga y borrado; nulo con datos inventados.</param>
+    /// <param name="borrar">Quien pregunta y borra de verdad.</param>
+    /// <param name="reloj">El reloj del programa.</param>
+    /// <param name="avisos">El buzón de la franja.</param>
+    /// <param name="acusar">Cómo decir una línea en el acuse del pie.</param>
     public PanelDelEquipo(
         ICompaneros companeros,
         IMantenimiento? mantenimiento,
@@ -87,6 +106,7 @@ public sealed class PanelDelEquipo
     public event EventHandler? Cambio;
 
     /// <summary>Abre el panel anclado a ese boton, ya pintado con el equipo de ahora.</summary>
+    /// <param name="anclaje">El botón bajo el que se abre.</param>
     public void Abrir(FrameworkElement anclaje)
     {
         ArgumentNullException.ThrowIfNull(anclaje);
@@ -161,6 +181,7 @@ public sealed class PanelDelEquipo
     }
 
     /// <summary>Un companero: su nombre, lo que lleva, y lo que se puede hacer con el.</summary>
+    /// <param name="companero">El compañero del renglón.</param>
     private FrameworkElement RenglonDe(Companero companero)
     {
         var carga = _mantenimiento?.Carga(companero.Id);
@@ -219,6 +240,7 @@ public sealed class PanelDelEquipo
     /// botones: con cinco companeros hay cinco desplegables que dicen «Rol» y sin esto no hay
     /// forma de saber cual es cual, ni con lector de pantalla ni al comprobar.</para>
     /// </remarks>
+    /// <param name="companero">El compañero cuyo puesto se enseña y se puede cambiar.</param>
     private FrameworkElement PuestoDe(Companero companero)
     {
         var rol = new ComboBox
@@ -252,6 +274,9 @@ public sealed class PanelDelEquipo
     }
 
     /// <summary>Escribe el puesto por la unica puerta que hay y dice en una linea que paso.</summary>
+    /// <param name="companero">El compañero tal como estaba; si no cambia nada, no se escribe.</param>
+    /// <param name="rol">El rol elegido.</param>
+    /// <param name="categoria">El peldaño elegido.</param>
     private void CambiarElPuesto(Companero companero, RolDeCompanero rol, int categoria)
     {
         if (rol == companero.Rol && categoria == companero.Categoria) return;
@@ -273,6 +298,7 @@ public sealed class PanelDelEquipo
     /// eso a entero da cero, que es un peldano que no existe. Se lee como el primero: lo que
     /// el dueno esta haciendo ahi es borrar para teclear otro numero, no pedir el cero.
     /// </remarks>
+    /// <param name="caja">La caja numérica del peldaño.</param>
     private static int LeerPeldano(NumberBox caja)
         => double.IsNaN(caja.Value)
             ? PuestosDelEquipo.CategoriaMinima
@@ -285,6 +311,7 @@ public sealed class PanelDelEquipo
     }
 
     /// <summary>Desactivar o reactivar; ninguno de los dos pregunta, porque se deshacen.</summary>
+    /// <param name="companero">A quién afecta el botón.</param>
     private Button BotonDeBajaOAlta(Companero companero)
     {
         var boton = new Button
@@ -320,6 +347,8 @@ public sealed class PanelDelEquipo
     }
 
     /// <summary>Quitar de verdad; apagado —y con el motivo puesto— si lleva algo a su nombre.</summary>
+    /// <param name="companero">A quién afecta el botón.</param>
+    /// <param name="carga">Lo que lleva a su nombre; nula con datos inventados, y entonces no se puede quitar.</param>
     private Button BotonDeQuitar(Companero companero, CargaDeUnCompanero? carga)
     {
         var puede = carga is not null && carga.NoLlevaNada && _borrar.SePuedeBorrarAqui;
@@ -385,6 +414,7 @@ public sealed class PanelDelEquipo
     }
 
     /// <summary>Reactivar va por el puerto de mantenimiento; sin el, se dice y no se hace.</summary>
+    /// <param name="companeroId">A quién se reactiva.</param>
     private ResultadoDeEscritura Reactivar(long companeroId)
         => _mantenimiento is null
             ? ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(

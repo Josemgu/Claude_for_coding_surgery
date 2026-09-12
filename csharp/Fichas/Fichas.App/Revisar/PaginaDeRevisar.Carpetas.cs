@@ -104,6 +104,7 @@ public sealed partial class PaginaDeRevisar
     /// aqui todavia no hay tarjetas pintadas, y <see cref="PintarLasTarjetas"/> viene detras.
     /// Marcar el nodo en el arbol es aparte, para que el borde de la rama tambien vuelva.
     /// </remarks>
+    /// <param name="clave">La clave de la carpeta a la que se vuelve, o nulo para ver todos.</param>
     private void VolverALaCarpeta(string? clave)
     {
         if (clave is null) return;
@@ -119,6 +120,10 @@ public sealed partial class PaginaDeRevisar
     }
 
     /// <summary>Crea un nodo del arbol, lo apunta en el diccionario y lo abre si lo estaba.</summary>
+    /// <param name="etiqueta">Lo que se lee en el nodo, con su cifra.</param>
+    /// <param name="carpeta">Lo que cuelga del nodo y no cabe dentro de él.</param>
+    /// <param name="sitio">Dónde estaba él antes de rehacer el árbol.</param>
+    /// <param name="esElPrimerMes">Si es la primera rama, la única que se abre sin sitio recordado.</param>
     private TreeViewNode Rama(string etiqueta, CarpetaDelArbol carpeta, SitioDeRevisar sitio, bool esElPrimerMes)
     {
         var nodo = new TreeViewNode
@@ -132,6 +137,7 @@ public sealed partial class PaginaDeRevisar
     }
 
     /// <summary>Todos los documentos de un mes, ya en el orden de las carpetas.</summary>
+    /// <param name="mes">La carpeta de mes de la que se sacan.</param>
     private static List<TarjetaDeDocumento> DocumentosDe(GrupoDeMes mes)
         => [.. mes.Fechas.SelectMany(f => f.Unidades).SelectMany(u => u.Documentos)];
 
@@ -167,6 +173,8 @@ public sealed partial class PaginaDeRevisar
     }
 
     /// <summary>Al pulsar una carpeta del arbol, la rejilla ensena solo sus documentos.</summary>
+    /// <param name="quien">El árbol de carpetas.</param>
+    /// <param name="cuando">Trae el nodo que se pulsó.</param>
     private void AlElegirUnaCarpeta(TreeView quien, TreeViewItemInvokedEventArgs cuando)
         => MostrarLaCarpeta(cuando.InvokedItem as TreeViewNode);
 
@@ -180,6 +188,8 @@ public sealed partial class PaginaDeRevisar
     /// volcar apagado —<c>encendido: False</c>—. Quien navegue el arbol con las flechas la
     /// selecciona sin invocarla, y no pasaba nada.
     /// </remarks>
+    /// <param name="quien">El árbol de carpetas.</param>
+    /// <param name="cuando">Trae los nodos que entraron en la selección; se toma el último.</param>
     private void AlCambiarDeCarpeta(TreeView quien, TreeViewSelectionChangedEventArgs cuando)
         => MostrarLaCarpeta(cuando.AddedItems.OfType<TreeViewNode>().LastOrDefault());
 
@@ -189,6 +199,7 @@ public sealed partial class PaginaDeRevisar
     /// la seleccion— y repintar dos veces cambia la fuente de la rejilla dos veces seguidas,
     /// que es el patron que el 2026-09-04 tumbo el proceso sin dejar linea en el registro.
     /// </remarks>
+    /// <param name="nodo">La rama elegida; con nulo o con una rama que no está apuntada no pasa nada.</param>
     private void MostrarLaCarpeta(TreeViewNode? nodo)
     {
         if (nodo is null || !_ramas.TryGetValue(nodo, out var carpeta)) return;
@@ -199,6 +210,8 @@ public sealed partial class PaginaDeRevisar
     }
 
     /// <summary>Quita el filtro de carpeta y vuelve a ensenar todos los documentos.</summary>
+    /// <param name="quien">El botón de ver todos.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVerTodo(object quien, RoutedEventArgs cuando)
     {
         _carpetaALaVista = null;
@@ -215,6 +228,8 @@ public sealed partial class PaginaDeRevisar
     /// no es un aviso del programa de los que prohibe el requisito 4. Cerrarlo sin elegir
     /// nada NO deja aviso: no ha pasado nada que contar.
     /// </remarks>
+    /// <param name="quien">El botón de volcar.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVolcar(object quien, RoutedEventArgs cuando)
     {
         if (Servicios is null || App.Ventana is null) return;

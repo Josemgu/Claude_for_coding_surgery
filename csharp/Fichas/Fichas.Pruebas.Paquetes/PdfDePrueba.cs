@@ -21,6 +21,10 @@ namespace Fichas.Pruebas.Paquetes;
 public static class PdfDePrueba
 {
     /// <summary>Escribe un PDF con una hoja por rotulo, en ese orden, y devuelve su ruta.</summary>
+    /// <param name="carpeta">Dónde dejarlo; normalmente la temporal de la prueba.</param>
+    /// <param name="nombre">El nombre del archivo, con su <c>.pdf</c>.</param>
+    /// <param name="rotulos">Un texto por hoja, en el orden en que irán.</param>
+    /// <returns>La ruta completa del archivo escrito.</returns>
     public static string Escribir(string carpeta, string nombre, params string[] rotulos)
     {
         var constructor = new PdfDocumentBuilder();
@@ -46,6 +50,7 @@ public static class PdfDePrueba
     /// sepudo leer»— y una prueba que busque la frase falla por donde el PDF partio el
     /// renglon, que no es lo que se esta comprobando.</para>
     /// </remarks>
+    /// <param name="rutaPdf">El PDF a leer, normalmente el unido.</param>
     public static IReadOnlyList<string> RotulosDe(string rutaPdf)
     {
         using var documento = PdfDocument.Open(rutaPdf);
@@ -58,6 +63,8 @@ public static class PdfDePrueba
     /// pueden diferir en la ultima cifra; lo que se comprueba es que al hojear midan igual, no
     /// que coincidan hasta el ultimo bit.
     /// </remarks>
+    /// <param name="rutaPdf">El PDF a medir.</param>
+    /// <returns>Una cadena «anchoxalto» por hoja, en puntos redondeados.</returns>
     public static IReadOnlyList<string> TamanosDe(string rutaPdf)
     {
         using var documento = PdfDocument.Open(rutaPdf);

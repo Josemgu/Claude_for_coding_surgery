@@ -95,10 +95,14 @@ public sealed record ResultadoDeLaFirma(
 /// </remarks>
 public sealed class FirmaEnBloque
 {
+    /// <summary>El único camino a <c>verificado = 1</c>; también por donde se lee si un campo ya lleva firma.</summary>
     private readonly IProcedencia _procedencia;
+    /// <summary>De dónde sale la fecha de la firma; inyectado para que las pruebas la fijen.</summary>
     private readonly IReloj _reloj;
 
     /// <summary>Se ata a los dos puertos que necesita y a nada mas.</summary>
+    /// <param name="procedencia">Repositorio de procedencia de cada campo.</param>
+    /// <param name="reloj">De dónde sale la fecha de la firma.</param>
     public FirmaEnBloque(IProcedencia procedencia, IReloj reloj)
     {
         _procedencia = procedencia;
@@ -106,6 +110,7 @@ public sealed class FirmaEnBloque
     }
 
     /// <summary>Cuenta lo que se firmaria, sin escribir nada.</summary>
+    /// <param name="loQueTrajo">Lo que casó del paquete; si no hay nada que revisar, la cuenta es <see cref="CuentaDeLaFirma.Nada"/>.</param>
     public CuentaDeLaFirma Contar(LoQueTrajoElPaquete loQueTrajo)
     {
         ArgumentNullException.ThrowIfNull(loQueTrajo);
@@ -132,6 +137,7 @@ public sealed class FirmaEnBloque
     /// <summary>Firma de verdad, a nombre de quien se diga, y devuelve la cuenta de lo escrito.</summary>
     /// <param name="loQueTrajo">Lo que caso; lo demas no llega hasta aqui.</param>
     /// <param name="quienFirma">El administrador. Nunca se inventa un nombre.</param>
+    /// <returns>Cuántos quedaron firmados, cuántos no admitió el almacén y sus avisos.</returns>
     public ResultadoDeLaFirma Firmar(LoQueTrajoElPaquete loQueTrajo, Companero quienFirma)
     {
         ArgumentNullException.ThrowIfNull(loQueTrajo);
@@ -162,11 +168,13 @@ public sealed class FirmaEnBloque
     }
 
     /// <summary>Un campo vacio o con la forma equivocada no se firma. Las reglas son las de Correccion.</summary>
+    /// <param name="campo">El campo con el valor que hay guardado.</param>
     private static bool NoSePuedeFirmar(CampoDelPaquete campo)
         => string.IsNullOrWhiteSpace(campo.Valor)
         || ReglasDeCampo.MotivoDe(campo.Campo, campo.Valor) is not null;
 
     /// <summary>Si ese campo ya lleva firma; volver a firmarlo pisaria la fecha de quien lo hizo.</summary>
+    /// <param name="campo">El campo que se pregunta.</param>
     private bool YaEstaFirmado(CampoDelPaquete campo)
         => _procedencia.DeRegistro(campo.Tabla, campo.RegistroId)
             .Any(fila => fila.Campo == campo.Campo && fila.Verificado);
@@ -181,6 +189,7 @@ public sealed class FirmaEnBloque
     /// Es el caso medido de <c>templo_nombre</c>, que en la base del dueno no tenia fila en
     /// ninguno de los siete documentos.
     /// </remarks>
+    /// <param name="campo">El campo que se va a firmar.</param>
     private void AnotarSiNoHayFila(CampoDelPaquete campo)
     {
         var hay = _procedencia.DeRegistro(campo.Tabla, campo.RegistroId)

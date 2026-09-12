@@ -29,6 +29,7 @@ internal sealed class BaseDelPaquete : IDisposable
     /// <summary>El instante en el que se para el reloj de todas estas pruebas.</summary>
     public const string ElInstante = "2026-09-06 12:00:00";
 
+    /// <summary>La carpeta temporal donde se escriben los Excel de la prueba; se borra al liberar.</summary>
     private readonly string _carpeta;
 
     /// <summary>Monta el almacen VACIO, el motor de Excel de verdad y una carpeta temporal.</summary>
@@ -105,6 +106,8 @@ internal sealed class BaseDelPaquete : IDisposable
     public FirmaEnBloque Firma { get; }
 
     /// <summary>Da de alta un companero con su rol y devuelve la fila guardada.</summary>
+    /// <param name="nombre">El nombre del compañero.</param>
+    /// <param name="rol">Compañero por defecto; administrador para quien firma.</param>
     public Companero Alta(string nombre, RolDeCompanero rol = RolDeCompanero.Companero)
     {
         var escritura = Companeros.Guardar(new Companero
@@ -118,6 +121,11 @@ internal sealed class BaseDelPaquete : IDisposable
     }
 
     /// <summary>Da de alta un documento con los cinco campos que se firman y devuelve su id.</summary>
+    /// <param name="numeroCaso">El número de caso, o nulo para uno sin número.</param>
+    /// <param name="fechaViaje">La fecha de viaje; con valor por defecto para no escribirla en cada prueba.</param>
+    /// <param name="templo">El templo; con valor por defecto.</param>
+    /// <param name="unidadNombre">El nombre de la unidad; con valor por defecto.</param>
+    /// <param name="unidadNumero">El número de la unidad; con valor por defecto.</param>
     public long Caso(
         string? numeroCaso,
         string? fechaViaje = "2026-10-15",
@@ -137,6 +145,10 @@ internal sealed class BaseDelPaquete : IDisposable
         }).Id;
 
     /// <summary>Da de alta una persona en un documento y devuelve su id.</summary>
+    /// <param name="casoId">El documento al que pertenece.</param>
+    /// <param name="nombre">El nombre, o nulo.</param>
+    /// <param name="mrn">La cédula, o nula.</param>
+    /// <param name="fila">El renglón del papel, base 1.</param>
     public long Persona(long casoId, string? nombre, string? mrn, int fila = 1)
         => Personas.Guardar(new Persona
         {
@@ -151,6 +163,8 @@ internal sealed class BaseDelPaquete : IDisposable
     /// Por <see cref="OperacionDeAsignar"/> y no escribiendo la fila a mano: una prueba que se
     /// salta la puerta mide una tuberia distinta de la que usa la pantalla.
     /// </remarks>
+    /// <param name="aQuien">El compañero que los recibe.</param>
+    /// <param name="casoIds">Los documentos; falla la prueba si alguno no se pudo asignar.</param>
     public void Dar(Companero aQuien, params long[] casoIds)
     {
         ArgumentNullException.ThrowIfNull(aQuien);
@@ -164,6 +178,7 @@ internal sealed class BaseDelPaquete : IDisposable
     }
 
     /// <summary>Cuantas asignaciones vivas tiene ese companero ahora mismo, leidas de la base.</summary>
+    /// <param name="companeroId">El compañero.</param>
     public int VivasDe(long companeroId)
         => Asignaciones.Contar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true));
 
@@ -172,6 +187,7 @@ internal sealed class BaseDelPaquete : IDisposable
     /// Por el mismo puerto y con el mismo filtro que miran Asignar, Inicio y el paquete
     /// siguiente. Contarlo de otra manera mediria otra cosa.
     /// </remarks>
+    /// <param name="companeroId">El compañero.</param>
     public IReadOnlyList<long> CasosVivosDe(long companeroId)
         => [.. Asignaciones
             .Listar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true), Pagina.Primera(int.MaxValue))
@@ -180,6 +196,7 @@ internal sealed class BaseDelPaquete : IDisposable
             .Distinct()];
 
     /// <summary>Todas sus asignaciones, vivas y retiradas: es donde se ve que nada se borro.</summary>
+    /// <param name="companeroId">El compañero.</param>
     public IReadOnlyList<Asignacion> TodasLasDe(long companeroId)
         => Asignaciones
             .Listar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: false), Pagina.Primera(int.MaxValue))
@@ -212,6 +229,7 @@ internal sealed class BaseDelPaquete : IDisposable
     }
 
     /// <summary>Cuantos renglones de datos trae un Excel generado.</summary>
+    /// <param name="ruta">El Excel; se abre con ClosedXML y se cuenta desde la cabecera.</param>
     public static int ContarLasFilas(string ruta)
     {
         using var libro = new XLWorkbook(ruta);
@@ -221,6 +239,9 @@ internal sealed class BaseDelPaquete : IDisposable
     }
 
     /// <summary>Genera el Excel de ida de ese companero con esos documentos y devuelve su ruta.</summary>
+    /// <param name="aQuien">El compañero del paquete.</param>
+    /// <param name="casoIds">Los documentos que van dentro.</param>
+    /// <returns>La ruta del Excel en la carpeta temporal; falla la prueba si no se escribió.</returns>
     public string Generar(Companero aQuien, params long[] casoIds)
     {
         var ruta = Path.Combine(_carpeta, $"paquete-{Guid.NewGuid():N}.xlsx");
@@ -244,6 +265,8 @@ internal sealed class BaseDelPaquete : IDisposable
     }
 
     /// <summary>Borra la clave de una fila, que es como un agente rompe una fila sin querer.</summary>
+    /// <param name="ruta">El Excel generado.</param>
+    /// <param name="filaExcel">Qué renglón; el primero es <c>Columnas.PrimeraFilaDeDatos</c>.</param>
     public static void BorrarLaClave(string ruta, int filaExcel)
     {
         using var libro = new XLWorkbook(ruta);
@@ -253,6 +276,8 @@ internal sealed class BaseDelPaquete : IDisposable
     }
 
     /// <summary>Cuantos campos de una fila estan firmados hoy.</summary>
+    /// <param name="tabla">Si la fila es un caso o una persona.</param>
+    /// <param name="registroId">El id de la fila.</param>
     public int Firmados(TablaDeProcedencia tabla, long registroId)
         => Procedencia.DeRegistro(tabla, registroId).Count(campo => campo.Verificado);
 

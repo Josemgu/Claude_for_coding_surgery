@@ -22,8 +22,10 @@ namespace Fichas.Pruebas.App.Reportes;
 [TestClass]
 public sealed class PruebasDelPdfQueVaConElPaquete
 {
+    /// <summary>La carpeta propia de esta prueba; se borra al recoger.</summary>
     private string _carpeta = string.Empty;
 
+    /// <summary>Una carpeta propia por prueba; nunca la carpeta de datos del dueño.</summary>
     [TestInitialize]
     public void PrepararLaCarpeta()
     {
@@ -31,6 +33,7 @@ public sealed class PruebasDelPdfQueVaConElPaquete
         Directory.CreateDirectory(_carpeta);
     }
 
+    /// <summary>Se lleva la carpeta al terminar; una prueba no deja basura en el disco.</summary>
     [TestCleanup]
     public void RecogerLaCarpeta()
     {
@@ -47,16 +50,23 @@ public sealed class PruebasDelPdfQueVaConElPaquete
     /// <summary>Un <see cref="IPaquetes"/> que apunta con que se le pidio el PDF y escribe unos bytes.</summary>
     private sealed class PaquetesQueTambienHacenElPdf : IPaquetes
     {
+        /// <summary>Los bytes que escribe como PDF, o nulo para decir que no se pudo.</summary>
         private readonly byte[]? _contenidoDelPdf;
 
+        /// <summary>Con qué contesta al PDF.</summary>
+        /// <param name="contenidoDelPdf">Los bytes del PDF, o nulo para que el PDF no salga.</param>
         internal PaquetesQueTambienHacenElPdf(byte[]? contenidoDelPdf) => _contenidoDelPdf = contenidoDelPdf;
 
+        /// <summary>Los casos con los que se le pidió el Excel.</summary>
         internal IReadOnlyList<long> CasosDelExcel { get; private set; } = [];
 
+        /// <summary>Los casos con los que se le pidió el PDF; tienen que ser los mismos y en el mismo orden.</summary>
         internal IReadOnlyList<long> CasosDelPdf { get; private set; } = [];
 
+        /// <summary>Dónde se le pidió el PDF; nulo si no se le pidió.</summary>
         internal string? RutaDelPdf { get; private set; }
 
+        /// <inheritdoc />
         public ResultadoDeEscritura GenerarExcelDeCompanero(long companeroId, IReadOnlyList<long> casoIds, string rutaDestino)
         {
             CasosDelExcel = casoIds;
@@ -64,6 +74,7 @@ public sealed class PruebasDelPdfQueVaConElPaquete
             return ResultadoDeEscritura.Bien(companeroId);
         }
 
+        /// <inheritdoc />
         public ResultadoDeEscritura GenerarPdfDeCompanero(long companeroId, IReadOnlyList<long> casoIds, string rutaDestino)
         {
             CasosDelPdf = casoIds;
@@ -79,19 +90,23 @@ public sealed class PruebasDelPdfQueVaConElPaquete
                 "PDF con 3 hoja(s).", string.Empty, "Lo dice la prueba."));
         }
 
+        /// <inheritdoc />
         public ResultadoDelExcelDevuelto LeerExcelDevuelto(string rutaExcel, long companeroId)
             => new([], [], []);
 
+        /// <inheritdoc />
         public ResultadoDeEscritura AplicarMarcas(IReadOnlyList<MarcaDelCompanero> marcas, long companeroId, string rutaExcel)
             => ResultadoDeEscritura.NoSeEscribio();
     }
 
+    /// <summary>Servicios inventados con 120 casos y el primer compañero activo, que es a quien va el paquete.</summary>
     private static (ServiciosFalsos Servicios, Companero Quien) Banco()
     {
         var servicios = new ServiciosFalsos(120, 17, new RelojFijo("2026-09-04"));
         return (servicios, servicios.Companeros.Activos()[0]);
     }
 
+    /// <summary>Vigila que junto al Excel quede un PDF con el mismo nombre y la extensión cambiada.</summary>
     [TestMethod]
     public void JuntoAlExcelQuedaUnPdfConElMismoNombre()
     {
@@ -109,6 +124,7 @@ public sealed class PruebasDelPdfQueVaConElPaquete
         Assert.AreEqual(pdf, paquetes.RutaDelPdf);
     }
 
+    /// <summary>Vigila que el PDF se pida con los mismos casos y en el mismo orden que el Excel.</summary>
     [TestMethod]
     public void ElPdfSePideConLosMismosCasosYEnElMismoOrdenQueElExcel()
     {
@@ -125,6 +141,7 @@ public sealed class PruebasDelPdfQueVaConElPaquete
             "si las dos listas se separaran, el PDF tendría las hojas correctas en el orden equivocado");
     }
 
+    /// <summary>Vigila que la línea diga que el paquete lleva también el PDF y cuánto ocupa, sin pasarse de largo.</summary>
     [TestMethod]
     public void LaLineaDiceQueElPaqueteLlevaTambienElPdfYCuantoOcupa()
     {
@@ -139,6 +156,7 @@ public sealed class PruebasDelPdfQueVaConElPaquete
         Assert.IsLessThanOrEqualTo(190, resumen.Linea.Length, $"La línea mide {resumen.Linea.Length}: «{resumen.Linea}»");
     }
 
+    /// <summary>Vigila que si el PDF no se puede hacer, el paquete salga igual con su Excel y se diga por qué.</summary>
     [TestMethod]
     public void SiElPdfNoSePuedeHacerElPaqueteSaleIgualConSuExcelYSeDicePorQue()
     {

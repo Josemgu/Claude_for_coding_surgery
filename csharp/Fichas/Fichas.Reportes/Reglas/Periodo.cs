@@ -37,6 +37,10 @@ public readonly record struct LecturaDePeriodo(Periodo? Periodo, Aviso? Problema
 /// <param name="SiguienteAHasta">El dia de despues; el limite abierto de las marcas con hora.</param>
 public sealed record Periodo(string Desde, string Hasta, string SiguienteAHasta)
 {
+    /// <summary>
+    /// Los doce meses en español, escritos a mano y no sacados de la cultura del sistema, para
+    /// que el informe diga «septiembre» también en una máquina configurada en inglés.
+    /// </summary>
     private static readonly string[] Meses =
     [
         "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -49,6 +53,9 @@ public sealed record Periodo(string Desde, string Hasta, string SiguienteAHasta)
     /// «del 30 al 1» no contaria nada y saldria con todos los numeros a cero, que se lee igual
     /// que un mes sin trabajo.
     /// </remarks>
+    /// <param name="desde">El primer día, en «AAAA-MM-DD»; nulo o mal escrito produce un aviso.</param>
+    /// <param name="hasta">El último día, en «AAAA-MM-DD»; nulo o mal escrito produce un aviso.</param>
+    /// <returns>El periodo leído, o el aviso que dice qué fecha falló y por qué; nunca las dos cosas.</returns>
     public static LecturaDePeriodo Leer(string? desde, string? hasta)
     {
         if (!EsFecha(desde))
@@ -82,31 +89,16 @@ public sealed record Periodo(string Desde, string Hasta, string SiguienteAHasta)
         return new LecturaDePeriodo(new Periodo(desde!, hasta!, siguiente), null);
     }
 
-    /// <summary>El mes entero, del dia 1 al ultimo, sea de 28, 29, 30 o 31 dias.</summary>
-    public static LecturaDePeriodo DelMes(int anio, int mes)
-    {
-        if (anio is < 1 or > 9999 || mes is < 1 or > 12)
-        {
-            return new LecturaDePeriodo(null, Aviso.Problema(
-                $"No hay ningún mes {mes} del año {anio}.",
-                nameof(mes),
-                "Se esperaban dos números, como el mes 9 del año 2026."));
-        }
-
-        var primero = new DateOnly(anio, mes, 1);
-        var ultimo = primero.AddMonths(1).AddDays(-1);
-        return Leer(
-            primero.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            ultimo.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-    }
-
     /// <summary>Si esa fecha de viaje —sin hora— cae dentro, los dos extremos incluidos.</summary>
+    /// <param name="fecha">Una fecha «AAAA-MM-DD»; nula cuenta como fuera, no como error.</param>
     public bool ContieneFecha(string? fecha)
         => fecha is not null
            && string.CompareOrdinal(fecha, Desde) >= 0
            && string.CompareOrdinal(fecha, Hasta) <= 0;
 
     /// <summary>Si esa marca de tiempo CON hora cae dentro, los dos extremos incluidos.</summary>
+    /// <remarks>Compara contra <see cref="SiguienteAHasta"/> con «menor que», para no perder la tarde del último día.</remarks>
+    /// <param name="marca">Una marca «AAAA-MM-DD HH:mm:ss»; nula cuenta como fuera, no como error.</param>
     public bool ContieneMarcaConHora(string? marca)
         => marca is not null
            && string.CompareOrdinal(Desde, marca) <= 0
@@ -122,9 +114,8 @@ public sealed record Periodo(string Desde, string Hasta, string SiguienteAHasta)
             ? $"el {FechaLarga(Desde)}"
             : $"del {FechaLarga(Desde)} al {FechaLarga(Hasta)}";
 
-    /// <summary>El trozo que va en el nombre del archivo: '2026-09-01_a_2026-09-30'.</summary>
-    public string NombreCorto() => $"{Desde}_a_{Hasta}";
-
+    /// <summary>Una fecha ISO escrita como se lee en voz alta: «30 de septiembre de 2026».</summary>
+    /// <param name="iso">Una fecha «AAAA-MM-DD» que ya pasó por <see cref="EsFecha"/>; una mal escrita lanza <see cref="FormatException"/>.</param>
     private static string FechaLarga(string iso)
     {
         var dia = DateOnly.ParseExact(iso, "yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -132,6 +123,7 @@ public sealed record Periodo(string Desde, string Hasta, string SiguienteAHasta)
     }
 
     /// <summary>Forma ISO-8601 de solo fecha, y que ademas exista en el calendario.</summary>
+    /// <param name="valor">Lo que llegó como fecha; nulo o «2026-02-30» dan falso.</param>
     private static bool EsFecha(string? valor)
         => valor is not null
            && DateOnly.TryParseExact(valor, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);

@@ -31,7 +31,6 @@
             BorderThickness="0,0,0,1">
             <StackPanel Orientation="Horizontal" Spacing="6">
                 <Button
-                    x:Name="_botonDeAlejar"
                     AutomationProperties.Name="Alejar"
                     Click="AlPulsarAlejar"
                     Content="&#xE71F;"
@@ -44,7 +43,6 @@
                     Text="—"
                     TextAlignment="Center" />
                 <Button
-                    x:Name="_botonDeAcercar"
                     AutomationProperties.Name="Acercar"
                     Click="AlPulsarAcercar"
                     Content="&#xE8A3;"
@@ -52,17 +50,14 @@
                     ToolTipService.ToolTip="Acercar (Ctrl y la rueda hacia arriba)" />
 
                 <Button
-                    x:Name="_botonDeAncho"
                     Click="AlPulsarAncho"
                     Content="Ancho"
                     ToolTipService.ToolTip="La hoja entera a lo ancho del panel (doble clic)" />
                 <Button
-                    x:Name="_botonDeCien"
                     Click="AlPulsarCien"
                     Content="100 %" />
 
                 <Button
-                    x:Name="_botonDeHojaAnterior"
                     AutomationProperties.Name="Hoja anterior"
                     Click="AlPulsarHojaAnterior"
                     Content="&#xE76B;"
@@ -75,7 +70,6 @@
                     Text="hoja 1"
                     TextAlignment="Center" />
                 <Button
-                    x:Name="_botonDeHojaSiguiente"
                     AutomationProperties.Name="Hoja siguiente"
                     Click="AlPulsarHojaSiguiente"
                     Content="&#xE76C;"
@@ -83,7 +77,6 @@
                     ToolTipService.ToolTip="Hoja siguiente" />
 
                 <TextBlock
-                    x:Name="_pista"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                     Text="arrastre para mover · Ctrl y la rueda para el zoom"

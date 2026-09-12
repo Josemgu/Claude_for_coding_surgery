@@ -191,6 +191,7 @@ public sealed class PruebasDelCuadroDeInicio
     }
 
     /// <summary>Cuanto tarda algo, en milisegundos.</summary>
+    /// <param name="que">Lo que se cronometra, una sola vez.</param>
     private static double Cronometrar(Action que)
     {
         var reloj = System.Diagnostics.Stopwatch.StartNew();

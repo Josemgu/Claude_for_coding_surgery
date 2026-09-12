@@ -10,6 +10,7 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDeLaMaqueta
 {
+    /// <summary>Vigila que el partido corta en los espacios y no a mitad de palabra cuando cabe entera.</summary>
     [TestMethod]
     public void PartirEnLineasCortaPorPalabras()
     {
@@ -18,6 +19,7 @@ public class PruebaDeLaMaqueta
         CollectionAssert.AreEqual(new[] { "uno dos", "tres", "cuatro" }, lineas.ToArray());
     }
 
+    /// <summary>Vigila que un MRN más largo que la columna se parte en trozos y no se escribe encima de la de al lado.</summary>
     [TestMethod]
     public void UnaPalabraMasLargaQueLaColumnaSeParteEnVezDeDesbordar()
     {
@@ -27,6 +29,7 @@ public class PruebaDeLaMaqueta
         Assert.AreEqual("055-1111-3853", string.Concat(lineas));
     }
 
+    /// <summary>Vigila que nulo y vacío dan una línea vacía, nunca cero líneas.</summary>
     [TestMethod]
     public void UnTextoVacioSigueSiendoUnaLinea()
     {
@@ -34,10 +37,12 @@ public class PruebaDeLaMaqueta
         CollectionAssert.AreEqual(new[] { "" }, Maqueta.PartirEnLineas("", 10).ToArray());
     }
 
+    /// <summary>Vigila que con capacidad cero el partido termina en vez de quedarse dando vueltas.</summary>
     [TestMethod]
     public void LaCapacidadNuncaEsCeroPorqueElPartidoNoAvanzaria()
         => Assert.IsNotEmpty(Maqueta.PartirEnLineas("palabra", 0));
 
+    /// <summary>Vigila que a partir de la segunda página las dos primeras líneas son los títulos de columna.</summary>
     [TestMethod]
     public void LosTitulosDeColumnaSeRepitenArribaDeCadaPaginaNueva()
     {
@@ -60,6 +65,7 @@ public class PruebaDeLaMaqueta
         }
     }
 
+    /// <summary>Vigila que ninguna línea queda por debajo del pie en ninguna página.</summary>
     [TestMethod]
     public void NingunaLineaBajaDelTopeInferior()
     {
@@ -80,6 +86,7 @@ public class PruebaDeLaMaqueta
         }
     }
 
+    /// <summary>Vigila que se cuentan los caracteres perdidos del título de la sección y de las celdas, no solo de la portada.</summary>
     [TestMethod]
     public void ContarCaracteresQueNoCabenRecorreElDocumentoEntero()
     {
@@ -90,10 +97,13 @@ public class PruebaDeLaMaqueta
         Assert.AreEqual(2, Maqueta.ContarCaracteresQueNoCaben(DocumentoDePrueba([seccion])));
     }
 
+    /// <summary>Vigila que un documento sin caracteres raros cuenta cero perdidos.</summary>
     [TestMethod]
     public void SinCaracteresPerdidosNoSaleElAvisoDeLaCodificacion()
         => Assert.AreEqual(0, Maqueta.ContarCaracteresQueNoCaben(DocumentoDePrueba([])));
 
+    /// <summary>Un documento mínimo con portada vacía y esas secciones, para probar solo la maqueta.</summary>
+    /// <param name="secciones">Las secciones que se colocan.</param>
     private static Documento DocumentoDePrueba(IReadOnlyList<Seccion> secciones)
         => new(
             "Fichas — Reporte de recomendaciones al templo",

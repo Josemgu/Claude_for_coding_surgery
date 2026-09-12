@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using Fichas.Contratos.Modelos;
 using Fichas.Lectura;
 
 namespace Fichas.Pruebas.Lectura;
@@ -28,19 +27,26 @@ namespace Fichas.Pruebas.Lectura;
 [TestClass]
 public class PruebaDeLosSieteDocumentosReales
 {
+    /// <summary>Dónde están los siete escaneos en esta máquina. Fuera del repositorio: son datos personales.</summary>
     private const string CarpetaDeLosDocumentos =
         @"C:\Users\josem\.claude\uploads\e38428f3-e062-41e5-92f2-566aacd26e92";
 
+    /// <summary>Los siete escaneos sueltos del dueño; con más o menos, la clase entera se declara no concluyente.</summary>
     private const int DocumentosEsperados = 7;
 
+    /// <summary>Las siete hojas leídas una vez para toda la clase; vacía si no estaban los siete.</summary>
     private static IReadOnlyList<HojaLeida> _hojas = [];
+    /// <summary>Lo que tardó cargar los modelos del OCR, medido antes de la primera hoja para no confundirlo con ella.</summary>
     private static double _segundosDeArranqueDelMotor;
 
+    /// <summary>Las rutas de los escaneos <c>CASP2609</c>, ordenadas; vacía si la carpeta no existe.</summary>
     private static string[] Documentos()
         => Directory.Exists(CarpetaDeLosDocumentos)
             ? Directory.GetFiles(CarpetaDeLosDocumentos, "*CASP2609*.pdf").Order().ToArray()
             : [];
 
+    /// <summary>Prepara el motor midiendo su arranque y lee los siete. Es OCR de verdad, por eso una sola vez.</summary>
+    /// <param name="contexto">Lo exige MSTest; no se usa.</param>
     [ClassInitialize]
     public static void LeerLosSieteUnaSolaVez(TestContext contexto)
     {
@@ -74,6 +80,9 @@ public class PruebaDeLosSieteDocumentosReales
         return _hojas;
     }
 
+    /// <summary>El valor propuesto del primer campo con ese nombre en la hoja, o nulo si no lo hay.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campo">El nombre de columna, uno de los <c>Extraccion.Campo…</c>.</param>
     private static string? ValorDe(HojaLeida hoja, string campo)
         => hoja.Campos.FirstOrDefault(c => c.Campo == campo)?.Valor;
 

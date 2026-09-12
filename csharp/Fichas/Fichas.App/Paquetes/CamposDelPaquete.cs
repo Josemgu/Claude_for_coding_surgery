@@ -35,6 +35,8 @@ public static class CamposDelPaquete
     /// para que la cuenta que se ensena antes de firmar y lo que se firma despues recorran
     /// lo mismo.
     /// </remarks>
+    /// <param name="informaciones">Lo que trajo el paquete, una fila por persona que volvió.</param>
+    /// <returns>Cinco campos por documento distinto más dos por fila; vacía si no volvió nada.</returns>
     public static IReadOnlyList<CampoDelPaquete> De(IReadOnlyList<InformacionQueVolvio> informaciones)
     {
         ArgumentNullException.ThrowIfNull(informaciones);
@@ -52,11 +54,13 @@ public static class CamposDelPaquete
     }
 
     /// <summary>Los cinco campos del documento, con el valor que hay en la base.</summary>
+    /// <param name="una">Una fila de lo que volvió; de ella se usa lo del caso.</param>
     private static IEnumerable<CampoDelPaquete> DelDocumento(InformacionQueVolvio una)
         => ModeloDeCorreccion.CamposDelCasoQueSeDibujan.Select(campo =>
             new CampoDelPaquete(TablaDeProcedencia.Casos, una.CasoId, campo, ValorDelDocumento(una, campo)));
 
     /// <summary>Los dos campos de la persona, con el valor que hay en la base.</summary>
+    /// <param name="una">Una fila de lo que volvió; de ella se usa lo de la persona.</param>
     private static IEnumerable<CampoDelPaquete> DeLaPersona(InformacionQueVolvio una)
         => ModeloDeCorreccion.CamposDeLaPersonaQueSeDibujan.Select(campo =>
             new CampoDelPaquete(TablaDeProcedencia.Personas, una.PersonaId, campo, ValorDeLaPersona(una, campo)));
@@ -67,6 +71,9 @@ public static class CamposDelPaquete
     /// aqui saliera vacio se quedaria sin firmar en silencio, y nadie lo notaria hasta que
     /// alguien se preguntara por que ese campo nunca esta dado por bueno.
     /// </remarks>
+    /// <param name="una">La fila de la que se lee.</param>
+    /// <param name="campo">El nombre de la columna, uno de los de <c>Extraccion</c>.</param>
+    /// <exception cref="KeyNotFoundException">Si Corrección dibuja un campo que aquí no tiene valor.</exception>
     private static string? ValorDelDocumento(InformacionQueVolvio una, string campo) => campo switch
     {
         Fichas.Lectura.Extraccion.CampoNumeroDeCaso => una.NumeroCaso,
@@ -81,6 +88,9 @@ public static class CamposDelPaquete
     };
 
     /// <summary>El valor guardado de un campo de la persona; levanta por lo mismo.</summary>
+    /// <param name="una">La fila de la que se lee.</param>
+    /// <param name="campo">El nombre de la columna: cédula o nombre.</param>
+    /// <exception cref="KeyNotFoundException">Si Corrección dibuja un campo que aquí no tiene valor.</exception>
     private static string? ValorDeLaPersona(InformacionQueVolvio una, string campo) => campo switch
     {
         Fichas.Lectura.Extraccion.CampoCedula => una.Mrn,

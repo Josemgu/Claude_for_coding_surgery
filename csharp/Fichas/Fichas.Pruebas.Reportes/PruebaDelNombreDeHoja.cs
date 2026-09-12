@@ -16,8 +16,11 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelNombreDeHoja
 {
+    /// <summary>Una sección vacía con ese título: lo único que mira el nombre de hoja.</summary>
+    /// <param name="titulo">El título de la sección.</param>
     private static Seccion Con(string titulo) => new(titulo, [], [], [], null);
 
+    /// <summary>Vigila que cada pestaña se llama «N. Título» con N el orden de la sección.</summary>
     [TestMethod]
     public void CadaHojaLlevaSuNumeroDelanteYEnElOrdenDeLasSecciones()
     {
@@ -28,6 +31,7 @@ public class PruebaDelNombreDeHoja
             nombres.ToArray());
     }
 
+    /// <summary>Vigila que un título de 70 caracteres queda recortado justo a los 31 que Excel admite.</summary>
     [TestMethod]
     public void NingunNombrePasaDeLosTreintaYUnCaracteresQueExcelAdmite()
     {
@@ -38,6 +42,7 @@ public class PruebaDelNombreDeHoja
         StringAssert.StartsWith(nombres[0], "1. Parte 1 ");
     }
 
+    /// <summary>Vigila que ninguno de los siete signos prohibidos sobrevive en el nombre.</summary>
     [TestMethod]
     public void LosSieteSignosQueExcelNoAdmiteSeSustituyen()
     {

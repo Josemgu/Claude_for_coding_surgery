@@ -82,3 +82,13 @@ csharp/C0-espiga
 # version: publish.ps1 tiene que leer la version, negarse si ya esta etiquetada y
 # escribirla en el resumen. TERCERA VEZ que el supervisor autoriza en el pase y se
 # olvida de esta lista (IIlegibles el 09, y ahora estos dos). Se anota por eso.
+
+# 2026-09-11. Se DESCONGELA Fichas.Contratos ENTERO, y solo para el programador que
+# documenta funcion por funcion (encargo del dueno: «documenta el codigo funcion por
+# funcion»). SOLO comentarios ///: ninguna firma, ningun miembro, ningun using cambia.
+# Las seis rutas de arriba quedan comentadas mientras dure ese pase y se vuelven a
+# poner al cerrarlo. Las dos mitades de la autorizacion, esta y la del pase, hechas
+# a la vez esta vez.
+# 2026-09-11, 18:10. Cerrado el pase de documentar Contratos (fusionado, 0 CS1591 en
+# toda la solucion con GenerateDocumentationFile=true, medido por el supervisor):
+# las seis rutas de Contratos vuelven a estar congeladas.

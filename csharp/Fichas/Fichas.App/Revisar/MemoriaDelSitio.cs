@@ -108,6 +108,7 @@ public static class MemoriaDelSitio
     /// devolvería a la otra. Se compone del nivel y de las claves ISO, que no dependen del
     /// idioma ni de cómo se escriba la etiqueta.
     /// </remarks>
+    /// <param name="mes">La carpeta de mes que se está pintando.</param>
     public static string ClaveDelMes(GrupoDeMes mes)
     {
         ArgumentNullException.ThrowIfNull(mes);
@@ -115,6 +116,8 @@ public static class MemoriaDelSitio
     }
 
     /// <summary>La clave de una carpeta de fecha de viaje, dentro de su mes.</summary>
+    /// <param name="mes">El mes al que pertenece.</param>
+    /// <param name="fecha">La carpeta de fecha que se está pintando.</param>
     public static string ClaveDeLaFecha(GrupoDeMes mes, GrupoDeFecha fecha)
     {
         ArgumentNullException.ThrowIfNull(mes);
@@ -127,6 +130,9 @@ public static class MemoriaDelSitio
     /// Lleva el número Y el nombre porque dos unidades pueden llamarse igual y el número es lo
     /// único que las distingue, y porque una puede no traer número leído.
     /// </remarks>
+    /// <param name="mes">El mes al que pertenece.</param>
+    /// <param name="fecha">La fecha a la que pertenece.</param>
+    /// <param name="unidad">La carpeta de unidad que se está pintando.</param>
     public static string ClaveDeLaUnidad(GrupoDeMes mes, GrupoDeFecha fecha, GrupoDeUnidad unidad)
     {
         ArgumentNullException.ThrowIfNull(mes);

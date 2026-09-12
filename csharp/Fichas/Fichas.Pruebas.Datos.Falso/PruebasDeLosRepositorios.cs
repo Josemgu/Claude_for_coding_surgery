@@ -16,15 +16,19 @@ namespace Fichas.Pruebas.Datos.Falso;
 [TestClass]
 public sealed class PruebasDeLosRepositorios
 {
+    /// <summary>El dia en el que se paran estas pruebas, para que no dependan del calendario.</summary>
     private const string ElDiaDeLaPrueba = "2026-09-04";
 
     /// <summary>Monta unos servicios falsos parados en el dia de la prueba.</summary>
+    /// <param name="casos">Cuántos casos inventa el generador.</param>
+    /// <param name="semilla">La semilla; la misma da la misma base.</param>
     private static ServiciosFalsos Montar(int casos = 100, int semilla = 2468)
         => new(casos, semilla, new RelojFijo(ElDiaDeLaPrueba));
 
     // ---- Requisito 9: avisar, nunca impedir -------------------------------------------
 
     /// <summary>Un numero de caso con la forma equivocada se guarda igual y sale avisado.</summary>
+    /// <param name="numero">Un número con la forma mala: letra por dígito, un espacio, o minúsculas.</param>
     [TestMethod]
     [DataRow("CASP26O9")]
     [DataRow("CAS P2609")]

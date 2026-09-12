@@ -1,7 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.System;
 
@@ -41,6 +40,8 @@ public sealed partial class PaginaDeRevisar
     /// Se arma en código y no en la plantilla porque tiene que quedarse con el número
     /// interno de ESA tarjeta, y una plantilla compartida por 3 000 tarjetas no puede.
     /// </remarks>
+    /// <param name="quien">El botón de la fecha; lleva en <c>Tag</c> el número interno de su documento.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlAbrirElCuadroDeLaFecha(object quien, RoutedEventArgs cuando)
     {
         if (quien is not Button boton || boton.Tag is not long casoId) return;
@@ -75,6 +76,7 @@ public sealed partial class PaginaDeRevisar
     /// escribirla es un gesto y navegar meses en un calendario son varios. Cambiar de
     /// control sería una decisión de diseño y no me toca tomarla.
     /// </remarks>
+    /// <param name="loQueYaTenia">La fecha que ya tiene el documento, o vacío.</param>
     private static TextBox CajaDeLaFecha(string loQueYaTenia)
     {
         var caja = new TextBox
@@ -90,6 +92,8 @@ public sealed partial class PaginaDeRevisar
     }
 
     /// <summary>Lo que se ve dentro del cuadro: el formato, la caja y el botón.</summary>
+    /// <param name="caja">Donde se escribe la fecha.</param>
+    /// <param name="poner">El botón que la confirma.</param>
     private static StackPanel LoQueLleva(TextBox caja, Button poner)
         => new()
         {
@@ -108,6 +112,9 @@ public sealed partial class PaginaDeRevisar
     /// colgado del botón de una tarjeta que se está reconstruyendo es el mismo patrón que el
     /// 2026-09-04 tumbó el proceso sin dejar ni una línea en <c>fichas.log</c>.
     /// </remarks>
+    /// <param name="cuadro">El cuadro que se cierra antes de escribir.</param>
+    /// <param name="casoId">El documento al que se le pone la fecha.</param>
+    /// <param name="escrita">Lo que él escribió, sin validar todavía.</param>
     private void PonerLaFechaYCerrar(Flyout cuadro, long casoId, string escrita)
     {
         cuadro.Hide();
@@ -123,6 +130,8 @@ public sealed partial class PaginaDeRevisar
     /// pidió ver. Los avisos de por qué no se escribió los deja
     /// <see cref="AccionesDeRevisar.PonerLaFechaDeViaje"/> en la franja, no esta pantalla.
     /// </remarks>
+    /// <param name="casoId">El documento al que se le pone la fecha.</param>
+    /// <param name="escrita">Lo que él escribió; si no es AAAA-MM-DD no se escribe y se dice.</param>
     private void PonerLaFechaDeViaje(long casoId, string escrita)
     {
         if (_acciones is null) return;

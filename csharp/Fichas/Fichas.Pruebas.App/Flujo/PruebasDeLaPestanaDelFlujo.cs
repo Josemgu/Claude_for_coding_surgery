@@ -191,6 +191,7 @@ public sealed class PruebasDeLaPestanaDelFlujo
     }
 
     /// <summary>Los textos escritos que un usuario lee en una pantalla, sin los enlaces.</summary>
+    /// <param name="archivoXaml">La ruta del XAML que se lee.</param>
     private static List<string> RotulosDe(string archivoXaml)
         => [.. XDocument.Load(archivoXaml).Descendants()
             .SelectMany(e => e.Attributes())
@@ -212,6 +213,8 @@ public sealed class PruebasDeLaPestanaDelFlujo
     }
 
     /// <summary>La ruta de un XAML del terreno.</summary>
+    /// <param name="carpeta">La carpeta de <c>Fichas.App</c>: «Inicio», «Flujo», «Grupo» o «Cascara».</param>
+    /// <param name="archivo">El nombre del XAML dentro de ella.</param>
     private static string Xaml(string carpeta, string archivo) => Path.Combine(LaCarpeta(carpeta), archivo);
 
     /// <summary>Una carpeta de la app, buscada subiendo desde donde corre la prueba.</summary>
@@ -219,6 +222,7 @@ public sealed class PruebasDeLaPestanaDelFlujo
     /// Si no la encuentra NO pasa en verde: se declara no concluyente. Una comprobacion que
     /// no encontro donde mirar no es una comprobacion.
     /// </remarks>
+    /// <param name="cual">La carpeta de <c>Fichas.App</c> que se busca.</param>
     private static string LaCarpeta(string cual)
     {
         var actual = new DirectoryInfo(AppContext.BaseDirectory);

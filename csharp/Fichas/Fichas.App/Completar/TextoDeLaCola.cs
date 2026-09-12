@@ -17,13 +17,14 @@ namespace Fichas.App.Completar;
 /// como «listo para viajar», que es otra pregunta y la contesta otra persona. Las palabras
 /// se toman de <see cref="LasDosPreguntas"/> y no se copian aqui: escritas en dos sitios, el
 /// dia que se cambie una quedan dos redacciones para la misma cosa.</para>
+///
+/// <para>⛔ <b>Desde el 2026-09-07 «listo para asignar» no sale ni con su significado</b>
+/// (<c>DECISIONES.md</c>, «DOS ESTADOS Y NO CUATRO»): a la vista van «resuelto» y «me falta»,
+/// y las frases de esta clase dicen lo que PASO —sale de la cola, sigue en la cola— sin usar
+/// ninguna de las cuatro palabras retiradas. El parrafo de arriba cuenta como se llego aqui.</para>
 /// </remarks>
 public static class TextoDeLaCola
 {
-    /// <summary>El titulo de la pestana y de la pantalla, con las palabras del dueno.</summary>
-    /// <remarks>Literal suya, 2026-09-06: <i>«completar información de documentos que faltan»</i>.</remarks>
-    public const string TituloDeLaPestana = "Completar";
-
     /// <summary>Lo que se lee bajo el titulo, para que nadie confunda la pestana con Correccion.</summary>
     public const string DeQueVaLaPantalla =
         "Los documentos a los que les falta información, del viaje más cercano al más lejano. "
@@ -79,9 +80,16 @@ public static class TextoDeLaCola
     /// campos del caso perfectos, la frase de arriba diria «le faltan 0 datos», que es una
     /// cifra que no explica nada y que ademas se lee como un fallo del programa.
     /// <para>
-    /// Y dice lo que hay que hacer, porque desde Correccion no se puede: esta pantalla no
-    /// anade personas, asi que el documento se queda en la cola hasta que se vuelva a
-    /// importar. Callarselo dejaria a Miguel pulsando Guardar sin que nada cambiara.
+    /// Y dice lo que hay que hacer, porque cuando se escribio desde Correccion no se podia:
+    /// la pantalla no anadia personas y el documento se quedaba en la cola hasta volver a
+    /// importarlo. Callarselo dejaria a Miguel pulsando Guardar sin que nada cambiara.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>La frase quedo vieja el 2026-09-07 y no se ha tocado.</b> Desde ese dia
+    /// Correccion SI anade una persona a mano
+    /// (<see cref="Fichas.App.Correccion.ModeloDeCorreccion.AnadirUnaPersonaAMano"/>), asi que
+    /// «hay que volver a importarlo» ya no es lo unico que se puede hacer y manda al dueno por
+    /// el camino largo. Es texto de interfaz y cambiarlo es codigo: va nombrado en la entrega.
     /// </para>
     /// </remarks>
     /// <param name="numeroCaso">El numero del documento que se queda.</param>
@@ -108,13 +116,13 @@ public static class TextoDeLaCola
     /// «no queda nada» se lee como «ya pueden viajar», y el dueno dijo con todas las letras
     /// que eso lo decide otra cosa —<i>«no se ha verificado la recomendación en el sistema
     /// del obispo, que es lo que realmente verifico yo»</i>—.
-    /// </remarks>
-    /// <remarks>
+    /// <para>
     /// ⚠️ La frase dice «cada persona esté» y no «estén», y no es un capricho de estilo: la
     /// constante <see cref="LasDosPreguntas.ListaParaViajar"/> esta en SINGULAR porque es el
     /// estado de UNA persona —la unidad de trabajo es la persona, fijado el 2026-09-05—, y
     /// pegarla detras de un plural daba «que estén lista para viajar». Salio medido con la
     /// ventana abierta el 2026-09-06, no leyendo el codigo.
+    /// </para>
     /// </remarks>
     public const string CuandoNoQuedaNada =
         "No queda ningún documento con información que falte. "

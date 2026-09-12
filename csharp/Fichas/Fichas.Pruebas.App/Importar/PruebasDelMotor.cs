@@ -1,5 +1,4 @@
 using Fichas.App.Importar;
-using Fichas.Lectura;
 
 namespace Fichas.Pruebas.App.Importar;
 

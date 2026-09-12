@@ -36,11 +36,16 @@ public sealed class PruebasDeQueLaBaseSigueDiciendoQuienLoDijo
     /// <summary>La ruta que el Excel de un companero deja como origen de su marca.</summary>
     private const string ElExcelDeSandy = @"C:\paquetes\vuelta-de-sandy.xlsx";
 
+    /// <summary>El reloj parado; se monta en <see cref="Montar"/>.</summary>
     private RelojFijo _reloj = null!;
+    /// <summary>Los servicios falsos, vacíos de casos; se montan en <see cref="Montar"/>.</summary>
     private ServiciosFalsos _servicios = null!;
+    /// <summary>Las acciones de Revisar, por donde marca Miguel; se montan en <see cref="Montar"/>.</summary>
     private AccionesDeRevisar _acciones = null!;
+    /// <summary>El tablero de Revisar, por donde se lee lo que se pinta; se monta en <see cref="Montar"/>.</summary>
     private TableroDeRevisar _tablero = null!;
 
+    /// <summary>Antes de cada prueba: reloj parado en <see cref="ElDiaDeLaPrueba"/>, servicios sin casos, acciones y tablero.</summary>
     [TestInitialize]
     public void Montar()
     {
@@ -71,6 +76,9 @@ public sealed class PruebasDeQueLaBaseSigueDiciendoQuienLoDijo
         return (delExcel, deMiguel, sandy, miguel);
     }
 
+    /// <summary>Mete un documento sin marcar que viaja el 15 de octubre.</summary>
+    /// <param name="numero">Su número de caso.</param>
+    /// <returns>El número interno del documento.</returns>
     private long MeterUnCaso(string numero)
         => _servicios.Casos.Guardar(new Caso
         {

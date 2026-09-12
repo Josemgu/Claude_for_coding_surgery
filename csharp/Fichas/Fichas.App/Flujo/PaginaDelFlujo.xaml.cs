@@ -32,8 +32,11 @@ namespace Fichas.App.Flujo;
 /// </remarks>
 public sealed partial class PaginaDelFlujo : PaginaDeFichas
 {
+    /// <summary>Lo último que se pintó en la primera lista, en el mismo orden que el repetidor; por posición se sabe qué renglón se pulsó.</summary>
     private IReadOnlyList<RenglonDeCaso> _loListo = [];
+    /// <summary>Lo último que se pintó en la segunda lista, en el orden del repetidor.</summary>
     private IReadOnlyList<RenglonDeCaso> _loAsignado = [];
+    /// <summary>Las personas de la tercera lista: lo vencido delante y lo que apremia detrás, en el orden del repetidor.</summary>
     private IReadOnlyList<PersonaConTicket> _losTickets = [];
 
     /// <summary>
@@ -46,7 +49,9 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     /// </remarks>
     private readonly Dictionary<long, VentanaDeLasPreguntas> _ventanasDePreguntas = [];
 
+    /// <summary>El mismo lector que usa Inicio; nulo hasta que llegan los servicios en <see cref="AlLlegar"/>.</summary>
     private LectorDelInicio? _lector;
+    /// <summary>Lo que tardó la última lectura completa; lo expone <see cref="MilisegundosDeLaLectura"/> para que una prueba lo mida.</summary>
     private double _milisegundosDeLaLectura;
 
     /// <summary>Monta la pantalla.</summary>
@@ -94,6 +99,7 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     }
 
     /// <summary>La primera lista: lo que no le falta nada y no lo lleva nadie.</summary>
+    /// <param name="resumen">Lo que acaba de leer el lector de Inicio.</param>
     private void LlenarLoListo(ResumenDeInicio resumen)
     {
         _loListo = resumen.Listos;
@@ -103,6 +109,7 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     }
 
     /// <summary>La segunda: lo que ahora mismo llevan los companeros, y cuanto lleva cada uno.</summary>
+    /// <param name="resumen">Lo que acaba de leer el lector de Inicio.</param>
     private void LlenarLoAsignado(ResumenDeInicio resumen)
     {
         _loAsignado = resumen.Asignados;
@@ -118,6 +125,7 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     /// distintas —cada una con su linea— pero una sola lista de personas, porque lo que el hace
     /// con las dos es lo mismo, llamar al obispo, y dos listas obligarian a mirar dos veces.
     /// </remarks>
+    /// <param name="resumen">Lo que acaba de leer el lector de Inicio.</param>
     private void LlenarLoDelSistemaDelObispo(ResumenDeInicio resumen)
     {
         var loSuyo = resumen.ElSistemaDelObispo;
@@ -131,10 +139,13 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     }
 
     /// <summary>Escribe un numero sin que el idioma de la maquina le cambie el separador.</summary>
+    /// <param name="numero">La cifra que va en un contador.</param>
     private static string EnCifras(int numero)
         => numero.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>El dueno cambio de tema: se vuelve a pintar entera con la paleta nueva.</summary>
+    /// <param name="quien">La página cuyo tema cambió.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCambiarElTema(FrameworkElement quien, object cuando)
     {
         PonerLaPaletaDelTema();
@@ -152,6 +163,8 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     }
 
     /// <summary>Pulsar un documento listo lo abre en Correccion.</summary>
+    /// <param name="quien">El botón del renglón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarUnDocumentoListo(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -160,6 +173,8 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     }
 
     /// <summary>Pulsar un documento asignado lo abre en Correccion.</summary>
+    /// <param name="quien">El botón del renglón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarUnDocumentoAsignado(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -188,6 +203,8 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     /// cerca que se llega sin tocar el otro terreno, y ya se contesta ahi mismo. Que la ventana
     /// pudiera abrirse directamente en la persona pulsada queda dicho y NO hecho.</para>
     /// </remarks>
+    /// <param name="quien">El botón del renglón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarUnaPersonaConTicket(object quien, RoutedEventArgs cuando)
     {
         if (Servicios is null) return;
@@ -216,6 +233,7 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     /// Una ventana de preguntas viva sobre una pantalla que ya no existe seguiria leyendo y
     /// escribiendo en la base sin que nadie la vea desde el programa.
     /// </remarks>
+    /// <param name="cuando">Los datos de la navegación, que se pasan a la base.</param>
     protected override void OnNavigatedFrom(NavigationEventArgs cuando)
     {
         foreach (var ventana in _ventanasDePreguntas.Values.ToList()) ventana.Close();
@@ -233,6 +251,11 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     /// las ataduras compiladas se actualizan por otro camino. La posicion si la sabe el
     /// repetidor.
     /// </remarks>
+    /// <typeparam name="T">El tipo de dato de cada renglón.</typeparam>
+    /// <param name="lista">Los datos que se le dieron al repetidor, en su mismo orden.</param>
+    /// <param name="repetidor">El repetidor que pintó la lista.</param>
+    /// <param name="quien">El control que se pulsó, en cualquier profundidad dentro de un renglón.</param>
+    /// <returns>El dato del renglón pulsado, o nulo si el control no cuelga de este repetidor.</returns>
     private static T? EnLaLista<T>(IReadOnlyList<T> lista, ItemsRepeater repetidor, object? quien)
         where T : class
     {
@@ -260,6 +283,7 @@ public sealed partial class PaginaDelFlujo : PaginaDeFichas
     /// ⚠️ La peticion va POR LA COLA del hilo de la interfaz: al navegar, Correccion abre
     /// PRIMERO su propio caso y despues se le pide el que se pulso. Medido el 2026-09-04.
     /// </remarks>
+    /// <param name="casoId">El documento que se abre.</param>
     private void AbrirElCasoEnCorreccion(long casoId)
     {
         var marco = Frame;

@@ -17,6 +17,11 @@ public sealed partial class GuardadoDeHojas
     /// buscara despues, el caso recien nacido se encontraria a si mismo y todo caso seria
     /// duplicado de si mismo.
     /// </remarks>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campos">Los mismos campos, ya repartidos entre caso y personas.</param>
+    /// <param name="numeroCaso">El número de caso que leyó esta hoja, o nulo.</param>
+    /// <param name="casosDeEsteDocumento">Número de caso → id del caso abierto por una hoja anterior de este PDF; se le añade esta hoja si es la primera con su número.</param>
+    /// <returns>Un resultado con <c>Entro</c> falso si la base no dejó entrar el caso ni retirando campos.</returns>
     private ResultadoDeLaHoja AbrirUnCasoParaEstaHoja(
         HojaLeida hoja, CamposDeLaHoja campos, string? numeroCaso,
         Dictionary<string, long> casosDeEsteDocumento)
@@ -111,6 +116,10 @@ public sealed partial class GuardadoDeHojas
     /// permanente 1): un `CASP26O9` corregido a `CASP2609` por el programa seria un dato
     /// inventado.</para>
     /// </remarks>
+    /// <param name="hoja">La hoja leída, de donde salen la ruta, la página y si fue captura manual.</param>
+    /// <param name="campos">Los campos del caso, ya repartidos.</param>
+    /// <param name="numeroCaso">El número de caso leído, o nulo.</param>
+    /// <param name="duplicadoDe">El id del caso que esta hoja repite, o nulo; se guarda tal cual.</param>
     private AltaDelCaso DarDeAltaElCaso(
         HojaLeida hoja, CamposDeLaHoja campos, string? numeroCaso, long? duplicadoDe)
     {
@@ -149,6 +158,8 @@ public sealed partial class GuardadoDeHojas
     }
 
     /// <summary>Lo que se devuelve de una hoja cuyo caso el motor no dejo entrar.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="avisos">Lo que dijo la base en cada intento.</param>
     private static ResultadoDeLaHoja HojaQueNoSePudoGuardar(HojaLeida hoja, IReadOnlyList<Aviso> avisos) => new(
         Entro: false,
         CasoNuevo: false,
@@ -162,6 +173,8 @@ public sealed partial class GuardadoDeHojas
         Renglones: [MotivosDeIlegible.SinTexto]);
 
     /// <summary>Las cinco filas de procedencia del caso, una por campo que se dibuja.</summary>
+    /// <param name="casoId">El caso recién nacido.</param>
+    /// <param name="campos">De dónde salen banda, confianza y valor crudo de cada campo.</param>
     private void GuardarLaProcedenciaDelCaso(long casoId, CamposDeLaHoja campos)
     {
         foreach (var campo in CamposDeLaHoja.CamposDelCasoConProcedencia)
@@ -176,6 +189,10 @@ public sealed partial class GuardadoDeHojas
     /// personas desde 1, asi que seis hojas del mismo grupo traerian seis «fila 1»: el
     /// orden del papel se perderia justo donde hay que comparar contra el papel.
     /// </remarks>
+    /// <param name="casoId">El caso al que pertenecen.</param>
+    /// <param name="campos">Las personas de la hoja, con sus dos campos cada una.</param>
+    /// <param name="paginaPdf">La página del PDF, base 1; cero o menos se guarda como nulo.</param>
+    /// <returns>Cuántas entraron de verdad y un aviso por cada fila que la base rechazó.</returns>
     private (int Personas, IReadOnlyList<Aviso> Avisos) GuardarLasPersonas(
         long casoId, CamposDeLaHoja campos, int paginaPdf)
     {
@@ -227,6 +244,10 @@ public sealed partial class GuardadoDeHojas
     /// que le dice a la pantalla de correccion que ahi hay que teclear algo, en vez de
     /// dejar un hueco que no se distingue de un campo que nadie miro.
     /// </remarks>
+    /// <param name="tabla">Si el campo es del caso o de una persona.</param>
+    /// <param name="registroId">El id de la fila en esa tabla.</param>
+    /// <param name="campo">El nombre de la columna.</param>
+    /// <param name="propuesto">Lo que leyó el lector, o nulo si el papel no lo traía.</param>
     private void Anotar(TablaDeProcedencia tabla, long registroId, string campo, CampoPropuesto? propuesto)
         => _procedencia.Anotar(new ProcedenciaDeCampo
         {
@@ -247,6 +268,7 @@ public sealed partial class GuardadoDeHojas
         });
 
     /// <summary>El aviso de la hoja que entro sin numero de caso, o ninguno.</summary>
+    /// <param name="numeroCasoGuardado">El número con el que se quedó el caso; nulo produce el aviso.</param>
     private static Aviso[] AvisoDeSinNumero(string? numeroCasoGuardado)
         => numeroCasoGuardado is not null ? [] :
         [
@@ -259,6 +281,7 @@ public sealed partial class GuardadoDeHojas
         ];
 
     /// <summary>El aviso del caso que repite a otro, o ninguno.</summary>
+    /// <param name="duplicadoDe">El id del caso original; nulo no produce aviso.</param>
     private Aviso[] AvisoDeDuplicado(long? duplicadoDe)
     {
         if (duplicadoDe is null) return [];
@@ -282,6 +305,8 @@ public sealed partial class GuardadoDeHojas
     /// acordarse de escribir es un renglon que algun dia no se escribe, y entonces el
     /// documento ilegible se pierde otra vez, que es lo que esta tabla existe para impedir.
     /// </remarks>
+    /// <param name="hoja">La hoja leída, de donde salen ruta, página y líneas leídas.</param>
+    /// <param name="resultado">Lo que pasó con ella; sus <c>Renglones</c> son los motivos que se escriben.</param>
     private void AnotarLosRenglones(HojaLeida hoja, ResultadoDeLaHoja resultado)
     {
         foreach (var motivo in resultado.Renglones)
@@ -300,6 +325,9 @@ public sealed partial class GuardadoDeHojas
     }
 
     /// <summary>El texto libre que acompana al codigo del renglon.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="resultado">Lo que pasó con ella, con sus avisos.</param>
+    /// <param name="motivo">Una de las constantes de <see cref="MotivosDeIlegible"/>.</param>
     private static string DetalleDelRenglon(HojaLeida hoja, ResultadoDeLaHoja resultado, string motivo)
     {
         var propio = motivo switch
@@ -336,6 +364,8 @@ public sealed partial class GuardadoDeHojas
     }
 
     /// <summary>Lo que el lector leyo en el numero de caso, aunque no se pudiera guardar.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <returns>El valor limpio, si no el crudo del OCR, y si no «(nada)».</returns>
     private static string LoQueSeLeyoDelNumero(HojaLeida hoja)
     {
         var campo = hoja.Campos.FirstOrDefault(

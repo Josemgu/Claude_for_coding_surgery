@@ -12,6 +12,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDeRutasYConexion
 {
+    /// <summary>Vigila que <c>SHGetKnownFolderPath</c> devuelve una ruta absoluta que existe en esta máquina.</summary>
     [TestMethod]
     public void LaCarpetaDeDocumentosSePideALaApiYExiste()
     {
@@ -31,6 +32,7 @@ public sealed class PruebaDeRutasYConexion
             $"La carpeta que devolvio Windows no es una ruta absoluta: '{documentos}'.");
     }
 
+    /// <summary>Vigila que la carpeta se llama «Fichas» y el archivo «fichas.db».</summary>
     [TestMethod]
     public void LaCarpetaDeDatosCuelgaDeDocumentosYSeLlamaFichas()
     {
@@ -46,6 +48,7 @@ public sealed class PruebaDeRutasYConexion
             "El archivo de base no se llama 'fichas.db'.");
     }
 
+    /// <summary>Vigila las dos formas del argumento, con espacio y con igual, y que se encuentra detrás de otros.</summary>
     [TestMethod]
     public void ElArgumentoDeCarpetaMandaSobreLaCarpetaQueResuelveLaApi()
     {
@@ -67,6 +70,7 @@ public sealed class PruebaDeRutasYConexion
             "No se encontro el argumento cuando venia detras de otros.");
     }
 
+    /// <summary>Vigila que sin argumento, con otros, o con el argumento sin valor, se devuelve nulo y no se revienta.</summary>
     [TestMethod]
     public void SinArgumentoSeUsaLaCarpetaQueResuelveLaApi()
     {
@@ -89,6 +93,7 @@ public sealed class PruebaDeRutasYConexion
             "Un argumento con igual y nada detras deberia devolver nulo.");
     }
 
+    /// <summary>Vigila que «OneDrive» se detecta como segmento, en cualquier caja, y «OneDriveViejo» no.</summary>
     [TestMethod]
     public void SeDetectaOneDriveComparandoSegmentoASegmentoYNoPorSubcadena()
     {
@@ -111,6 +116,7 @@ public sealed class PruebaDeRutasYConexion
             "Una ruta normal salio como OneDrive.");
     }
 
+    /// <summary>Vigila que una conexión de solo lectura cuenta el caso y rechaza guardar otro, con aviso y sin excepción.</summary>
     [TestMethod]
     public void UnaConexionDeSoloLecturaDejaLeerYNoDejaEscribir()
     {
@@ -158,6 +164,7 @@ public sealed class PruebaDeRutasYConexion
         }
     }
 
+    /// <summary>Vigila que abrir en solo lectura un archivo inexistente lanza <c>SqliteException</c> y no crea el archivo.</summary>
     [TestMethod]
     public void AbrirUnaBaseQueNoExisteEnSoloLecturaNoLaCrea()
     {

@@ -15,12 +15,17 @@ namespace Fichas.Datos.Falso;
 /// </remarks>
 public sealed class PaquetesFalsos : IPaquetes
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public PaquetesFalsos(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Dice que genero el Excel de ida, sin escribir nada, y avisa de que es falso.</summary>
+    /// <param name="companeroId">Para quién; si no existe, no se escribe y se dice.</param>
+    /// <param name="casoIds">Qué casos irían; solo se cuentan.</param>
+    /// <param name="rutaDestino">Dónde iría el archivo; solo se nombra en el aviso.</param>
     public ResultadoDeEscritura GenerarExcelDeCompanero(long companeroId, IReadOnlyList<long> casoIds, string rutaDestino)
     {
         if (!_almacen.Companeros.TryGetValue(companeroId, out var companero))
@@ -33,6 +38,8 @@ public sealed class PaquetesFalsos : IPaquetes
     }
 
     /// <summary>Devuelve una vuelta vacia y dice por que; no lee ningun archivo.</summary>
+    /// <param name="rutaExcel">La ruta pedida; solo se nombra en el aviso.</param>
+    /// <param name="companeroId">De quién sería la hoja; no se usa.</param>
     public ResultadoDelExcelDevuelto LeerExcelDevuelto(string rutaExcel, long companeroId)
         => new([], [], [Aviso.Advierte(
             "Con los datos inventados no se lee ningun Excel devuelto.",
@@ -40,6 +47,13 @@ public sealed class PaquetesFalsos : IPaquetes
             $"La lectura de verdad llega en la fase C6. La ruta pedida era «{rutaExcel}».")]);
 
     /// <summary>Aplica las marcas al almacen escribiendo estado; NUNCA firma campos.</summary>
+    /// <remarks>
+    /// Casa cada marca por MRN y solo por MRN; la que no casa va a las descartadas con su
+    /// motivo. Esta es la parte del doble que SÍ escribe, aunque no toque el disco.
+    /// </remarks>
+    /// <param name="marcas">Las filas de la hoja devuelta.</param>
+    /// <param name="companeroId">De quién era la hoja; tiene que existir.</param>
+    /// <param name="rutaExcel">De qué archivo vino; se guarda como origen de la marca.</param>
     public ResultadoDeEscritura AplicarMarcas(IReadOnlyList<MarcaDelCompanero> marcas, long companeroId, string rutaExcel)
     {
         if (!_almacen.Companeros.ContainsKey(companeroId))

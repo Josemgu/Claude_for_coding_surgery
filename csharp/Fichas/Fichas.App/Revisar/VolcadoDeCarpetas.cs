@@ -64,6 +64,11 @@ public static class VolcadoDeCarpetas
     }
 
     /// <summary>Crea la carpeta de destino y la apunta; devuelve nulo si Windows no dejó.</summary>
+    /// <param name="raiz">La carpeta que eligió el dueño.</param>
+    /// <param name="relativa">La ruta desde la raíz, ya limpia.</param>
+    /// <param name="carpetas">Las que ya se crearon en este volcado; la nueva queda apuntada aquí.</param>
+    /// <param name="cuenta">Donde se suma un fallo si Windows no dejó crearla.</param>
+    /// <returns>La ruta entera de la carpeta, o nulo si no se pudo crear.</returns>
     private static string? Preparar(string raiz, string relativa, HashSet<string> carpetas, Cuenta cuenta)
     {
         var carpeta = Path.Combine(raiz, relativa);
@@ -85,6 +90,9 @@ public static class VolcadoDeCarpetas
     }
 
     /// <summary>Copia un documento a su carpeta; si su PDF ya no está, lo cuenta aparte.</summary>
+    /// <param name="archivo">El documento que se copia y cómo se llamará.</param>
+    /// <param name="carpeta">La ruta entera de la carpeta de destino, ya creada.</param>
+    /// <param name="cuenta">Donde se suma lo copiado, lo que no tenía origen y lo que falló.</param>
     private static void Copiar(ArchivoAVolcar archivo, string carpeta, Cuenta cuenta)
     {
         if (string.IsNullOrWhiteSpace(archivo.RutaDeOrigen) || !File.Exists(archivo.RutaDeOrigen))
@@ -110,6 +118,9 @@ public static class VolcadoDeCarpetas
     /// Con marca de orden de bytes a propósito: sin ella el Bloc de notas de Windows abre el
     /// archivo en la página de códigos del sistema y «Ana María Pérez» sale con garabatos.
     /// </remarks>
+    /// <param name="texto">La hoja que se escribe y cómo se llamará.</param>
+    /// <param name="carpeta">La ruta entera de la carpeta de destino, ya creada.</param>
+    /// <param name="cuenta">Donde se suma un fallo si Windows no dejó escribir.</param>
     private static void Escribir(TextoAVolcar texto, string carpeta, Cuenta cuenta)
     {
         try
@@ -132,6 +143,8 @@ public static class VolcadoDeCarpetas
     /// cosa. Una barra dentro del nombre crearía una carpeta de más que nadie pidió, y un
     /// nombre acabado en punto Windows lo rechaza sin decir por qué.
     /// </remarks>
+    /// <param name="nombre">Lo que salió del papel o del árbol; nulo o vacío da «sin nombre».</param>
+    /// <returns>El mismo nombre con los caracteres prohibidos cambiados por «-», sin punto ni espacio al final, y con «_» delante si Windows lo tiene reservado.</returns>
     public static string NombreSeguro(string? nombre)
     {
         if (string.IsNullOrWhiteSpace(nombre)) return SinNombre;

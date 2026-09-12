@@ -39,10 +39,6 @@ public static class Pasos
     /// <summary>Como sale impresa la septima pregunta.</summary>
     public const string RotuloDeLaLlamada = "¿Llamó al líder?";
 
-    /// <summary>Las siete columnas que rellena el companero, en el orden en que salen impresas.</summary>
-    public static IReadOnlyList<string> ColumnasQueRellenaElCompanero { get; } =
-        [.. Todos.Select(paso => paso.Nombre), ColumnaDeLaLlamada];
-
     /// <summary>
     /// Lo que ofrece el menu desplegable. Dos opciones y ninguna mas: la tercera respuesta
     /// —no contestar— se da dejando la celda en blanco, y un valor de menu que dijera «sin
@@ -53,13 +49,18 @@ public static class Pasos
     // Como llega escrito «si» y como llega escrito «no» cuando alguien no usa el menu. La
     // lista sale del programa viejo, donde se fue llenando con lo que los agentes escribian
     // de verdad.
+    /// <summary>Las formas ya normalizadas que se leen como «Sí». Se compara con <see cref="Normalizar"/> delante, por eso van sin tilde.</summary>
     private static readonly HashSet<string> FormasDelSi =
         ["si", "si completa", "completa", "s", "x", "true", "1", "listo", "hecho"];
 
+    /// <summary>Las formas ya normalizadas que se leen como «No».</summary>
     private static readonly HashSet<string> FormasDelNo =
         ["no", "no esta completa", "incompleta", "n", "false", "0", "falta", "pendiente"];
 
+    /// <summary>Todo lo que no sea letra, dígito, guion bajo o blanco: la puntuación que se quita antes de comparar.</summary>
     private static readonly Regex LoQueNoEsLetraNiEspacio = new(@"[^\w\s]", RegexOptions.Compiled);
+
+    /// <summary>Uno o más blancos seguidos, para dejarlos en un solo espacio.</summary>
     private static readonly Regex EspaciosDeSobra = new(@"\s+", RegexOptions.Compiled);
 
     /// <summary>
@@ -70,6 +71,8 @@ public static class Pasos
     /// «Si.» segun le salga, y las dos quieren decir lo mismo; comparar con la coma puesta
     /// convertia una respuesta buena en un reparo.
     /// </remarks>
+    /// <param name="texto">Lo que traía la celda; nulo cuenta como vacío.</param>
+    /// <returns>Minúsculas, sin marcas diacríticas, sin puntuación y con un solo espacio entre palabras; puede ser la cadena vacía.</returns>
     public static string Normalizar(string? texto)
     {
         var descompuesto = (texto ?? string.Empty).Normalize(NormalizationForm.FormKD);
@@ -132,6 +135,7 @@ public static class Pasos
     /// persona de la que faltan preguntas por mirar es exactamente lo que manda a alguien
     /// al templo con la recomendacion mal.
     /// </remarks>
+    /// <param name="respuestas">Las respuestas por nombre de columna; un paso que no esté en el diccionario cuenta como en blanco.</param>
     public static bool? EstadoDeLosPasos(IReadOnlyDictionary<string, bool?> respuestas)
     {
         var valores = Todos.Select(paso => respuestas.TryGetValue(paso.Nombre, out var v) ? v : null).ToArray();

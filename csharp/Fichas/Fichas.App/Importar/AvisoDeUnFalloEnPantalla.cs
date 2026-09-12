@@ -53,6 +53,9 @@ public static class AvisoDeUnFalloEnPantalla
     /// la franja ya se cerro. Se lee renglon a renglon, asi que una entrada con saltos
     /// dentro se mezclaria con las de al lado y dejaria de poderse buscar.
     /// </remarks>
+    /// <param name="accion">Qué se estaba haciendo, tal como se lee en el botón.</param>
+    /// <param name="fallo">Lo que se escapó del manejador; va entero, con su traza.</param>
+    /// <returns>Un renglón que empieza por «FALLO EN PANTALLA» y no lleva saltos de línea.</returns>
     public static string LineaParaElCuaderno(string accion, Exception fallo)
     {
         ArgumentNullException.ThrowIfNull(fallo);
@@ -65,10 +68,13 @@ public static class AvisoDeUnFalloEnPantalla
     /// Sin la traza no hay forma de saber en que linea se rompio, y entonces el aviso
     /// sirve para enterarse pero no para arreglarlo.
     /// </remarks>
+    /// <param name="accion">Qué se estaba haciendo, tal como se lee en el botón.</param>
+    /// <param name="fallo">Lo que se escapó del manejador.</param>
     private static string DetalleDe(string accion, Exception fallo)
         => $"Acción: {accion}{Environment.NewLine}{Environment.NewLine}{fallo}";
 
     /// <summary>Aplana saltos, retornos y tabuladores, y junta los espacios de sobra.</summary>
+    /// <param name="texto">El texto tal como vino; nulo o vacío devuelve vacío.</param>
     private static string EnUnRenglon(string texto)
     {
         if (string.IsNullOrEmpty(texto)) return string.Empty;
@@ -99,6 +105,8 @@ public static class AvisoDeUnFalloEnPantalla
     /// dueño): quien componga otra linea larga —los avisos de la importacion, por ejemplo—
     /// la recorta con este mismo, y no con una copia que se quede vieja.
     /// </remarks>
+    /// <param name="linea">La línea entera, ya en un solo renglón.</param>
+    /// <returns>La misma línea si cabe; si no, sus primeros 159 caracteres y «…».</returns>
     public static string Recortar(string linea)
         => linea.Length <= LargoMaximoDeLaLinea
             ? linea

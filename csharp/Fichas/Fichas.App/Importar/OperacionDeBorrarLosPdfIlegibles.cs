@@ -1,5 +1,4 @@
 using Fichas.App.Cascara;
-using Fichas.Contratos.Modelos;
 using Fichas.Contratos.Puertos;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -39,8 +38,11 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed class OperacionDeBorrarLosPdfIlegibles
 {
+    /// <summary>El puerto que hace la copia, planea y borra; el orden vive ahí, no aquí.</summary>
     private readonly IIlegibles _ilegibles;
+    /// <summary>La franja de avisos de la ventana, donde se dejan los motivos y lo que no entró en el plan.</summary>
     private readonly BuzonDeAvisos _avisos;
+    /// <summary>El cuaderno <c>fichas.log</c>, donde queda qué se borró, o que se canceló y dónde quedó la copia.</summary>
     private readonly Registro _registro;
 
     /// <summary>Ata la operación al puerto, al buzón de la franja y al cuaderno.</summary>
@@ -63,7 +65,12 @@ public sealed class OperacionDeBorrarLosPdfIlegibles
     /// </summary>
     /// <param name="renglonIds">Los renglones marcados en la lista.</param>
     /// <param name="raiz">La raíz visual sobre la que se levanta el cuadro.</param>
-    /// <returns>La línea del acuse, o nulo si no se borró nada.</returns>
+    /// <returns>La línea del acuse; si el dueño dijo que no, una línea que dice dónde quedó la copia; nulo si no había nada marcado o el plan no se pudo hacer.</returns>
+    /// <remarks>
+    /// Es la petición del dueño del 2026-09-07 («este documento no tiene información de
+    /// ninguna persona, debería permitirme eliminarlo»), hecha con pregunta y con copia
+    /// previa, como todo borrado de este programa (DECISIONES.md 2026-09-04, punto 9).
+    /// </remarks>
     public async Task<string?> PreguntarYBorrar(IReadOnlyCollection<long> renglonIds, XamlRoot raiz)
     {
         ArgumentNullException.ThrowIfNull(renglonIds);
@@ -105,6 +112,9 @@ public sealed class OperacionDeBorrarLosPdfIlegibles
     /// El botón por defecto es el que NO borra: si alguien pulsa Intro sin leer, no pasa
     /// nada. Y el texto se puede seleccionar para poder copiar la ruta de la copia.
     /// </remarks>
+    /// <param name="plan">El plan ya con su copia hecha, del que salen la cifra y la ruta.</param>
+    /// <param name="raiz">La raíz visual sobre la que se levanta el cuadro.</param>
+    /// <returns>Verdadero solo si pulsó el botón que borra.</returns>
     private static async Task<bool> LoConfirma(PlanDeBorrado plan, XamlRoot raiz)
     {
         var cuerpo = new TextBlock

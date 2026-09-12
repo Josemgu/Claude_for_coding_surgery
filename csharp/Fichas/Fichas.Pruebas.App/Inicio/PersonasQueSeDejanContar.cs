@@ -25,9 +25,11 @@ namespace Fichas.Pruebas.App.Inicio;
 /// </remarks>
 public sealed class PersonasQueSeDejanContar : IPersonas
 {
+    /// <summary>El repositorio que de verdad contesta; todo se le pasa tal cual.</summary>
     private readonly IPersonas _dedentro;
 
     /// <summary>Envuelve al de verdad.</summary>
+    /// <param name="dedentro">El repositorio que contesta; normalmente el falso.</param>
     public PersonasQueSeDejanContar(IPersonas dedentro) => _dedentro = dedentro;
 
     /// <summary>Cuantas veces se ha pedido la lista entera.</summary>

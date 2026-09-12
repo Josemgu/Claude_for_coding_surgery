@@ -33,11 +33,16 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeAvisarNuncaImpedir
 {
+    /// <summary>El id fijo del caso que monta cada prueba; a mano, para no depender del sorteo del generador.</summary>
     private const long CasoDePrueba = 100;
+    /// <summary>La persona que llega con una cedula bien formada; es la que se estropea a proposito.</summary>
     private const long PersonaConCedula = 101;
+    /// <summary>La otra persona del caso, para comprobar que lo bueno de la misma pasada no se pierde.</summary>
     private const long OtraPersona = 102;
+    /// <summary>El companero con el que se intenta firmar.</summary>
     private const long CompaneroDePrueba = 1;
 
+    /// <summary>La cedula con la que entra la persona; es la forma buena del papel.</summary>
     private const string CedulaOriginal = "055-1111-3853";
 
     /// <summary>Un caso conocido con dos personas, una de ellas con cedula buena.</summary>
@@ -77,10 +82,14 @@ public sealed class PruebasDeAvisarNuncaImpedir
         return servicios;
     }
 
+    /// <summary>Monta el modelo sobre esos servicios, sin cargar ningun caso todavia.</summary>
+    /// <param name="servicios">La base inventada de la prueba.</param>
     private static ModeloDeCorreccion ModeloSobre(ServiciosFalsos servicios)
         => new(servicios.Casos, servicios.Personas, servicios.Procedencia,
                servicios.LecturaDePdf, servicios.Extraccion, servicios.Reloj, servicios.Companeros);
 
+    /// <summary>La clave con la que se teclea la cedula de esa persona, compuesta como la compone la pantalla.</summary>
+    /// <param name="personaId">La persona.</param>
     private static string ClaveDeLaCedula(long personaId)
         => CampoEnPantalla.ClaveDe(TablaDeProcedencia.Personas, personaId, "mrn");
 

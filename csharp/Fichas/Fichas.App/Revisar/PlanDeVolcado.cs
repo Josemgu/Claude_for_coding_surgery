@@ -63,6 +63,9 @@ public sealed record PlanDeVolcado(
     }
 
     /// <summary>La ruta relativa mes / fecha / unidad, con cada tramo ya limpio para Windows.</summary>
+    /// <param name="mes">La carpeta de mes.</param>
+    /// <param name="fecha">La carpeta de fecha dentro del mes.</param>
+    /// <param name="unidad">La carpeta de unidad dentro de la fecha.</param>
     private static string CarpetaDe(GrupoDeMes mes, GrupoDeFecha fecha, GrupoDeUnidad unidad)
         => Path.Combine(
             VolcadoDeCarpetas.NombreSeguro(mes.Carpeta),
@@ -70,6 +73,8 @@ public sealed record PlanDeVolcado(
             VolcadoDeCarpetas.NombreSeguro(unidad.Carpeta));
 
     /// <summary>Los documentos de una unidad, cada uno con un nombre de destino distinto.</summary>
+    /// <param name="unidad">La unidad cuyos documentos se copian.</param>
+    /// <param name="carpeta">La ruta relativa donde van, ya limpia.</param>
     private static IEnumerable<ArchivoAVolcar> DocumentosDe(GrupoDeUnidad unidad, string carpeta)
     {
         var yaPuestos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -88,6 +93,8 @@ public sealed record PlanDeVolcado(
     /// el número <c>CASP2609</c> y son de siete familias distintas, así que el número no
     /// distingue; y un mismo PDF puede traer varias hojas, así que el archivo tampoco.
     /// </remarks>
+    /// <param name="documento">La tarjeta del documento que se copia.</param>
+    /// <returns>El nombre con la extensión del original; recortado a <see cref="LargoMaximoDelNombre"/> antes de la extensión.</returns>
     private static string NombreDeDestino(TarjetaDeDocumento documento)
     {
         var extension = Path.GetExtension(documento.Archivo);
@@ -99,6 +106,8 @@ public sealed record PlanDeVolcado(
     }
 
     /// <summary>Un nombre que no esté ya puesto en esa carpeta; el repetido lleva « (2)» detrás.</summary>
+    /// <param name="propuesto">El nombre que se quería poner.</param>
+    /// <param name="yaPuestos">Los nombres ya usados en esa carpeta; el que se devuelve queda apuntado aquí.</param>
     private static string NombreLibre(string propuesto, HashSet<string> yaPuestos)
     {
         if (yaPuestos.Add(propuesto)) return propuesto;
@@ -120,6 +129,10 @@ public sealed record PlanDeVolcado(
     /// paquete de personas de la unidad que viajará»—. No inventa nada: lo que la base no
     /// tiene sale dicho como que falta, que es un dato (regla permanente 1).
     /// </remarks>
+    /// <param name="fecha">La fecha de viaje, para la cabecera de la hoja.</param>
+    /// <param name="unidad">La unidad cuyas personas se listan.</param>
+    /// <param name="personas">El puerto del que se leen las personas de cada documento.</param>
+    /// <returns>El texto entero de la hoja, con una cuenta al final.</returns>
     private static string HojaDePersonas(GrupoDeFecha fecha, GrupoDeUnidad unidad, IPersonas personas)
     {
         var hoja = new StringBuilder();

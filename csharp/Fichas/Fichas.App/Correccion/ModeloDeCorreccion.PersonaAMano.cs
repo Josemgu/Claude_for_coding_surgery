@@ -65,9 +65,15 @@ public sealed partial class ModeloDeCorreccion
     /// requisito 9 del dueno —«avisar, nunca impedir»— y lo mismo que dice la migracion 17 al
     /// quitarle el <c>CHECK</c> a <c>personas.mrn</c>: lo que un <c>CHECK</c> tira ahi no es un
     /// dato, es la fila de una persona.</para>
+    ///
+    /// <para>Por que anadir UNA persona basta para desatascar el documento: la unidad de trabajo
+    /// es la persona, no el documento —dueno, 2026-09-05, <c>DECISIONES.md</c> «El ticket es por
+    /// persona»—. Cada persona es un ticket con sus seis preguntas; sin ninguna, no hay ticket
+    /// que abrir.</para>
     /// </remarks>
-    /// <param name="nombre">El nombre que se tecleo.</param>
+    /// <param name="nombre">El nombre que se tecleo; sin el no se escribe nada.</param>
     /// <param name="cedula">La cedula que se tecleo, o nada.</param>
+    /// <returns>Si entro, con su numero interno; si no, el motivo en una linea. Nunca lanza.</returns>
     public ResultadoDeAnadirPersona AnadirUnaPersonaAMano(string? nombre, string? cedula)
     {
         if (_caso is null) return NoSePudo(TextoDeLaPersonaAMano.SinDocumentoAbierto);
@@ -139,6 +145,9 @@ public sealed partial class ModeloDeCorreccion
     /// decir que si seria inventarse un origen.
     /// </para>
     /// </remarks>
+    /// <param name="personaId">La persona recien escrita.</param>
+    /// <param name="campo">La columna: el nombre o la cedula.</param>
+    /// <param name="valor">Lo que se tecleo, ya limpio; nulo anota origen «vacio».</param>
     private void AnotarQueLoEscribioUnaMano(long personaId, string campo, string? valor)
         => _procedencia.Anotar(new ProcedenciaDeCampo
         {
@@ -168,6 +177,9 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>No se escribio nada, y se dice por que en una linea.</summary>
+    /// <param name="linea">El motivo, que va a la vez en el aviso y en el pie.</param>
+    /// <param name="detalle">Lo que hay que hacer, para el aviso; nulo si la linea basta.</param>
+    /// <param name="campo">La columna a la que apunta el aviso; vacio si no es de ningun campo.</param>
     private static ResultadoDeAnadirPersona NoSePudo(string linea, string? detalle = null, string campo = "")
         => new(false, 0, [Aviso.Advierte(linea, campo, detalle)], linea);
 }

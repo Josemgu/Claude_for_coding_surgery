@@ -55,8 +55,10 @@ public static class PinturaDelGrupo
     /// El detalle de un renglon; en rojo cuando hay que mirarlo —el PDF que no esta en su
     /// ruta (C13-6), o una fecha que ya paso—.
     /// </summary>
+    /// <param name="hayQueMirarlo">Si el detalle avisa de algo: entonces va en rojo.</param>
     public static Brush TintaDelDetalle(bool hayQueMirarlo) => PinturaDeInicio.TintaDelDetalle(hayQueMirarlo);
 
     /// <summary>Traduce un si/no a que se vea o no; el motivo esta en <see cref="PinturaDeInicio.SeVe"/>.</summary>
+    /// <param name="si">Si el elemento tiene que verse.</param>
     public static Visibility SeVe(bool si) => PinturaDeInicio.SeVe(si);
 }

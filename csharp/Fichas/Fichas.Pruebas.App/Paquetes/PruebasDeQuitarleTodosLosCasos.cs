@@ -165,6 +165,7 @@ public sealed class PruebasDeQuitarleTodosLosCasos
     // ---- el montaje ---------------------------------------------------------
 
     /// <summary>Tres documentos con una persona cada uno, y devuelve sus ids.</summary>
+    /// <param name="banco">El banco de la prueba.</param>
     private static long[] TresDocumentos(BaseDelPaquete banco)
     {
         var ids = new long[3];
@@ -178,6 +179,9 @@ public sealed class PruebasDeQuitarleTodosLosCasos
     }
 
     /// <summary>Firma el numero de caso por el unico camino que hay: la procedencia.</summary>
+    /// <param name="banco">El banco de la prueba.</param>
+    /// <param name="casoId">El documento cuyo número se firma.</param>
+    /// <param name="quienFirma">El id del compañero que firma.</param>
     private static void FirmarElNumeroDeCaso(BaseDelPaquete banco, long casoId, long quienFirma)
     {
         banco.Procedencia.Anotar(new ProcedenciaDeCampo

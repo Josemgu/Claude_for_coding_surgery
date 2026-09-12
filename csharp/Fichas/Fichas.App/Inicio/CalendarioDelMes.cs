@@ -39,6 +39,7 @@ public static class CalendarioDelMes
     /// <param name="hoy">El dia de hoy segun el reloj del programa, para marcarlo.</param>
     /// <param name="finDeLaVentana">Ultimo dia de la ventana de 7 dias, para sombrearla.</param>
     /// <param name="gruposPorDia">Los grupos de cada fecha, ya agrupados y ordenados.</param>
+    /// <returns>Las 42 celdas con su título; nunca lanza por un mes sin grupos.</returns>
     public static MesDelCalendario Armar(
         DateOnly unDiaDelMes,
         DateOnly hoy,
@@ -61,6 +62,11 @@ public static class CalendarioDelMes
     }
 
     /// <summary>Arma una celda: su fecha, su numero, sus marcas y las pastillas que caben.</summary>
+    /// <param name="fecha">El día de la celda.</param>
+    /// <param name="mesQueSeEnsena">El número del mes que se enseña, para saber si la celda es relleno.</param>
+    /// <param name="hoy">El día de hoy.</param>
+    /// <param name="finDeLaVentana">El último día de la ventana sombreada.</param>
+    /// <param name="gruposPorDia">Los grupos de cada fecha; un día que no está no tiene ninguno.</param>
     private static DiaDelCalendario ArmarElDia(
         DateOnly fecha,
         int mesQueSeEnsena,
@@ -84,6 +90,7 @@ public static class CalendarioDelMes
     }
 
     /// <summary>Cuantos dias hay que retroceder para caer en lunes; domingo son seis.</summary>
+    /// <param name="fecha">El día desde el que se retrocede.</param>
     private static int DiasDesdeElLunes(DateOnly fecha)
         => fecha.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)fecha.DayOfWeek - 1;
 }

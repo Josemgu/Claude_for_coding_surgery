@@ -56,10 +56,12 @@ public static class LibroDelInforme
     /// <remarks>Nueve digitos caben de sobra en un recuento y no llegan a desbordar un <c>int</c>.</remarks>
     private const int DigitosDeUnRecuento = 9;
 
+    /// <summary>La fila de la primera persona en cada pestaña de tabla: la 1 son los rótulos.</summary>
     private const int PrimeraFilaDeDatos = 2;
 
     /// <summary>Cuantas filas de datos lleva el informe entero, sin contar cabeceras.</summary>
     /// <remarks>Se dice en el aviso: es lo que se puede comprobar abriendo el archivo.</remarks>
+    /// <param name="documento">El documento armado.</param>
     public static int CuantasFilasLleva(Documento documento)
     {
         ArgumentNullException.ThrowIfNull(documento);
@@ -68,6 +70,8 @@ public static class LibroDelInforme
     }
 
     /// <summary>El libro entero. Quien lo recibe lo cierra; no toca el disco.</summary>
+    /// <param name="documento">El documento armado, el mismo que va al PDF.</param>
+    /// <returns>Una pestaña de resumen y una por sección, en el orden del documento.</returns>
     public static XLWorkbook Construir(Documento documento)
     {
         ArgumentNullException.ThrowIfNull(documento);
@@ -88,6 +92,7 @@ public static class LibroDelInforme
     /// rechaza por extension cualquier archivo que no acabe en <c>.xlsx</c>, y quien escribe
     /// pasa antes por un <c>.parcial</c>.
     /// </remarks>
+    /// <param name="documento">El documento armado.</param>
     public static byte[] EnBytes(Documento documento)
     {
         using var libro = Construir(documento);
@@ -106,6 +111,9 @@ public static class LibroDelInforme
     /// caratula. Las cifras de la portada SÍ entran como numeros, que es lo que permite
     /// comprobarlas contra las hojas de al lado sin volver a teclearlas.
     /// </remarks>
+    /// <param name="hoja">La pestaña de resumen, recién creada y vacía.</param>
+    /// <param name="documento">El documento armado.</param>
+    /// <param name="pestanas">El nombre de la pestaña de cada sección, en su orden, para el índice.</param>
     private static void EscribirElResumen(
         IXLWorksheet hoja, Documento documento, IReadOnlyList<string> pestanas)
     {
@@ -144,6 +152,11 @@ public static class LibroDelInforme
     }
 
     /// <summary>Una seccion en el indice: su pestana, su titulo entero, sus notas y su resumen.</summary>
+    /// <param name="hoja">La pestaña de resumen.</param>
+    /// <param name="fila">La fila donde empieza esta entrada.</param>
+    /// <param name="pestana">El nombre de la pestaña de la sección, en negrita en la columna 1.</param>
+    /// <param name="seccion">La sección; su título, notas y resumen van en la columna 2.</param>
+    /// <returns>La fila donde empieza la entrada siguiente, dejando una en blanco.</returns>
     private static int EscribirLaEntradaDelIndice(IXLWorksheet hoja, int fila, string pestana, Seccion seccion)
     {
         hoja.Cell(fila, 1).SetValue(pestana);
@@ -167,6 +180,10 @@ public static class LibroDelInforme
     }
 
     /// <summary>Una linea suelta de la caratula, en la columna 1.</summary>
+    /// <param name="hoja">La pestaña de resumen.</param>
+    /// <param name="fila">En qué fila.</param>
+    /// <param name="texto">Lo que se escribe; entra con <c>SetValue</c>, nunca como fórmula.</param>
+    /// <param name="negrita">Si va en negrita.</param>
     private static void Rotulo(IXLWorksheet hoja, int fila, string texto, bool negrita = false)
     {
         var celda = hoja.Cell(fila, 1);
@@ -181,6 +198,8 @@ public static class LibroDelInforme
     /// Una seccion sin filas conserva su pestana con la cabecera: dice «esto existe y esta
     /// vacio», que no es lo mismo que no tener la pestana. Es la misma decision que el espejo.
     /// </remarks>
+    /// <param name="hoja">La pestaña de la sección, recién creada y vacía.</param>
+    /// <param name="seccion">La sección; el ancho de cada columna del documento se usa tal cual como ancho de Excel.</param>
     private static void EscribirLaSeccion(IXLWorksheet hoja, Seccion seccion)
     {
         for (var numero = 1; numero <= seccion.Columnas.Count; numero++)
@@ -226,6 +245,9 @@ public static class LibroDelInforme
     /// que deja que ClosedXML adivine el tipo: un nombre leido por OCR que empiece por «=» no
     /// es una formula.</para>
     /// </remarks>
+    /// <param name="celda">La celda destino.</param>
+    /// <param name="valor">El texto tal como está en el documento; nulo o vacío deja la celda sin tocar.</param>
+    /// <param name="clase">La clase de la columna, que decide si puede entrar como fecha o como número.</param>
     private static void EscribirCelda(IXLCell celda, string? valor, ClaseDeColumna clase)
     {
         if (string.IsNullOrEmpty(valor)) return;
@@ -254,6 +276,7 @@ public static class LibroDelInforme
     /// defensa: <c>0700016</c> no es un recuento, es un numero de unidad, y como numero
     /// perderia el cero.
     /// </remarks>
+    /// <param name="valor">El texto de la celda, no vacío.</param>
     private static bool EsUnRecuentoQueSeDejaSumar(string valor)
     {
         if (valor.Length > DigitosDeUnRecuento) return false;

@@ -3342,3 +3342,69 @@ Medido en el paquete publicado, con 12 casos y 3 archivados:
 
 Son **contadores agregados, no apariciones de un caso**. Si el dueño los lee como
 «sigue apareciendo», se quitan: es decisión suya y **se le devuelve**.
+
+## Deuda del 2026-09-11 — lo que vieron los programadores quitando código muerto y documentando
+
+Lo anota el supervisor, que NO lo ha comprobado salvo donde lo dice. Cada punto lleva quién lo vio. Nada de esto está arreglado: son hallazgos de lectura, no mediciones con la ventana abierta. Los dos marcados ⚠️ TEXTO DE PANTALLA son frases que el dueño ve y que las decisiones del 07 y del 11 dejaron falsas.
+
+
+### Fichas.Datos (programador de Datos)
+1. Nombres de prueba desfasados (dicen 108/20 columnas, comprueban 111/22): `PruebaDelEsquema.ElEsquemaSumaLasCientoOchoColumnas…`, `PruebaDeLaBaseReal.LasColumnasDeUnRespaldoMigradoSonLasCientoOcho`, `PruebaDeLosRepositorios.UnCasoSeGuardaYSeReleeConSusVeinteColumnas`.
+2. Comentarios `//` desfasados: `PruebaDeMigraciones.cs:82` «son 17 en total» (son 19); cabecera de `MigracionesQueAnadenColumnas.cs` (reconstrucciones 2, 7, 12, 15: faltan 16 y 17); `ReconstructorDeTablas.cs:152` «tres migraciones» (son seis).
+3. `MigracionesQueAnadenColumnas.Aplicar` y `MigracionesQueCreanTablas.Aplicar` sin transacción: si falla la tercera columna, las dos primeras quedan y la versión no se registra; la siguiente apertura daría «duplicate column».
+4. `ReglasDeFormato.RevisarFechaViaje`: admite año `0000` y `DateTime.DaysInMonth` lanzaría.
+5. `EtiquetasDeLaCarga.Conocidas` sin `personas.pasos_por` (migración 19).
+6. `RespaldoAntesDeBorrar.Hacer`: si `BackupDatabase` falla a medias, el destino parcial no se borra.
+7. `RepositorioDeProcedencia.Firmar` sin fila: el mensaje nombra el registro y no la terna.
+
+### Fichas.Contratos (visto por el de Datos)
+- `Fichas.Contratos\Lectura\Lectura.cs`: 5 CS1587 + 5 CS1573 en `CampoPropuesto` y `MarcaDelCompanero` (comentarios XML mal colocados / parámetros sin `<param>`).
+
+### Código muerto (programadores del 11)
+- «sin ninguna persona leída» como literal en 3 sitios (`LectorDeGrupos.cs:385`, `LoQueLeFalta.cs:145`, `ModelosDeInicio.cs:353`); la constante que existía no la usaba ninguno.
+- `Espejo.Regenerar` (449 líneas, criterio C6-8 «el espejo se regenera tras cada guardado») escrito y sin cablear en la App.
+- `PruebaDeRendimiento.ElRepartoEnPaginasNoEsCuadraticoConElNumeroDeFilas` cae 1 de 5 con carga (106 ms > 50 ms).
+- Contratos: `Contacto` y sus 8 propiedades y `VersionDeEsquema.AplicadaEn` solo en 1 prueba cada uno; `RespuestaALosPasos.SinContestar` (IPersonas.cs:44) 0 apariciones.
+- Dejados a propósito por dudar: `CasillasDeOrdenanza` (FASE C3b), `EstaResuelto`/`CamposSinResolver`, `DetalleDeLoQueLeFalta`, `Explicacion`/`TrozosDeLaExplicacion` (sin terminar, sin pantalla).
+
+### Fichas.Reportes (programador de Reportes)
+1. `ReportesEnPdf.Escribir` (~415): la cifra de páginas del aviso se calcula sin el aviso de caracteres perdidos que `Maqueta.ConstruirPdf` sí añade; con caracteres fuera de WinAnsi puede decir una página menos.
+2. `LibroDelInforme.EscribirCelda` (remarks): habla de «unidad · número» en una celda; desde el 09-08 va en dos columnas. Comentario caducado.
+3. `ReportesEnPdf.Limpiar` traga `IOException`/`UnauthorizedAccessException` (justificado en el código).
+4. Documentación previa sin tildes en todo Reportes; lo nuevo con tildes. Estilo mezclado.
+
+### App · Revisar/Grupo (programador de Revisar)
+1. Summaries de `ArchivarEnLote`, `PaginaDeRevisar.xaml.cs:17`, `TableroDeRevisar.cs:60` hablan de «seis tableros» (son cinco) y de C8-3 en el calendario; lo rigen las decisiones del 06/07.
+2. `ModelosDeGrupo.PersonaDelGrupo.Detalle` con dos `<remarks>` seguidos.
+3. `AccionesDeRevisar.PonerLaFechaDeViaje` y `EscribirElMotivo` pasan por `Guardar` (fila entera) por falta de método en el puerto.
+
+### App · Importar/Paquetes/Reportes (programador de Importar)
+1. `GuardadoDeHojas.GuardarLasHojasDelDocumento` sigue uniendo hojas por número de caso; el dueño dijo el 09-10 que las hojas pueden ser documentos distintos. Decisión abierta.
+2. ⚠️ TEXTO DE PANTALLA desmentido: `OperacionDelPaquete.LoQueVaYLoQueNo` dice de lo devuelto completo «Siguen asignados a su nombre»; desde el 09-07/09-11 ya no es cierto.
+3. Deudas declaradas en los propios archivos: segundo sitio que abre cuadro (`OperacionDeBorrarLosPdfIlegibles`), sondeo `as IReportesEnExcel`, interfaz duplicada `IReporteDeLaSegundaVuelta` por Contratos congelado.
+
+### App · Corrección/Completar (programador de Corrección)
+1. ⚠️ TEXTO DE PANTALLA viejo: `TextoDeLaCola.AlSeguirSinNingunaPersona` dice «volver a importarlo»; desde el 09-07 Corrección añade personas a mano.
+2. Cuatro regex duplicados entre `App/Correccion/ReglasDeCampo` y `Fichas.Datos/Validacion/ReglasDeFormato`; nadie decidió cuál manda.
+3. Remark de `RespuestaDelCompanero` afirma que las pantallas no referencian Reportes; cinco archivos de la carpeta usan `Fichas.Reportes.Reglas.Plural`.
+4. ~30 manejadores de eventos WinUI con summary pero sin `<param>` (firma impuesta).
+
+### Nombres (medido por el supervisor el 11)
+- `ELTC2609_Maria_Clarisa_Simulado.pdf` en dos comentarios: NO coincide con ningún PDF real del dueño (los ELTC reales empiezan por otros nombres). Inventado, vale.
+- Los nombres de pila de los PDF reales, buscados uno a uno en git: 0 en código y documentos, SALVO dos variables de prueba llamadas como personas reales (`lyris`, `julie`) en `Fichas.Pruebas.Paquetes/PruebasDeLaVuelta.cs` y `PruebasDelMotivoDelCompanero.cs` (los valores ya son inventados: «Elena», «Julia»). Renombrar las variables en un pase pequeño.
+
+### Lectura / Paquetes (programador de Lectura)
+1. `PruebaDelTachonQueViajaConElCampo.cs:84-88`: comentario `//` dice que la extracción no llena `ValorOcr`; `Extraccion.Anadir` sí lo pasa desde el 09-07.
+2. `Motivos.ClaveRota` (`Reconciliacion.cs`) omite la tercera parte (id) de la clave desde el 09-03.
+3. `Espejo.EscribirCelda` hace `(string)valor` tras el switch: un tipo no previsto reventaría.
+
+## Petición del dueño del 2026-09-11, para aplicar luego — el menú de grupos y fechas de Revisar, adaptable
+
+Sus palabras, tal cual: *«que el menú de donde muestra los grupos y las fechas pueda ser
+responsive en Revisar»*. Es decir: en la pestaña Revisar, el panel que lista los grupos
+de fecha y las carpetas tiene que adaptarse al tamaño de la ventana (ancho, alto,
+desplazamiento) y no quedarse fijo ni cortado. Anotado por el supervisor; **no está
+medido** qué pasa hoy al achicar la ventana ni en qué tamaño se rompe: lo primero del
+pase será medirlo con la ventana abierta a 1100×700 y a pantalla completa. Terreno:
+`Fichas.App/Revisar/` (`PaginaDeRevisar.xaml`, `ArbolDeRevisar`). Va después de la
+actualización automática y del cierre de la documentación.

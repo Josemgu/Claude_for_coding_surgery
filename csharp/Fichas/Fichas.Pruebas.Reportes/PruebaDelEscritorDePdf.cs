@@ -14,8 +14,11 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelEscritorDePdf
 {
+    /// <summary>Los bytes leídos como Latin-1, que es byte a byte lo que escribe el motor, para poder buscar texto dentro.</summary>
+    /// <param name="crudo">Los bytes del PDF o de un trozo.</param>
     private static string ComoLatino(byte[] crudo) => Encoding.Latin1.GetString(crudo);
 
+    /// <summary>Vigila que tildes y eñes se codifican sin perder ninguno.</summary>
     [TestMethod]
     public void WinAnsiGuardaLasTildesYLasEnesSinPerderNada()
     {
@@ -25,6 +28,7 @@ public class PruebaDelEscritorDePdf
         Assert.AreEqual("Preparación para el niño", ComoLatino(crudo));
     }
 
+    /// <summary>Vigila que un ideograma sale como «?» y se cuenta, uno por carácter.</summary>
     [TestMethod]
     public void WinAnsiCuentaLosCaracteresQueNoCaben()
     {
@@ -36,6 +40,7 @@ public class PruebaDelEscritorDePdf
         Assert.AreEqual("Ana ?? Anonimo", ComoLatino(crudo));
     }
 
+    /// <summary>Vigila que la barra y los dos paréntesis salen escapados con barra.</summary>
     [TestMethod]
     public void EscaparCubreLosTresCaracteresQueUnLiteralDePdfNoAdmite()
     {
@@ -44,6 +49,7 @@ public class PruebaDelEscritorDePdf
         Assert.AreEqual(@"a\\b\(c\)d", ComoLatino(EscritorDePdf.Escapar(crudo)));
     }
 
+    /// <summary>Vigila la cabecera, el cierre, el catálogo y las fuentes base con WinAnsi de un PDF de una página vacía.</summary>
     [TestMethod]
     public void ElPdfAbreConSuCabeceraYCierraConSuEof()
     {
@@ -57,6 +63,7 @@ public class PruebaDelEscritorDePdf
         StringAssert.Contains(texto, "/Encoding /WinAnsiEncoding");
     }
 
+    /// <summary>Vigila que cada desplazamiento de la tabla xref cae justo en el «N 0 obj» de su objeto.</summary>
     [TestMethod]
     public void LaTablaXrefApuntaAlByteExactoDeCadaObjeto()
     {
@@ -88,6 +95,7 @@ public class PruebaDelEscritorDePdf
         }
     }
 
+    /// <summary>Vigila que tres páginas dan /Count 3, los hijos 3, 5 y 7, y el papel Carta vertical.</summary>
     [TestMethod]
     public void UnaPaginaEsUnObjetoYSusFlujosVanEnLosImpares()
     {
@@ -99,6 +107,7 @@ public class PruebaDelEscritorDePdf
         StringAssert.Contains(texto, "/MediaBox [0 0 612 792]");
     }
 
+    /// <summary>Vigila que el rectángulo de la cinta va antes del bloque BT en el flujo.</summary>
     [TestMethod]
     public void LosAdornosSePintanAntesDelTextoParaNoTaparlo()
     {
@@ -114,6 +123,7 @@ public class PruebaDelEscritorDePdf
             "El rectangulo tiene que ir ANTES del bloque de texto o se lo come.");
     }
 
+    /// <summary>Vigila que lo primero tras BT es el «rg» del negro, para que la cinta no tiña el texto.</summary>
     [TestMethod]
     public void ElColorSeFijaANegroAlAbrirElTexto()
     {
@@ -125,6 +135,7 @@ public class PruebaDelEscritorDePdf
         StringAssert.StartsWith(texto[(abreTexto + 3)..], "0.082 0.082 0.082 rg");
     }
 
+    /// <summary>Vigila que un color que no es #RRGGBB cae a negro y el texto se escribe igual.</summary>
     [TestMethod]
     public void UnColorIlegibleSaleNegroYNoInvisible()
     {

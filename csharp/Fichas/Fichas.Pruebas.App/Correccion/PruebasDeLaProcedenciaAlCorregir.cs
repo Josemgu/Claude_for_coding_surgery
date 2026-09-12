@@ -28,7 +28,9 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLaProcedenciaAlCorregir
 {
+    /// <summary>El id fijo del caso que monta cada prueba.</summary>
     private const long CasoDePrueba = 200;
+    /// <summary>La unica persona del caso; su cedula tambien se corrige.</summary>
     private const long PersonaDePrueba = 201;
 
     /// <summary>Los siete nombres de columna que la pantalla corrige, copiados del esquema.</summary>

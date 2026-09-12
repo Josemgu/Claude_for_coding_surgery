@@ -86,6 +86,8 @@ public sealed record Caso
     public MotivoDeNoCompletar MotivoQueDijoElCompanero => LeerMotivo(MotivoDelCompanero);
 
     /// <summary>Traduce el texto guardado a enumerado sin lanzar nunca: lo que no se reconoce es SinMarcar.</summary>
+    /// <param name="texto">Lo que hay en la columna, tal cual; espacios y mayúsculas no cambian la lectura.</param>
+    /// <returns>El estado, o <see cref="EstadoDeRecomendacion.SinMarcar"/> para nulo, vacío o cualquier valor que no sea <c>completa</c> ni <c>no_completa</c> (los del Python viejo, como «incompleta», caen aquí).</returns>
     public static EstadoDeRecomendacion LeerEstado(string? texto) => texto?.Trim().ToLowerInvariant() switch
     {
         "completa" => EstadoDeRecomendacion.Completa,
@@ -94,6 +96,8 @@ public sealed record Caso
     };
 
     /// <summary>Traduce el enumerado al texto que se escribe en la columna.</summary>
+    /// <param name="estado">El estado que se quiere guardar.</param>
+    /// <returns><c>completa</c>, <c>no_completa</c>, o nulo para <see cref="EstadoDeRecomendacion.SinMarcar"/>: sin marcar es la columna a NULL, no una palabra.</returns>
     public static string? EscribirEstado(EstadoDeRecomendacion estado) => estado switch
     {
         EstadoDeRecomendacion.Completa => "completa",
@@ -107,6 +111,8 @@ public sealed record Caso
     /// no deberia poder existir. Se contempla igual: una lectura que lanza deja la
     /// pantalla en blanco, y aqui lo que se pierde de vista es un documento.
     /// </remarks>
+    /// <param name="texto">La clave guardada en <c>motivo_no_completa</c> o <c>motivo_del_companero</c>, tal cual.</param>
+    /// <returns>El motivo, o <see cref="MotivoDeNoCompletar.SinMotivo"/> para nulo, vacío o clave desconocida.</returns>
     public static MotivoDeNoCompletar LeerMotivo(string? texto) => texto?.Trim().ToLowerInvariant() switch
     {
         "no_se_pudo_comunicar" => MotivoDeNoCompletar.NoSePudoComunicar,
@@ -120,6 +126,8 @@ public sealed record Caso
     /// La prosa —«No se pudo comunicar con el lider»— es de la pantalla. Guardando la
     /// clave, cambiar la redaccion no obliga a migrar datos.
     /// </remarks>
+    /// <param name="motivo">El motivo que se quiere guardar.</param>
+    /// <returns>La clave con guiones bajos que admite el <c>CHECK</c> de la columna, o nulo para <see cref="MotivoDeNoCompletar.SinMotivo"/>.</returns>
     public static string? EscribirMotivo(MotivoDeNoCompletar motivo) => motivo switch
     {
         MotivoDeNoCompletar.NoSePudoComunicar => "no_se_pudo_comunicar",

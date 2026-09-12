@@ -13,15 +13,21 @@ namespace Fichas.Datos.Falso;
 /// </remarks>
 public sealed class LecturaDePdfFalsa : ILecturaDePdf
 {
+    /// <summary>La semilla; sumada al número de página, hace que cada página dé siempre las mismas confianzas.</summary>
     private readonly int _semilla;
 
     /// <summary>Se ata a la misma semilla que el resto de lo inventado.</summary>
+    /// <param name="semilla">La semilla del sorteo.</param>
     public LecturaDePdfFalsa(int semilla) => _semilla = semilla;
 
     /// <summary>Dice que todo PDF tiene seis hojas, que es el tamano de un grupo real.</summary>
+    /// <param name="rutaPdf">La ruta; en blanco da cero, cualquier otra da seis, exista o no.</param>
     public int ContarPaginas(string rutaPdf) => string.IsNullOrWhiteSpace(rutaPdf) ? 0 : 6;
 
     /// <summary>Devuelve una imagen inventada del tamano que se pida; el PNG va vacio.</summary>
+    /// <param name="rutaPdf">La ruta; en blanco da nulo.</param>
+    /// <param name="pagina">La página, desde 1; menor da nulo.</param>
+    /// <param name="anchoMaximo">El ancho pedido en píxeles, acotado a 3 500; el alto sale en proporción carta.</param>
     public ImagenDePagina? RasterizarPagina(string rutaPdf, int pagina, int anchoMaximo)
     {
         if (string.IsNullOrWhiteSpace(rutaPdf) || pagina < 1) return null;
@@ -32,6 +38,8 @@ public sealed class LecturaDePdfFalsa : ILecturaDePdf
     }
 
     /// <summary>Devuelve dos anotaciones inventadas: una roja fina y una verde gruesa.</summary>
+    /// <param name="rutaPdf">La ruta; en blanco da la lista vacía.</param>
+    /// <param name="pagina">La página, desde 1; menor da la lista vacía.</param>
     public IReadOnlyList<AnotacionDelPdf> LeerAnotaciones(string rutaPdf, int pagina)
     {
         if (string.IsNullOrWhiteSpace(rutaPdf) || pagina < 1) return [];
@@ -44,6 +52,8 @@ public sealed class LecturaDePdfFalsa : ILecturaDePdf
     }
 
     /// <summary>Devuelve unas lineas inventadas con la forma de las de un formulario.</summary>
+    /// <param name="imagen">La imagen; solo se usa su número de página para sortear las confianzas.</param>
+    /// <returns>Cinco líneas fijas con confianzas entre 0,70 y 0,99, una banda por línea.</returns>
     public IReadOnlyList<LineaDeOcr> LeerConOcr(ImagenDePagina imagen)
     {
         var sorteo = new SorteoDeterminista(_semilla + imagen.Pagina);

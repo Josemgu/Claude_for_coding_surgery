@@ -33,11 +33,17 @@ namespace Fichas.Reportes;
 /// </remarks>
 public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesEnExcel
 {
+    /// <summary>El puerto de casos; se lee entero, archivados incluidos.</summary>
     private readonly ICasos _casos;
+    /// <summary>El puerto de personas.</summary>
     private readonly IPersonas _personas;
+    /// <summary>El puerto de compañeros; también resuelve el nombre del que se reporta.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>El puerto de asignaciones; para el informe de un agente se leen vivas y retiradas.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>El puerto de procedencia, de donde sale la firma de cada campo.</summary>
     private readonly IProcedencia _procedencia;
+    /// <summary>El reloj del programa; el único sitio de esta biblioteca que sabe qué día es.</summary>
     private readonly IReloj _reloj;
 
     /// <summary>Se ata a los cinco repositorios que necesita y al reloj.</summary>
@@ -46,6 +52,12 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// considera «ya viajó» depende la cifra de la portada, y eso hay que poder probarlo sin
     /// esperar a que llegue el dia.
     /// </remarks>
+    /// <param name="casos">El puerto de casos.</param>
+    /// <param name="personas">El puerto de personas.</param>
+    /// <param name="companeros">El puerto de compañeros.</param>
+    /// <param name="asignaciones">El puerto de asignaciones.</param>
+    /// <param name="procedencia">El puerto de procedencia.</param>
+    /// <param name="reloj">El reloj; su <c>Ahora()</c> es el «generado el» de todos los informes.</param>
     public ReportesEnPdf(
         ICasos casos, IPersonas personas, ICompaneros companeros,
         IAsignaciones asignaciones, IProcedencia procedencia, IReloj reloj)
@@ -61,6 +73,10 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     // ---- lo que pide el contrato -------------------------------------------
 
     /// <summary>Genera el reporte del periodo en PDF y lo deja en la ruta que se diga.</summary>
+    /// <param name="desdeIso">El primer día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="hastaIso">El último día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="rutaDestino">Donde queda el PDF; su carpeta se crea si no existe.</param>
+    /// <returns>Con <c>SeEscribio</c> en falso y el aviso si el periodo no se lee o la ruta no se puede escribir; si sale bien, cuántas páginas y, si los hay, cuántos caracteres no cupieron.</returns>
     public ResultadoDeEscritura GenerarReporteDelPeriodo(string desdeIso, string hastaIso, string rutaDestino)
     {
         var lectura = Periodo.Leer(desdeIso, hastaIso);
@@ -71,6 +87,11 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     }
 
     /// <summary>Genera el reporte de un companero en PDF y lo deja en la ruta que se diga.</summary>
+    /// <param name="companeroId">El número interno del compañero; uno desactivado sí se reporta.</param>
+    /// <param name="desdeIso">El primer día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="hastaIso">El último día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="rutaDestino">Donde queda el PDF.</param>
+    /// <returns>Con <c>SeEscribio</c> en falso si el compañero no existe, el periodo no se lee o la ruta falla.</returns>
     public ResultadoDeEscritura GenerarReporteDeCompanero(
         long companeroId, string desdeIso, string hastaIso, string rutaDestino)
     {
@@ -85,6 +106,7 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     }
 
     /// <summary>Lo que se dice cuando el numero interno que llega no es de nadie.</summary>
+    /// <param name="companeroId">El número que no se encontró.</param>
     private static Aviso NoHayEseCompanero(long companeroId)
         => Aviso.Problema(
             $"No hay ningún compañero con el número interno {companeroId}.",
@@ -93,6 +115,8 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
             + "existiendo y sigue teniendo trabajo hecho detrás.");
 
     /// <summary>Genera el historico completo en PDF y lo deja en la ruta que se diga.</summary>
+    /// <param name="rutaDestino">Donde queda el PDF.</param>
+    /// <returns>Con <c>SeEscribio</c> en falso solo si la ruta falla: un histórico sin archivados se escribe igual, con su aviso dentro.</returns>
     public ResultadoDeEscritura GenerarHistorico(string rutaDestino)
         => Escribir(DocumentoDelHistorico(_reloj.Ahora()), rutaDestino, "Reporte del histórico completo");
 
@@ -102,6 +126,10 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// el gerente lo abre y no sabe si es que no hay trabajo o si es que algo se rompio al
     /// generarlo; decirlo aqui lo deja claro antes de que salga de la maquina.
     /// </remarks>
+    /// <param name="categoria">El peldaño que recibe la vuelta.</param>
+    /// <param name="intentos">Los documentos que suben; con la lista vacía no se escribe nada y se avisa.</param>
+    /// <param name="rutaDestino">Donde queda el PDF.</param>
+    /// <returns>Con <c>SeEscribio</c> en falso y una advertencia si no sube nada; un problema si la ruta falla.</returns>
     public ResultadoDeEscritura GenerarReporteDeLaSegundaVuelta(
         int categoria, IReadOnlyList<IntentoAnterior> intentos, string rutaDestino)
     {
@@ -129,6 +157,10 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// cambia es quien lo escribe: ver <see cref="Formato.LibroDelInforme"/> para que forma
     /// toma y por que no es «el PDF con bordes».
     /// </remarks>
+    /// <param name="desdeIso">El primer día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="hastaIso">El último día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="rutaDestino">Donde queda el <c>.xlsx</c>.</param>
+    /// <returns>Si sale bien, cuántas hojas y cuántas filas de datos; si no, el aviso de qué falló.</returns>
     public ResultadoDeEscritura GenerarReporteDelPeriodoEnExcel(string desdeIso, string hastaIso, string rutaDestino)
     {
         var lectura = Periodo.Leer(desdeIso, hastaIso);
@@ -141,6 +173,11 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     }
 
     /// <summary>Genera el informe de un companero en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
+    /// <param name="companeroId">El número interno del compañero.</param>
+    /// <param name="desdeIso">El primer día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="hastaIso">El último día del periodo, incluido, en «AAAA-MM-DD».</param>
+    /// <param name="rutaDestino">Donde queda el <c>.xlsx</c>.</param>
+    /// <returns>Con <c>SeEscribio</c> en falso si el compañero no existe, el periodo no se lee o la ruta falla.</returns>
     public ResultadoDeEscritura GenerarReporteDeCompaneroEnExcel(
         long companeroId, string desdeIso, string hastaIso, string rutaDestino)
     {
@@ -157,16 +194,20 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     }
 
     /// <summary>Genera el historico completo en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
+    /// <param name="rutaDestino">Donde queda el <c>.xlsx</c>.</param>
     public ResultadoDeEscritura GenerarHistoricoEnExcel(string rutaDestino)
         => EscribirElExcel(DocumentoDelHistorico(_reloj.Ahora()), rutaDestino, "Reporte del histórico completo");
 
     // ---- los documentos, sin escribirlos ------------------------------------
 
     /// <summary>El reporte del periodo armado, sin tocar el disco. Es lo que se puede medir.</summary>
+    /// <param name="periodo">El periodo ya validado.</param>
+    /// <param name="generadoEn">La marca de tiempo del informe; de ella sale el «hoy».</param>
     public Documento DocumentoDelPeriodo(Periodo periodo, string generadoEn)
         => ArmadoDelDocumento.DelPeriodo(Leer(), periodo, generadoEn);
 
     /// <summary>El historico armado, sin tocar el disco.</summary>
+    /// <param name="generadoEn">La marca de tiempo del informe.</param>
     public Documento DocumentoDelHistorico(string generadoEn)
         => ArmadoDelHistorico.Armar(Leer(), generadoEn);
 
@@ -176,6 +217,9 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// sube son unas decenas de documentos, y traer los 3 000 de la base para quedarse con
     /// veinte cuesta el segundo largo que ya esta medido en <c>PruebaDeRendimiento</c>.
     /// </remarks>
+    /// <param name="categoria">El peldaño que recibe la vuelta.</param>
+    /// <param name="intentos">Los documentos que suben; un caso que ya no existe se salta.</param>
+    /// <param name="generadoEn">La marca de tiempo del informe.</param>
     public Documento DocumentoDeLaSegundaVuelta(
         int categoria, IReadOnlyList<IntentoAnterior> intentos, string generadoEn)
     {
@@ -215,6 +259,10 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// todo el trabajo. En el informe de UN agente esa cifra recortada a sus casos se lee como
     /// una acusacion sobre el, y ademas no es lo que se pidio. Abre con lo que hizo.</para>
     /// </remarks>
+    /// <param name="companeroId">El número interno del compañero; si no existe, el informe sale igual con «compañero N» de nombre.</param>
+    /// <param name="periodo">El periodo ya validado; la semana es su cola de <see cref="ArmadoDelInformeDeAgente.DiasDeLaSemana"/> días.</param>
+    /// <param name="generadoEn">La marca de tiempo del informe.</param>
+    /// <returns>El informe del periodo recortado a sus casos, con «Lo que hizo» delante y la portada cambiada.</returns>
     public Documento DocumentoDeCompanero(long companeroId, Periodo periodo, string generadoEn)
     {
         var companero = _companeros.Obtener(companeroId);
@@ -281,6 +329,8 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// codigos que cuentan lo mismo por su cuenta acaban dando dos numeros distintos, y una
     /// portada que no coincide con su propia tabla es peor que no tener portada.
     /// </remarks>
+    /// <param name="nombre">El nombre del agente, para el titular.</param>
+    /// <param name="loQueHizo">La sección ya armada por <see cref="ArmadoDelInformeDeAgente.LoQueHizo"/>; se leen sus cuatro primeras filas.</param>
     private static Portada PortadaDelAgente(string nombre, Seccion loQueHizo)
     {
         var contesto = Cifra(loQueHizo, 1);
@@ -301,11 +351,15 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     }
 
     /// <summary>La cifra del mes de esa fila de «Lo que hizo».</summary>
+    /// <param name="loQueHizo">La sección; su columna 1 es la del mes.</param>
+    /// <param name="fila">Qué fila, base 0: 0 asignados, 1 contestó, 2 completos, 3 no completos.</param>
+    /// <returns>El entero de la celda, o cero si no se puede leer.</returns>
     private static int Cifra(Seccion loQueHizo, int fila)
         => int.TryParse(loQueHizo.Filas[fila][1], out var valor) ? valor : 0;
 
     // ---- escribir en disco ---------------------------------------------------
 
+    /// <summary>Lee de los cinco puertos todo lo que un informe necesita. Cada informe lee una vez; no hay caché.</summary>
     private LecturaParaReportes Leer()
         => LecturaParaReportes.Leer(_casos, _personas, _companeros, _asignaciones, _procedencia);
 
@@ -320,6 +374,7 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// <param name="contenido">Lo que hay que escribir, todavia sin construir.</param>
     /// <param name="rutaDestino">Donde queda el archivo.</param>
     /// <param name="extension">Como acaba el archivo, para poder decirlo si falta la ruta.</param>
+    /// <returns>Nulo si el archivo quedó en su sitio; el problema si faltó la ruta o el sistema no dejó escribir.</returns>
     private static Aviso? Volcar(Func<byte[]> contenido, string rutaDestino, string extension)
     {
         if (string.IsNullOrWhiteSpace(rutaDestino))
@@ -361,6 +416,9 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     /// a secas no se puede comprobar sin abrirlo, y esta pantalla ya tuvo el fallo de repetir
     /// lo que dijo quien escribia (ver <c>OperacionDeReporte</c>).
     /// </remarks>
+    /// <param name="documento">El documento armado.</param>
+    /// <param name="rutaDestino">Donde queda el <c>.xlsx</c>.</param>
+    /// <param name="deQue">Cómo se llama el informe en el aviso: «Reporte del período …».</param>
     private static ResultadoDeEscritura EscribirElExcel(Documento documento, string rutaDestino, string deQue)
     {
         var problema = Volcar(() => LibroDelInforme.EnBytes(documento), rutaDestino, ".xlsx");
@@ -380,6 +438,10 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
     }
 
     /// <summary>Escribe el PDF en esa ruta pasando por un archivo parcial.</summary>
+    /// <param name="documento">El documento armado.</param>
+    /// <param name="rutaDestino">Donde queda el PDF.</param>
+    /// <param name="deQue">Cómo se llama el informe en el aviso: «Reporte del período …».</param>
+    /// <returns>El aviso con las páginas y, si algún carácter no cupo en la fuente, una advertencia más.</returns>
     private static ResultadoDeEscritura Escribir(Documento documento, string rutaDestino, string deQue)
     {
         var problema = Volcar(() => Maqueta.ConstruirPdf(documento), rutaDestino, ".pdf");
@@ -410,6 +472,8 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
         return ResultadoDeEscritura.BienCon(0, [.. avisos]);
     }
 
+    /// <summary>Borra el archivo parcial si quedó; si tampoco se puede borrar, no hace nada más (ver el comentario de dentro).</summary>
+    /// <param name="parcial">La ruta del <c>.parcial</c>.</param>
     private static void Limpiar(string parcial)
     {
         try

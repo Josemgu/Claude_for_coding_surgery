@@ -24,14 +24,25 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed partial class GuardadoDeHojas
 {
+    /// <summary>Por donde se abren y se leen los casos.</summary>
     private readonly ICasos _casos;
+    /// <summary>Por donde entran las personas de cada hoja.</summary>
     private readonly IPersonas _personas;
+    /// <summary>Por donde se anota de qué banda y con qué confianza salió cada valor.</summary>
     private readonly IProcedencia _procedencia;
+    /// <summary>Por donde se apunta el renglón de una hoja que no se pudo leer entera.</summary>
     private readonly IIlegibles _ilegibles;
+    /// <summary>La fecha de hoy para la fila de ilegibles; inyectado para que las pruebas la fijen.</summary>
     private readonly IReloj _reloj;
+    /// <summary>Quien contesta de qué caso guardado repite una hoja; se vacía al empezar cada tanda.</summary>
     private readonly BuscadorDeDuplicados _duplicados;
 
     /// <summary>Se ata a los cuatro repositorios y al reloj.</summary>
+    /// <param name="casos">Repositorio de casos.</param>
+    /// <param name="personas">Repositorio de personas.</param>
+    /// <param name="procedencia">Repositorio de procedencia de cada campo.</param>
+    /// <param name="ilegibles">Repositorio de renglones de lo que no se pudo leer.</param>
+    /// <param name="reloj">De dónde sale la fecha de hoy.</param>
     public GuardadoDeHojas(
         ICasos casos, IPersonas personas, IProcedencia procedencia,
         IIlegibles ilegibles, IReloj reloj)
@@ -53,7 +64,13 @@ public sealed partial class GuardadoDeHojas
     /// un caso que ya estaba en la base de antes jamas entra en el. Un formulario de grupo
     /// ocupa seis paginas con el MISMO numero; sin esto, `SURB2609` entraba con 1 persona
     /// de 12 —medido—.
+    /// <para>⚠️ El dueño dijo el 2026-09-10 (DECISIONES.md, «Lo que el dueño vio probando el
+    /// v9», punto 4) que las hojas de un PDF pueden ser documentos distintos y que agruparlas
+    /// tiene que ser opción suya. Este método sigue uniéndolas por número de caso: esa
+    /// decisión está abierta y no se programó aquí.</para>
     /// </remarks>
+    /// <param name="hojas">Las hojas del documento, en el orden del PDF.</param>
+    /// <returns>Un resultado por hoja, en el mismo orden, aunque la hoja no dejara nada.</returns>
     public IReadOnlyList<ResultadoDeLaHoja> GuardarLasHojasDelDocumento(IReadOnlyList<HojaLeida> hojas)
     {
         ArgumentNullException.ThrowIfNull(hojas);
@@ -75,6 +92,8 @@ public sealed partial class GuardadoDeHojas
     public void EmpezarUnaTanda() => _duplicados.Olvidar();
 
     /// <summary>Guarda una hoja y dice que paso con ella.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="casosDeEsteDocumento">Número de caso → id del caso que abrió una hoja anterior de este mismo PDF.</param>
     private ResultadoDeLaHoja GuardarUnaHoja(HojaLeida hoja, Dictionary<string, long> casosDeEsteDocumento)
     {
         var campos = new CamposDeLaHoja(hoja.Campos);
@@ -93,6 +112,7 @@ public sealed partial class GuardadoDeHojas
     }
 
     /// <summary>Lo que se devuelve de una hoja que no se pudo leer en absoluto.</summary>
+    /// <param name="hoja">La hoja sin campos; si además no tiene líneas ni página, es que el PDF no se abrió.</param>
     private static ResultadoDeLaHoja HojaQueNoDejoNada(HojaLeida hoja) => new(
         Entro: false,
         CasoNuevo: false,
@@ -116,6 +136,10 @@ public sealed partial class GuardadoDeHojas
     /// propio—: que no traiga numero, que su numero no lo haya abierto ninguna hoja
     /// anterior de este documento, o que lo haya abierto pero esta hoja lo contradiga.
     /// </remarks>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campos">Los mismos campos, ya repartidos entre caso y personas.</param>
+    /// <param name="numeroCaso">El número de caso que leyó esta hoja, o nulo.</param>
+    /// <param name="casosDeEsteDocumento">Número de caso → id del caso abierto por una hoja anterior de este PDF.</param>
     private ResultadoDeLaHoja? UnirSiEsHojaDelMismoCaso(
         HojaLeida hoja, CamposDeLaHoja campos, string? numeroCaso,
         Dictionary<string, long> casosDeEsteDocumento)
@@ -159,6 +183,9 @@ public sealed partial class GuardadoDeHojas
     /// <para>El numero de caso NO se compara, y no es un olvido: dos hojas se unen
     /// precisamente porque lo leyeron igual.</para>
     /// </remarks>
+    /// <param name="guardado">El caso que abrió la hoja anterior; nulo devuelve vacío.</param>
+    /// <param name="campos">Lo que leyó esta hoja.</param>
+    /// <returns>Una terna (etiqueta, lo guardado, lo de esta hoja) por campo que contradice; vacía si no contradice ninguno.</returns>
     private static IReadOnlyList<(string Etiqueta, string Guardado, string DeEstaHoja)> Discrepancias(
         Caso? guardado, CamposDeLaHoja campos)
     {
@@ -204,6 +231,9 @@ public sealed partial class GuardadoDeHojas
     /// <para>El numero de caso no se mira, igual que alla: dos hojas se unen precisamente
     /// porque lo leyeron igual.</para>
     /// </remarks>
+    /// <param name="guardado">El caso que abrió la hoja anterior; nulo devuelve vacío.</param>
+    /// <param name="campos">Lo que leyó esta hoja.</param>
+    /// <returns>Un par (etiqueta, lo de esta hoja) por campo que el caso tiene vacío y esta hoja leyó.</returns>
     private static IReadOnlyList<(string Etiqueta, string DeEstaHoja)> HuecosQueEstaHojaLeyo(
         Caso? guardado, CamposDeLaHoja campos)
     {
@@ -238,6 +268,8 @@ public sealed partial class GuardadoDeHojas
     /// toman todo el espacio»—, asi que cuatro campos de la misma hoja son UN hecho: «esta
     /// pagina leyo cosas que al caso le faltan».
     /// </remarks>
+    /// <param name="huecos">Lo que devolvió <see cref="HuecosQueEstaHojaLeyo"/>; vacío no produce aviso.</param>
+    /// <param name="pagina">La página del PDF, base 1, para que el dueño sepa cuál mirar.</param>
     private static Aviso[] AvisoDeLoQueLeyoEstaHoja(
         IReadOnlyList<(string Etiqueta, string DeEstaHoja)> huecos, int pagina)
     {
@@ -261,6 +293,8 @@ public sealed partial class GuardadoDeHojas
     }
 
     /// <summary>El aviso de la hoja que abrio caso aparte, en una linea con su detalle.</summary>
+    /// <param name="discrepancias">Lo que devolvió <see cref="Discrepancias"/>, con al menos una.</param>
+    /// <param name="numeroCaso">El número de caso que las dos hojas leyeron igual.</param>
     private static Aviso AvisoDeLaHojaAparte(
         IReadOnlyList<(string Etiqueta, string Guardado, string DeEstaHoja)> discrepancias,
         string numeroCaso)
@@ -278,6 +312,7 @@ public sealed partial class GuardadoDeHojas
     /// de la misma familia que la que abrio el caso»— y tres renglones seguidos con la
     /// misma pagina se leen como tres problemas distintos.
     /// </remarks>
+    /// <param name="discrepancias">Las ternas (etiqueta, lo guardado, lo de esta hoja).</param>
     private static string TextoDeLasDiscrepancias(
         IReadOnlyList<(string Etiqueta, string Guardado, string DeEstaHoja)> discrepancias)
         => string.Join(" ", discrepancias.Select(cual =>

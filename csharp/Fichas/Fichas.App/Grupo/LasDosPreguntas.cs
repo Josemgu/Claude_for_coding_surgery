@@ -46,53 +46,6 @@ public static class LasDosPreguntas
 {
     // ────────────────────────── PREGUNTA 1 · la contesta el programa ──────────────────────────
 
-    /// <summary>El rotulo de la primera pregunta tal como se lee dentro de una linea.</summary>
-    public const string ListoParaAsignar = "listo para asignar";
-
-    /// <summary>El mismo rotulo cuando encabeza un recuadro o una cifra.</summary>
-    public const string ListoParaAsignarEnCabecera = "Listo para asignar";
-
-    /// <summary>
-    /// Que significa «listo para asignar», con las palabras del dueno.
-    /// </summary>
-    /// <remarks>
-    /// Va SIEMPRE pegado al rotulo (criterio C17-1). Sin esta frase, «listo» a secas se lee
-    /// como «listo para viajar», que es justo lo que el dijo que el programa hacia mal.
-    /// </remarks>
-    public const string QueSignificaListoParaAsignar = "el sistema llenó todos los campos";
-
-    /// <summary>«listo para asignar · el sistema llenó todos los campos».</summary>
-    public static string ListoParaAsignarConSuSignificado
-        => $"{ListoParaAsignar} · {QueSignificaListoParaAsignar}";
-
-    /// <summary>«Listo para asignar · el sistema llenó todos los campos», para una cabecera.</summary>
-    public static string ListoParaAsignarEnCabeceraConSuSignificado
-        => $"{ListoParaAsignarEnCabecera} · {QueSignificaListoParaAsignar}";
-
-    /// <summary>Lo que se dice de un documento del que el lector no saco a nadie.</summary>
-    /// <remarks>
-    /// ⚠️ <b>No es un campo que falte</b>, y por eso tiene frase propia: con los cinco campos
-    /// del caso perfectos la cuenta de campos es 0, y decir «le faltan 0 datos» de un
-    /// documento que no esta listo son dos cifras de la misma pantalla que no encajan. Desde
-    /// el 2026-09-07 tambien deja de ser un callejon sin salida: el nombre y la cedula se
-    /// pueden escribir a mano en Correccion (<c>ModeloDeCorreccion.AnadirUnaPersonaAMano</c>).
-    /// </remarks>
-    public const string SinNingunaPersonaLeida = "sin ninguna persona leída";
-
-    /// <summary>El mismo rotulo cuando encabeza una linea.</summary>
-    public const string SinNingunaPersonaLeidaEnCabecera = "Sin ninguna persona leída";
-
-    /// <summary>Por que eso detiene al documento, con las palabras de la pantalla.</summary>
-    public const string QueSignificaSinNingunaPersonaLeida = "no hay a quién recomendar";
-
-    /// <summary>«sin ninguna persona leída · no hay a quién recomendar».</summary>
-    public static string SinNingunaPersonaLeidaConSuSignificado
-        => $"{SinNingunaPersonaLeida} · {QueSignificaSinNingunaPersonaLeida}";
-
-    /// <summary>«Sin ninguna persona leída · no hay a quién recomendar», para una cabecera.</summary>
-    public static string SinNingunaPersonaLeidaEnCabeceraConSuSignificado
-        => $"{SinNingunaPersonaLeidaEnCabecera} · {QueSignificaSinNingunaPersonaLeida}";
-
     /// <summary>
     /// Que le falta a un documento, en una frase: listo, cuantos datos, o que no hay nadie.
     /// </summary>
@@ -132,9 +85,6 @@ public static class LasDosPreguntas
     /// <summary>Lo que se dice de una persona cuyas seis preguntas estan todas en si.</summary>
     public const string ListaParaViajar = "lista para viajar";
 
-    /// <summary>Lo que se dice de una persona con alguna de las seis en no.</summary>
-    public const string NoListaParaViajar = "no lista para viajar";
-
     /// <summary>
     /// Lo que se dice de una persona con alguna pregunta en blanco y ninguna en no.
     /// </summary>
@@ -146,13 +96,6 @@ public static class LasDosPreguntas
     /// </remarks>
     public const string SinMirar = "sin mirar";
 
-    /// <summary>La frase del dueno para lo que todavia no esta cerrado en el sistema del obispo.</summary>
-    /// <remarks>Literal suya: <i>«la recomendación para el templo no está confirmada»</i>.</remarks>
-    public const string RecomendacionSinConfirmar = "recomendación sin confirmar";
-
-    /// <summary>Lo contrario, dicho con las mismas palabras para que se lean como pareja.</summary>
-    public const string RecomendacionConfirmada = "recomendación confirmada";
-
     /// <summary>
     /// El estado de UNA persona: si, no, o nada si todavia no se sabe.
     /// </summary>
@@ -162,23 +105,13 @@ public static class LasDosPreguntas
     /// pregunta (decision suya n.º 2 del ADR-0006 §2.6). Una persona sin leer —un documento
     /// del que no se saco a nadie— es <c>null</c>: nadie la miro.
     /// </remarks>
+    /// <param name="persona">La persona, o nulo si el documento no trajo ninguna.</param>
     public static bool? EstadoDe(Persona? persona) => persona is null ? null : Pasos.Estado(persona);
 
     /// <summary>En que pasos se quedo esa persona; vacio si no hay ninguno en no.</summary>
+    /// <param name="persona">La persona, o nulo si el documento no trajo ninguna.</param>
     public static IReadOnlyList<string> SeQuedoEn(Persona? persona)
         => persona is null ? [] : Pasos.SinCompletar(persona);
-
-    /// <summary>«lista para viajar», «no lista para viajar» o «sin mirar».</summary>
-    public static string Decir(bool? estado) => estado switch
-    {
-        true => ListaParaViajar,
-        false => NoListaParaViajar,
-        _ => SinMirar,
-    };
-
-    /// <summary>«recomendación confirmada» solo cuando las seis dicen que si.</summary>
-    public static string DecirLaRecomendacion(bool? estado)
-        => estado == true ? RecomendacionConfirmada : RecomendacionSinConfirmar;
 
     /// <summary>
     /// La linea entera de una persona: como esta, como esta su recomendacion y, si no esta
@@ -206,19 +139,5 @@ public static class LasDosPreguntas
     {
         var lectura = Fichas.App.Vocabulario.LoQueSeLeeDeUnaPersona.De(estado, seQuedoEn);
         return $"{lectura.Palabra} · {lectura.Detalle}";
-    }
-
-    /// <summary>
-    /// «Entrevistas», «Entrevistas y Preparación», «Entrevistas, Preparación y Cita del templo».
-    /// </summary>
-    /// <remarks>
-    /// Se enumeran TODOS y no solo el primero: el dueno llama al obispo una vez y le dice
-    /// todo lo que falta. Como mucho son seis, asi que la linea no se dispara.
-    /// </remarks>
-    private static string Enumerar(IReadOnlyList<string> nombres)
-    {
-        if (nombres.Count == 1) return nombres[0];
-        var todosMenosElUltimo = string.Join(", ", nombres.Take(nombres.Count - 1));
-        return $"{todosMenosElUltimo} y {nombres[^1]}";
     }
 }

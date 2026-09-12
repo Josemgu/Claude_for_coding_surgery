@@ -3,7 +3,6 @@ using Fichas.App.Cascara;
 using Fichas.App.Correccion;
 using Fichas.App.Grupo;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 
@@ -37,7 +36,10 @@ namespace Fichas.App.Completar;
 /// </remarks>
 public sealed partial class PaginaDeCompletar : PaginaDeFichas
 {
+    /// <summary>Los renglones tal como se pintan, numerados; por su POSICION se sabe cual se pulso.</summary>
     private IReadOnlyList<PuestoEnLaCola> _puestos = [];
+
+    /// <summary>La cola leida al entrar; nula hasta que llegan los servicios. Es la que se le entrega a Correccion.</summary>
     private ColaDeCompletar? _cola;
 
     /// <summary>Monta la pantalla.</summary>
@@ -86,6 +88,7 @@ public sealed partial class PaginaDeCompletar : PaginaDeFichas
     }
 
     /// <summary>Reparte la cola por la pantalla: cifras, renglones y el mensaje de vacia.</summary>
+    /// <param name="cola">La cola recien leida.</param>
     private void Pintar(ColaDeCompletar cola)
     {
         _puestos = PuestoEnLaCola.Numerar(cola.Documentos);
@@ -126,6 +129,7 @@ public sealed partial class PaginaDeCompletar : PaginaDeFichas
     /// como los servicios, y ese archivo es de otro terreno. Es el mismo camino que ya usa
     /// <c>Grupo/PaginaDeIncompletos</c> para abrir un documento, medido el 2026-09-04.
     /// </remarks>
+    /// <param name="casoId">El documento por el que se entra; el encadenado sigue desde su puesto.</param>
     private void EntrarEnLaColaPor(long casoId)
     {
         if (Frame is null || Servicios is null || _cola is null) return;
@@ -141,6 +145,7 @@ public sealed partial class PaginaDeCompletar : PaginaDeFichas
 
     /// <summary>Deja una linea en el pie de la ventana; nunca un cuadro que detenga nada.</summary>
     /// <remarks>Requisito 9 del dueno: lo que hay que decir sale en la franja y en el acuse.</remarks>
+    /// <param name="linea">Lo que se lee en el acuse del pie.</param>
     private static void Decir(string linea)
     {
         if (App.Ventana is VentanaPrincipal ventana) ventana.AcuseDelPie.Decir(linea);
@@ -155,6 +160,8 @@ public sealed partial class PaginaDeCompletar : PaginaDeFichas
     /// <c>ItemsRepeater</c> con una plantilla de <c>x:Bind</c> lo tiene vacio. Medido el
     /// 2026-09-04 en Inicio, y repetido aqui por lo mismo.
     /// </remarks>
+    /// <param name="donde">El control que disparo el suceso, en cualquier nivel dentro del renglon.</param>
+    /// <returns>El puesto de ese renglon, o nulo si el control no esta dentro de ninguno.</returns>
     private PuestoEnLaCola? QueSePulso(object? donde)
     {
         var actual = donde as DependencyObject;

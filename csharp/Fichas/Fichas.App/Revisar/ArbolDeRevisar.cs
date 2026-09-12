@@ -59,6 +59,8 @@ public static class ArbolDeRevisar
     ];
 
     /// <summary>Agrupa las tarjetas en meses, fechas y unidades, con lo que viaja antes arriba.</summary>
+    /// <param name="tarjetas">Las tarjetas del tablero que se está mirando; no puede ser nulo.</param>
+    /// <returns>Los meses en orden de viaje, y al final el de lo que no tiene fecha; vacío si no había tarjetas.</returns>
     public static IReadOnlyList<GrupoDeMes> Agrupar(IEnumerable<TarjetaDeDocumento> tarjetas)
     {
         ArgumentNullException.ThrowIfNull(tarjetas);
@@ -76,6 +78,7 @@ public static class ArbolDeRevisar
     }
 
     /// <summary>Las carpetas de fecha de un mes, de la más cercana a la más lejana.</summary>
+    /// <param name="delMes">Las tarjetas que cayeron en ese mes.</param>
     private static IReadOnlyList<GrupoDeFecha> FechasDe(IEnumerable<TarjetaDeDocumento> delMes)
         => [.. delMes
             .GroupBy(t => ClaveDeLaFecha(t.FechaDeViajeIso))
@@ -89,6 +92,7 @@ public static class ArbolDeRevisar
             .ThenBy(f => f.FechaIso, StringComparer.Ordinal)];
 
     /// <summary>Las carpetas de unidad de una fecha, por número y luego por nombre.</summary>
+    /// <param name="deLaFecha">Las tarjetas que viajan ese día.</param>
     private static IReadOnlyList<GrupoDeUnidad> UnidadesDe(IEnumerable<TarjetaDeDocumento> deLaFecha)
         => [.. deLaFecha
             .GroupBy(t => (Numero: Limpio(t.UnidadNumero), Nombre: NombreDeLaUnidad(t)))
@@ -104,18 +108,21 @@ public static class ArbolDeRevisar
             .ThenBy(u => u.Nombre, StringComparer.Ordinal)];
 
     /// <summary>«2026-09» de una fecha ISO legible; vacío si no se puede leer.</summary>
+    /// <param name="fechaIso">La fecha de viaje tal como está en la base.</param>
     private static string ClaveDelMes(string fechaIso)
         => LeerFecha(fechaIso) is DateOnly dia
             ? dia.ToString("yyyy-MM", CultureInfo.InvariantCulture)
             : string.Empty;
 
     /// <summary>«2026-09-17» de una fecha ISO legible; vacío si no se puede leer.</summary>
+    /// <param name="fechaIso">La fecha de viaje tal como está en la base.</param>
     private static string ClaveDeLaFecha(string fechaIso)
         => LeerFecha(fechaIso) is DateOnly dia
             ? dia.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
             : string.Empty;
 
     /// <summary>«Septiembre 2026», o la carpeta de lo que no tiene fecha.</summary>
+    /// <param name="claveDelMes">«2026-09», o vacío para la carpeta de lo que no tiene fecha.</param>
     private static string NombreDelMes(string claveDelMes)
     {
         if (claveDelMes.Length == 0) return SinFecha;
@@ -126,6 +133,7 @@ public static class ArbolDeRevisar
     }
 
     /// <summary>«Grupo del 17 de septiembre», con las palabras que usó el dueño.</summary>
+    /// <param name="claveDeLaFecha">«2026-09-17», o vacío para la carpeta de lo que no tiene fecha.</param>
     private static string NombreDeLaFecha(string claveDeLaFecha)
     {
         if (claveDeLaFecha.Length == 0) return SinFecha;
@@ -140,6 +148,7 @@ public static class ArbolDeRevisar
     /// La fecha sale del papel por OCR y puede venir con cualquier cosa dentro. Una fecha
     /// ilegible cae en la carpeta «sin fecha de viaje», que es un dato: no se adivina.
     /// </remarks>
+    /// <param name="fechaIso">Lo que la base guarda como fecha de viaje; puede ser nulo o cualquier cosa.</param>
     private static DateOnly? LeerFecha(string? fechaIso)
         => DateOnly.TryParseExact(
             fechaIso, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia)
@@ -155,9 +164,11 @@ public static class ArbolDeRevisar
     /// árbol dejó en la sección de «revisar este documento», y los dos estarían mirando el
     /// mismo dato.
     /// </remarks>
+    /// <param name="fechaIso">Lo que la base guarda como fecha de viaje.</param>
     public static bool EsFechaLegible(string? fechaIso) => LeerFecha(fechaIso) is not null;
 
     /// <summary>Un texto sin espacios de sobra, o vacío si no había nada.</summary>
+    /// <param name="texto">Lo que se leyó del papel; puede ser nulo.</param>
     private static string Limpio(string? texto) => string.IsNullOrWhiteSpace(texto) ? string.Empty : texto.Trim();
 
     /// <summary>
@@ -169,9 +180,12 @@ public static class ArbolDeRevisar
     /// sobre la misma unidad. Es la mitad de lo que arregla
     /// <see cref="TarjetaDeDocumento.ComponerUnidad"/>.
     /// </remarks>
+    /// <param name="tarjeta">La tarjeta de la que se toma la unidad.</param>
     private static string NombreDeLaUnidad(TarjetaDeDocumento tarjeta) => tarjeta.NombreDeLaUnidad;
 
     /// <summary>La cifra que lleva cada carpeta en su etiqueta: «· 8 documentos».</summary>
+    /// <param name="carpeta">El nombre de la carpeta, sin la cifra.</param>
+    /// <param name="cantidad">Cuántos documentos cuelgan de ella.</param>
     internal static string ConSuCifra(string carpeta, int cantidad)
         => $"{carpeta} · {Plural.Con(cantidad, "documento", "documentos")}";
 

@@ -36,6 +36,8 @@ public sealed partial class PaginaDeRevisar
     /// de ESA tarjeta, y una plantilla compartida por 3 000 tarjetas no puede. Es el mismo
     /// camino que ya usa <see cref="AlAbrirElCuadroDeLaFecha"/>.
     /// </remarks>
+    /// <param name="quien">La pastilla que se pulsó; lleva en <c>Tag</c> el número interno de su documento.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlAbrirElDetalleDelEstado(object quien, RoutedEventArgs cuando)
     {
         if (quien is not Button boton || boton.Tag is not long casoId) return;
@@ -53,6 +55,7 @@ public sealed partial class PaginaDeRevisar
     /// La palabra se repite dentro a propósito, en grande: el cuadro se abre encima de la
     /// pastilla y la tapa, y un detalle suelto no dice de qué documento habla.
     /// </remarks>
+    /// <param name="tarjeta">El documento del que se abre el detalle.</param>
     private static StackPanel LoQueDiceElDetalle(TarjetaDeDocumento tarjeta)
     {
         var cabecera = new TextBlock

@@ -38,12 +38,15 @@ public class PruebaDeLaUnidadEnDosColumnas
     /// </remarks>
     private const string NumeroConCeroDelante = "0700016";
 
+    /// <summary>El nombre de la unidad del escenario, inventado.</summary>
     private const string NombreDeLaUnidad = "Castries Branch";
 
     /// <summary>Cómo salía pegado hasta el 2026-09-08. No puede volver a aparecer en ninguna celda.</summary>
     private const string ComoSalioPegado = NombreDeLaUnidad + " · " + NumeroConCeroDelante;
 
+    /// <summary>El primer día del periodo que se pide.</summary>
     private const string Desde = "2026-09-01";
+    /// <summary>El último día del periodo que se pide.</summary>
     private const string Hasta = "2026-09-30";
 
     /// <summary>El rótulo de la columna nueva; el mismo que ya usa el paquete de los compañeros.</summary>
@@ -51,6 +54,7 @@ public class PruebaDeLaUnidadEnDosColumnas
 
     // ─────────────────────── las dos columnas, en las seis tablas ───────────────────────
 
+    /// <summary>Vigila que las tres tablas por persona del periodo traen el número y el nombre de la unidad en dos columnas contiguas.</summary>
     [TestMethod]
     public void LasTablasDelPeriodoTraenElNumeroDeUnidadEnSuPropiaColumna()
     {
@@ -69,6 +73,7 @@ public class PruebaDeLaUnidadEnDosColumnas
         }
     }
 
+    /// <summary>Vigila que «Unidades con preparaciones sin completar» trae las dos columnas con cada dato en la suya.</summary>
     [TestMethod]
     public void LaTablaDeUnidadesAgrupaPorElParYNoPorLaCadenaPegada()
     {
@@ -78,6 +83,7 @@ public class PruebaDeLaUnidadEnDosColumnas
         ComprobarLasDosColumnas(Seccion(documento, "Unidades con preparaciones sin completar"));
     }
 
+    /// <summary>Vigila que la tabla del histórico trae las dos columnas.</summary>
     [TestMethod]
     public void LaTablaDelHistoricoTraeElNumeroDeUnidadEnSuPropiaColumna()
     {
@@ -86,6 +92,7 @@ public class PruebaDeLaUnidadEnDosColumnas
             Seccion(mundo.Reportes.DocumentoDelHistorico(Generado), "Histórico — casos archivados"));
     }
 
+    /// <summary>Vigila que la tabla de la segunda vuelta trae las dos columnas.</summary>
     [TestMethod]
     public void LaTablaDeLaSegundaVueltaTraeElNumeroDeUnidadEnSuPropiaColumna()
     {
@@ -97,6 +104,7 @@ public class PruebaDeLaUnidadEnDosColumnas
 
     // ─────────────────────── el cero de delante, leído de vuelta ───────────────────────
 
+    /// <summary>Vigila que cada celda del número de unidad leída de vuelta del .xlsx conserva el cero de delante.</summary>
     [TestMethod]
     public void ElExcelDelPeriodoDevuelveElNumeroDeUnidadConSuCeroDeDelante()
     {
@@ -126,6 +134,7 @@ public class PruebaDeLaUnidadEnDosColumnas
         }
     }
 
+    /// <summary>Vigila que la columna del número de unidad se declara como texto en todas las secciones que la llevan.</summary>
     [TestMethod]
     public void LaColumnaDelNumeroDeUnidadEsDeTextoYNoDeRecuento()
     {
@@ -146,6 +155,7 @@ public class PruebaDeLaUnidadEnDosColumnas
 
     // ─────────────────────── lo pegado no vuelve ───────────────────────
 
+    /// <summary>Vigila que en los cuatro informes ninguna celda vuelve a ser «Nombre · número».</summary>
     [TestMethod]
     public void NingunaCeldaDeNingunInformeVuelveATraerLosDosDatosPegados()
     {
@@ -176,6 +186,7 @@ public class PruebaDeLaUnidadEnDosColumnas
         }
     }
 
+    /// <summary>Vigila que el informe de un agente trae al menos tres tablas con las dos columnas.</summary>
     [TestMethod]
     public void ElInformeDeUnAgenteTambienLoTraeEnDosColumnas()
     {
@@ -195,6 +206,7 @@ public class PruebaDeLaUnidadEnDosColumnas
     // ---- las comprobaciones -------------------------------------------------
 
     /// <summary>Que la tabla trae las dos columnas, contiguas, y cada dato en la suya.</summary>
+    /// <param name="seccion">La sección; tiene que traer al menos una fila o falla.</param>
     private static void ComprobarLasDosColumnas(Seccion seccion)
     {
         var donde = IndiceDe(seccion, RotuloDelNumero);
@@ -218,6 +230,9 @@ public class PruebaDeLaUnidadEnDosColumnas
         }
     }
 
+    /// <summary>La posición de la columna con ese rótulo, o -1 si no está.</summary>
+    /// <param name="seccion">La sección.</param>
+    /// <param name="rotulo">El rótulo exacto.</param>
     private static int IndiceDe(Seccion seccion, string rotulo)
     {
         for (var i = 0; i < seccion.Columnas.Count; i++)
@@ -227,8 +242,14 @@ public class PruebaDeLaUnidadEnDosColumnas
         return -1;
     }
 
+    /// <summary>Si la sección lleva una columna con ese rótulo.</summary>
+    /// <param name="seccion">La sección.</param>
+    /// <param name="rotulo">El rótulo exacto.</param>
     private static bool TieneLaColumna(Seccion seccion, string rotulo) => IndiceDe(seccion, rotulo) >= 0;
 
+    /// <summary>La sección con ese título; si no está, la prueba falla.</summary>
+    /// <param name="documento">El informe armado.</param>
+    /// <param name="titulo">El título exacto.</param>
     private static Seccion Seccion(Documento documento, string titulo)
     {
         var seccion = documento.Secciones.FirstOrDefault(s => s.Titulo == titulo);
@@ -241,6 +262,8 @@ public class PruebaDeLaUnidadEnDosColumnas
     /// Se lee con <c>GetString()</c> y no con <c>Value</c>: es lo que ve quien abre el archivo y
     /// filtra, que es justamente lo que el dueño pidió poder hacer.
     /// </remarks>
+    /// <param name="ruta">El <c>.xlsx</c> ya escrito.</param>
+    /// <returns>Cada celda no vacía de la columna del número, en todas las hojas que la tienen.</returns>
     private static List<string> NumerosDeUnidadDelLibro(string ruta)
     {
         var leidos = new List<string>();
@@ -264,11 +287,18 @@ public class PruebaDeLaUnidadEnDosColumnas
 
     // ---- el escenario -------------------------------------------------------
 
+    /// <summary>La marca con la que se arman los informes: el «hoy» de la base de prueba a las diez.</summary>
     private const string Generado = BaseDePrueba.Hoy + " 10:00:00";
 
+    /// <summary>Una ruta única en la carpeta temporal, para que dos pruebas en paralelo no se pisen.</summary>
+    /// <param name="nombre">Cómo acaba el archivo.</param>
     private static string RutaTemporal(string nombre)
         => Path.Combine(Path.GetTempPath(), "fichas-pruebas-reportes", $"{Guid.NewGuid():N}-{nombre}");
 
+    /// <summary>Lo que devuelve el escenario: el motor, el compañero y el intento de la segunda vuelta.</summary>
+    /// <param name="Reportes">El motor sobre el almacén del escenario.</param>
+    /// <param name="Sandy">El compañero que lleva los cuatro casos.</param>
+    /// <param name="Intentos">El único documento que sube a la segunda vuelta.</param>
     private sealed record Mundo(
         ReportesEnPdf Reportes, Companero Sandy, IReadOnlyList<IntentoAnterior> Intentos);
 
@@ -311,6 +341,12 @@ public class PruebaDeLaUnidadEnDosColumnas
     }
 
     /// <summary>Un caso de la unidad del escenario, con su persona y su asignación viva.</summary>
+    /// <param name="almacen">El almacén falso donde se escribe.</param>
+    /// <param name="quien">Sandy.</param>
+    /// <param name="numero">El número del caso.</param>
+    /// <param name="archivado">Si el caso está archivado, con fecha del 18.</param>
+    /// <param name="pudoViajar">Lo anotado de su única persona; falso lleva motivo.</param>
+    /// <returns>El id del caso creado.</returns>
     private static long Caso(
         AlmacenFalso almacen, Companero quien, string numero, bool archivado, bool pudoViajar)
     {

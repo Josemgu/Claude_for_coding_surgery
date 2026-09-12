@@ -31,6 +31,10 @@ namespace Fichas.App.Correccion;
 /// </remarks>
 public sealed partial class PaginaDeCorreccion
 {
+    /// <summary>
+    /// Los grupos de TRABAJO: ya filtrados, solo con los documentos que piden algo mas el
+    /// invitado que se esta mirando. Es lo que ofrece el primer desplegable.
+    /// </summary>
     private IReadOnlyList<GrupoParaCorregir> _grupos = [];
 
     /// <summary>
@@ -43,19 +47,17 @@ public sealed partial class PaginaDeCorreccion
     /// </remarks>
     private IReadOnlyList<GrupoParaCorregir> _todosLosGrupos = [];
 
+    /// <summary>Las entradas del segundo desplegable, las del grupo elegido, en su orden.</summary>
     private IReadOnlyList<CasoEnElDesplegable> _documentos = [];
+
+    /// <summary>Lo que le falta a cada documento, leido de una pasada al llenar los grupos; nulo antes.</summary>
     private LoQueLeFaltaACadaDocumento? _loQueLeFalta;
+
+    /// <summary>Guarda para que cambiar el primer desplegable desde el codigo no dispare <see cref="AlElegirUnGrupo"/>.</summary>
     private bool _cambiandoDeGrupo;
+
+    /// <summary>Cuantos documentos hay sin archivar en toda la base; es el denominador de la cabecera.</summary>
     private int _documentosSinArchivar;
-
-    /// <summary>Cuantos grupos de trabajo hay ahora mismo; lo lee la medicion.</summary>
-    public int CuantosGrupos => _grupos.Count;
-
-    /// <summary>Cuantos documentos ofrece el grupo elegido; lo lee la medicion.</summary>
-    public int CuantosDocumentosDelGrupo => _documentos.Count;
-
-    /// <summary>Cuantos documentos piden algo en toda la base; lo lee la medicion.</summary>
-    public int CuantosConAlgoQueFalta => CuantosPidenAlgo();
 
     /// <summary>
     /// Cuantos de los que estan en la lista siguen pidiendo algo, SIN contar al invitado.
@@ -67,8 +69,9 @@ public sealed partial class PaginaDeCorreccion
     /// Dos cifras de la misma pantalla que no encajan, y ninguna forma de saber cual creer. La
     /// diferencia era el invitado: el documento que acaba de resolverse y sigue delante.</para>
     ///
-    /// <para>El criterio es el mismo <see cref="QueEntraEnCorreccion.SaleDeCorreccion"/> que
-    /// decide quien entra, asi que la cifra no puede separarse de la lista que cuenta.</para>
+    /// <para>El criterio es el mismo
+    /// <see cref="QueEntraEnCorreccion.SaleDeCorreccion(GrupoParaCorregir, bool)"/> que decide
+    /// quien entra, asi que la cifra no puede separarse de la lista que cuenta.</para>
     /// </remarks>
     private int CuantosPidenAlgo()
         => QueEntraEnCorreccion.CuantosPidenAlgo(
@@ -86,6 +89,12 @@ public sealed partial class PaginaDeCorreccion
     /// <para>⛔ <b>Los archivados no entran</b>, que es la regla del dueno del 2026-09-06:
     /// «debe pasar a archivado y no aparecer más en ningún lado». <c>TableroDeRevisar.Cargar</c>
     /// ya los deja fuera por defecto.</para>
+    ///
+    /// <para>⛔ <b>Y los resueltos tampoco</b>, desde el 2026-09-09, por la decision del dueno
+    /// del 2026-09-07 (<c>DECISIONES.md</c>, «Corrección es un sitio de paso, no un almacén»):
+    /// <i>«si voy a Corrección no debe estar ahí, porque ya está todo listo»</i>. El filtro lo
+    /// aplica <see cref="QueEntraEnCorreccion.Filtrar"/> con el veredicto de
+    /// <see cref="LoQueLeFaltaACadaDocumento.LeFaltaAlgo"/>; aqui no se decide nada.</para>
     /// </remarks>
     /// <param name="casoQueSigueAbierto">
     /// El documento que hay que dejar elegido; 0 abre el primero del primer grupo.
@@ -332,6 +341,11 @@ public sealed partial class PaginaDeCorreccion
     /// Nulo y no un nombre de relleno: es la misma regla que en el modelo. Un hueco se dice
     /// callando el nombre, nunca poniendo el del primero de la lista.
     /// </remarks>
+    /// <param name="caso">El caso, del que se lee <c>estado_marcado_por</c>.</param>
+    /// <param name="nombrePorId">
+    /// Cache de nombres por id para no preguntar dos veces por el mismo companero mientras se
+    /// arma un grupo; se le pasa uno vacio cuando se rehace una sola linea.
+    /// </param>
     private string? QuienMarcoEsteCaso(Caso caso, Dictionary<long, string?> nombrePorId)
     {
         if (Servicios is null || caso.EstadoMarcadoPor is not long id) return null;
@@ -371,14 +385,15 @@ public static class TextoDeLosGrupos
     /// <para>Y el significado del rotulo va aqui, UNA vez, en vez de repetirlo en cada entrada
     /// del desplegable: es el criterio C17-1 —«listo» a secas se lee como «listo para
     /// viajar»— resuelto sin gastar treinta caracteres por linea en una lista de 61.</para>
-    /// </remarks>
-    /// <remarks>
+    ///
+    /// <para>
     /// ⚠️ <b>2026-09-09: quedo SIN USAR y NO se borra.</b> Desde que Correccion solo ensena lo
     /// que pide algo hacen falta CUATRO cifras y no tres —los que piden algo, y de cuantos—, y
     /// la compone <c>TextoDeLaSalidaDeCorreccion.Denominador</c>. Se queda porque la regla del
     /// dueno del 2026-08-19 es que durante el desarrollo «sin usar» y «sin terminar» se ven
     /// iguales desde fuera, y esto se decide al cerrar la fase, no ahora. Va nombrado en la
     /// entrega para que el planificador lo anote en <c>PENDIENTES.md</c>.
+    /// </para>
     /// </remarks>
     /// <param name="enEsteGrupo">Cuantos documentos trae el grupo elegido.</param>
     /// <param name="cuantosGrupos">Cuantos grupos hay.</param>

@@ -17,9 +17,11 @@ namespace Fichas.Pruebas.App.Asignar;
 /// </remarks>
 internal sealed class EspiaDePersonas : IPersonas
 {
+    /// <summary>El repositorio que de verdad contesta; todo se le pasa tal cual después de contar.</summary>
     private readonly IPersonas _deVerdad;
 
     /// <summary>Envuelve al repositorio que de verdad contesta.</summary>
+    /// <param name="deVerdad">El repositorio que contesta; normalmente el falso.</param>
     public EspiaDePersonas(IPersonas deVerdad) => _deVerdad = deVerdad;
 
     /// <summary>Cuantas veces se ha preguntado por las personas de UN caso.</summary>

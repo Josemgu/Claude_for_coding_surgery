@@ -231,6 +231,18 @@ public sealed record TarjetaDeDocumento
     public string DetalleDelEstado => Lectura.Detalle;
 
     /// <summary>Si esta tarjeta se lee «resuelto»; enciende su pastilla y no la otra.</summary>
+    /// <remarks>
+    /// <para>Son dos banderas y no una propiedad de color porque el color tiene que resolverse
+    /// con el tema del ELEMENTO y no con el de la aplicacion. Es la causa medida del 1,70:1 del
+    /// 2026-09-05 en la franja de avisos: un pincel sacado de
+    /// <c>Application.Current.Resources</c> se resuelve con el tema de la APLICACION, que se fija
+    /// al arrancar, mientras la letra de al lado sigue el del elemento — y con los dos temas
+    /// distintos el fondo y la letra se acercan hasta perderse.</para>
+    ///
+    /// <para>Con una pastilla por lectura, cada una con su <c>ThemeResource</c> fijo, XAML vuelve
+    /// a resolver los colores cuando el dueno cambia el tema y no hay pincel que viaje en un
+    /// dato. Lo que decide cual se ve es el dato; lo que decide de que color es, el tema.</para>
+    /// </remarks>
     public bool SeVeResuelto => Lectura.EsResuelto;
 
     /// <summary>Si esta tarjeta se lee «me falta».</summary>
@@ -252,30 +264,6 @@ public sealed record TarjetaDeDocumento
                 : PalabrasDelEstado.DecirElMotivo(MotivoQueDijoElCompanero);
         }
     }
-
-    /// <summary>Si la tarjeta se ve como «sin revisar»; enciende su pastilla y ninguna otra.</summary>
-    /// <remarks>
-    /// <para>Son cuatro banderas y no una propiedad de color porque el color tiene que resolverse
-    /// con el tema del ELEMENTO y no con el de la aplicacion. Es la causa medida del 1,70:1 del
-    /// 2026-09-05 en la franja de avisos: un pincel sacado de
-    /// <c>Application.Current.Resources</c> se resuelve con el tema de la APLICACION, que se fija
-    /// al arrancar, mientras la letra de al lado sigue el del elemento — y con los dos temas
-    /// distintos el fondo y la letra se acercan hasta perderse.</para>
-    ///
-    /// <para>Con una pastilla por estado, cada una con su <c>ThemeResource</c> fijo, XAML vuelve
-    /// a resolver los colores cuando el dueno cambia el tema y no hay pincel que viaje en un
-    /// dato. Lo que decide cual se ve es el dato; lo que decide de que color es, el tema.</para>
-    /// </remarks>
-    public bool SeVeSinRevisar => EstadoQueSeVe == EstadoQueSeVe.SinRevisar;
-
-    /// <summary>Si la tarjeta se ve como «no esta completa».</summary>
-    public bool SeVeNoCompleta => EstadoQueSeVe == EstadoQueSeVe.NoCompleta;
-
-    /// <summary>Si la tarjeta se ve como «completa».</summary>
-    public bool SeVeCompleta => EstadoQueSeVe == EstadoQueSeVe.Completa;
-
-    /// <summary>Si la tarjeta se ve como «fecha pasada completada».</summary>
-    public bool SeVeFechaPasadaCompletada => EstadoQueSeVe == EstadoQueSeVe.FechaPasadaCompletada;
 
     /// <summary>
     /// El motivo VIGENTE, que es el que puso Miguel (<c>casos.motivo_no_completa</c>).
@@ -322,9 +310,6 @@ public sealed record TarjetaDeDocumento
                 : $"el compañero dijo: {PalabrasDelEstado.DecirElMotivo(MotivoQueDijoElCompanero)}";
         }
     }
-
-    /// <summary>Si hay motivo que ensenar; la tarjeta esconde la linea cuando no lo hay.</summary>
-    public bool HayLineaDeMotivo => LineaDelMotivo.Length > 0;
 
     /// <summary>Si el caso esta archivado.</summary>
     public bool Archivado { get; init; }
@@ -425,6 +410,7 @@ public sealed record TarjetaDeDocumento
     }
 
     /// <summary>El nombre del archivo sin la ruta; la ruta entera no cabe en la tarjeta.</summary>
+    /// <param name="ruta">La ruta entera del PDF, con barras de cualquiera de los dos tipos; nula o vacía da «sin archivo».</param>
     public static string NombreDelArchivo(string? ruta)
     {
         if (string.IsNullOrWhiteSpace(ruta)) return "sin archivo";
@@ -457,6 +443,9 @@ public sealed record TarjetaDeDocumento
     /// no esta, se dice «por alguien que ya no esta» en vez de callar el hecho de que
     /// alguien lo marco.
     /// </remarks>
+    /// <param name="caso">El documento cuyo estado se firma.</param>
+    /// <param name="nombres">El nombre de cada compañero por su número.</param>
+    /// <returns>«Completada por Sandy · 2026-08-30», o vacío si el estado está sin marcar.</returns>
     public static string ComponerFirma(Caso caso, IReadOnlyDictionary<long, string> nombres)
     {
         if (caso.Estado == EstadoDeRecomendacion.SinMarcar) return string.Empty;

@@ -13,6 +13,7 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 public sealed partial class FranjaDeAvisos : UserControl
 {
+    /// <summary>El buzón al que está atada la franja; nulo hasta <see cref="AtarA"/>, y entonces no se pinta nada.</summary>
     private BuzonDeAvisos? _buzon;
 
     /// <summary>Lo grave que es el aviso que se esta ensenando, para poder repintarlo.</summary>
@@ -32,7 +33,8 @@ public sealed partial class FranjaDeAvisos : UserControl
         ActualThemeChanged += (quien, cuando) => PintarElFondo(_gravedadEnPantalla);
     }
 
-    /// <summary>Ata la franja al buzon de avisos y se pinta con lo que ya hubiera.</summary>
+    /// <summary>Ata la franja al buzon de avisos y se pinta con lo que ya hubiera. Si ya estaba atada a otro, se suelta de él.</summary>
+    /// <param name="buzon">El buzón de la app, el mismo que comparten todas las pantallas.</param>
     public void AtarA(BuzonDeAvisos buzon)
     {
         if (_buzon is not null) _buzon.Cambio -= AlCambiarElBuzon;
@@ -41,10 +43,9 @@ public sealed partial class FranjaDeAvisos : UserControl
         Repintar();
     }
 
-    /// <summary>Cuantos avisos hay sin cerrar; lo lee la prueba sin abrir ventana.</summary>
-    public int CuantosPendientes => _buzon?.Pendientes.Count ?? 0;
-
     /// <summary>Se repinta cuando entra o se cierra un aviso.</summary>
+    /// <param name="quien">El buzón; no se usa.</param>
+    /// <param name="cuando">Vacío; no se usa.</param>
     private void AlCambiarElBuzon(object? quien, EventArgs cuando) => Repintar();
 
     /// <summary>Ensena el aviso mas nuevo y la cuenta de los que hay detras.</summary>
@@ -62,6 +63,7 @@ public sealed partial class FranjaDeAvisos : UserControl
         _franja.Visibility = Visibility.Visible;
         _cuenta.Text = pendientes.Count == 1 ? "1 aviso" : $"{pendientes.Count} avisos";
         _linea.Text = aviso.Linea;
+        PintarElBotonDelAviso(_buzon?.AccionDe(aviso));
         _botonDeVer.Visibility = aviso.Detalle is null ? Visibility.Collapsed : Visibility.Visible;
         _botonDeCerrarTodo.Visibility = pendientes.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         PintarElFondo(aviso.Gravedad);
@@ -81,6 +83,7 @@ public sealed partial class FranjaDeAvisos : UserControl
     /// con la version anterior: fondo por un tema y letra por el otro daban 1,70:1 en claro.
     /// Hay una prueba que lo vigila: <c>PruebasDeLosDosTemas</c>.
     /// </remarks>
+    /// <param name="gravedad">Lo grave que es el aviso; elige entre los tres fondos del diccionario.</param>
     private void PintarElFondo(GravedadDeAviso gravedad)
     {
         _gravedadEnPantalla = gravedad;
@@ -100,15 +103,52 @@ public sealed partial class FranjaDeAvisos : UserControl
         }
     }
 
+    /// <summary>Enseña el botón del aviso con su rótulo, o lo esconde si este aviso no trae ninguno.</summary>
+    /// <remarks>
+    /// El rótulo va también en <c>AutomationProperties.Name</c>: el contenido del botón se
+    /// pone desde código y el barrido del XAML no lo ve, así que el nombre para el lector de
+    /// pantalla se pone aquí, con el mismo texto que se lee.
+    /// </remarks>
+    /// <param name="accion">La acción del aviso que se está enseñando, o nula.</param>
+    private void PintarElBotonDelAviso(AccionDelAviso? accion)
+    {
+        if (accion is null)
+        {
+            _botonDeAccion.Visibility = Visibility.Collapsed;
+            _botonDeAccion.Content = string.Empty;
+            return;
+        }
+
+        _botonDeAccion.Content = accion.Rotulo;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(_botonDeAccion, accion.Rotulo);
+        _botonDeAccion.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Hace lo que pidió el aviso que se está enseñando; si ya no trae acción, no hace nada.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
+    private void AlPulsarLaAccion(object quien, RoutedEventArgs cuando)
+    {
+        var pendientes = _buzon?.Pendientes;
+        if (pendientes is null || pendientes.Count == 0) return;
+        _buzon?.AccionDe(pendientes[0])?.Hacer();
+    }
+
     /// <summary>Abre o cierra el detalle debajo de la linea, sin bloquear nada.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVer(object quien, RoutedEventArgs cuando)
         => _detalle.Visibility = _detalle.Visibility == Visibility.Visible
             ? Visibility.Collapsed
             : Visibility.Visible;
 
     /// <summary>Cierra el aviso que se esta ensenando y pasa al siguiente.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCerrar(object quien, RoutedEventArgs cuando) => _buzon?.CerrarElPrimero();
 
     /// <summary>Cierra todos los avisos de golpe.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCerrarTodo(object quien, RoutedEventArgs cuando) => _buzon?.CerrarTodos();
 }

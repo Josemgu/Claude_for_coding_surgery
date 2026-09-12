@@ -218,7 +218,6 @@
                     FontWeight="SemiBold"
                     Text="Carpetas" />
                 <Button
-                    x:Name="_botonDeVerTodo"
                     Grid.Column="1"
                     AutomationProperties.Name="Ver todos los documentos"
                     Click="AlPulsarVerTodo"

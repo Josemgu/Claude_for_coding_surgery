@@ -29,11 +29,15 @@ namespace Fichas.Pruebas.App.Correccion;
 /// </remarks>
 internal sealed class ProcedenciaComoLaDeVerdad : IProcedencia
 {
+    /// <summary>Las filas por su clave (tabla, registro_id, campo), como la clave primaria de la tabla de verdad.</summary>
     private readonly Dictionary<string, ProcedenciaDeCampo> _filas = new(StringComparer.Ordinal);
+    /// <summary>Los companeros que existen; firmar a nombre de otro se niega, como hace la clave foranea.</summary>
     private readonly HashSet<long> _companeros;
+    /// <summary>El proximo id que se reparte al anotar, como el autoincremento de SQLite.</summary>
     private long _siguienteId = 1;
 
     /// <summary>Monta el almacen con los companeros que existen; sin ellos no se firma.</summary>
+    /// <param name="companeros">Los ids de companero que se dan por existentes.</param>
     public ProcedenciaComoLaDeVerdad(params long[] companeros) => _companeros = [.. companeros];
 
     /// <inheritdoc />
@@ -85,6 +89,8 @@ internal sealed class ProcedenciaComoLaDeVerdad : IProcedencia
     /// Es lo que hace la instruccion de verdad, y es lo que tiene que pasar: cuando el valor
     /// de debajo cambia, la firma deja de valer.
     /// </remarks>
+    /// <param name="procedencia">La fila entera; su id se ignora y se reparte uno nuevo.</param>
+    /// <exception cref="ArgumentNullException">Si la fila es nula.</exception>
     public ResultadoDeEscritura Anotar(ProcedenciaDeCampo procedencia)
     {
         ArgumentNullException.ThrowIfNull(procedencia);
@@ -101,6 +107,11 @@ internal sealed class ProcedenciaComoLaDeVerdad : IProcedencia
     }
 
     /// <summary>Un <c>UPDATE</c>: sin fila que cambiar, NO se firma y se dice.</summary>
+    /// <param name="tabla">Si es del caso o de una persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna.</param>
+    /// <param name="companeroId">Quien firma; tiene que existir.</param>
+    /// <param name="verificadoEn">Cuando; en blanco se niega, como el <c>NOT NULL</c> de la tabla.</param>
     public ResultadoDeEscritura Firmar(
         TablaDeProcedencia tabla, long registroId, string campo, long companeroId, string verificadoEn)
     {
@@ -143,6 +154,9 @@ internal sealed class ProcedenciaComoLaDeVerdad : IProcedencia
     }
 
     /// <summary>La clave de la tabla: (tabla, registro_id, campo), como en el esquema.</summary>
+    /// <param name="tabla">Si es del caso o de una persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna.</param>
     private static string Clave(TablaDeProcedencia tabla, long registroId, string campo)
         => $"{tabla}:{registroId}:{campo}";
 }

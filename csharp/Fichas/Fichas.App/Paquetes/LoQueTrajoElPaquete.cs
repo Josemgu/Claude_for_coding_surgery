@@ -66,6 +66,7 @@ public sealed record InformacionQueVolvio
     };
 
     /// <summary>Lo que se pinta donde la base no tiene el dato. Nunca un hueco en blanco.</summary>
+    /// <param name="valor">El valor guardado; nulo o en blanco se pinta como «no consta».</param>
     private static string ODice(string? valor) => string.IsNullOrWhiteSpace(valor) ? "no consta" : valor;
 }
 
@@ -95,6 +96,7 @@ public sealed record LoQueTrajoElPaquete(
     IReadOnlyList<string> NoSePudieronMirar)
 {
     /// <summary>Una vuelta de la que no hay nada que revisar, con el nombre de quien la trajo.</summary>
+    /// <param name="deQuien">El nombre del compañero.</param>
     public static LoQueTrajoElPaquete Nada(string deQuien) => new(deQuien, [], [], []);
 
     /// <summary>Cuantos documentos distintos volvieron.</summary>

@@ -1,4 +1,3 @@
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -20,7 +19,17 @@ namespace Fichas.App.Correccion;
 /// </remarks>
 public sealed partial class FichaDeCampo : UserControl
 {
+    /// <summary>El modelo al que se le pregunta todo; nulo hasta <see cref="Mostrar"/>.</summary>
     private ModeloDeCorreccion? _modelo;
+
+    /// <summary>
+    /// Verdadero mientras la ficha se esta repintando desde la base. Es lo que separa «Miguel
+    /// tecleo o pulso» de «la pantalla puso el control como esta el almacen».
+    /// </summary>
+    /// <remarks>
+    /// Sin esta guarda, poner el texto o la casilla al repintar dispararia los mismos sucesos
+    /// que una pulsacion suya, y repintar acabaria escribiendo en el almacen.
+    /// </remarks>
     private bool _pintando;
 
     /// <summary>Monta la ficha vacia.</summary>
@@ -42,13 +51,14 @@ public sealed partial class FichaDeCampo : UserControl
     /// <remarks>Lleva si quedo marcada, para que la pantalla no tenga que mirar el control.</remarks>
     public event EventHandler<bool>? PidioMarcarQueNoEstaEnElPapel;
 
-    /// <summary>Lo que dice el motivo ahora mismo; lo lee la medicion sin desmontar nada.</summary>
-    public string LoQueDiceElMotivo => _motivo.Text;
-
-    /// <summary>La palabra del estado ahora mismo.</summary>
-    public string LoQueDiceLaPalabra => _palabra.Text;
-
     /// <summary>Ata la ficha a un campo del modelo y la pinta por primera vez.</summary>
+    /// <remarks>
+    /// El repetidor reutiliza fichas al cambiar de caso, asi que esto puede llamarse varias
+    /// veces sobre la misma ficha con campos distintos; por eso pone TODO, sin suponer nada de
+    /// lo que hubiera antes.
+    /// </remarks>
+    /// <param name="modelo">El modelo de la pantalla, al que se le pregunta el estado y el motivo.</param>
+    /// <param name="campo">El campo que esta ficha pinta a partir de ahora.</param>
     public void Mostrar(ModeloDeCorreccion modelo, CampoEnPantalla campo)
     {
         _modelo = modelo;
@@ -134,6 +144,7 @@ public sealed partial class FichaDeCampo : UserControl
     /// copias. Ese es el defecto que QA midio: doce cuadros con el mismo identificador y sin
     /// nombre, y once botones llamados todos «Esta bien».
     /// </remarks>
+    /// <param name="campo">El campo del que salen los nombres y los identificadores.</param>
     private void PonerLosNombresParaElLector(CampoEnPantalla campo)
     {
         AutomationProperties.SetName(_valor, campo.NombreParaElLector);
@@ -146,6 +157,7 @@ public sealed partial class FichaDeCampo : UserControl
     }
 
     /// <summary>La tinta de cada estado; el color acompana a la palabra, no la sustituye.</summary>
+    /// <param name="estado">El estado que se pinta; «tachado» cae en el ambar de lo que hay que mirar.</param>
     private static Windows.UI.Color TintaDe(EstadoDeCampo estado) => estado switch
     {
         EstadoDeCampo.Anotacion => Windows.UI.Color.FromArgb(255, 0x12, 0x6B, 0x3A),

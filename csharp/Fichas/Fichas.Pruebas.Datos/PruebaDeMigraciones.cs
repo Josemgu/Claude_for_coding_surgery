@@ -1,4 +1,3 @@
-using Fichas.Datos.Conexion;
 using Fichas.Datos.Esquema;
 using Microsoft.Data.Sqlite;
 
@@ -30,6 +29,7 @@ public sealed class PruebaDeMigraciones
     private static readonly int[] VersionesEsperadas =
         [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
 
+    /// <summary>Vigila que el catálogo declara exactamente [2..19], en ese orden.</summary>
     [TestMethod]
     public void ElCatalogoDeclaraLasDieciochoMigracionesEnOrdenYSinSaltos()
     {
@@ -43,6 +43,7 @@ public sealed class PruebaDeMigraciones
             string.Join(", ", versiones));
     }
 
+    /// <summary>Vigila que ninguna migración tiene la descripción en blanco.</summary>
     [TestMethod]
     public void CadaMigracionTraeUnaDescripcionQueDiceQueCambio()
     {
@@ -54,6 +55,7 @@ public sealed class PruebaDeMigraciones
         }
     }
 
+    /// <summary>Vigila que una base sin esquema acaba en la versión al día, y que esa es la 19 escrita a mano.</summary>
     [TestMethod]
     public void UnaBaseNuevaLlegaALaVersionAlDia()
     {
@@ -73,6 +75,7 @@ public sealed class PruebaDeMigraciones
             "bases que el Python dejo en la 12, mas la 17 que quita el de la cedula.");
     }
 
+    /// <summary>Vigila que <c>version_esquema</c> tiene una fila por versión, de la 1 a la 19.</summary>
     [TestMethod]
     public void LaBaseRegistraUnaFilaPorCadaVersionAplicada()
     {
@@ -88,6 +91,7 @@ public sealed class PruebaDeMigraciones
             $"{UltimaVersionDeclarada}. Registro: {string.Join(", ", registradas)}");
     }
 
+    /// <summary>Vigila la idempotencia: la segunda pasada deja <c>version_esquema</c> igual.</summary>
     [TestMethod]
     public void AplicarElEsquemaDosVecesNoDuplicaNadaNiFalla()
     {
@@ -112,6 +116,7 @@ public sealed class PruebaDeMigraciones
             "Aplicar el esquema dos veces duplico filas en `version_esquema`.");
     }
 
+    /// <summary>Vigila que volver a aplicar el esquema no pierde compañeros, casos ni personas.</summary>
     [TestMethod]
     public void AplicarElEsquemaSobreUnaBaseConDatosNoLosToca()
     {
@@ -128,6 +133,7 @@ public sealed class PruebaDeMigraciones
         Assert.AreNotEqual(0, companero, "El companero no llego a guardarse.");
     }
 
+    /// <summary>Vigila que migrar desde la 11 —antes de las reconstrucciones— conserva el número de filas por tabla.</summary>
     [TestMethod]
     public void UnaBaseParadaEnLaOnceLlegaAlDiaSinPerderFilas()
     {
@@ -157,6 +163,7 @@ public sealed class PruebaDeMigraciones
         Assert.AreNotEqual(0, companero, "El companero no llego a guardarse.");
     }
 
+    /// <summary>Vigila que migrar desde la 13 —donde estaba la base del dueño— conserva el número de filas por tabla.</summary>
     [TestMethod]
     public void UnaBaseParadaEnLaTreceLlegaAlDiaSinPerderFilas()
     {
@@ -176,6 +183,7 @@ public sealed class PruebaDeMigraciones
             "Migrar de la 13 al dia cambio el numero de filas de alguna tabla.");
     }
 
+    /// <summary>Vigila que se puede parar en cada versión y desde cada una llegar al día.</summary>
     [TestMethod]
     public void CadaVersionIntermediaSeAlcanzaUnaAUna()
     {
@@ -224,6 +232,10 @@ public sealed class PruebaDeMigraciones
         baseDePrueba.ContarFilasDe("procedencia_campo"),
     ];
 
+    /// <summary>Un compañero por SQL directo, sin pasar por el repositorio, para sembrar bases en versiones viejas.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="nombre">El nombre.</param>
+    /// <returns>El id nuevo.</returns>
     internal static long InsertarCompanero(SqliteConnection conexion, string nombre)
     {
         using var orden = conexion.CreateCommand();
@@ -235,6 +247,10 @@ public sealed class PruebaDeMigraciones
         return Convert.ToInt64(orden.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
     }
 
+    /// <summary>Un caso por SQL directo con solo número y fecha de creación; el número puede ir nulo.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="numeroCaso">El número, o nulo.</param>
+    /// <returns>El id nuevo.</returns>
     internal static long InsertarCaso(SqliteConnection conexion, string? numeroCaso)
     {
         using var orden = conexion.CreateCommand();
@@ -246,6 +262,12 @@ public sealed class PruebaDeMigraciones
         return Convert.ToInt64(orden.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture);
     }
 
+    /// <summary>Una persona por SQL directo con caso, cédula y nombre.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="casoId">El caso al que pertenece.</param>
+    /// <param name="mrn">La cédula, o nulo.</param>
+    /// <param name="nombre">El nombre, o nulo.</param>
+    /// <returns>El id nuevo.</returns>
     internal static long InsertarPersona(
         SqliteConnection conexion, long casoId, string? mrn, string? nombre)
     {

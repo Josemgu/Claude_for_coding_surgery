@@ -26,11 +26,19 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 public sealed class Servicios : IDisposable
 {
+    /// <summary>La conexión abierta a la base de verdad; nula con datos inventados, y eso es lo que mide <see cref="SonDatosInventados"/>.</summary>
     private readonly SqliteConnection? _conexion;
+
+    /// <summary>La lectura de PDF de verdad, sin construir hasta que alguien importa; nula con datos inventados.</summary>
     private readonly Lazy<LecturaDePdf>? _lecturaDeVerdad;
+
+    /// <summary>El lector de formularios de punta a punta, perezoso como la lectura de la que depende; nulo con datos inventados.</summary>
     private readonly Lazy<LectorDeFormularios>? _lector;
 
-    /// <summary>Con la base de verdad detras.</summary>
+    /// <summary>Con la base de verdad detras: repositorios sobre SQLite, OCR perezoso, paquetes y reportes reales.</summary>
+    /// <param name="argumentos">Lo que se pidió en la línea de órdenes.</param>
+    /// <param name="registro">El cuaderno de tiempos ya abierto en la carpeta de datos.</param>
+    /// <param name="conexion">La conexión ya preparada y migrada por <c>ArranqueDeLaBase</c>; esta clase la cierra en <see cref="Dispose"/>.</param>
     private Servicios(ArgumentosDeArranque argumentos, Registro registro, SqliteConnection conexion)
         : this(argumentos, registro)
     {
@@ -71,7 +79,10 @@ public sealed class Servicios : IDisposable
         ReporteDeLaSegundaVuelta = new ReporteDeLaSegundaVueltaEnPdf(reportes);
     }
 
-    /// <summary>Con datos inventados, que es lo que pide <c>--falso N</c>.</summary>
+    /// <summary>Con datos inventados, que es lo que pide <c>--falso N</c>. Sin base, sin OCR, sin mantenimiento ni reporte de la segunda vuelta.</summary>
+    /// <param name="argumentos">Lo que se pidió en la línea de órdenes.</param>
+    /// <param name="registro">El cuaderno de tiempos.</param>
+    /// <param name="falsos">Las implementaciones en memoria de <c>Fichas.Datos.Falso</c>, ya sembradas con N casos.</param>
     private Servicios(ArgumentosDeArranque argumentos, Registro registro, Datos.Falso.ServiciosFalsos falsos)
         : this(argumentos, registro)
     {
@@ -87,13 +98,26 @@ public sealed class Servicios : IDisposable
         Reportes = falsos.Reportes;
     }
 
-    /// <summary>Lo comun a las dos formas de montarse.</summary>
+    /// <summary>Lo comun a las dos formas de montarse: argumentos, cuaderno, buzón de avisos, reloj y actualizador.</summary>
+    /// <remarks>
+    /// El actualizador se monta siempre, también con <c>--falso</c>, porque montarlo no toca
+    /// la red: solo sale a internet quien llama a <c>Buscar</c>, y con datos inventados el
+    /// arranque no lo llama (<see cref="ArgumentosDeArranque.SeBuscaActualizacionAlArrancar"/>).
+    /// </remarks>
+    /// <param name="argumentos">Lo que se pidió en la línea de órdenes.</param>
+    /// <param name="registro">El cuaderno de tiempos.</param>
     private Servicios(ArgumentosDeArranque argumentos, Registro registro)
     {
         Argumentos = argumentos;
         Registro = registro;
         Avisos = new BuzonDeAvisos();
         Reloj = new RelojDelSistema();
+        Actualizador = new Actualizacion.Actualizador(
+            new Actualizacion.ServidorDeReleasesDeGitHub(new HttpClientHandler()),
+            argumentos.CarpetaDeDatos,
+            VersionDelPrograma.Numero,
+            new Actualizacion.LanzadorDelInstalador(registro.Anotar),
+            registro.Anotar);
     }
 
     /// <summary>Monta los servicios que usara toda la app.</summary>
@@ -103,6 +127,9 @@ public sealed class Servicios : IDisposable
     /// no aparece no deja donde leer el motivo, y entonces el dueno tiene un icono que no
     /// hace nada.
     /// </remarks>
+    /// <param name="argumentos">Lo leído de la línea de órdenes; decide entre la base de verdad y lo inventado.</param>
+    /// <param name="registro">El cuaderno donde se anota la ruta de la base y, si falla, el motivo.</param>
+    /// <returns>Los servicios montados; nunca nulo, aunque la base no haya abierto.</returns>
     public static Servicios Montar(ArgumentosDeArranque argumentos, Registro registro)
     {
         ArgumentNullException.ThrowIfNull(argumentos);
@@ -142,34 +169,34 @@ public sealed class Servicios : IDisposable
         }
     }
 
-    /// <summary>Los casos.</summary>
+    /// <summary>Los casos (un caso es un PDF leído); de verdad o inventados según el arranque.</summary>
     public ICasos Casos { get; } = null!;
 
-    /// <summary>Las personas.</summary>
+    /// <summary>Las personas de cada caso, hasta seis por formulario.</summary>
     public IPersonas Personas { get; } = null!;
 
-    /// <summary>Los companeros.</summary>
+    /// <summary>Los companeros (agentes) a los que se reparten los documentos.</summary>
     public ICompaneros Companeros { get; } = null!;
 
     /// <summary>Las asignaciones; la unica puerta de asignar, desde cualquier pantalla.</summary>
     public IAsignaciones Asignaciones { get; } = null!;
 
-    /// <summary>La procedencia de cada campo.</summary>
+    /// <summary>La procedencia de cada campo: de qué anotación, OCR o mano salió cada valor.</summary>
     public IProcedencia Procedencia { get; } = null!;
 
     /// <summary>Los documentos ilegibles y las filas descartadas.</summary>
     public IIlegibles Ilegibles { get; } = null!;
 
-    /// <summary>La lectura de PDF.</summary>
+    /// <summary>La lectura de PDF por pasos (páginas, imagen, anotaciones, OCR); con la base de verdad es perezosa.</summary>
     public ILecturaDePdf LecturaDePdf { get; } = null!;
 
-    /// <summary>La extraccion de campos.</summary>
+    /// <summary>La extraccion de campos a partir de lo que leyó el OCR y las anotaciones.</summary>
     public IExtraccion Extraccion { get; } = null!;
 
-    /// <summary>Los paquetes de Excel.</summary>
+    /// <summary>Los paquetes de Excel que van a los companeros y vuelven llenos.</summary>
     public IPaquetes Paquetes { get; } = null!;
 
-    /// <summary>Los reportes en PDF.</summary>
+    /// <summary>Los reportes en PDF; con datos inventados es un motor falso que no escribe nada.</summary>
     public IReportes Reportes { get; } = null!;
 
     /// <summary>
@@ -205,11 +232,22 @@ public sealed class Servicios : IDisposable
     /// <summary>Lo que se pidio en la linea de ordenes.</summary>
     public ArgumentosDeArranque Argumentos { get; }
 
-    /// <summary>El cuaderno de tiempos.</summary>
+    /// <summary>El cuaderno de tiempos (<c>fichas.log</c>) donde se anotan arranque, navegaciones y fallos.</summary>
     public Registro Registro { get; }
 
     /// <summary>Donde cualquier pantalla deja un aviso para que lo pinte la franja.</summary>
     public BuzonDeAvisos Avisos { get; }
+
+    /// <summary>
+    /// El control de versiones: pregunta a GitHub por la última, baja el instalador y lo
+    /// lanza, cada cosa solo cuando la ventana se lo pide.
+    /// </summary>
+    /// <remarks>
+    /// Es la única salida a internet del programa (DECISIONES.md, 2026-09-11): una llamada
+    /// HTTPS a la API de GitHub, y solo en un arranque normal o al pulsar «Buscar
+    /// actualización». La clave la lee él de la carpeta de datos en cada llamada.
+    /// </remarks>
+    public Actualizacion.Actualizador Actualizador { get; }
 
     /// <summary>Si el programa esta ensenando datos inventados en vez de los del dueno.</summary>
     public bool SonDatosInventados => _conexion is null;
@@ -226,7 +264,7 @@ public sealed class Servicios : IDisposable
     /// </remarks>
     public LectorDeFormularios? ObtenerElLector() => _lector?.Value;
 
-    /// <summary>Cierra la base. El archivo tiene que quedar libre al salir.</summary>
+    /// <summary>Cierra la base y libera el OCR si llegó a cargarse. El archivo tiene que quedar libre al salir.</summary>
     public void Dispose()
     {
         if (_lecturaDeVerdad is { IsValueCreated: true }) _lecturaDeVerdad.Value.Dispose();
@@ -245,21 +283,36 @@ public sealed class Servicios : IDisposable
 /// </remarks>
 internal sealed class LecturaPerezosa : ILecturaDePdf
 {
+    /// <summary>La lectura de verdad; <c>Value</c> la construye la primera vez que se toca.</summary>
     private readonly Lazy<LecturaDePdf> _deVerdad;
 
+    /// <summary>Envuelve la lectura sin construirla.</summary>
+    /// <param name="deVerdad">La lectura perezosa que comparte con <see cref="Servicios"/>, para que se cargue una sola vez.</param>
     internal LecturaPerezosa(Lazy<LecturaDePdf> deVerdad) => _deVerdad = deVerdad;
 
+    /// <summary>Cuántas hojas tiene el PDF (0 si no se pudo abrir); es el primer paso y el que fuerza la carga de la lectura.</summary>
+    /// <param name="rutaPdf">Ruta del PDF en disco.</param>
     public int ContarPaginas(string rutaPdf) => _deVerdad.Value.ContarPaginas(rutaPdf);
 
+    /// <summary>Rasteriza una página a imagen para el OCR; nulo si la página no se pudo dibujar.</summary>
+    /// <param name="rutaPdf">Ruta del PDF en disco.</param>
+    /// <param name="pagina">Número de hoja, empezando en 1.</param>
+    /// <param name="anchoMaximo">Tope de píxeles en el lado largo, para que un escaneo grande no tarde minutos.</param>
     public Contratos.Lectura.ImagenDePagina? RasterizarPagina(string rutaPdf, int pagina, int anchoMaximo)
         => _deVerdad.Value.RasterizarPagina(rutaPdf, pagina, anchoMaximo);
 
+    /// <summary>Las anotaciones (texto libre, tachones) de una página, que se leen sin OCR.</summary>
+    /// <param name="rutaPdf">Ruta del PDF en disco.</param>
+    /// <param name="pagina">Número de hoja, empezando en 1.</param>
     public IReadOnlyList<Contratos.Lectura.AnotacionDelPdf> LeerAnotaciones(string rutaPdf, int pagina)
         => _deVerdad.Value.LeerAnotaciones(rutaPdf, pagina);
 
+    /// <summary>Pasa el OCR determinista sobre una imagen ya rasterizada; sin IA generativa (regla permanente 1).</summary>
+    /// <param name="imagen">La imagen que devolvió <see cref="RasterizarPagina"/>.</param>
     public IReadOnlyList<Contratos.Lectura.LineaDeOcr> LeerConOcr(Contratos.Lectura.ImagenDePagina imagen)
         => _deVerdad.Value.LeerConOcr(imagen);
 
+    /// <summary>Los idiomas con modelo cargado, para poder decir en pantalla con cuál se leyó.</summary>
     public IReadOnlyList<string> IdiomasDisponibles() => _deVerdad.Value.IdiomasDisponibles();
 }
 
@@ -272,7 +325,18 @@ internal sealed class LecturaPerezosa : ILecturaDePdf
 /// </remarks>
 public sealed class BuzonDeAvisos
 {
+    /// <summary>Los avisos abiertos; el más nuevo va en la posición 0, que es el que enseña la franja.</summary>
     private readonly List<Aviso> _pendientes = [];
+
+    /// <summary>
+    /// La acción de los avisos que la traen, por el OBJETO del aviso y no por su texto.
+    /// </summary>
+    /// <remarks>
+    /// <c>Aviso</c> es un <c>record</c> de <c>Fichas.Contratos</c>, que está congelado: dos
+    /// avisos con el mismo texto son iguales para él. Aquí se compara por referencia para que
+    /// el botón vaya con el aviso que lo pidió y no con cualquiera que diga lo mismo.
+    /// </remarks>
+    private readonly Dictionary<Aviso, AccionDelAviso> _acciones = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>Salta cuando entra un aviso nuevo, para que la franja se pinte sola.</summary>
     public event EventHandler? Cambio;
@@ -280,14 +344,30 @@ public sealed class BuzonDeAvisos
     /// <summary>Los avisos que todavia no se han cerrado, del mas nuevo al mas viejo.</summary>
     public IReadOnlyList<Aviso> Pendientes => _pendientes;
 
-    /// <summary>Deja un aviso en el buzon.</summary>
+    /// <summary>Deja un aviso en el buzon, delante de los demás, y avisa a la franja.</summary>
+    /// <param name="aviso">El aviso con su gravedad, su texto y su detalle.</param>
     public void Dejar(Aviso aviso)
     {
         _pendientes.Insert(0, aviso);
         Cambio?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Deja varios avisos de una vez; si no hay ninguno, no molesta.</summary>
+    /// <summary>Deja un aviso que trae un botón: la franja lo pinta con el rótulo y, al pulsarlo, hace lo que diga.</summary>
+    /// <remarks>Nace el 2026-09-11 para «Hay una versión nueva: v12» con «Actualizar ahora». Es el único aviso con botón.</remarks>
+    /// <param name="aviso">El aviso con su gravedad, su texto y su detalle.</param>
+    /// <param name="accion">El rótulo del botón y qué hacer al pulsarlo.</param>
+    public void Dejar(Aviso aviso, AccionDelAviso accion)
+    {
+        _acciones[aviso] = accion;
+        Dejar(aviso);
+    }
+
+    /// <summary>La acción que trae este aviso, o nula si no trae ninguna o ya se cerró.</summary>
+    /// <param name="aviso">El aviso, el mismo objeto que se dejó.</param>
+    public AccionDelAviso? AccionDe(Aviso aviso) => _acciones.GetValueOrDefault(aviso);
+
+    /// <summary>Deja varios avisos de una vez conservando su orden, y avisa a la franja una sola vez; si no hay ninguno, no molesta.</summary>
+    /// <param name="avisos">Los avisos en el orden en que deben leerse; el primero queda delante.</param>
     public void Dejar(IReadOnlyList<Aviso> avisos)
     {
         ArgumentNullException.ThrowIfNull(avisos);
@@ -296,19 +376,26 @@ public sealed class BuzonDeAvisos
         Cambio?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Cierra el aviso que se esta ensenando.</summary>
+    /// <summary>Cierra el aviso que se esta ensenando, y su acción se va con él.</summary>
     public void CerrarElPrimero()
     {
         if (_pendientes.Count == 0) return;
+        _acciones.Remove(_pendientes[0]);
         _pendientes.RemoveAt(0);
         Cambio?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Cierra todos los avisos de golpe.</summary>
+    /// <summary>Cierra todos los avisos de golpe, con sus acciones.</summary>
     public void CerrarTodos()
     {
         if (_pendientes.Count == 0) return;
         _pendientes.Clear();
+        _acciones.Clear();
         Cambio?.Invoke(this, EventArgs.Empty);
     }
 }
+
+/// <summary>El botón que puede traer un aviso: su rótulo y qué hacer al pulsarlo.</summary>
+/// <param name="Rotulo">Lo que se lee en el botón: «Actualizar ahora».</param>
+/// <param name="Hacer">Lo que pasa al pulsarlo; corre en el hilo de la ventana.</param>
+public sealed record AccionDelAviso(string Rotulo, Action Hacer);

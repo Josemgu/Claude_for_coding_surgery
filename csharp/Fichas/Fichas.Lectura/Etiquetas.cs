@@ -52,6 +52,11 @@ public static class Etiquetas
     /// <summary>La cabecera de la tabla de costes. Cierra el bloque de personas.</summary>
     public const string CampoDeLosCostos = "costos asociados";
 
+    /// <summary>
+    /// La tabla que une cada campo con sus dos cadenas impresas. Es la única fuente: los
+    /// nueve campos, sus formas y su orden salen de aquí. Las cadenas se copian del papel
+    /// tal cual, con «/» donde el formulario español pone «/» y no «o».
+    /// </summary>
     private static readonly Dictionary<string, (string EnIngles, string EnEspanol)> FormasDeCadaCampo = new()
     {
         [CampoDeLaFechaDeViaje] = ("Date traveling to the temple", "Fecha de viaje al templo"),
@@ -80,14 +85,13 @@ public static class Etiquetas
         [CampoDelNombreDelTemplo, CampoDeLaCitaDelTemplo, CampoDeLosCostos];
 
     /// <summary>Las cadenas impresas que valen para ese campo, en los dos idiomas.</summary>
+    /// <param name="campo">Una de las nueve claves <c>CampoDe…</c>; con otra cadena lanza <see cref="KeyNotFoundException"/>.</param>
+    /// <returns>Primero la forma inglesa y después la española; siempre dos.</returns>
     public static IReadOnlyList<string> FormasDe(string campo)
     {
         var formas = FormasDeCadaCampo[campo];
         return [formas.EnIngles, formas.EnEspanol];
     }
-
-    /// <summary>Como se llama esa etiqueta en un formulario ingles.</summary>
-    public static string FormaInglesaDe(string campo) => FormasDeCadaCampo[campo].EnIngles;
 
     /// <summary>
     /// Como se llama esa etiqueta en un formulario espanol.
@@ -97,8 +101,10 @@ public static class Etiquetas
     /// formas y gana la que mas se parezca, pero la pantalla escribe UNA, y por la regla
     /// permanente 4 es la espanola sea cual sea el idioma del papel.
     /// </remarks>
+    /// <param name="campo">Una de las nueve claves <c>CampoDe…</c>; con otra cadena lanza <see cref="KeyNotFoundException"/>.</param>
     public static string FormaEspanolaDe(string campo) => FormasDeCadaCampo[campo].EnEspanol;
 
+    /// <summary>Uno o más blancos seguidos, para dejarlos en un solo espacio al comparar.</summary>
     private static readonly Regex EspaciosSeguidos = new(@"\s+", RegexOptions.Compiled);
 
     /// <summary>
@@ -114,6 +120,8 @@ public static class Etiquetas
     /// 0,85, pero gasta casi toda la holgura en las tildes en vez de gastarla en el
     /// error de lectura de verdad. Normalizando da 1,000.</para>
     /// </remarks>
+    /// <param name="texto">Lo leído o la etiqueta; nulo o vacío devuelve la cadena vacía, no lanza.</param>
+    /// <returns>El texto en minúsculas, sin marcas diacríticas y con los blancos reducidos a un espacio.</returns>
     public static string NormalizarParaComparar(string? texto)
     {
         if (string.IsNullOrEmpty(texto)) return string.Empty;

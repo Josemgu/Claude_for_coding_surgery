@@ -41,9 +41,12 @@ public sealed partial class LoQueDicenLasCarpetas
     /// <summary>Como llama el volcado a la carpeta de lo que no tiene unidad.</summary>
     public const string CarpetaSinUnidad = "Sin unidad";
 
+    /// <summary>Los nombres de carpeta que no encajaron en ninguna forma, en el orden del camino.</summary>
     private readonly List<string> _noAprovechadas = [];
+    /// <summary>Cuántas carpetas del camino dijeron unidad; más de una es un aviso, no un error.</summary>
     private int _cuantasUnidades;
 
+    /// <summary>Solo se construye desde <see cref="Leer"/>: fuera de ahí no hay forma de llenarla.</summary>
     private LoQueDicenLasCarpetas()
     {
     }
@@ -105,6 +108,7 @@ public sealed partial class LoQueDicenLasCarpetas
     /// suelto. Solo se miran las carpetas de DENTRO de esta: las de fuera son la ruta del
     /// disco y no las nombro el.
     /// </param>
+    /// <returns>Nunca nulo: si no hay carpetas entre medias, una lectura que no dice nada.</returns>
     public static LoQueDicenLasCarpetas Leer(string? rutaDelPdf, string? carpetaElegida)
     {
         var dicen = new LoQueDicenLasCarpetas();
@@ -118,6 +122,9 @@ public sealed partial class LoQueDicenLasCarpetas
     }
 
     /// <summary>Los nombres de carpeta que hay entre la elegida y el archivo, de fuera adentro.</summary>
+    /// <param name="rutaDelPdf">El archivo con su ruta completa; nulo o vacío devuelve la lista vacía.</param>
+    /// <param name="carpetaElegida">La raíz elegida; nula, vacía o que no contenga al PDF devuelve la lista vacía.</param>
+    /// <returns>Vacía también cuando el sistema no sabe normalizar una de las dos rutas: eso no tumba la tanda.</returns>
     private static IReadOnlyList<string> CarpetasEntre(string? rutaDelPdf, string? carpetaElegida)
     {
         if (string.IsNullOrWhiteSpace(rutaDelPdf) || string.IsNullOrWhiteSpace(carpetaElegida)) return [];
@@ -145,6 +152,7 @@ public sealed partial class LoQueDicenLasCarpetas
     }
 
     /// <summary>Clasifica UN nombre de carpeta; lo que no encaje se anota como sobra.</summary>
+    /// <param name="carpeta">El nombre de la carpeta, sin la ruta.</param>
     private void Entender(string carpeta)
     {
         if (EsUnaCarpetaQueDiceQueNoSeSabe(carpeta)) return;
@@ -156,6 +164,7 @@ public sealed partial class LoQueDicenLasCarpetas
     }
 
     /// <summary>Las dos carpetas que el propio volcado escribe cuando no sabe el dato.</summary>
+    /// <param name="carpeta">El nombre de la carpeta, sin la ruta.</param>
     private static bool EsUnaCarpetaQueDiceQueNoSeSabe(string carpeta)
         => carpeta.Equals(CarpetaSinFecha, StringComparison.OrdinalIgnoreCase)
         || carpeta.Equals(CarpetaSinUnidad, StringComparison.OrdinalIgnoreCase);
@@ -165,6 +174,8 @@ public sealed partial class LoQueDicenLasCarpetas
     /// Lo que ancla la lectura son los 6 o 7 digitos del principio, que es lo que el esquema
     /// admite en <c>unidad_numero</c>. Sin ellos NO hay unidad, aunque el nombre parezca uno.
     /// </remarks>
+    /// <param name="carpeta">El nombre de la carpeta, sin la ruta.</param>
+    /// <returns>Si encajó; al encajar pisa la unidad de una carpeta anterior, porque manda la más cercana al PDF.</returns>
     private bool EntenderComoUnidad(string carpeta)
     {
         var encaje = PatronDeUnidad().Match(carpeta);
@@ -178,6 +189,8 @@ public sealed partial class LoQueDicenLasCarpetas
     }
 
     /// <summary>«Septiembre 2026» o «2026-09».</summary>
+    /// <param name="carpeta">El nombre de la carpeta, sin la ruta.</param>
+    /// <returns>Si encajó; un nombre de mes que no es de los doce no encaja.</returns>
     private bool EntenderComoMes(string carpeta)
     {
         var iso = PatronDeMesIso().Match(carpeta);
@@ -198,6 +211,8 @@ public sealed partial class LoQueDicenLasCarpetas
     }
 
     /// <summary>«Grupo del 8 de septiembre» o «2026-09-08».</summary>
+    /// <param name="carpeta">El nombre de la carpeta, sin la ruta.</param>
+    /// <returns>Si encajó; la forma ISO aporta también el mes de viaje si ninguna carpeta lo dijo antes.</returns>
     private bool EntenderComoDia(string carpeta)
     {
         var iso = PatronDeFechaIso().Match(carpeta);
@@ -221,6 +236,7 @@ public sealed partial class LoQueDicenLasCarpetas
     }
 
     /// <summary>El numero de un mes escrito en español, o nulo si no es ninguno.</summary>
+    /// <param name="nombre">El mes tal como venía en la carpeta; se compara sin distinguir mayúsculas.</param>
     private static int? NumeroDelMes(string nombre)
     {
         var indice = Array.FindIndex(
@@ -252,6 +268,7 @@ public sealed partial class LoQueDicenLasCarpetas
     }
 
     /// <summary>Las frases de <see cref="Explicacion"/>, cada una con su hecho.</summary>
+    /// <returns>Al menos una frase: si nada se aprovechó y nada sobró, lo dice.</returns>
     private IEnumerable<string> TrozosDeLaExplicacion()
     {
         if (FechaDeViaje is not null) yield return $"Las carpetas dicen que viaja el {FechaDeViaje}.";
@@ -270,18 +287,23 @@ public sealed partial class LoQueDicenLasCarpetas
         if (!DiceAlgo && _noAprovechadas.Count == 0) yield return "Las carpetas no dicen nada aprovechable.";
     }
 
+    /// <summary>«700001 · Castries Branch»: 6 o 7 cifras y, si hay, un separador y el nombre.</summary>
     [GeneratedRegex(@"^(?<numero>\d{6,7})(?:\s*[·\-—_]\s*(?<nombre>.+))?$")]
     private static partial Regex PatronDeUnidad();
 
+    /// <summary>«2026-09»: año de cuatro cifras y mes de dos.</summary>
     [GeneratedRegex(@"^(?<anio>\d{4})-(?<mes>0[1-9]|1[0-2])$")]
     private static partial Regex PatronDeMesIso();
 
+    /// <summary>«Septiembre 2026»: el nombre del mes, con o sin tilde, y el año.</summary>
     [GeneratedRegex(@"^(?<mes>[A-Za-zÁÉÍÓÚáéíóú]+)\s+(?<anio>\d{4})$")]
     private static partial Regex PatronDeMesConNombre();
 
+    /// <summary>«2026-09-08»: una fecha ISO entera.</summary>
     [GeneratedRegex(@"^(?<anio>\d{4})-(?<mes>0[1-9]|1[0-2])-(?<dia>0[1-9]|[12]\d|3[01])$")]
     private static partial Regex PatronDeFechaIso();
 
+    /// <summary>«Grupo del 8 de septiembre», como lo escribe el volcado de Revisar.</summary>
     [GeneratedRegex(@"^[Gg]rupo\s+del\s+(?<dia>\d{1,2})\s+de\s+(?<mes>[A-Za-zÁÉÍÓÚáéíóú]+)$")]
     private static partial Regex PatronDeGrupo();
 }

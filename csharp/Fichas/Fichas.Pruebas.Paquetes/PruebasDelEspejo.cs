@@ -17,6 +17,7 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDelEspejo
 {
+    /// <summary>Un caso con todos los campos que el espejo vuelca, incluido un número de unidad con cero delante para ver que Excel no se lo come.</summary>
     private static readonly Caso UnCaso = new()
     {
         Id = 12,
@@ -34,6 +35,7 @@ public class PruebasDelEspejo
         CapturaManual = true,
     };
 
+    /// <summary>Una persona de <see cref="UnCaso"/> con cédula terminada en letra y los pasos contestados, para ver cada clase de valor en su celda.</summary>
     private static readonly Persona UnaPersona = new()
     {
         Id = 30,
@@ -64,8 +66,10 @@ public class PruebasDelEspejo
         [30] = new FirmaDeLosPasos(9, "2026-09-06 09:10:00", "a mano en la pantalla"),
     };
 
+    /// <summary>El espejo en memoria con el caso, la persona y su firma, y las otras tres tablas vacías.</summary>
     private static XLWorkbook Libro() => Espejo.Construir([UnCaso], [UnaPersona], LasFirmas, [], [], []);
 
+    /// <summary>Vigila que las cinco pestañas se llamen como sus tablas y salgan en el orden de las columnas declaradas.</summary>
     [TestMethod]
     public void HayUnaHojaPorTablaYEnElOrdenEnQueSeDeclaran()
     {
@@ -75,6 +79,7 @@ public class PruebasDelEspejo
             libro.Worksheets.Select(h => h.Name).ToArray());
     }
 
+    /// <summary>Vigila que la cabecera de <c>casos</c> sea columna a columna la del esquema, las 22 de la migración 18.</summary>
     [TestMethod]
     public void ALaHojaDeCasosNoLeFaltaNingunaColumnaDeSuTabla()
     {
@@ -88,6 +93,7 @@ public class PruebasDelEspejo
         Assert.HasCount(22, Espejo.ColumnasDeCasos, "las 22 columnas de `casos`");
     }
 
+    /// <summary>Vigila que la cabecera de <c>personas</c> sea columna a columna la del esquema, las 28 de la migración 19.</summary>
     [TestMethod]
     public void ALaHojaDePersonasNoLeFaltaNingunaColumnaDeSuTabla()
     {
@@ -160,6 +166,7 @@ public class PruebasDelEspejo
         Assert.AreEqual("0700016", unidad.GetString(), "un entero se habría comido el cero de delante");
     }
 
+    /// <summary>Vigila que una fecha ISO y una marca de tiempo ISO entren como fecha de Excel, no como texto.</summary>
     [TestMethod]
     public void LasFechasEntranComoFechaDeVerdadYNoComoTexto()
     {
@@ -172,6 +179,7 @@ public class PruebasDelEspejo
         Assert.AreEqual(new DateTime(2026, 9, 4, 10, 30, 0), creado.GetDateTime());
     }
 
+    /// <summary>Vigila que un texto que no es fecha en una columna temporal se escriba tal cual.</summary>
     [TestMethod]
     public void UnaFechaQueNoSePuedeLeerSeDejaTalCualYNoSeInventa()
     {
@@ -192,6 +200,7 @@ public class PruebasDelEspejo
             "«nadie lo ha mirado» no es lo mismo que «lo miró y dijo que no»");
     }
 
+    /// <summary>Vigila las dos marcas estructurales de la fila 1 y que no lleve ninguna decorativa.</summary>
     [TestMethod]
     public void LaCabeceraVaCongeladaYConAutofiltroYSinNingunColor()
     {
@@ -202,6 +211,7 @@ public class PruebasDelEspejo
         Assert.IsFalse(hoja.Cell(1, 1).Style.Font.Bold, "es una base de datos, no un reporte: un color no es un dato");
     }
 
+    /// <summary>Vigila que un nombre que empieza por «=» entre como texto y no como fórmula.</summary>
     [TestMethod]
     public void UnTextoQueEmpiezaPorIgualNoSeConvierteEnFormula()
     {
@@ -211,6 +221,7 @@ public class PruebasDelEspejo
         Assert.AreEqual("=Elena", celda.GetString());
     }
 
+    /// <summary>Vigila que una tabla sin filas tenga igualmente su pestaña con la cabecera y nada debajo.</summary>
     [TestMethod]
     public void UnaTablaVaciaSaleConSuCabeceraYSinFilas()
     {
@@ -222,6 +233,7 @@ public class PruebasDelEspejo
 
     // ─────────────────────── el archivo, y el archivo bloqueado ───────────────────────
 
+    /// <summary>Vigila que regenerar deje el <c>.xlsx</c> definitivo y ningún <c>.parcial</c> al lado.</summary>
     [TestMethod]
     public void RegenerarEscribeElArchivoYNoDejaNingunParcial()
     {
@@ -238,6 +250,7 @@ public class PruebasDelEspejo
         finally { try { Directory.Delete(carpeta, true); } catch (IOException) { } }
     }
 
+    /// <summary>Vigila que la segunda regeneración reemplace la primera: el dato nuevo está y las filas no se acumulan.</summary>
     [TestMethod]
     public void RegenerarDosVecesDejaElArchivoAlDiaYNoDuplicaNada()
     {
@@ -280,6 +293,9 @@ public class PruebasDelEspejo
         finally { try { Directory.Delete(carpeta, true); } catch (IOException) { } }
     }
 
+    /// <summary>La posición de una columna del espejo, contando desde 1 como Excel; lanza si no existe.</summary>
+    /// <param name="columnas">Las columnas de esa hoja, en su orden.</param>
+    /// <param name="nombre">El nombre de la columna en la base.</param>
     private static int IndiceDe(IReadOnlyList<ColumnaDelEspejo> columnas, string nombre)
     {
         for (var numero = 0; numero < columnas.Count; numero++)

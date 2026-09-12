@@ -1,4 +1,3 @@
-using Fichas.App.Vocabulario;
 using Fichas.App.Inicio;
 
 namespace Fichas.Pruebas.App.Inicio;

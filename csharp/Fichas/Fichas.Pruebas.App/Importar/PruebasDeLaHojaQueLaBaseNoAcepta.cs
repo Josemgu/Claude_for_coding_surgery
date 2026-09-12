@@ -1,5 +1,4 @@
 using Fichas.Contratos.Consultas;
-using Fichas.Contratos.Lectura;
 using Fichas.Contratos.Modelos;
 using Fichas.Lectura;
 
@@ -141,9 +140,13 @@ public sealed class PruebasDeLaHojaQueLaBaseNoAcepta : BaseDeImportacion
         Assert.AreEqual("SURB2609", caso.NumeroCaso, "el número de caso bueno NO se retira");
     }
 
+    /// <summary>El nombre de la columna del número de unidad, tal como lo escribe la lectura.</summary>
     private const string CamposDeLaHojaUnidadNumero = "unidad_numero";
 
     /// <summary>Una hoja del grupo real, con los valores que se le digan en la unidad y la fecha.</summary>
+    /// <param name="pagina">La página del PDF; también numera a su persona.</param>
+    /// <param name="unidadNumero">Lo leído en el número de unidad, bien o mal formado.</param>
+    /// <param name="fechaViaje">Lo leído en la fecha de viaje, bien o mal formada.</param>
     private static HojaLeida HojaDelGrupo(int pagina, string unidadNumero, string fechaViaje) => new(
         RutaPdf: @"C:\pdfs\SURB2609_grupo.pdf",
         Pagina: pagina,

@@ -91,6 +91,7 @@ public static class TextoDelDesplegable
     }
 
     /// <summary>El numero de caso, o lo unico que lo distingue cuando no lo tiene.</summary>
+    /// <param name="caso">El caso; sin numero se usa su id interno.</param>
     private static string Numero(Caso caso)
         => ReglasDeCampo.Limpiar(caso.NumeroCaso) ?? $"sin número ({caso.Id})";
 
@@ -108,6 +109,8 @@ public static class TextoDelDesplegable
     /// <para>⛔ Esto NO dice nada de la firma de Miguel: es lo que dijo el companero, que
     /// es otra cosa (regla permanente 5).</para>
     /// </remarks>
+    /// <param name="contestadas">Por cuantas personas contesto el companero.</param>
+    /// <param name="cuantasPersonas">Cuantas personas tiene el caso.</param>
     private static string SiYaContesto(int contestadas, int cuantasPersonas)
     {
         if (contestadas <= 0) return "sin contestar";
@@ -120,6 +123,8 @@ public static class TextoDelDesplegable
     /// Un caso sin personas se dice tal cual y no se calla: es raro, y callarlo lo esconde
     /// justo en la pantalla donde habria que arreglarlo.
     /// </remarks>
+    /// <param name="primerNombre">El nombre de la primera persona; nulo o vacio si no se leyo.</param>
+    /// <param name="cuantasPersonas">Cuantas personas tiene el caso; cero se dice tal cual.</param>
     private static string Gente(string? primerNombre, int cuantasPersonas)
     {
         if (cuantasPersonas <= 0) return "sin ninguna persona";
@@ -129,6 +134,8 @@ public static class TextoDelDesplegable
     }
 
     /// <summary>Que es un duplicado, y de cual. Por el archivo, que es lo que se reconoce.</summary>
+    /// <param name="original">El caso original, si sigue en la base.</param>
+    /// <param name="originalId">Su id interno, para cuando el original ya no esta.</param>
     private static string DeQuienEsDuplicado(Caso? original, long originalId)
     {
         var archivo = original is null ? string.Empty : Archivo(original.RutaPdf);
@@ -138,6 +145,7 @@ public static class TextoDelDesplegable
     }
 
     /// <summary>El nombre del archivo, sin la carpeta; vacio si no hay ruta.</summary>
+    /// <param name="rutaPdf">La ruta guardada en el caso; nula o en blanco devuelve vacio.</param>
     private static string Archivo(string? rutaPdf)
     {
         var ruta = ReglasDeCampo.Limpiar(rutaPdf);
@@ -155,6 +163,7 @@ public static class TextoDelDesplegable
     }
 
     /// <summary>Recorta por el final con puntos suspensivos; nunca parte el numero de caso.</summary>
+    /// <param name="linea">La linea entera, ya compuesta.</param>
     private static string Recortar(string linea)
         => linea.Length <= LargoMaximoDeLaLinea
             ? linea

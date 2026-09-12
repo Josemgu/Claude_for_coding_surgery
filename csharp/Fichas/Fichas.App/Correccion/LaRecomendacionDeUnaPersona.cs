@@ -48,13 +48,21 @@ public sealed record RecomendacionDeUnaPersona(
 public static class LaRecomendacionEnElSistemaDelObispo
 {
     /// <summary>Una linea por persona, en el orden en que venian en el formulario.</summary>
+    /// <param name="personas">Las personas del documento; vacia devuelve una lista vacia.</param>
+    /// <exception cref="ArgumentNullException">Si la lista es nula.</exception>
     public static IReadOnlyList<RecomendacionDeUnaPersona> DeCadaPersona(IReadOnlyList<Persona> personas)
     {
         ArgumentNullException.ThrowIfNull(personas);
         return [.. personas.Select(De)];
     }
 
-    /// <summary>La linea de una persona.</summary>
+    /// <summary>La linea de una persona: su estado sale de sus seis preguntas y nada mas.</summary>
+    /// <remarks>
+    /// El estado y los pasos en que se quedo los decide <see cref="LasDosPreguntas"/>, que es
+    /// la misma regla que usan Inicio y el grupo del dia: aqui no se calcula otro veredicto.
+    /// </remarks>
+    /// <param name="persona">La persona tal como esta en la base, con sus seis <c>paso_*</c>.</param>
+    /// <exception cref="ArgumentNullException">Si la persona es nula.</exception>
     public static RecomendacionDeUnaPersona De(Persona persona)
     {
         ArgumentNullException.ThrowIfNull(persona);
@@ -66,6 +74,8 @@ public static class LaRecomendacionEnElSistemaDelObispo
     }
 
     /// <summary>Cuantas de esas personas tienen las seis preguntas en si.</summary>
+    /// <param name="personas">Las personas del documento.</param>
+    /// <exception cref="ArgumentNullException">Si la lista es nula.</exception>
     public static int CuantasConfirmadas(IReadOnlyList<Persona> personas)
     {
         ArgumentNullException.ThrowIfNull(personas);
@@ -77,8 +87,13 @@ public static class LaRecomendacionEnElSistemaDelObispo
     /// </summary>
     /// <remarks>
     /// El denominador va siempre (criterio C1-1): una cifra sin el no se puede comprobar. Y
-    /// se cuenta en personas y no en documentos porque esa es la unidad de trabajo del dueno.
+    /// se cuenta en personas y no en documentos porque esa es la unidad de trabajo del dueno,
+    /// fijada el 2026-09-05 (<c>DECISIONES.md</c>, «El ticket es por persona»): <i>«Es por
+    /// persona que se revisa la información»</i>. Un documento con diez personas son diez
+    /// tickets, y esta linea dice cuantos de ellos estan cerrados.
     /// </remarks>
+    /// <param name="personas">Las personas del documento; vacia devuelve la frase de que no se leyo ninguna.</param>
+    /// <exception cref="ArgumentNullException">Si la lista es nula.</exception>
     public static string Linea(IReadOnlyList<Persona> personas)
     {
         ArgumentNullException.ThrowIfNull(personas);
@@ -96,6 +111,7 @@ public static class LaRecomendacionEnElSistemaDelObispo
     /// formulario pueden llamarse igual, y entonces el nombre solo no dice de cual se habla.
     /// Es la misma regla que ya usa <see cref="LoQueContestoElCompanero"/>.
     /// </remarks>
+    /// <param name="persona">La persona; sin nombre leido se dice asi, no se inventa uno.</param>
     private static string DeQuien(Persona persona)
     {
         var nombre = ReglasDeCampo.Limpiar(persona.Nombre) ?? "una persona sin nombre leído";

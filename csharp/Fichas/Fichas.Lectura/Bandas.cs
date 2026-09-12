@@ -53,6 +53,14 @@ public static class Bandas
     public const double FactorDeAnchoALaIzquierda = 0.5;
 
     /// <summary>Cuantas ediciones de un caracter separan dos cadenas.</summary>
+    /// <remarks>
+    /// Levenshtein con dos filas en vez de la matriz entera: las etiquetas tienen menos de
+    /// 50 caracteres y se compara cada línea del OCR contra 18 formas, así que la memoria
+    /// importa más que la claridad de la matriz.
+    /// </remarks>
+    /// <param name="cadenaA">Una cadena ya normalizada para comparar.</param>
+    /// <param name="cadenaB">La otra; el orden no cambia el resultado.</param>
+    /// <returns>Cuántas inserciones, borrados o sustituciones de un carácter convierten una en la otra.</returns>
     private static int DistanciaDeEdicion(string cadenaA, string cadenaB)
     {
         var filaPrevia = new int[cadenaB.Length + 1];
@@ -81,6 +89,9 @@ public static class Bandas
     /// Las tildes se ignoran SOLO aqui, para comparar. Lo que se guarda conserva las
     /// suyas: <see cref="Etiquetas.NormalizarParaComparar"/> lleva escrito el motivo.
     /// </remarks>
+    /// <param name="cadenaA">Normalmente lo que leyó el OCR; nulo cuenta como vacío.</param>
+    /// <param name="cadenaB">Normalmente la etiqueta impresa que se busca; nulo cuenta como vacío.</param>
+    /// <returns>1,0 si son iguales (o las dos vacías), 0,0 si solo una está vacía, y en medio la distancia de edición partida por la más larga.</returns>
     public static double Parecido(string? cadenaA, string? cadenaB)
     {
         string izquierda = Etiquetas.NormalizarParaComparar(cadenaA);
@@ -101,6 +112,10 @@ public static class Bandas
     /// mas a una rival que a la pedida se descarta aunque supere el minimo, porque es la
     /// otra etiqueta mal leida.
     /// </remarks>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <param name="campo">Una de las claves <c>Etiquetas.CampoDe…</c>.</param>
+    /// <param name="parecidoMinimo">Por debajo de esto no hay ancla; las pruebas lo bajan para medir el cruce entre idiomas.</param>
+    /// <returns>La línea que mejor se parece, o nula si ninguna llega al mínimo o la mejor se parece más a una rival.</returns>
     public static LineaDeOcr? LocalizarAncla(
         IReadOnlyList<LineaDeOcr> lineas, string campo, double parecidoMinimo = ParecidoMinimoDelAncla)
     {
@@ -142,6 +157,8 @@ public static class Bandas
     /// fecha de regreso— hacen falta igual como rivales, y saber si aparecieron es lo que
     /// permite decir por que fallo una pagina.
     /// </remarks>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <returns>Un diccionario con las nueve claves siempre presentes; el valor es nulo donde no hubo ancla.</returns>
     public static IReadOnlyDictionary<string, LineaDeOcr?> LocalizarLasAnclas(IReadOnlyList<LineaDeOcr> lineas)
         => Etiquetas.CamposDelFormulario.ToDictionary(campo => campo, campo => LocalizarAncla(lineas, campo));
 
@@ -156,6 +173,7 @@ public static class Bandas
     /// 612x792 el factor entre ejes es 1,29, asi que ignorarlo estrecharia la banda un
     /// 23% y podria dejar fuera un valor escrito muy a la derecha.
     /// </param>
+    /// <returns>La banda de valor en fracciones de página; con relación de aspecto cero o negativa se ensancha sin corregir, no lanza.</returns>
     public static BandaDeLaPagina BandaDeValor(BandaDeLaPagina ancla, double relacionDeAspecto)
     {
         double altoDelAncla = ancla.Y1 - ancla.Y0;
@@ -176,6 +194,9 @@ public static class Bandas
     /// sin ella un tachon de la columna derecha anularia el campo de la izquierda solo
     /// por estar a su misma altura.
     /// </remarks>
+    /// <param name="rectangulo">La caja de una línea del OCR o de una anotación.</param>
+    /// <param name="banda">La fila de valor que cuelga del ancla.</param>
+    /// <param name="fraccionMinima">Qué parte del alto de la banda tiene que cubrir el rectángulo; se exige más que esto, no igual.</param>
     public static bool EstaEnLaBanda(BandaDeLaPagina rectangulo, BandaDeLaPagina banda, double fraccionMinima = 0.5)
         => Geometria.FraccionDeTraslapeVertical(rectangulo, banda) > fraccionMinima
            && Geometria.SeSolapanEnHorizontal(rectangulo, banda);
@@ -217,11 +238,16 @@ public static class Bandas
     /// viaje el dia equivocado. Por eso <see cref="CorreccionesEnLaBanda"/> y
     /// <see cref="HayTachonEnLaBanda"/> siguen preguntando solo lo primero.</para>
     /// </remarks>
+    /// <param name="linea">La caja de una línea del OCR, en fracciones de página.</param>
+    /// <param name="banda">La fila de valor que cuelga del ancla.</param>
     public static bool LaLineaEsDeLaBanda(BandaDeLaPagina linea, BandaDeLaPagina banda)
         => EstaEnLaBanda(linea, banda)
            && Geometria.FraccionDelRectanguloDentroDeLaBanda(linea, banda) > FraccionMinimaDeLaLineaDentroDeLaBanda;
 
     /// <summary>Las lineas del OCR que pertenecen a la banda, de izquierda a derecha.</summary>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <param name="banda">La fila de valor que cuelga del ancla.</param>
+    /// <returns>Las que cubren la banda y caben en ella, ordenadas por su borde izquierdo; vacía si ninguna.</returns>
     public static IReadOnlyList<LineaDeOcr> LineasEnLaBanda(IReadOnlyList<LineaDeOcr> lineas, BandaDeLaPagina banda)
         => lineas.Where(linea => LaLineaEsDeLaBanda(linea.Banda, banda))
                  .OrderBy(linea => linea.Banda.X0)
@@ -236,6 +262,9 @@ public static class Bandas
     /// del campo. Su texto viaja a <c>procedencia_campo.valor_ocr</c> y al aviso, con el
     /// campo vacio.
     /// </remarks>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <param name="banda">La fila de valor que cuelga del ancla.</param>
+    /// <returns>Las que cubren la banda pero no caben en ella, ordenadas por su borde izquierdo; vacía si ninguna.</returns>
     public static IReadOnlyList<LineaDeOcr> LineasQueRozanLaBanda(
         IReadOnlyList<LineaDeOcr> lineas, BandaDeLaPagina banda)
         => lineas.Where(linea => EstaEnLaBanda(linea.Banda, banda) && !LaLineaEsDeLaBanda(linea.Banda, banda))
@@ -248,11 +277,16 @@ public static class Bandas
     /// las personas tienen que preguntarlo IGUAL. Cuando cada uno lo escribia por su cuenta,
     /// las personas se quedaron sin preguntarlo durante toda una fase.
     /// </remarks>
+    /// <param name="anotaciones">Todas las anotaciones de la página, de cualquier subtipo.</param>
+    /// <param name="banda">La fila de valor que cuelga del ancla.</param>
+    /// <returns>Las <c>/FreeText</c> y los campos tecleados con texto que cubren la banda, en el orden del PDF.</returns>
     public static IReadOnlyList<AnotacionDelPdf> CorreccionesEnLaBanda(
         IReadOnlyList<AnotacionDelPdf> anotaciones, BandaDeLaPagina banda)
         => anotaciones.Where(a => Anotaciones.EsCorreccionEscrita(a) && EstaEnLaBanda(a.Banda, banda)).ToArray();
 
     /// <summary>Cierto cuando un trazo rojo cruza la banda y por lo tanto la anula.</summary>
+    /// <param name="anotaciones">Todas las anotaciones de la página, de cualquier subtipo.</param>
+    /// <param name="banda">La fila de valor que cuelga del ancla.</param>
     public static bool HayTachonEnLaBanda(IReadOnlyList<AnotacionDelPdf> anotaciones, BandaDeLaPagina banda)
         => anotaciones.Any(a => Anotaciones.EsTachon(a) && EstaEnLaBanda(a.Banda, banda));
 }

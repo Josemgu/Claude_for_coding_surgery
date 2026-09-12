@@ -4,11 +4,12 @@ using Fichas.Contratos.Modelos;
 namespace Fichas.Pruebas.App.Correccion;
 
 /// <summary>
-/// Los cinco estados de un campo y las palabras que los dicen. Sin ventana.
+/// Los seis estados de un campo y las palabras que los dicen. Sin ventana.
 /// </summary>
 /// <remarks>
 /// Portadas de <c>interfaz/tema.py</c>. Lo que se comprueba aqui es que la distincion
 /// entre estados <b>no depende de percibir un color</b>: cada estado tiene su palabra.
+/// Eran cinco al portarlas; el sexto —«no está en el papel»— entro el 2026-09-05.
 /// </remarks>
 [TestClass]
 public sealed class PruebasDelEstadoDeCampo

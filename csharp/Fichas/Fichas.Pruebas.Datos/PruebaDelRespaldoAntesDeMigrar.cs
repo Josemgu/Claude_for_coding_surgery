@@ -27,6 +27,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDelRespaldoAntesDeMigrar
 {
+    /// <summary>La carpeta temporal de la prueba en curso; la pone <see cref="Preparar"/> y la borra <see cref="Recoger"/>.</summary>
     private string _carpeta = string.Empty;
 
     /// <summary>Una carpeta temporal por prueba; se borra al terminar.</summary>

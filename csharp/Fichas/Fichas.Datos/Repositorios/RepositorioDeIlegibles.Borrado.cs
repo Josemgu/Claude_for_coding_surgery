@@ -122,6 +122,9 @@ public sealed partial class RepositorioDeIlegibles
     }
 
     /// <summary>Borra los renglones, todo o nada, y devuelve lo que de verdad cayo.</summary>
+    /// <param name="ids">Los renglones que siguen sin documento, ya comprobados.</param>
+    /// <param name="rutaDeLaCopia">La copia previa, que va en el acuse y en el mensaje si el motor rechaza.</param>
+    /// <returns>Cuántos cayeron; <c>SeBorro</c> es falso si ninguno.</returns>
     private ResultadoDeBorrado BorrarEsosRenglones(IReadOnlyList<long> ids, string rutaDeLaCopia)
     {
         try
@@ -177,6 +180,8 @@ public sealed partial class RepositorioDeIlegibles
     /// se usa la tabla temporal <c>ids_a_borrar</c> de <c>RepositorioDeMantenimiento</c> a
     /// proposito: es una sola tabla por conexion, y los dos borrados comparten conexion.
     /// </remarks>
+    /// <param name="ids">Los ids marcados.</param>
+    /// <returns>Solo los que existen y tienen <c>caso_id</c> NULL, en el mismo orden.</returns>
     private List<long> LosQueNoTienenDocumento(IEnumerable<long> ids)
     {
         using var orden = Conexion.CreateCommand();
@@ -200,6 +205,7 @@ public sealed partial class RepositorioDeIlegibles
     }
 
     /// <summary>Si el plan es de estos renglones y de nada mas.</summary>
+    /// <param name="plan">El plan que llega al botón.</param>
     private static bool EsUnPlanDeRenglones(PlanDeBorrado plan)
         => plan.Conteos.Count == 1
            && string.Equals(plan.Conteos[0].Tabla, IIlegibles.TablaDeLosRenglones, StringComparison.Ordinal);
@@ -212,12 +218,15 @@ public sealed partial class RepositorioDeIlegibles
     /// archivo no se pudo leer, y el archivo se queda donde esta. Una frase que dijera
     /// «borrar 3 PDF» haria creer al dueno que le quitaron tres escaneos.
     /// </remarks>
+    /// <param name="cuantas">Cuántos renglones.</param>
     private static ConteoDeTabla ConteoDeLosRenglones(int cuantas) => new(
         IIlegibles.TablaDeLosRenglones,
         cuantas,
         "renglón de un PDF que no se pudo leer",
         "renglones de PDF que no se pudieron leer");
 
+    /// <summary>El aviso de los marcados que NO se borran porque tienen documento detrás, en singular o plural.</summary>
+    /// <param name="cuantos">Cuántos de los marcados tienen documento; al menos 1.</param>
     private static Aviso AvisoDeLosQueTienenDocumento(int cuantos) => Aviso.Advierte(
         cuantos == 1
             ? "Un renglón marcado no se borra: tiene un documento detrás."

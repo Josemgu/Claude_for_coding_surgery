@@ -34,10 +34,15 @@ namespace Fichas.App.Paquetes;
 /// </remarks>
 public sealed class OperacionDeLaSegundaVuelta
 {
+    /// <summary>El generador del Excel, el mismo de la primera vuelta.</summary>
     private readonly IPaquetes _paquetes;
+    /// <summary>Quien escribe el PDF de lo que se intentó; nulo con «--falso», y entonces el paquete sale sin él y lo dice.</summary>
     private readonly IReporteDeLaSegundaVuelta? _reporte;
+    /// <summary>Por donde se leen los documentos que podrían subir.</summary>
     private readonly ICasos _casos;
+    /// <summary>Por donde se sabe quién intentó cada documento antes.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>Por donde se sabe en qué peldaño estaba quien lo intentó.</summary>
     private readonly ICompaneros _companeros;
 
     /// <summary>Se ata a los cinco puertos que necesita y a nada mas.</summary>
@@ -58,6 +63,7 @@ public sealed class OperacionDeLaSegundaVuelta
     }
 
     /// <summary>Lo que subiria al peldano de ese companero, para pintarlo antes de generar nada.</summary>
+    /// <param name="quienLoRecibe">El gerente o líder al que iría el paquete; su categoría es el peldaño.</param>
     public LoQueSube Mirar(Companero quienLoRecibe)
         => SegundaVuelta.Para(_casos, _asignaciones, _companeros, quienLoRecibe);
 
@@ -68,6 +74,9 @@ public sealed class OperacionDeLaSegundaVuelta
     /// El PDF va con el MISMO nombre y solo cambia la extension, igual que en la primera vuelta:
     /// los dos archivos viajan juntos y se ven seguidos en la carpeta.
     /// </remarks>
+    /// <param name="quienLoRecibe">A quién va el paquete.</param>
+    /// <param name="ruta">Dónde queda el Excel; el PDF va al lado con la extensión cambiada.</param>
+    /// <returns>Con <c>SalioBien</c> falso y sin ruta si no sube nada, si el Excel no se escribió o si no está donde se dijo.</returns>
     public ResumenEnPantalla Generar(Companero quienLoRecibe, string ruta)
     {
         ArgumentNullException.ThrowIfNull(quienLoRecibe);
@@ -126,6 +135,8 @@ public sealed class OperacionDeLaSegundaVuelta
     /// —cuantos se miraron y por que se quedo fuera cada uno— porque «no hay nada» sin
     /// denominador se lee igual que «la consulta está rota».
     /// </remarks>
+    /// <param name="quienLoRecibe">A quién iba a ir.</param>
+    /// <param name="sube">La cuenta de lo mirado, con cero que entran.</param>
     private static ResumenEnPantalla NoHayNadaQueSubir(Companero quienLoRecibe, LoQueSube sube)
     {
         var nada = Aviso.Informa(
@@ -151,6 +162,11 @@ public sealed class OperacionDeLaSegundaVuelta
     /// ya esta escrito cuando se llega aqui: lo que se hace con el fallo es contarlo, nunca
     /// deshacer lo que si salio. Es la misma regla que la primera vuelta aplica a su PDF unido.
     /// </remarks>
+    /// <param name="quienLoRecibe">A quién va; su categoría encabeza el reporte.</param>
+    /// <param name="sube">Lo que sube, con quién lo intentó y qué dijo.</param>
+    /// <param name="rutaDelExcel">La ruta del Excel ya escrito; el PDF toma su nombre.</param>
+    /// <param name="avisos">La lista de avisos del paquete, a la que se añaden los del reporte.</param>
+    /// <returns>La cola para la línea (vacía si no salió) y el párrafo del detalle que dice qué pasó.</returns>
     private (string Cola, string Detalle) EscribirElReporte(
         Companero quienLoRecibe, LoQueSube sube, string rutaDelExcel, List<Aviso> avisos)
     {

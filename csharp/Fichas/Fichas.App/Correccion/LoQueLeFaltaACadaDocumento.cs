@@ -30,8 +30,11 @@ namespace Fichas.App.Correccion;
 /// </remarks>
 public sealed class LoQueLeFaltaACadaDocumento
 {
+    /// <summary>La respuesta de cada documento, por id de caso; un archivado no esta.</summary>
     private readonly IReadOnlyDictionary<long, Lectura> _porCaso;
 
+    /// <summary>Solo se construye desde <see cref="DeTodaLaBase"/>: la pasada es la unica forma de llenarlo.</summary>
+    /// <param name="porCaso">Lo ya contestado, por id de caso.</param>
     private LoQueLeFaltaACadaDocumento(IReadOnlyDictionary<long, Lectura> porCaso) => _porCaso = porCaso;
 
     /// <summary>Lo contestado de un documento: la frase que se lee y si le falta algo.</summary>
@@ -97,11 +100,17 @@ public sealed class LoQueLeFaltaACadaDocumento
     /// <para>⚠️ <b>El falso de un documento que no esta aqui no es un descuido.</b> Un archivado
     /// no entra en esta pasada, y archivar es el gesto con el que el dueno cierra un documento
     /// (2026-09-06): no le queda nada que hacer con el, asi que tampoco entra en Correccion.</para>
+    ///
+    /// <para>Es la respuesta con la que Correccion decide quien entra y quien sale, que es la
+    /// decision del dueno del 2026-09-07 (<c>DECISIONES.md</c>, «Corrección es un sitio de
+    /// paso, no un almacén»): verdadero entra, falso sale.</para>
     /// </remarks>
     /// <param name="casoId">El documento.</param>
     public bool LeFaltaAlgo(long casoId) => _porCaso.GetValueOrDefault(casoId).LeFalta;
 
     /// <summary>Las personas repartidas por documento, en UNA consulta.</summary>
+    /// <remarks>Se cuenta primero para pedir la pagina justa; con cero no se pide nada.</remarks>
+    /// <param name="personas">El almacen de personas.</param>
     private static Dictionary<long, List<Persona>> PersonasPorCaso(IPersonas personas)
     {
         var cuantas = personas.Contar(FiltroDePersonas.Todo);

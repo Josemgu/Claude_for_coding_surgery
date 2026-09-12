@@ -26,12 +26,18 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 internal sealed class ReporteDeLaSegundaVueltaEnPdf : IReporteDeLaSegundaVuelta
 {
+    /// <summary>El motor de PDF de <c>Fichas.Reportes</c>; es el mismo objeto que cumple <c>IReportes</c>.</summary>
     private readonly IReportesDeLaEscalera _motor;
 
     /// <summary>Se ata al motor de PDF de verdad.</summary>
+    /// <param name="motor">El <c>ReportesEnPdf</c> ya montado en <see cref="Servicios"/>, por su segunda interfaz.</param>
     internal ReporteDeLaSegundaVueltaEnPdf(IReportesDeLaEscalera motor) => _motor = motor;
 
     /// <inheritdoc />
+    /// <param name="categoria">La categoría del compañero que recibe la segunda vuelta.</param>
+    /// <param name="casos">Los casos que suben, con quién los intentó antes y por qué no pudo.</param>
+    /// <param name="rutaDestino">Dónde se escribe el PDF.</param>
+    /// <returns>Lo que dijo el motor: escrito, o el motivo por el que no.</returns>
     public ResultadoDeEscritura Escribir(int categoria, IReadOnlyList<CasoQueSube> casos, string rutaDestino)
     {
         ArgumentNullException.ThrowIfNull(casos);

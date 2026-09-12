@@ -1,5 +1,4 @@
 using Fichas.App.Vocabulario;
-using Fichas.App.Grupo;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 

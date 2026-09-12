@@ -16,9 +16,13 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDelModeloDeCorreccion
 {
+    /// <summary>El id fijo del caso conocido.</summary>
     private const long CasoDePrueba = 100;
+    /// <summary>La persona cuyos campos se leyeron bien.</summary>
     private const long PersonaBuena = 101;
+    /// <summary>La persona que llega SIN cedula; ese hueco es el que sale arriba en lo dudoso.</summary>
     private const long PersonaMala = 102;
+    /// <summary>El companero con el que se firma.</summary>
     private const long CompaneroDePrueba = 1;
 
     /// <summary>Monta un almacen inventado con un caso conocido y dos personas.</summary>

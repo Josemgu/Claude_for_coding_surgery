@@ -18,6 +18,10 @@ namespace Fichas.Pruebas.App.Revisar;
 internal static class MontajeDeRevisar
 {
     /// <summary>Las acciones de Revisar con la retirada al archivar puesta, sobre esos puertos.</summary>
+    /// <param name="casos">El puerto de documentos de la prueba.</param>
+    /// <param name="asignaciones">El puerto de asignaciones de la prueba.</param>
+    /// <param name="reloj">El reloj parado de la prueba.</param>
+    /// <param name="avisos">El buzón donde caen los avisos.</param>
     public static AccionesDeRevisar Acciones(ICasos casos, IAsignaciones asignaciones, IReloj reloj, BuzonDeAvisos avisos)
         => new(
             casos, reloj, avisos,

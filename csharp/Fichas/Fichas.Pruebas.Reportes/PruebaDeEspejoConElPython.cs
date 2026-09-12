@@ -35,13 +35,14 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDeEspejoConElPython
 {
-    private const string Hoy = "2026-09-20";
+    /// <summary>La marca fija con la que se arma el juego; el «hoy» que sale de ella es el 20 de septiembre.</summary>
     private const string GeneradoEn = "2026-09-20 10:00:00";
 
     /// <summary>Donde queda el volcado de C# para que el guion de Python lo compare.</summary>
     internal static string RutaDelVolcado
         => Path.Combine(Path.GetTempPath(), "fichas-espejo", "csharp.txt");
 
+    /// <summary>Escribe el volcado del juego fijo en la carpeta temporal y vigila los tres casos raros dentro de él.</summary>
     [TestMethod]
     public void VuelcaElDocumentoDelJuegoFijoParaCompararloConElPython()
     {
@@ -59,6 +60,7 @@ public class PruebaDeEspejoConElPython
         StringAssert.Contains(volcado, "CIFRA|1|viajaron sin verificar|Malo");
     }
 
+    /// <summary>Deja el PDF del juego fijo en la carpeta temporal, sin borrarlo, para abrirlo con un lector ajeno.</summary>
     [TestMethod]
     public void DejaElPdfDelJuegoFijoParaQueLoAbraUnLectorDeVerdad()
     {
@@ -135,6 +137,18 @@ public class PruebaDeEspejoConElPython
             verificacion);
     }
 
+    /// <summary>Una persona del juego fijo con los seis pasos al mismo valor y las tres casillas que se usan.</summary>
+    /// <param name="id">El id de la persona.</param>
+    /// <param name="casoId">El caso al que pertenece.</param>
+    /// <param name="nombre">El nombre, o nulo para probar el nombre sin leer.</param>
+    /// <param name="mrn">El MRN, o nulo.</param>
+    /// <param name="fila">Su fila en el formulario, que fija el orden.</param>
+    /// <param name="todosLosPasos">Sí, no o nulo para los seis pasos.</param>
+    /// <param name="pudoViajar">Lo anotado del viaje, o nulo.</param>
+    /// <param name="ordRecibirPropias">La casilla de recibir ordenanzas propias.</param>
+    /// <param name="ordTraductor">La casilla de traductor.</param>
+    /// <param name="ordInvestidura">La casilla de investidura.</param>
+    /// <param name="motivo">Por qué no pudo viajar, si no pudo.</param>
     private static Persona Con(
         long id, long casoId, string? nombre, string? mrn, int fila,
         bool? todosLosPasos, bool? pudoViajar,
@@ -160,6 +174,8 @@ public class PruebaDeEspejoConElPython
     /// No es JSON a proposito: un <c>diff</c> de lineas dice QUE linea cambio, y un JSON
     /// reindentado dice que cambio el archivo entero.
     /// </remarks>
+    /// <param name="documento">El documento armado.</param>
+    /// <returns>Una línea por dato con el prefijo en mayúsculas: TITULO, CIFRA, AVISO, SECCION, NOTA, COLUMNAS, FILA, RESUMEN.</returns>
     internal static string Volcar(Documento documento)
     {
         var salida = new StringBuilder();

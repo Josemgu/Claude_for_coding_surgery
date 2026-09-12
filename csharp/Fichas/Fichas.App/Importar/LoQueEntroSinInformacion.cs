@@ -50,6 +50,7 @@ public static class LoQueEntroSinInformacion
     /// <param name="ilegibles">Por donde se leen los renglones de lo que no se pudo leer.</param>
     /// <param name="casoIds">Los casos que nacieron en la tanda.</param>
     /// <param name="rutasDeLaTanda">Los PDF que se intentaron leer en la tanda.</param>
+    /// <returns>Las dos listas, cada una vacía si no hay nada de su clase; nunca nulo.</returns>
     public static LoQueNoTraeAnadie Ver(
         ICasos casos,
         IIlegibles ilegibles,
@@ -74,6 +75,8 @@ public static class LoQueEntroSinInformacion
     /// caso a caso: una tanda de 500 documentos serian 500 consultas, y esta cuenta se hace
     /// justo cuando la ventana acaba de estar media hora ocupada.
     /// </remarks>
+    /// <param name="casos">Por donde se cuentan las personas y se lee cada caso.</param>
+    /// <param name="casoIds">Los casos de la tanda; los repetidos se cuentan una vez y los que ya no existen se saltan.</param>
     private static IReadOnlyList<DocumentoSinNadie> CasosDeLosQueNoSeLeyoNadie(
         ICasos casos, IReadOnlyList<long> casoIds)
     {
@@ -110,6 +113,9 @@ public static class LoQueEntroSinInformacion
     /// tabla entera y filtrarla aqui: la tabla guarda TODO lo que no se ha podido leer desde
     /// que el programa existe, y de eso solo interesa lo de esta tanda.
     /// </remarks>
+    /// <param name="ilegibles">Por donde se listan los renglones.</param>
+    /// <param name="rutasDeLaTanda">Las rutas de los PDF de la tanda; se comparan sin distinguir mayúsculas.</param>
+    /// <returns>Ordenados por ruta y luego por id, para que dos tandas iguales den la misma lista.</returns>
     private static IReadOnlyList<PdfSinDocumento> RenglonesHuerfanosDe(
         IIlegibles ilegibles, IReadOnlyList<string> rutasDeLaTanda)
     {
@@ -126,6 +132,7 @@ public static class LoQueEntroSinInformacion
     }
 
     /// <summary>El nombre del archivo sin su ruta; lo que se lee en un renglon.</summary>
+    /// <param name="rutaPdf">La ruta guardada en el caso; nula o vacía devuelve vacío.</param>
     private static string NombreDelArchivo(string? rutaPdf)
     {
         if (string.IsNullOrWhiteSpace(rutaPdf)) return string.Empty;
@@ -223,6 +230,7 @@ public sealed record PdfSinDocumento
     }
 
     /// <summary>El renglón de la base, convertido en lo que la pantalla enseña.</summary>
+    /// <param name="renglon">El renglón de <c>documentos_ilegibles</c>, con <c>CasoId</c> nulo.</param>
     public static PdfSinDocumento De(RenglonIlegible renglon)
     {
         ArgumentNullException.ThrowIfNull(renglon);
@@ -238,6 +246,7 @@ public sealed record PdfSinDocumento
     }
 
     /// <summary>El nombre sin la ruta; si Windows no admite la ruta, la ruta entera.</summary>
+    /// <param name="rutaPdf">La ruta guardada en el renglón; nula o vacía devuelve vacío.</param>
     private static string NombreDelArchivoDe(string? rutaPdf)
     {
         if (string.IsNullOrWhiteSpace(rutaPdf)) return string.Empty;

@@ -99,7 +99,8 @@ public readonly record struct ClavePartida(string? NumeroCaso, string? Mrn, long
 /// companero como «la estaca esta vacia en el papel», que es un dato falso—. Se dejaban por
 /// fidelidad a la hoja que el dueno aprobo. El las quito con un motivo que gana a ese: «son
 /// informaciones que no me pide verificar». Una columna que siempre dice «no consta» y que
-/// nadie tiene que mirar es ruido en una hoja que el companero rellena a mano. De 18 a 16.
+/// nadie tiene que mirar es ruido en una hoja que el companero rellena a mano. De 18 a 16
+/// (y a 17 el 2026-09-07, cuando entró <c>unidad_numero</c>; ver <see cref="Todas"/>).
 /// </para>
 /// <para>
 /// Lo que eso deja pendiente y no se toco: si algun dia la base guardara la estaca, volver a
@@ -182,6 +183,7 @@ public static class Columnas
         new(ColumnaDeLaClave, "clave", ClaseDeColumna.Texto, false, true, ClaseDeRespuesta.Ninguna),
     ];
 
+    /// <summary>Índice de <see cref="Todas"/> por nombre de base, para que <see cref="Por"/> no recorra la lista.</summary>
     private static readonly Dictionary<string, ColumnaDeLaHoja> PorNombre =
         Todas.ToDictionary(columna => columna.Nombre);
 
@@ -212,6 +214,8 @@ public static class Columnas
     };
 
     /// <summary>La columna que se llama asi. Levanta diciendo cuales hay si no existe.</summary>
+    /// <param name="nombre">El nombre de la columna en la base, no su título impreso.</param>
+    /// <exception cref="KeyNotFoundException">No hay ninguna columna con ese nombre; el mensaje lista las que existen.</exception>
     public static ColumnaDeLaHoja Por(string nombre)
         => PorNombre.TryGetValue(nombre, out var columna)
             ? columna
@@ -220,9 +224,12 @@ public static class Columnas
                 + string.Join(", ", Todas.Select(c => c.Nombre)) + ".");
 
     /// <summary>Los caracteres de ancho de esa columna. Los seis pasos miden todos igual.</summary>
+    /// <param name="nombre">El nombre de la columna en la base; uno desconocido da el ancho de un paso, no lanza.</param>
     public static int AnchoDe(string nombre) => Anchos.TryGetValue(nombre, out var ancho) ? ancho : AnchoDeUnPaso;
 
     /// <summary>La posicion de una columna en la hoja, contando desde 1 como Excel.</summary>
+    /// <param name="nombre">El nombre de la columna en la base.</param>
+    /// <exception cref="KeyNotFoundException">No hay ninguna columna con ese nombre; el mensaje lista las que existen.</exception>
     public static int IndiceDe(string nombre)
     {
         for (var numero = 0; numero < Todas.Count; numero++)
@@ -256,6 +263,10 @@ public static class Columnas
     /// generador SIEMPRE lo pasa.
     /// </para>
     /// </remarks>
+    /// <param name="numeroCaso">El número de caso; nulo sale como parte vacía.</param>
+    /// <param name="mrn">La cédula de miembro; nula sale como parte vacía.</param>
+    /// <param name="casoId">El id del caso en la base; nulo deja la clave en dos partes.</param>
+    /// <returns>Las partes unidas por «:», sin comprobar que ninguna tenga sentido.</returns>
     public static string ArmarLaClave(string? numeroCaso, string? mrn, long? casoId)
     {
         var cola = casoId is null ? string.Empty : $"{SeparadorDeLaClave}{casoId}";
@@ -275,6 +286,7 @@ public static class Columnas
     /// primeras partes se leen igual que siempre, asi que un Excel antiguo sigue volviendo.
     /// </para>
     /// </remarks>
+    /// <param name="clave">El texto de la celda «clave»; nulo, en blanco o sin «:» da nulo.</param>
     public static ClavePartida? PartirLaClave(string? clave)
     {
         if (string.IsNullOrWhiteSpace(clave) || !clave.Contains(SeparadorDeLaClave))
@@ -287,6 +299,8 @@ public static class Columnas
             EnteroONada(partes.Length > 2 ? partes[2] : string.Empty));
     }
 
+    /// <summary>El texto recortado, o nulo si no queda nada: una parte de la clave en blanco no es una cadena vacía, es «no hay».</summary>
+    /// <param name="texto">Una parte de la clave ya separada.</param>
     private static string? VacioComoNulo(string texto)
     {
         var limpio = texto.Trim();
@@ -298,6 +312,7 @@ public static class Columnas
     /// Nulo y no un error: una clave sin tercera parte es la de un paquete anterior a este
     /// cambio, y esas filas tienen que seguir volviendo.
     /// </summary>
+    /// <param name="texto">La tercera parte de la clave, o la cadena vacía si no la había; solo dígitos ASCII cuentan como número.</param>
     private static long? EnteroONada(string texto)
     {
         var limpio = texto.Trim();

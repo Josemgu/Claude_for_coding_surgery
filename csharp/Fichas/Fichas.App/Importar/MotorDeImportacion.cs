@@ -31,7 +31,9 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed class MotorDeImportacion
 {
+    /// <summary>Quien escribe en la base; se le llama siempre desde el hilo que llamó a <see cref="ImportarAsync"/>.</summary>
     private readonly GuardadoDeHojas _guardado;
+    /// <summary>Quien lee un PDF entero y devuelve sus hojas; corre en un hilo aparte.</summary>
     private readonly Func<string, IReadOnlyList<HojaLeida>> _leerDocumento;
 
     /// <summary>Se ata al guardado y a quien sepa leer un PDF entero.</summary>
@@ -59,6 +61,7 @@ public sealed class MotorDeImportacion
     /// <param name="rutas">Los PDF a importar, ya reunidos y sin repetidos.</param>
     /// <param name="alAvanzar">Se llama despues de cada documento, en el hilo que llamo.</param>
     /// <param name="cancelacion">Para poder parar a mitad sin perder lo hecho.</param>
+    /// <returns>El resumen de la tanda, con <c>Cancelada</c> en verdadero si se paró antes de acabar.</returns>
     public async Task<ResumenDeLaTanda> ImportarAsync(
         IReadOnlyList<string> rutas,
         Action<ResumenDeLaTanda> alAvanzar,
@@ -91,6 +94,8 @@ public sealed class MotorDeImportacion
     }
 
     /// <summary>Lo que sale de leer un documento: sus hojas y el fallo si lo hubo.</summary>
+    /// <param name="Hojas">Las hojas leídas; con fallo, una sola hoja de mentira que deja el renglón.</param>
+    /// <param name="Error">El tipo y el texto del fallo, o nulo si se leyó.</param>
     private readonly record struct LecturaDeUnDocumento(IReadOnlyList<HojaLeida> Hojas, string? Error);
 
     /// <summary>
@@ -107,6 +112,8 @@ public sealed class MotorDeImportacion
     /// texto, y acaba escrito en la tabla. Atrapar para callar es lo que esta prohibido;
     /// atrapar para convertirlo en un renglon que Miguel puede leer es lo contrario.</para>
     /// </remarks>
+    /// <param name="ruta">El PDF, con su ruta completa.</param>
+    /// <returns>Las hojas leídas y error nulo; o una sola hoja de mentira y el error con su tipo y su texto.</returns>
     private LecturaDeUnDocumento LeerSinQueTumbeLaTanda(string ruta)
     {
         try
@@ -127,6 +134,8 @@ public sealed class MotorDeImportacion
     /// ese renglon es la unica prueba de que ese archivo se intento. Sin el, un PDF
     /// corrupto desaparece de la tanda sin dejar rastro.
     /// </remarks>
+    /// <param name="ruta">El PDF que no se pudo abrir.</param>
+    /// <param name="error">El tipo y el texto del fallo, para el detalle del aviso.</param>
     private static HojaLeida HojaQueNoSePudoAbrir(string ruta, string error) => new(
         RutaPdf: ruta,
         Pagina: 0,
@@ -147,6 +156,10 @@ public sealed class MotorDeImportacion
     /// formulario de grupo se unen en un caso, y contarlas como seis diria «6 casos de 6
     /// páginas», que es justo la frase que tiene que delatar cuando algo se pierde.
     /// </remarks>
+    /// <param name="ruta">El PDF del que salen las cifras.</param>
+    /// <param name="lectura">Lo que devolvió la lectura; con error, las hojas se cuentan como cero.</param>
+    /// <param name="resultados">Lo que devolvió el guardado, una entrada por hoja.</param>
+    /// <param name="segundos">Lo que tardó leer y guardar el documento.</param>
     private static ResultadoDeUnDocumento CifrasDe(
         string ruta, LecturaDeUnDocumento lectura, IReadOnlyList<ResultadoDeLaHoja> resultados, double segundos)
     {

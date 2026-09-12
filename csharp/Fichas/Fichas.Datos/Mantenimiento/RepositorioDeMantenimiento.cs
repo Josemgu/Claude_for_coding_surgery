@@ -28,16 +28,23 @@ namespace Fichas.Datos.Mantenimiento;
 /// </remarks>
 public sealed class RepositorioDeMantenimiento : IMantenimiento
 {
+    /// <summary>La tabla temporal donde se meten, uno a uno y como parámetros, los ids que se van a borrar. Vive en la conexión y muere con ella.</summary>
     private const string TablaTemporal = "ids_a_borrar";
 
+    /// <summary>
+    /// El filtro de <c>procedencia_campo</c>, que no cuelga de <c>casos</c> por clave foránea sino por el par (tabla, registro_id):
+    /// caen los renglones de los casos marcados y los de sus personas.
+    /// </summary>
     private const string ProcedenciaDeLosMarcados =
         "(tabla = 'casos' AND registro_id IN (SELECT id FROM ids_a_borrar)) " +
         "OR (tabla = 'personas' AND registro_id IN " +
         "    (SELECT id FROM personas WHERE caso_id IN (SELECT id FROM ids_a_borrar)))";
 
+    /// <summary>La conexión viva del programa; este repositorio no la abre ni la cierra.</summary>
     private readonly SqliteConnection _conexion;
 
     /// <summary>Trabaja sobre la conexion viva del programa, con el esquema aplicado.</summary>
+    /// <param name="conexion">La conexión abierta con el esquema al día; no puede ser nula.</param>
     public RepositorioDeMantenimiento(SqliteConnection conexion)
     {
         ArgumentNullException.ThrowIfNull(conexion);
@@ -249,6 +256,9 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
     }
 
     /// <summary>Borra los documentos del plan, todo o nada, y devuelve lo que de verdad cayo.</summary>
+    /// <param name="plan">Un plan de alcance <c>Documentos</c> o <c>TodoEnLimpio</c> con permiso y copia.</param>
+    /// <returns>Las filas que cayeron por tabla, en el mismo orden en que <see cref="Pasos"/> las dice.</returns>
+    /// <remarks>Suelta primero <c>duplicado_de</c> de los casos que apuntaban a uno de los borrados: ese REFERENCES también es RESTRICT y sin esto el motor rechazaría el borrado.</remarks>
     private ResultadoDeBorrado BorrarLosDocumentos(PlanDeBorrado plan)
     {
         var todoEnLimpio = plan.Alcance == AlcanceDelBorrado.TodoEnLimpio;
@@ -288,6 +298,8 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
     }
 
     /// <summary>Borra al companero, volviendo a comprobar que sigue sin llevar nada.</summary>
+    /// <param name="plan">Un plan de alcance <c>Companero</c> con un solo id en <c>Ids</c>.</param>
+    /// <returns>Un compañero borrado, o el aviso de que entre la pregunta y el «sí» le entró trabajo.</returns>
     private ResultadoDeBorrado BorrarAlCompanero(PlanDeBorrado plan)
     {
         var companeroId = plan.Ids[0];
@@ -318,6 +330,10 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
     }
 
     /// <summary>Hace la copia y arma el plan; sin copia, el plan no da permiso.</summary>
+    /// <param name="alcance">Documentos o todo en limpio.</param>
+    /// <param name="ids">Los casos marcados; vacío cuando es todo en limpio.</param>
+    /// <param name="conteos">Lo que va a caer, ya contado con el mismo filtro que borrará.</param>
+    /// <returns>Un plan con permiso y ruta de copia, o uno sin permiso con el aviso de por qué no se pudo copiar.</returns>
     private PlanDeBorrado PlanearConLosConteos(
         AlcanceDelBorrado alcance, IReadOnlyList<long> ids, IReadOnlyList<ConteoDeTabla> conteos)
     {
@@ -335,6 +351,8 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
     }
 
     /// <summary>Cuenta cuantas filas caeran, paso por paso, con el mismo filtro que borrara.</summary>
+    /// <param name="todoEnLimpio">Si se cuenta la base entera (filtro <c>1 = 1</c>) o solo lo que apunta a la tabla temporal.</param>
+    /// <returns>Un conteo por paso, en el orden de <see cref="Pasos"/>; los pasos de solo-en-limpio se saltan cuando no toca.</returns>
     private IReadOnlyList<ConteoDeTabla> ContarLosPasos(bool todoEnLimpio)
     {
         var conteos = new List<ConteoDeTabla>();
@@ -354,6 +372,7 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
     }
 
     /// <summary>Deja en la tabla temporal exactamente esos ids y ninguno mas.</summary>
+    /// <param name="ids">Los ids a borrar; con la lista vacía la tabla queda creada y vacía, que es lo que «todo en limpio» necesita.</param>
     private void PonerLosIdsEnLaTablaTemporal(IReadOnlyList<long> ids)
     {
         Ejecutar($"CREATE TEMP TABLE IF NOT EXISTS {TablaTemporal} (id INTEGER PRIMARY KEY)", null);
@@ -378,6 +397,7 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
     }
 
     /// <summary>Las parejas tabla/columna que apuntan a <c>companeros</c>, segun el motor.</summary>
+    /// <returns>Cada (tabla, columna) cuyo <c>REFERENCES</c> apunta a <c>companeros</c>, leído de <c>PRAGMA foreign_key_list</c> y no de una lista escrita a mano: una columna nueva se descubre sola.</returns>
     private IReadOnlyList<(string Tabla, string Columna)> ColumnasQueApuntanACompaneros()
     {
         var tablas = new List<string>();
@@ -406,6 +426,8 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
         return parejas;
     }
 
+    /// <summary>El nombre que tiene esa fila de <c>companeros</c>, o nulo si no existe.</summary>
+    /// <param name="companeroId">El id del compañero.</param>
     private string? NombreDelCompanero(long companeroId)
     {
         using var orden = _conexion.CreateCommand();
@@ -414,11 +436,16 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
         return orden.ExecuteScalar() as string;
     }
 
+    /// <summary>Si el compañero existe y tiene <c>activo = 1</c>; falso también si no existe.</summary>
+    /// <param name="companeroId">El id del compañero.</param>
     private bool EstaActivo(long companeroId)
         => ContarCon(
             "SELECT COUNT(*) FROM companeros WHERE id = $id AND activo = 1",
             orden => orden.Parameters.AddWithValue("$id", companeroId)) > 0;
 
+    /// <summary>Ejecuta un <c>SELECT COUNT(*)</c> con sus parámetros y devuelve la cifra.</summary>
+    /// <param name="consulta">La consulta; el texto sale de constantes o de nombres de tabla leídos del propio motor, nunca de la pantalla.</param>
+    /// <param name="ponerParametros">Dónde se añaden los parámetros de la consulta.</param>
     private int ContarCon(string consulta, Action<SqliteCommand> ponerParametros)
     {
         using var orden = _conexion.CreateCommand();
@@ -427,6 +454,10 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
         return Convert.ToInt32(orden.ExecuteScalar(), CultureInfo.InvariantCulture);
     }
 
+    /// <summary>Ejecuta una instrucción sin resultado, dentro de la transacción si la hay.</summary>
+    /// <param name="instruccion">La instrucción; sin texto del usuario dentro.</param>
+    /// <param name="trato">La transacción en curso, o nula para ejecutar suelta.</param>
+    /// <returns>Cuántas filas tocó.</returns>
     private int Ejecutar(string instruccion, SqliteTransaction? trato)
     {
         using var orden = _conexion.CreateCommand();
@@ -453,6 +484,8 @@ internal sealed record PasoDelBorrado(
 /// </remarks>
 internal static class EtiquetasDeLaCarga
 {
+    /// <summary>Las columnas que apuntan a <c>companeros</c> con su nombre en español; la clave es <c>tabla.columna</c>.</summary>
+    /// <remarks>No está <c>personas.pasos_por</c> (versión 19): cae en la frase de respaldo «fila en «personas»». Se apunta en la entrega.</remarks>
     private static readonly Dictionary<string, (string Singular, string Plural)> Conocidas = new(StringComparer.Ordinal)
     {
         ["asignaciones.companero_id"] = ("asignación", "asignaciones"),
@@ -465,6 +498,9 @@ internal static class EtiquetasDeLaCarga
     };
 
     /// <summary>Las dos formas para esa columna, o una frase con el nombre de la tabla.</summary>
+    /// <param name="tabla">La tabla que apunta a <c>companeros</c>.</param>
+    /// <param name="columna">La columna con el <c>REFERENCES</c>.</param>
+    /// <returns>Las etiquetas conocidas, o «fila en «tabla»» / «filas en «tabla»» si no hay ninguna.</returns>
     internal static (string Singular, string Plural) Para(string tabla, string columna)
         => Conocidas.TryGetValue($"{tabla}.{columna}", out var etiquetas)
             ? etiquetas

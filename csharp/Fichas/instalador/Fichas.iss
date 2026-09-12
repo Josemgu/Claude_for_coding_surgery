@@ -67,7 +67,9 @@ MinVersion=10.0.17763
 
 ; Actualizar = ejecutar el instalador nuevo encima. Si Fichas está abierto, el
 ; instalador lo cierra (por el Administrador de reinicios de Windows) antes de tocar
-; sus archivos; no lo vuelve a abrir solo: la última página ofrece abrirlo.
+; sus archivos. Quien lo vuelve a abrir es la entrada [Run] de abajo, no esto:
+; RestartApplications solo reabre programas que se registraron con
+; RegisterApplicationRestart, y Fichas no lo hace.
 CloseApplications=yes
 RestartApplications=no
 
@@ -117,7 +119,74 @@ Name: "{autoprograms}\Fichas"; Filename: "{app}\Fichas.exe"; IconFilename: "{app
 Name: "{autodesktop}\Fichas"; Filename: "{app}\Fichas.exe"; IconFilename: "{app}\Assets\AppIcon.ico"; Tasks: escritorio
 
 [Run]
-Filename: "{app}\Fichas.exe"; Description: "{cm:LaunchProgram,Fichas}"; Flags: nowait postinstall skipifsilent
+; Con doble clic: la ultima pagina ofrece la casilla «Ejecutar Fichas» (postinstall).
+; En silencio (/SILENT, que es como lo lanza el propio programa al actualizarse solo desde
+; el 2026-09-11): la pagina no se ve, la casilla cuenta como marcada y la entrada se ejecuta
+; igual, asi que Fichas vuelve a abrirse solo al terminar. Para eso se quito «skipifsilent»
+; ese dia: con esa bandera, la ayuda de Inno Setup dice «Instructs Setup to skip this entry
+; if Setup is running (very) silent», y el programa se quedaba cerrado tras actualizarse.
+; Medido el 2026-09-12 con Inno Setup 6.7.3 y un guion de ensayo: con /SILENT, la entrada
+; «postinstall» se ejecuta y la que lleva «skipifsilent» no.
+;
+; ⛔ Lo que costó quitar «skipifsilent», medido el 2026-09-12 por el supervisor: un
+; instalador ejecutado en silencio A MANO, sin /carpetadedatos (que es como lo prueban los
+; agentes: «/SILENT /SUPPRESSMSGBOXES /DIR=…»), abría Fichas SIN argumentos, es decir, sobre
+; la carpeta por defecto Documentos\Fichas, que es la base real del dueño. Por eso desde ese
+; día la entrada lleva «Check: DebeReabrirFichas» ([Code], abajo): en silencio solo se
+; reabre si llegó /carpetadedatos, que es la señal de que quien lanzó el instalador fue el
+; propio programa. Sin el parámetro y en silencio, no se abre nada, como hacía la v11.
+; Con ventana no cambia: la casilla de la última página sigue mandando.
+;
+; Los argumentos con los que se reabre Fichas los da ArgumentosParaFichas ([Code], abajo):
+; la carpeta de datos que el programa le paso al instalador, o nada.
+;
+; «nowait» no desacopla el proceso: el Fichas que se abre sigue siendo descendiente del
+; instalador (SetupLdr → Setup → Fichas.exe). Inno Setup no tiene bandera que lo haga
+; huérfano, y da igual para el uso real: cuando Fichas se actualiza solo, nadie espera al
+; instalador. Sí importa para quien lo pruebe desde PowerShell: «Start-Process -Wait» espera
+; a TODO el árbol (lo dice su ayuda: «waits for the specified process and all descendants»)
+; y se queda colgado hasta que se cierre ese Fichas. Medido el 2026-09-12: con
+; «$p = Start-Process -PassThru; $p.WaitForExit()» vuelve en cuanto termina el instalador.
+Filename: "{app}\Fichas.exe"; Parameters: "{code:ArgumentosParaFichas}"; Description: "{cm:LaunchProgram,Fichas}"; Flags: nowait postinstall; Check: DebeReabrirFichas
+
+[Code]
+// Los argumentos con los que [Run] reabre Fichas.
+//
+// Cuando Fichas se actualiza solo (Fichas.App/Actualizacion/LanzadorDelInstalador.cs), lanza
+// este instalador con /carpetadedatos="<carpeta>" —la carpeta de datos con la que estaba
+// abierto—, y aqui se le devuelve como --carpeta-de-datos al Fichas que se reabre, para que
+// no vuelva abierto sobre la carpeta por defecto si estaba sobre otra. Con doble clic nadie
+// pasa el parametro y Fichas se abre sin argumentos, como siempre.
+//
+// La constante «param:carpetadedatos» es la forma que Inno Setup da de leer un parametro
+// propio de la linea de ordenes; sin el, es la cadena vacia. Medido el 2026-09-12: llega
+// con espacios. (Comentarios con «//» y no con llaves: una llave dentro cerraria el comentario.)
+function ArgumentosParaFichas(Param: String): String;
+var
+  Carpeta: String;
+begin
+  Carpeta := ExpandConstant('{param:carpetadedatos|}');
+  if Carpeta = '' then
+    Result := ''
+  else
+    Result := '--carpeta-de-datos "' + Carpeta + '"';
+end;
+
+// Si la entrada [Run] que reabre Fichas se procesa o no (es su «Check:»).
+//
+// Con ventana (doble clic), siempre: la casilla «Ejecutar Fichas» de la ultima pagina es
+// la que decide, como desde la v11. En silencio (/SILENT o /VERYSILENT: WizardSilent da
+// True en los dos, dice la ayuda), solo si llego /carpetadedatos, que es lo que manda el
+// propio Fichas al actualizarse (LanzadorDelInstalador.cs, y esa carpeta nunca es vacia:
+// ArgumentosDeArranque resuelve siempre la dicha o la de por defecto). Un instalador
+// silencioso lanzado a mano, sin el parametro, no abre nada.
+//
+// Anadido el 2026-09-12 por lo medido ese dia: sin esta guarda, «/SILENT» a secas abria
+// Fichas sin argumentos sobre Documentos\Fichas, la base real del dueño.
+function DebeReabrirFichas(): Boolean;
+begin
+  Result := (not WizardSilent) or (ExpandConstant('{param:carpetadedatos|}') <> '');
+end;
 
 [UninstallDelete]
 ; Solo la carpeta del programa, y solo si quedó vacía después de quitar lo instalado.

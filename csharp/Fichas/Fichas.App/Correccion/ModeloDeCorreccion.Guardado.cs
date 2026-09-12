@@ -45,6 +45,17 @@ public sealed record ResultadoDeGuardado(
     bool ListoParaAsignar,
     bool SinNingunaPersonaLeida = false);
 
+/// <summary>
+/// La parte del modelo que ESCRIBE: guardar lo tecleado, firmar un campo, marcar que no
+/// esta en el papel, y el veredicto de si al documento le falta algo.
+/// </summary>
+/// <remarks>
+/// Los tres actos son distintos y no se mezclan (regla permanente 5): guardar apunta lo que
+/// dice el papel y nunca pone <c>verificado</c>; firmar es el unico camino a
+/// <c>verificado = 1</c> y lo pulsa Miguel; marcar «no esta en el papel» deja dicho que ahi
+/// no hay dato que buscar y tampoco es una firma. El veredicto —<see cref="ListoParaAsignar"/>—
+/// es una lectura, no una escritura.
+/// </remarks>
 public sealed partial class ModeloDeCorreccion
 {
     /// <summary>
@@ -124,8 +135,16 @@ public sealed partial class ModeloDeCorreccion
     /// </para>
     /// <para>Y guarde lo que guarde, <b>lo dice en el pie</b>: un boton que hace su trabajo en
     /// silencio es, para quien lo mira, un boton roto.</para>
+    /// <para>
+    /// ⚠️ <b>Guardar puede retirar firmas, y se cuenta.</b> Es la decision del dueno del
+    /// 2026-09-03 (<c>DECISIONES.md</c>, «Cambiar o borrar un campo firmado le retira la
+    /// firma»): una firma dice «di por bueno ESE valor», y con otro valor debajo deja de valer.
+    /// La retira el almacen al anotar el valor nuevo; aqui se mide la diferencia de firmas
+    /// antes y despues y se dice en un aviso, para que no se pierda ninguna en silencio.
+    /// </para>
     /// </remarks>
     /// <param name="tecleado">Lo que se acaba de escribir; nulo usa lo que ya se apunto con <see cref="Teclear"/>.</param>
+    /// <returns>Cuanto entro, que hay que mirar y la linea del pie; nunca lanza por un valor raro.</returns>
     public ResultadoDeGuardado Guardar(IReadOnlyDictionary<string, string?>? tecleado = null)
     {
         if (_caso is null)
@@ -179,6 +198,9 @@ public sealed partial class ModeloDeCorreccion
     /// solo campo: dar por bueno lo que se acaba de escribir tiene que escribirlo antes,
     /// y hacerlo con otro camino seria dos formas de guardar que se separan.
     /// </remarks>
+    /// <param name="porGuardar">Los campos con un cambio pendiente; vacio no toca nada.</param>
+    /// <param name="avisos">Donde se van sumando los avisos del almacen.</param>
+    /// <returns>Los que entraron y los que el almacen no admitio; juntos son los que se pidieron.</returns>
     private (List<CampoEnPantalla> Escritos, List<CampoEnPantalla> NoAdmitidos) EscribirEstosCampos(
         List<CampoEnPantalla> porGuardar, List<Aviso> avisos)
     {
@@ -218,6 +240,10 @@ public sealed partial class ModeloDeCorreccion
     /// papel», y para eso esta <see cref="MarcarQueNoEstaEnElPapel"/>.
     /// </para>
     /// </remarks>
+    /// <param name="campo">El campo que se da por bueno, con lo que tenga tecleado encima.</param>
+    /// <param name="companeroId">Quien firma; el almacen se niega si no esta en la base.</param>
+    /// <returns>Lo que contesto el almacen, con los avisos del guardado previo delante si lo hubo.</returns>
+    /// <exception cref="ArgumentNullException">Si el campo es nulo.</exception>
     public ResultadoDeEscritura Firmar(CampoEnPantalla campo, long companeroId)
     {
         ArgumentNullException.ThrowIfNull(campo);
@@ -289,7 +315,16 @@ public sealed partial class ModeloDeCorreccion
     /// papel no trae este campo» sobre un campo con un dato dentro son dos afirmaciones que
     /// se contradicen, y la unica forma de resolverlo aqui seria borrar el dato en silencio.
     /// </para>
+    /// <para>
+    /// Marcarlo sobre un campo firmado le retira la firma: <c>Anotar</c> pisa la fila entera y
+    /// la deja sin <c>verificado</c>, que es lo que tiene que pasar —«Miguel dio por bueno este
+    /// dato» y «este campo no existe en el papel» no pueden convivir—.
+    /// </para>
     /// </remarks>
+    /// <param name="campo">El campo que se marca o se desmarca.</param>
+    /// <param name="marcado">Verdadero para decir que el papel no lo trae; falso para quitar esa marca.</param>
+    /// <returns>Lo que contesto el almacen; con el motivo en una linea si no se escribio.</returns>
+    /// <exception cref="ArgumentNullException">Si el campo es nulo.</exception>
     public ResultadoDeEscritura MarcarQueNoEstaEnElPapel(CampoEnPantalla campo, bool marcado)
     {
         ArgumentNullException.ThrowIfNull(campo);
@@ -334,6 +369,9 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Si ese campo esta marcado como que el formulario no lo trae.</summary>
+    /// <remarks>Se lee de la procedencia que trae el campo, que es la ultima releida del almacen.</remarks>
+    /// <param name="campo">El campo que se pregunta.</param>
+    /// <exception cref="ArgumentNullException">Si el campo es nulo.</exception>
     public bool EstaMarcadoComoAusente(CampoEnPantalla campo)
     {
         ArgumentNullException.ThrowIfNull(campo);
@@ -347,6 +385,8 @@ public sealed partial class ModeloDeCorreccion
     /// leyo el PROGRAMA. Se queda porque siguen siendo dos preguntas distintas y las dos
     /// tienen respuesta; va nombrado en la entrega para que se decida al cerrar la fase.
     /// </remarks>
+    /// <param name="campo">El campo que se pregunta; sin fila de procedencia no esta resuelto.</param>
+    /// <exception cref="ArgumentNullException">Si el campo es nulo.</exception>
     public bool EstaResuelto(CampoEnPantalla campo)
     {
         ArgumentNullException.ThrowIfNull(campo);
@@ -394,14 +434,21 @@ public sealed partial class ModeloDeCorreccion
     /// algo a este documento?», y esa pregunta la puede contestar el programa porque solo
     /// mira si hay huecos. No hay columna en la base para esto y no se escribe en ninguna.
     /// </para>
-    /// </remarks>
-    /// <remarks>
+    /// <para>
     /// ⚠️ <b>Y desde el 2026-09-06 exige ademas que haya alguien a quien recomendar.</b> Es
     /// la sexta divergencia de <c>DECISIONES.md</c> y va al reves que las otras: esto solo
     /// miraba los cinco campos del CASO, asi que un documento del que no se leyo ni una
     /// persona salia como listo para asignar. Mandarselo a un companero es mandarle una hoja
     /// sin nadie dentro. La cola siempre lo dijo —«sin ninguna persona leída»—; era esta
     /// pantalla la que no lo contaba.
+    /// </para>
+    /// <para>
+    /// ⚠️ <b>Desde el 2026-09-07 la palabra «listo para asignar» ya no se le ensena al
+    /// dueno</b> (<c>DECISIONES.md</c>, «DOS ESTADOS Y NO CUATRO»): a la vista van «resuelto» y
+    /// «me falta», y esto pasa a ser el DETALLE de «me falta» —«te toca a ti: repartirlo»—.
+    /// La propiedad se queda con su nombre porque es lo que mide: si el programa dejo el
+    /// documento sin huecos. Lo que cambio es como se dice, no lo que se calcula.
+    /// </para>
     /// </remarks>
     public bool ListoParaAsignar
         => _caso is not null && _campos.Count > 0 && CamposQueLeFaltan == 0 && !SinNingunaPersonaLeida;
@@ -415,6 +462,11 @@ public sealed partial class ModeloDeCorreccion
     public bool SinNingunaPersonaLeida => _caso is not null && _personasDelCaso.Count == 0;
 
     /// <summary>Vuelve a leer del almacen la procedencia de ese campo.</summary>
+    /// <remarks>
+    /// Se pide la del registro entero y se busca la columna: <c>IProcedencia</c> no ofrece
+    /// leer una sola fila, y son unas pocas por registro.
+    /// </remarks>
+    /// <param name="campo">El campo cuya procedencia se pone al dia; queda nula si el almacen no tiene fila.</param>
     private void RefrescarLaProcedencia(CampoEnPantalla campo)
         => campo.Procedencia = _procedencia
             .DeRegistro(campo.Tabla, campo.RegistroId)
@@ -430,6 +482,7 @@ public sealed partial class ModeloDeCorreccion
     /// no deje fila para <c>templo_nombre</c>— es de <c>Fichas.App/Importar</c> y va
     /// nombrada en la entrega, no arreglada aqui.
     /// </remarks>
+    /// <param name="campo">El campo sin fila de procedencia; al volver ya la tiene.</param>
     private void AnotarQueNoHayLecturaGuardada(CampoEnPantalla campo)
     {
         _procedencia.Anotar(new ProcedenciaDeCampo
@@ -443,6 +496,13 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Arma la lista de campos de un caso y sus personas, en orden de lectura.</summary>
+    /// <remarks>
+    /// Primero los cinco del caso y despues los dos de cada persona, en el orden en que
+    /// venian en el formulario. La procedencia se pide una vez por registro, no por campo:
+    /// son 1 + N consultas cortas, y N son las personas del caso.
+    /// </remarks>
+    /// <param name="caso">El caso abierto.</param>
+    /// <param name="personas">Sus personas, en el orden del formulario.</param>
     private void ArmarLosCampos(Caso caso, IReadOnlyList<Persona> personas)
     {
         var deCaso = _procedencia.DeRegistro(TablaDeProcedencia.Casos, caso.Id)
@@ -503,6 +563,10 @@ public sealed partial class ModeloDeCorreccion
     /// entra ninguno: es como esta hecho <c>ICasos.Guardar</c>, que recibe la fila entera.
     /// Por eso, cuando no entra, se apuntan los cinco y no se adivina cual fue.
     /// </remarks>
+    /// <param name="caso">El caso tal como esta; se le cambian solo las columnas tecleadas.</param>
+    /// <param name="porGuardar">Todos los campos con cambio; aqui se toman los del caso.</param>
+    /// <param name="avisos">Donde se suman los avisos del almacen.</param>
+    /// <param name="noAdmitidos">Donde se apuntan los campos que no entraron.</param>
     private void EscribirElCaso(
         Caso caso, List<CampoEnPantalla> porGuardar, List<Aviso> avisos, List<CampoEnPantalla> noAdmitidos)
     {
@@ -525,6 +589,9 @@ public sealed partial class ModeloDeCorreccion
     /// de lo que no se admitio y salen nombrados en el pie. Antes se saltaba con un
     /// <c>continue</c> y lo tecleado desaparecia sin que nada lo dijera.
     /// </remarks>
+    /// <param name="porGuardar">Todos los campos con cambio; aqui se toman los de personas, agrupados por persona.</param>
+    /// <param name="avisos">Donde se suman los avisos del almacen.</param>
+    /// <param name="noAdmitidos">Donde se apuntan los campos que no entraron.</param>
     private void EscribirLasPersonas(
         List<CampoEnPantalla> porGuardar, List<Aviso> avisos, List<CampoEnPantalla> noAdmitidos)
     {
@@ -555,6 +622,12 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Deja anotado que ese valor lo tecleo una mano. NUNCA pone verificado.</summary>
+    /// <remarks>
+    /// Se conserva de la fila anterior todo lo que no cambia por teclear —lo que leyo el OCR,
+    /// la banda, el tachon, la marca de ausente— y se pisa el origen y la confianza. Anotar
+    /// es lo que le retira la firma al campo si la tenia (dueno, 2026-09-03).
+    /// </remarks>
+    /// <param name="porGuardar">Los campos que acaban de entrar en el almacen.</param>
     private void AnotarComoManual(List<CampoEnPantalla> porGuardar)
     {
         foreach (var campo in porGuardar)
@@ -580,6 +653,11 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Lo escrito deja de ser un cambio pendiente; lo que no valio se queda en pantalla.</summary>
+    /// <remarks>
+    /// El valor guardado pasa a ser lo tecleado, lo tecleado se olvida y la procedencia se
+    /// relee: sin esto, Guardar se quedaria pulsandose para siempre sobre lo mismo.
+    /// </remarks>
+    /// <param name="porGuardar">Los campos que entraron; los no admitidos NO pasan por aqui.</param>
     private void DarPorGuardados(List<CampoEnPantalla> porGuardar)
     {
         foreach (var campo in porGuardar)
@@ -593,6 +671,7 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>El aviso de las firmas que se cayeron al cambiar su valor.</summary>
+    /// <param name="retiradas">Cuantas firmas menos hay que antes de guardar; siempre mayor que cero aqui.</param>
     private static Aviso AvisoDeLasFirmasRetiradas(int retiradas) => Aviso.Advierte(
         $"se retiró la firma de {retiradas} campo{(retiradas == 1 ? string.Empty : "s")}: su valor cambió",
         string.Empty,
@@ -600,6 +679,8 @@ public sealed partial class ModeloDeCorreccion
         + "vuelve a salir como pendiente hasta que lo confirme otra vez.");
 
     /// <summary>El valor guardado de un campo del caso, por su nombre de columna.</summary>
+    /// <param name="caso">El caso tal como esta en la base.</param>
+    /// <param name="campo">El nombre de la columna; una que no se conoce devuelve nulo.</param>
     private static string? ValorDelCaso(Caso caso, string campo) => campo switch
     {
         Extraccion.CampoNumeroDeCaso => caso.NumeroCaso,
@@ -611,6 +692,9 @@ public sealed partial class ModeloDeCorreccion
     };
 
     /// <summary>El caso con ese campo cambiado; un campo que no conoce lo deja igual.</summary>
+    /// <param name="caso">El caso de partida; no se toca, se devuelve una copia.</param>
+    /// <param name="campo">El nombre de la columna que cambia.</param>
+    /// <param name="valor">El valor nuevo, ya limpio; nulo vacia la columna.</param>
     private static Caso ConElCampo(Caso caso, string campo, string? valor) => campo switch
     {
         Extraccion.CampoNumeroDeCaso => caso with { NumeroCaso = valor },
@@ -622,6 +706,9 @@ public sealed partial class ModeloDeCorreccion
     };
 
     /// <summary>La persona con ese campo cambiado; un campo que no conoce la deja igual.</summary>
+    /// <param name="persona">La persona de partida; no se toca, se devuelve una copia.</param>
+    /// <param name="campo">El nombre de la columna que cambia: la cedula o el nombre.</param>
+    /// <param name="valor">El valor nuevo, ya limpio; nulo vacia la columna.</param>
     private static Persona ConElCampo(Persona persona, string campo, string? valor) => campo switch
     {
         Extraccion.CampoCedula => persona with { Mrn = valor },

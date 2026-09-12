@@ -52,6 +52,7 @@ public sealed record FilaDeTrabajo
     public string? Clave { get; init; }
 
     /// <summary>El valor de una columna de esta fila, buscada por el nombre de la columna.</summary>
+    /// <param name="nombreDeColumna">El nombre en la base; las siete respuestas, el motivo, el comentario y cualquier nombre desconocido dan nulo.</param>
     public string? ValorDe(string nombreDeColumna) => nombreDeColumna switch
     {
         "numero_caso" => NumeroCaso,
@@ -156,19 +157,32 @@ public static class LibroDeTrabajo
     /// <summary>Lo que se escribe cuando la hoja no dice a quien va.</summary>
     public const string SinAgente = "sin asignar";
 
+    /// <summary>Cómo vienen las fechas de la base (ISO-8601), en la sintaxis de <c>DateTime.TryParseExact</c>.</summary>
     private const string FormatoDeFecha = "yyyy-MM-dd";
+
+    /// <summary>Cómo se escribe una fecha en la cabecera para que la lea una persona: día-mes-año.</summary>
     private const string FormatoQueSeLee = "dd-MM-yyyy";
+
+    /// <summary>El formato de número de Excel que fuerza texto; salva el cero de delante del MRN y del número de unidad.</summary>
     private const string FormatoDeTexto = "@";
 
     /// <summary>Como se escribe una fecha en la celda; es el que estampa openpyxl.</summary>
     private const string FormatoDeFechaEnExcel = "yyyy-mm-dd";
 
+    /// <summary>Cuerpo de la letra del título de la fila 1.</summary>
     private const int TamanoDelTitulo = 14;
+
+    /// <summary>Cuerpo de la letra de la columna «clave»: a la vista, pero sin robar atención.</summary>
     private const int TamanoDeLaClave = 8;
+
+    /// <summary>Alto de la fila 5, la de la instrucción, para que quepa en dos líneas.</summary>
     private const double AltoDeLaInstruccion = 30;
+
+    /// <summary>Alto de la fila de títulos, para que los rótulos largos quepan en dos líneas.</summary>
     private const double AltoDeLaCabecera = 32;
 
     /// <summary>Una fecha ISO escrita como la lee una persona, o vacio si no se puede.</summary>
+    /// <param name="iso">«aaaa-MM-dd» exacto; nulo o cualquier otra forma da la cadena vacía.</param>
     public static string FechaLegible(string? iso)
         => DateTime.TryParseExact(iso, FormatoDeFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out var fecha)
             ? fecha.ToString(FormatoQueSeLee, CultureInfo.InvariantCulture)
@@ -179,6 +193,7 @@ public static class LibroDeTrabajo
     /// salida no se puede leer. No se inventa un margen sobre una fecha que no se entiende:
     /// una fecha limite falsa es peor que ninguna, porque el companero se organiza contra ella.
     /// </summary>
+    /// <param name="fechaDeSalida">«aaaa-MM-dd» exacto; nulo o cualquier otra forma da la cadena vacía.</param>
     public static string FechaLimite(string? fechaDeSalida)
         => DateTime.TryParseExact(fechaDeSalida, FormatoDeFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out var salida)
             ? salida.AddDays(-DiasDeMargen).ToString(FormatoQueSeLee, CultureInfo.InvariantCulture)
@@ -193,6 +208,8 @@ public static class LibroDeTrabajo
     /// fecha de salida es la MAS temprana, porque una fecha limite calculada sobre el ultimo
     /// dejaria pasar sin aviso al grupo que sale antes.
     /// </remarks>
+    /// <param name="filas">Las filas de la hoja; con ninguna, la cabecera sale con todo en blanco menos el agente.</param>
+    /// <param name="agente">El compañero al que se entrega; nulo cuenta como vacío.</param>
     public static CabeceraDeLaHoja CabeceraDe(IReadOnlyList<FilaDeTrabajo> filas, string agente)
     {
         var casos = filas.Select(f => f.NumeroCaso).Where(v => !string.IsNullOrEmpty(v)).Distinct().ToArray();
@@ -206,6 +223,10 @@ public static class LibroDeTrabajo
     }
 
     /// <summary>El libro que se le entrega al companero. Quien lo recibe lo cierra.</summary>
+    /// <param name="filas">Una por persona, en el orden en que saldrán.</param>
+    /// <param name="agente">El compañero al que se entrega; va en la fila 4.</param>
+    /// <param name="cabecera">Una cabecera ya decidida; nula, se deduce de las filas con <see cref="CabeceraDe"/>.</param>
+    /// <returns>Un libro con una sola pestaña, <see cref="Columnas.NombreDeLaHoja"/>, sin proteger.</returns>
     public static XLWorkbook Construir(IReadOnlyList<FilaDeTrabajo> filas, string agente, CabeceraDeLaHoja? cabecera = null)
     {
         var libro = new XLWorkbook();
@@ -223,6 +244,12 @@ public static class LibroDeTrabajo
         return libro;
     }
 
+    /// <summary>
+    /// Las filas 1 a 5: título con el caso, templo y salida, fecha límite en rojo (solo si se
+    /// pudo calcular), agente e instrucción. Cada una en la columna A, sin combinar celdas.
+    /// </summary>
+    /// <param name="hoja">La pestaña «Por verificar» recién creada.</param>
+    /// <param name="cabecera">Lo que es igual para todas las filas.</param>
     private static void EscribirLasCincoLineas(IXLWorksheet hoja, CabeceraDeLaHoja cabecera)
     {
         var titulo = Titulo + (cabecera.NumeroDeCaso.Length > 0 ? $" · {cabecera.NumeroDeCaso}" : string.Empty);
@@ -266,6 +293,8 @@ public static class LibroDeTrabajo
         hoja.Row(5).Height = AltoDeLaInstruccion;
     }
 
+    /// <summary>La fila 6: los títulos de <see cref="Columnas.Todas"/> en blanco sobre tinta, sin bloquear.</summary>
+    /// <param name="hoja">La pestaña «Por verificar».</param>
     private static void EscribirLosTitulos(IXLWorksheet hoja)
     {
         var titulos = Columnas.Titulos();
@@ -285,6 +314,8 @@ public static class LibroDeTrabajo
     }
 
     /// <summary>Escribe las filas y devuelve el numero de la ultima; la cabecera si no hay ninguna.</summary>
+    /// <param name="hoja">La pestaña «Por verificar».</param>
+    /// <param name="filas">Una por persona; la primera va en <see cref="Columnas.PrimeraFilaDeDatos"/>.</param>
     private static int EscribirLasFilas(IXLWorksheet hoja, IReadOnlyList<FilaDeTrabajo> filas)
     {
         var numeroDeFila = Columnas.FilaDeLaCabecera;
@@ -306,6 +337,16 @@ public static class LibroDeTrabajo
         return numeroDeFila;
     }
 
+    /// <summary>
+    /// Una celda de datos entera: el valor, el formato de texto o de fecha, la marca de
+    /// bloqueo (siempre a «libre» desde el 2026-09-07), la línea de abajo, el fondo si es
+    /// respuesta y la letra pequeña y gris si es la clave.
+    /// </summary>
+    /// <param name="hoja">La pestaña «Por verificar».</param>
+    /// <param name="fila">El número de fila de Excel, base 1.</param>
+    /// <param name="numeroDeColumna">El número de columna de Excel, base 1.</param>
+    /// <param name="columna">La definición de la columna, que decide todo lo demás.</param>
+    /// <param name="valor">El texto a escribir, o nulo para dejar la celda vacía con su estilo.</param>
     private static void EscribirCelda(IXLWorksheet hoja, int fila, int numeroDeColumna, ColumnaDeLaHoja columna, string? valor)
     {
         var celda = hoja.Cell(fila, numeroDeColumna);
@@ -347,6 +388,9 @@ public static class LibroDeTrabajo
     /// convertiria en formula. Un nombre no es una formula.
     /// </para>
     /// </remarks>
+    /// <param name="celda">La celda de destino.</param>
+    /// <param name="columna">Solo importa su clase: temporal intenta leer la fecha, las demás escriben texto.</param>
+    /// <param name="valor">El texto; nulo no escribe nada.</param>
     private static void PonerElValor(IXLCell celda, ColumnaDeLaHoja columna, string? valor)
     {
         if (valor is null)
@@ -376,6 +420,8 @@ public static class LibroDeTrabajo
     /// que no cabe en ninguna lista.
     /// </para>
     /// </remarks>
+    /// <param name="hoja">La pestaña «Por verificar».</param>
+    /// <param name="ultimaFila">Hasta dónde llega la tabla; si no hay filas de datos no se pone ningún menú.</param>
     private static void PonerLosMenus(IXLWorksheet hoja, int ultimaFila)
     {
         if (ultimaFila < Columnas.PrimeraFilaDeDatos)
@@ -394,6 +440,8 @@ public static class LibroDeTrabajo
     }
 
     /// <summary>La formula del menu de esa clase de respuesta, o nulo si no lleva menu.</summary>
+    /// <param name="respuesta">La clase de respuesta de la columna; solo sí/no y motivo llevan menú.</param>
+    /// <returns>Las opciones entre comillas y separadas por comas, que es como Excel guarda una lista en línea.</returns>
     private static string? ListaDelMenu(ClaseDeRespuesta respuesta) => respuesta switch
     {
         ClaseDeRespuesta.SiONo => "\"" + string.Join(",", Pasos.Respuestas) + "\"",
@@ -402,6 +450,7 @@ public static class LibroDeTrabajo
     };
 
     /// <summary>Deja cada columna con el ancho de su contenido. Un MRN estrecho sale «#####».</summary>
+    /// <param name="hoja">La pestaña «Por verificar».</param>
     private static void EnsancharLasColumnas(IXLWorksheet hoja)
     {
         for (var numero = 1; numero <= Columnas.Todas.Count; numero++)

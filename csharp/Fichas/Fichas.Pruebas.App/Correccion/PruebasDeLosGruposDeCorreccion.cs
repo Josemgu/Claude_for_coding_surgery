@@ -39,6 +39,7 @@ public sealed class PruebasDeLosGruposDeCorreccion
             Unidad = unidad.Length == 0 ? TarjetaDeDocumento.SinUnidad : unidad,
         };
 
+    /// <summary>Vigila que un grupo es (fecha, unidad) y no (fecha): dos unidades del mismo dia son dos grupos, ordenados por numero de unidad.</summary>
     [TestMethod]
     public void CadaFechaYCadaUnidadEsUnGrupo()
     {
@@ -65,6 +66,7 @@ public sealed class PruebasDeLosGruposDeCorreccion
         => grupos.FirstOrDefault(g => g.CarpetaDeLaUnidad.Contains(unidadNumero, StringComparison.Ordinal))
            ?? throw new AssertFailedException($"no hay ningún grupo de la unidad {unidadNumero}");
 
+    /// <summary>Vigila que repartir 137 documentos en grupos no pierde ni uno: la suma de los grupos es el total.</summary>
     [TestMethod]
     public void NingunDocumentoSeQuedaFueraDeUnGrupo()
     {

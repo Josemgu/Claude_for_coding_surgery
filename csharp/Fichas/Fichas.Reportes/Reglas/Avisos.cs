@@ -66,6 +66,8 @@ public static class Avisos
     /// puede ser un mes sin problemas o un mes sin anotar, y sin este aviso las dos cosas se ven
     /// exactamente igual.
     /// </remarks>
+    /// <param name="deteccion">La métrica 3 ya calculada; se mira <see cref="Deteccion.SinEstadoRegistrado"/>.</param>
+    /// <returns>El aviso, o nulo si todos los casos del periodo tienen estado escrito.</returns>
     public static string? DeLosCasosSinEstado(Deteccion deteccion)
     {
         if (deteccion.SinEstadoRegistrado == 0) return null;
@@ -103,6 +105,8 @@ public static class Avisos
     /// Python, y con el <c>«(sin número de caso)»</c> queda primero porque el parentesis va
     /// antes que cualquier letra.
     /// </remarks>
+    /// <param name="personasSinFecha">Las anotadas como que no pudieron viajar cuyo caso no tiene fecha de viaje.</param>
+    /// <returns>El aviso con los números de caso, o nulo si la lista viene vacía.</returns>
     public static string? DeLosQueNoCabenEnElPeriodo(IReadOnlyList<PersonaConSuCaso> personasSinFecha)
     {
         if (personasSinFecha.Count == 0) return null;
@@ -125,6 +129,9 @@ public static class Avisos
     }
 
     /// <summary>Los avisos que hoy tocan, cada uno derivado de una medicion.</summary>
+    /// <param name="deteccion">La métrica 3 ya calculada.</param>
+    /// <param name="personasSinFecha">Las que no pudieron viajar y no tienen fecha de viaje.</param>
+    /// <returns>Solo los avisos que existen, en el orden fijo de los tres; vacía si no toca ninguno.</returns>
     public static IReadOnlyList<string> DelReporte(
         Deteccion deteccion, IReadOnlyList<PersonaConSuCaso> personasSinFecha)
         => new[]

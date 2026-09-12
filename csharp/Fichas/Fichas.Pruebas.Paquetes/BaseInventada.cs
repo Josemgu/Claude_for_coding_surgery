@@ -8,9 +8,11 @@ namespace Fichas.Pruebas.Paquetes;
 /// <remarks>Sin el, una prueba que compara marcas de tiempo falla el dia que cambia el segundo.</remarks>
 public sealed class RelojQuieto : IReloj
 {
+    /// <summary>El instante en que está parado el reloj.</summary>
     private readonly DateTime _instante;
 
     /// <summary>Crea el reloj parado en ese instante.</summary>
+    /// <param name="instante">La fecha y hora que devolverá siempre.</param>
     public RelojQuieto(DateTime instante) => _instante = instante;
 
     /// <inheritdoc/>
@@ -58,6 +60,8 @@ public sealed class BaseInventada
     }
 
     /// <summary>Da de alta un companero y devuelve su id.</summary>
+    /// <param name="nombre">El nombre del compañero, que es lo que sale en la cabecera de su hoja.</param>
+    /// <returns>El número interno que le dio el almacén.</returns>
     public long Companero(string nombre)
     {
         var id = Almacen.SiguienteId();
@@ -72,6 +76,14 @@ public sealed class BaseInventada
     /// del paquete. Por defecto van a nulo, que es como estaban todos los casos de estas
     /// pruebas antes de que existiera ese PDF.
     /// </remarks>
+    /// <param name="numeroCaso">El número de caso; nulo para un caso sin número.</param>
+    /// <param name="fechaViaje">La fecha de viaje en ISO-8601; nula para un caso sin fecha.</param>
+    /// <param name="templo">El nombre del templo.</param>
+    /// <param name="unidad">El nombre del barrio o rama, sin el número.</param>
+    /// <param name="unidadNumero">El número de la unidad, aparte del nombre.</param>
+    /// <param name="rutaPdf">El escaneo del que salió; nula por defecto.</param>
+    /// <param name="paginaPdf">La hoja de ese escaneo; nula por defecto.</param>
+    /// <returns>El número interno que le dio el almacén.</returns>
     public long Caso(
         string? numeroCaso,
         string? fechaViaje = "2026-10-15",
@@ -98,6 +110,11 @@ public sealed class BaseInventada
     }
 
     /// <summary>Da de alta una persona en un caso y devuelve su id.</summary>
+    /// <param name="casoId">El caso al que pertenece.</param>
+    /// <param name="nombre">Su nombre; nulo para una persona sin nombre leído.</param>
+    /// <param name="mrn">Su cédula; nula para una persona sin cédula.</param>
+    /// <param name="filaFormulario">En qué fila del papel venía.</param>
+    /// <returns>El número interno que le dio el almacén.</returns>
     public long Persona(long casoId, string? nombre, string? mrn, int filaFormulario = 1)
     {
         var id = Almacen.SiguienteId();

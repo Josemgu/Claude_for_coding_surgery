@@ -24,6 +24,7 @@ internal sealed class BaseDePrueba
     public const string ElDiaDeLaPrueba = "2026-09-04";
 
     /// <summary>Monta una base vacia de casos con los companeros del generador.</summary>
+    /// <param name="casosInventados">Cuántos casos inventa el generador además de los que meta la prueba; 0 por defecto.</param>
     public BaseDePrueba(int casosInventados = 0)
     {
         Reloj = new RelojFijo(ElDiaDeLaPrueba);
@@ -104,6 +105,8 @@ internal sealed class BaseDePrueba
     }
 
     /// <summary>Firma un campo de un caso por el unico camino que existe: <c>IProcedencia.Firmar</c>.</summary>
+    /// <param name="casoId">El caso; se le anota antes la procedencia del número, para que haya qué firmar.</param>
+    /// <param name="quienFirma">El compañero que firma; tiene que existir.</param>
     public void FirmarUnCampo(long casoId, long quienFirma)
     {
         Servicios.Procedencia.Anotar(new ProcedenciaDeCampo
@@ -119,6 +122,10 @@ internal sealed class BaseDePrueba
     }
 
     /// <summary>Mete un caso con lo justo y devuelve su id.</summary>
+    /// <param name="numero">El número del papel, o nulo.</param>
+    /// <param name="fechaViaje">La fecha de viaje ISO, o nula.</param>
+    /// <param name="fechaArchivado">La fecha de archivado ISO, o nula.</param>
+    /// <param name="archivado">Si nace archivado.</param>
     public long Meter(string? numero, string? fechaViaje, string? fechaArchivado, bool archivado)
     {
         var resultado = Servicios.Casos.Guardar(new Caso
@@ -146,6 +153,10 @@ internal sealed class BaseDePrueba
     /// <para>⚠️ Los nombres de unidad que se le pasan estan INVENTADOS o son los del ejemplo
     /// que escribio el dueno; ninguna persona real entra en una prueba.</para>
     /// </remarks>
+    /// <param name="numero">El número del papel, o nulo.</param>
+    /// <param name="fechaViaje">La fecha de viaje ISO, o nula.</param>
+    /// <param name="unidadNumero">El número de la unidad, o nulo.</param>
+    /// <param name="unidadNombre">El nombre de la unidad, o nulo.</param>
     public long MeterConUnidad(string? numero, string? fechaViaje, string? unidadNumero, string? unidadNombre)
         => Servicios.Casos.Guardar(new Caso
         {
@@ -167,6 +178,7 @@ internal sealed class BaseDePrueba
     /// la operacion CREE que hizo, y lo que hay que comprobar es lo que quedo escrito. Es la
     /// diferencia entre probar el codigo y probar el efecto.
     /// </remarks>
+    /// <param name="companeroId">De quién se cuentan.</param>
     public int CuantasAsignacionesVivas(long companeroId)
         => Servicios.Asignaciones.Contar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true));
 
@@ -177,6 +189,8 @@ internal sealed class BaseDePrueba
     /// ⚠️ Los nombres que se le pasan estan INVENTADOS y asi tienen que seguir: los del dueno
     /// son personas de verdad y una prueba se lee en cualquier pantalla.
     /// </remarks>
+    /// <param name="casoId">El caso en el que viajan.</param>
+    /// <param name="nombres">Sus nombres, en el orden del formulario; la fila es la posición más uno.</param>
     public IReadOnlyList<long> MeterPersonas(long casoId, params string[] nombres)
     {
         ArgumentNullException.ThrowIfNull(nombres);
@@ -203,6 +217,8 @@ internal sealed class BaseDePrueba
     /// El esquema no admite una fila sin nombre y sin MRN (<c>CHECK</c> de la version 1), asi
     /// que este es el unico anonimo que puede existir de verdad en la base del dueno.
     /// </remarks>
+    /// <param name="casoId">El caso en el que viaja.</param>
+    /// <param name="mrn">Su cédula, inventada.</param>
     public long MeterPersonaSoloConCedula(long casoId, string mrn)
         => Servicios.Personas.Guardar(new Persona
         {
@@ -214,5 +230,6 @@ internal sealed class BaseDePrueba
         }).Id;
 
     /// <summary>Una fecha a N dias del dia de la prueba.</summary>
+    /// <param name="dias">Cuántos días; negativo es antes.</param>
     public string FechaEn(int dias) => Reloj.HoyMasDias(dias);
 }

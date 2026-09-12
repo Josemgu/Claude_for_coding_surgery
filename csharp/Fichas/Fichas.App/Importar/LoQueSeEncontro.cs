@@ -44,6 +44,7 @@ public sealed record LoQueSeEncontro(
     /// primera cuando pasa la segunda deja al dueño tranquilo creyendo que ahi no habia
     /// nada que importar, y esos documentos no vuelven a mirarse nunca.</para>
     /// </remarks>
+    /// <returns>Un problema si no entró nada y hubo carpetas cerradas; una advertencia si no había PDF o si entraron pero faltan carpetas; nulo si todo entró.</returns>
     public Aviso? AvisoDeLaBusqueda()
     {
         if (Pdf.Count == 0 && CarpetasQueNoSeDejaronLeer.Count > 0)
@@ -131,6 +132,7 @@ public sealed record LoQueSeEncontro(
     }
 
     /// <summary>El nombre de la carpeta; si no tiene (una raiz), la ruta entera.</summary>
+    /// <param name="ruta">La ruta completa de la carpeta, con o sin barra final.</param>
     private static string NombreDe(string ruta)
     {
         var nombre = Path.GetFileName(ruta.TrimEnd(Path.DirectorySeparatorChar));

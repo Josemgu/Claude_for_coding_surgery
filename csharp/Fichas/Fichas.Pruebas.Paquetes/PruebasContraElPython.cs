@@ -70,15 +70,40 @@ public class PruebasContraElPython
         MotivosDeLaHoja.RotuloDelComentario,
     ];
 
+    /// <summary>Una columna tal como la describe la huella del Python. Los nombres van en minúscula porque son las claves del JSON.</summary>
+    /// <param name="nombre">El nombre de la columna en la base.</param>
+    /// <param name="titulo">Cómo sale impresa.</param>
+    /// <param name="clase">Cruda, texto o temporal, en las palabras del Python.</param>
+    /// <param name="clave">Si es parte del par que reconcilia.</param>
+    /// <param name="editable">Si el Python la deja editar.</param>
+    /// <param name="respuesta">Si la rellena el compañero.</param>
+    /// <param name="ancho">Su ancho en caracteres.</param>
+    /// <param name="formato">El formato de número de su celda de la fila 7.</param>
+    /// <param name="bloqueada">Si el Python la bloquea.</param>
+    /// <param name="fondo">El color de fondo de su celda de la fila 7, o nulo.</param>
+    /// <param name="valor_fila_7">Lo que el Python escribió en la fila 7, como texto.</param>
     private sealed record ColumnaDelPython(
         string nombre, string titulo, string clase, bool clave, bool editable, bool respuesta,
         int ancho, string formato, bool bloqueada, string? fondo, string valor_fila_7);
 
+    /// <summary>Lo que <c>huella_del_python.py</c> midió de la hoja del Python, tal como lo guarda <c>HuellaDelPython.json</c>.</summary>
+    /// <param name="hoja">El nombre de la pestaña.</param>
+    /// <param name="congelado">La celda donde congela («A7»).</param>
+    /// <param name="protegida">Si protege la hoja.</param>
+    /// <param name="cinco_lineas">Las cinco líneas de cabecera, tal cual.</param>
+    /// <param name="color_de_la_fecha_limite">El RRGGBB de la fila 3.</param>
+    /// <param name="titulos">La fila de títulos, en orden.</param>
+    /// <param name="fondo_de_los_titulos">El RRGGBB del fondo de la fila 6.</param>
+    /// <param name="columnas">Una entrada por columna.</param>
+    /// <param name="menus">Cuántas validaciones de lista tiene la hoja.</param>
+    /// <param name="formulas_de_los_menus">Las fórmulas distintas de esas validaciones.</param>
+    /// <param name="menus_rechazan">Los valores distintos de «mostrar error» de esas validaciones.</param>
     private sealed record HuellaDelPython(
         string hoja, string congelado, bool protegida, string?[] cinco_lineas,
         string color_de_la_fecha_limite, string?[] titulos, string fondo_de_los_titulos,
         ColumnaDelPython[] columnas, int menus, string[] formulas_de_los_menus, bool[] menus_rechazan);
 
+    /// <summary>La huella leída del JSON que se copia junto al ensamblado; se lee cada vez, es pequeña.</summary>
     private static HuellaDelPython Python => JsonSerializer.Deserialize<HuellaDelPython>(
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "HuellaDelPython.json")))!;
 
@@ -101,6 +126,7 @@ public class PruebasContraElPython
             "Sandy").Worksheet(Columnas.NombreDeLaHoja);
     }
 
+    /// <summary>Vigila el nombre de la pestaña y la fila congelada, y que la protección del Python sea la diferencia declarada, no un descuido.</summary>
     [TestMethod]
     public void LaHojaSeLlamaIgualYCongelaEnElMismoSitio()
     {
@@ -154,6 +180,7 @@ public class PruebasContraElPython
     }
 
     /// <summary>Los rotulos con los que el Python llama a esas columnas, sacados de su huella.</summary>
+    /// <param name="nombres">Nombres de columna en la base.</param>
     private static string[] TitulosDelPythonDe(IReadOnlyList<string> nombres)
         => [.. Python.columnas.Where(c => nombres.Contains(c.nombre)).Select(c => c.titulo)];
 
@@ -176,6 +203,7 @@ public class PruebasContraElPython
         }
     }
 
+    /// <summary>Vigila el fondo de los títulos y el rojo de la fecha límite, RRGGBB por RRGGBB.</summary>
     [TestMethod]
     public void LosDosColoresQueElCriterioNombraSonLosMismos()
     {
@@ -281,12 +309,14 @@ public class PruebasContraElPython
     }
 
     /// <summary>El RRGGBB de un color de ClosedXML, sin el canal alfa, como lo escribe openpyxl.</summary>
+    /// <param name="color">Un color de ClosedXML.</param>
     private static string Hex(XLColor color) => $"{color.Color.R:X2}{color.Color.G:X2}{color.Color.B:X2}";
 
     /// <summary>
     /// El formato de una celda sin formato propio: openpyxl lo llama «General» y ClosedXML lo
     /// deja vacio. Es el mismo formato, no dos formatos distintos.
     /// </summary>
+    /// <param name="formato">El formato tal como lo da cada biblioteca.</param>
     private static string FormatoComparable(string formato)
         => formato.Length == 0 ? "General" : formato.Replace("yyyy-MM-dd", "yyyy-mm-dd");
 

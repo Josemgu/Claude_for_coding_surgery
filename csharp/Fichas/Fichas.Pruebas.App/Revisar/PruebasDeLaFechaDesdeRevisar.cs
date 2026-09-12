@@ -120,6 +120,7 @@ public sealed class PruebasDeLaFechaDesdeRevisar
     /// Regla permanente 1. «17 de septiembre», «9/17/26» o un día que no existe no se
     /// interpretan: se dice que no se escribió y el documento se queda donde estaba.
     /// </remarks>
+    /// <param name="loQueSeEscribio">Lo que habría escrito en el cuadro; ninguna de las filas es una fecha válida.</param>
     [TestMethod]
     [DataRow("17 de septiembre")]
     [DataRow("9/17/26")]

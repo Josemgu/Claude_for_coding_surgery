@@ -32,15 +32,6 @@ public sealed record PersonaExtraida(
 public static class Personas
 {
     /// <summary>
-    /// El formulario impreso trae seis filas de personas.
-    /// </summary>
-    /// <remarks>
-    /// Las que quedan en blanco no producen ni una linea de OCR, asi que no hay nada que
-    /// descartar en ellas. El numero esta aqui para poder informar «2 de 6».
-    /// </remarks>
-    public const int FilasDelFormulario = 6;
-
-    /// <summary>
     /// El punto medio entre las dos cabeceras: a su izquierda estan los nombres.
     /// </summary>
     /// <remarks>
@@ -49,6 +40,9 @@ public static class Personas
     /// notas de revision —«Verified for endowment and sealing»— escritas a la izquierda de
     /// la columna de cedulas. Sin este limite, cada nota se contaria como una persona mas.
     /// </remarks>
+    /// <param name="anclaNombres">La caja de la cabecera «Full Name(s)» tal como la leyó el OCR.</param>
+    /// <param name="anclaCedula">La caja de la cabecera «Membership Record Number».</param>
+    /// <returns>Una <c>x</c> en fracción de página: la media de los bordes izquierdos de las dos cabeceras.</returns>
     public static double LimiteDeLaColumnaDeNombres(BandaDeLaPagina anclaNombres, BandaDeLaPagina anclaCedula)
         => (anclaNombres.X0 + anclaCedula.X0) / 2.0;
 
@@ -63,6 +57,10 @@ public static class Personas
     /// de los cuatro documentos, cerrar el bloque con el borde de la imagen producia 35 y
     /// 31 personas donde hay una.
     /// </remarks>
+    /// <param name="anclaNombres">La caja de la cabecera de nombres.</param>
+    /// <param name="anclaCedula">La caja de la cabecera de cédulas.</param>
+    /// <param name="cierres">Las cajas de las etiquetas que cierran el bloque, nulas las que no aparecieron.</param>
+    /// <returns>El borde de abajo de la cabecera más baja, y el borde de arriba del primer cierre por debajo de él, o nulo si no hay ninguno.</returns>
     private static (double Arriba, double? Abajo) BloqueDePersonas(
         BandaDeLaPagina anclaNombres, BandaDeLaPagina anclaCedula, IReadOnlyList<BandaDeLaPagina?> cierres)
     {
@@ -76,6 +74,10 @@ public static class Personas
     }
 
     /// <summary>Las lineas que pueden ser el nombre de una persona, de arriba abajo.</summary>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <param name="arriba">Borde superior del bloque de personas: la línea tiene que empezar en él o más abajo.</param>
+    /// <param name="abajo">Borde inferior del bloque: la línea tiene que empezar por encima.</param>
+    /// <param name="limiteDerecho">La <c>x</c> de <see cref="LimiteDeLaColumnaDeNombres"/>: la línea tiene que empezar a su izquierda.</param>
     private static IReadOnlyList<LineaDeOcr> LineasDeNombre(
         IReadOnlyList<LineaDeOcr> lineas, double arriba, double abajo, double limiteDerecho)
         => lineas
@@ -99,6 +101,8 @@ public static class Personas
     /// <para>Se corta, no se filtra por contenido: decidir si «BEM BRASIL» es el nombre de
     /// alguien seria interpretar, y eso no se hace aqui.</para>
     /// </remarks>
+    /// <param name="candidatas">Las líneas de nombre ya ordenadas de arriba abajo.</param>
+    /// <returns>Desde la primera hasta la última antes de un hueco mayor que el alto de la fila anterior; vacía si no hay candidatas.</returns>
     private static IReadOnlyList<LineaDeOcr> SoloLasFilasSeguidas(IReadOnlyList<LineaDeOcr> candidatas)
     {
         if (candidatas.Count == 0) return [];
@@ -145,6 +149,11 @@ public static class Personas
     /// un trazo sobre las casillas de ordenanza, que estan en esta misma fila a la derecha,
     /// anulara la cedula. Por eso el tachon y la correccion se preguntan sobre la COLUMNA.</para>
     /// </remarks>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <param name="anotaciones">Todas las anotaciones de la página.</param>
+    /// <param name="bandaDeBusqueda">La franja de la fila a lo ancho de toda la página: decide qué líneas comparten renglón.</param>
+    /// <param name="columnaDeLaCedula">La franja estrecha de la columna: decide tachón y corrección.</param>
+    /// <returns>La cédula con su procedencia; vacía y con el renglón entero en <c>ValorOcr</c> si no hay exactamente una con forma.</returns>
     private static CampoExtraido CedulaDeLaFila(
         IReadOnlyList<LineaDeOcr> lineas,
         IReadOnlyList<AnotacionDelPdf> anotaciones,
@@ -186,8 +195,7 @@ public static class Personas
     /// persona. Es el fallo medido que <c>Campos.MejorCorreccion</c> lleva escrito con el
     /// nombre de la unidad. En los siete escaneos no hay ni un nombre corregido a mano con
     /// el que calibrar esto, asi que queda abierto en `PENDIENTES.md` y no se adivina.</para>
-    /// </remarks>
-    /// <remarks>
+    ///
     /// <para>⛔ <b>Y si la linea trae la cedula pegada, la cedula NO forma parte del
     /// nombre.</b> Es un caso medido —«Ejemplo, Daniel Jr. Damian Dorian |055-1111-3853
     /// Verified √» salio como una sola caja del OCR— y es la otra mitad de lo que el dueño
@@ -199,6 +207,8 @@ public static class Personas
     /// pegada con una barra en medio—, y la forma esta entera. Ver `EN-CURSO.md`, «Los
     /// datos de personas reales salen del repositorio».</para>
     /// </remarks>
+    /// <param name="lineaDeNombre">La línea del OCR que hace de fila de esta persona.</param>
+    /// <param name="hayTachon">Cierto si un trazo rojo cruza la columna del nombre.</param>
     private static CampoExtraido NombreDeLaFila(LineaDeOcr lineaDeNombre, bool hayTachon)
         => Campos.ResolverCampo(
             [lineaDeNombre],
@@ -215,6 +225,7 @@ public static class Personas
     /// decide el traslape VERTICAL. Ensancharla no cambia ninguna respuesta y garantiza
     /// que no se escape una cedula escrita muy a la derecha.
     /// </remarks>
+    /// <param name="lineaDeNombre">La línea del OCR que hace de fila; solo se usan su <c>Y0</c> y su <c>Y1</c>.</param>
     private static BandaDeLaPagina BandaDeBusquedaDeLaFila(LineaDeOcr lineaDeNombre)
         => new(0.0, lineaDeNombre.Banda.Y0, 1.0, lineaDeNombre.Banda.Y1);
 
@@ -245,6 +256,10 @@ public static class Personas
     /// porque alli la banda cuelga de un ROTULO y el valor esta debajo, mientras que aqui la
     /// fila ya es el texto y el trazo lo cruza por el medio.</para>
     /// </remarks>
+    /// <param name="fila">La caja de la fila; de ella salen el centro y el alto.</param>
+    /// <param name="x0">Borde izquierdo de la franja, en fracción de página.</param>
+    /// <param name="x1">Borde derecho de la franja.</param>
+    /// <returns>Una banda centrada en la fila, del 80 % de su alto, entre <paramref name="x0"/> y <paramref name="x1"/>.</returns>
     internal static BandaDeLaPagina FranjaDeTrazos(BandaDeLaPagina fila, double x0, double x1)
     {
         double centro = (fila.Y0 + fila.Y1) / 2.0;
@@ -260,6 +275,7 @@ public static class Personas
     /// componentes y una coma— llega a x 0,406 con el limite en 0,3455. El nombre concreto
     /// que se midio va sustituido; lo medido fue el ancho de esa forma.
     /// </remarks>
+    /// <param name="lineaDeNombre">La línea del OCR que hace de fila de esta persona.</param>
     private static BandaDeLaPagina ColumnaDelNombre(LineaDeOcr lineaDeNombre)
         => FranjaDeTrazos(lineaDeNombre.Banda, lineaDeNombre.Banda.X0, lineaDeNombre.Banda.X1);
 
@@ -283,6 +299,9 @@ public static class Personas
     /// saldria vacia y no se detectaria ningun tachon. Es el lado seguro del error —no marca
     /// de mas— y no se ha visto en ningun escaneo, pero queda dicho.</para>
     /// </remarks>
+    /// <param name="lineaDeNombre">La línea del OCR que hace de fila de esta persona.</param>
+    /// <param name="anclaCedula">La caja de la cabecera de cédulas: su borde derecho cierra la columna.</param>
+    /// <param name="limiteDeLosNombres">La <c>x</c> de <see cref="LimiteDeLaColumnaDeNombres"/>.</param>
     private static BandaDeLaPagina ColumnaDeLaCedula(
         LineaDeOcr lineaDeNombre, BandaDeLaPagina anclaCedula, double limiteDeLosNombres)
         => FranjaDeTrazos(
@@ -301,6 +320,10 @@ public static class Personas
     /// <para>El respiro sale del alto de la propia fila, que es lo que escala con el
     /// tamano del escaneo; un numero fijo valdria para una resolucion y no para otra.</para>
     /// </remarks>
+    /// <param name="lineaDeNombre">La línea del OCR que hace de fila de esta persona.</param>
+    /// <param name="anclaCedula">La caja de la cabecera de cédulas, para llegar hasta su columna.</param>
+    /// <param name="relacionDeAspecto">Ancho partido por alto de la página, para que el respiro horizontal mida lo mismo que el alto de la fila.</param>
+    /// <returns>Una banda de la altura de la fila, del nombre a la cédula con un respiro a cada lado, recortada a la página.</returns>
     private static BandaDeLaPagina BandaVisibleDeLaFila(
         LineaDeOcr lineaDeNombre, BandaDeLaPagina anclaCedula, double relacionDeAspecto)
     {
@@ -332,6 +355,13 @@ public static class Personas
     /// a cada persona dos veces. Si los campos estan todos vacios —o no hay ninguno, que es
     /// el caso de los escaneos—, se sigue por el OCR como hasta ahora.</para>
     /// </remarks>
+    /// <param name="lineas">Todas las líneas del OCR de la página.</param>
+    /// <param name="anotaciones">Todas las anotaciones de la página: tachones, correcciones y campos del formulario.</param>
+    /// <param name="anclaNombres">La caja de la cabecera de nombres, o nula si no se encontró.</param>
+    /// <param name="anclaCedula">La caja de la cabecera de cédulas, o nula si no se encontró.</param>
+    /// <param name="cierresDelBloque">Las cajas de las etiquetas que cierran el bloque por abajo, nulas las que faltan.</param>
+    /// <param name="relacionDeAspecto">Ancho partido por alto de la página, para la banda que se enseña.</param>
+    /// <returns>Las personas con algo leído y cuántas filas seguidas se descartaron por venir en blanco; sin cabeceras o sin cierre, ninguna y cero.</returns>
     public static (IReadOnlyList<PersonaExtraida> Personas, int Descartadas) Extraer(
         IReadOnlyList<LineaDeOcr> lineas,
         IReadOnlyList<AnotacionDelPdf> anotaciones,

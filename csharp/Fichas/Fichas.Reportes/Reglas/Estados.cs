@@ -25,18 +25,17 @@ public static class Estados
     /// Es lo contrario de «sin problema»: un caso del que nadie ha dicho nada no es un caso
     /// tranquilo, y sale en su propio numero en vez de repartido entre los otros.
     /// </remarks>
+    /// <param name="estadoRecomendacion">El texto crudo de la columna <c>estado_recomendacion</c>.</param>
     public static bool SinEstadoEscrito(string? estadoRecomendacion)
         => string.IsNullOrWhiteSpace(estadoRecomendacion);
 
     /// <summary>Si esa recomendacion sigue pendiente. Un estado que no consta cuenta como pendiente.</summary>
+    /// <param name="estadoRecomendacion">El texto crudo de la columna; se lee con <see cref="Caso.LeerEstado"/>.</param>
     public static bool SinResolver(string? estadoRecomendacion)
         => Caso.LeerEstado(estadoRecomendacion) != EstadoDeRecomendacion.Completa;
 
-    /// <summary>Si alguien escribio un estado y ese estado no es de los que resuelven.</summary>
-    public static bool TieneProblemaRegistrado(string? estadoRecomendacion)
-        => !SinEstadoEscrito(estadoRecomendacion) && SinResolver(estadoRecomendacion);
-
     /// <summary>«sí», «no» o la palabra que dice que no se puede saber. Nunca se rellena a ojo.</summary>
+    /// <param name="estadoRecomendacion">El texto crudo de la columna; vacío o nulo da <see cref="Vocabulario.SinDato"/>.</param>
     public static string TextoDeRecomendacionCompleta(string? estadoRecomendacion)
     {
         if (SinEstadoEscrito(estadoRecomendacion)) return Vocabulario.SinDato;
@@ -51,6 +50,7 @@ public static class Estados
     /// migrar datos. Este metodo es el unico sitio donde la clave se convierte en frase, para
     /// que el reporte, la pantalla y el Excel no digan tres cosas distintas.
     /// </remarks>
+    /// <param name="motivo">La clave guardada; cualquier valor fuera de los tres conocidos da «no se dijo por qué».</param>
     public static string TextoDelMotivo(MotivoDeNoCompletar motivo) => motivo switch
     {
         MotivoDeNoCompletar.NoSePudoComunicar => "no se pudo comunicar con el líder",
@@ -60,6 +60,7 @@ public static class Estados
     };
 
     /// <summary>«sí», «no» o «no consta». Un nulo es una respuesta, no un hueco.</summary>
+    /// <param name="pudoViajar">Lo que anotó el compañero, o nulo si no lo dijo.</param>
     public static string TextoDeSiViajo(bool? pudoViajar)
         => pudoViajar switch
         {

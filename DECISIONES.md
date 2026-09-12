@@ -4000,6 +4000,55 @@ cambiaron: `Revisar/RetiradaAlArchivar.cs` (nuevo), `AccionesDeRevisar.cs`,
 compañero) sigue contando vivas y retiradas: es otra pregunta. El coste de archivar
 en lote sobre SQLite no se midió (en memoria, 300 documentos: 4 → 45 ms).
 
+## 2026-09-11 — EL DUEÑO PIDE QUE EL PROGRAMA SE ACTUALICE SOLO
+
+Sus palabras: *«Haz un control de versiones que cuando llegue una nueva versión se
+actualice todo.»* Y eligió, entre dos opciones que se le pusieron delante, la **A**:
+el repositorio sigue privado y él crea en GitHub una clave de solo lectura que pega
+una vez por máquina; la B era hacer público el repositorio.
+
+**Lo decidido:**
+
+- Al arrancar, y desde un botón «Buscar actualización» en la cabecera, el programa
+  pregunta a GitHub por el último Release del repositorio
+  (`GET https://api.github.com/repos/Josemgu/Claude_for_coding_surgery/releases/latest`)
+  y compara la etiqueta `vN` con su `<Version>`. Es **una llamada saliente por HTTPS**
+  y nada más: no escucha, no abre puertos, no manda datos del dueño (regla 2 y §3 de
+  CLAUDE.md, precisados hoy). Sin red o sin clave, calla: una línea en el registro
+  de arranque y ninguna ventana.
+- Si hay versión nueva, lo dice en una franja con un botón. **No se instala sin que
+  él lo pida**: un clic. Con el clic, baja `Instalar-Fichas-vN.exe` del Release a la
+  carpeta temporal, comprueba tamaño y huella SHA-256 (el `digest` que GitHub da por
+  activo) y, solo si cuadran, lanza el instalador en silencio y cierra el programa.
+  El instalador (decisión de hoy, «EL DUEÑO PIDE INSTALADORES») hace el resto y
+  vuelve a abrir Fichas.
+- **La clave:** la crea el dueño en GitHub (fine-grained, solo «Contents: read»
+  sobre ese repositorio) y la pega **él** en `Documentos\Fichas\clave-de-actualizacion.txt`.
+  El programa la lee de ahí y la manda como `Authorization: Bearer`. Nadie del
+  proyecto la ve ni la escribe: el supervisor y los programadores no manejan claves
+  del dueño (regla de trabajo desde el 09-10). Si el archivo no está, el programa
+  prueba sin clave (vale si el repositorio se hace público algún día) y, si GitHub
+  contesta 404, dice en la franja que falta la clave y dónde va.
+- La clave **nunca** va a un registro, a un acuse ni a un informe.
+- El código va en `Fichas.App/Actualizacion/`, con la red detrás de una interfaz
+  para que las pruebas no salgan a internet (regla: sin red en pruebas).
+
+**Lo que NO cubre:** actualizar una copia descomprimida del zip a mano (el
+instalador no la conoce); comprobar si hay versión nueva más de una vez por
+arranque sin pulsar el botón.
+
+**Lo medido al fusionar (2026-09-12, supervisor):** App 1 067 pruebas (990 + 77 de
+`Actualizacion/`), 0 rojas; toda la solución recompilada con documentación, 0 avisos.
+El programador midió con la ventana abierta la franja «pega la clave en …» sin clave y
+«La clave de actualización no vale» con una inventada, y que el registro no contiene la
+clave. Dos cosas que cambió respecto al diseño de arriba, con motivo: 401/403 **sin**
+clave dice «no se pudo (GitHub contestó 403)» y no «la clave no vale», porque no hay
+clave que cambiar; y el instalador lanzado desde el programa recibe la carpeta de datos
+(`/carpetadedatos=…`) y reabre Fichas con el mismo `--carpeta-de-datos`, porque si no
+un programa arrancado sobre otra carpeta volvería sobre la de por defecto. **No
+verificado por nadie:** el camino completo con clave válida y un Release más nuevo
+(hace falta la clave del dueño y una v13); se verá la primera vez que salga la v13.
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

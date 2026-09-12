@@ -325,7 +325,6 @@
                             alto infinito, deja de virtualizar y construye los 3 000 renglones.
                         -->
                         <ScrollView
-                            x:Name="_listos"
                             Grid.Row="2"
                             MaxHeight="{StaticResource AltoDeUnaLista}"
                             Margin="4,0,4,8"
@@ -385,7 +384,6 @@
                         </StackPanel>
 
                         <ScrollView
-                            x:Name="_asignados"
                             Grid.Row="2"
                             MaxHeight="{StaticResource AltoDeUnaLista}"
                             Margin="4,0,4,4"
@@ -492,7 +490,6 @@
                     </StackPanel>
 
                     <ScrollView
-                        x:Name="_tickets"
                         Grid.Row="3"
                         MaxHeight="{StaticResource AltoDeUnaLista}"
                         Margin="4,0,4,8"

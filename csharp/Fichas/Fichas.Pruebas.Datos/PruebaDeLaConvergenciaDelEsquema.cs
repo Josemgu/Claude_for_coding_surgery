@@ -335,6 +335,9 @@ public sealed class PruebaDeLaConvergenciaDelEsquema
         Console.WriteLine("   {0,-24} {1,6} {2,8}", "TOTAL", antes.Values.Sum(), despues.Values.Sum());
     }
 
+    /// <summary>Ejecuta una instrucción suelta; el texto sale de las constantes de esta clase.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="instruccion">La instrucción SQL sin parámetros.</param>
     private static void Ejecutar(SqliteConnection conexion, string instruccion)
     {
         using var orden = conexion.CreateCommand();

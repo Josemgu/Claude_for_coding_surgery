@@ -14,12 +14,17 @@ namespace Fichas.Datos.Falso;
 /// </remarks>
 public sealed class ReportesFalsos : IReportes
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public ReportesFalsos(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Cuenta lo que entraria en el reporte del periodo, sin escribir el PDF.</summary>
+    /// <param name="desdeIso">Primer día del periodo, ISO; se compara con <c>CreadoEn</c>.</param>
+    /// <param name="hastaIso">Último día del periodo, ISO, incluido.</param>
+    /// <param name="rutaDestino">Dónde iría el PDF; solo se nombra en el aviso.</param>
     public ResultadoDeEscritura GenerarReporteDelPeriodo(string desdeIso, string hastaIso, string rutaDestino)
     {
         var cuantos = _almacen.Casos.Values.Count(c =>
@@ -34,6 +39,10 @@ public sealed class ReportesFalsos : IReportes
     }
 
     /// <summary>Cuenta lo que entraria en el reporte de un companero, sin escribir el PDF.</summary>
+    /// <param name="companeroId">De quién; si no existe, no se escribe y se dice.</param>
+    /// <param name="desdeIso">Primer día del periodo, ISO; aquí solo se nombra, no filtra.</param>
+    /// <param name="hastaIso">Último día del periodo, ISO; aquí solo se nombra, no filtra.</param>
+    /// <param name="rutaDestino">Dónde iría el PDF; solo se nombra en el aviso.</param>
     public ResultadoDeEscritura GenerarReporteDeCompanero(long companeroId, string desdeIso, string hastaIso, string rutaDestino)
     {
         if (!_almacen.Companeros.TryGetValue(companeroId, out var companero))
@@ -47,6 +56,7 @@ public sealed class ReportesFalsos : IReportes
     }
 
     /// <summary>Cuenta lo que entraria en el historico, sin escribir el PDF.</summary>
+    /// <param name="rutaDestino">Dónde iría el PDF; solo se nombra en el aviso.</param>
     public ResultadoDeEscritura GenerarHistorico(string rutaDestino)
         => ResultadoDeEscritura.BienCon(0, Aviso.Informa(
             $"El historico tendria {_almacen.Casos.Count} caso(s) y {_almacen.Personas.Count} persona(s): NO se escribio ningun PDF.",

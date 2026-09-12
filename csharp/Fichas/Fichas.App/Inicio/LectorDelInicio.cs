@@ -48,12 +48,19 @@ public sealed class LectorDelInicio
     /// <summary>Los dias de la ventana sombreada del calendario; el dueno pidio 7 (C1-4).</summary>
     public const int DiasDeLaVentana = 7;
 
+    /// <summary>Los documentos; se leen enteros, archivados incluidos, en una sola consulta.</summary>
     private readonly ICasos _casos;
+    /// <summary>Las personas de cada documento; también en una sola consulta, para contar sobre lo mismo.</summary>
     private readonly IPersonas _personas;
+    /// <summary>El equipo, para poner nombre a quien lleva cada documento y contar los activos.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>Quién lleva cada documento ahora mismo y cuántas hojas no han vuelto.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>Qué día es hoy; nunca <c>DateTime.Today</c> directo, para que las pruebas paren el reloj.</summary>
     private readonly IReloj _reloj;
+    /// <summary>De dónde salió cada campo; decide «listo para asignar» igual que la pantalla de Corrección.</summary>
     private readonly IProcedencia _procedencia;
+    /// <summary>Quien agrupa los documentos por día y por unidad; el calendario y la pantalla del grupo leen por él.</summary>
     private readonly LectorDeGrupos _grupos;
 
     /// <summary>Se ata a los seis puertos que la pantalla necesita.</summary>
@@ -90,6 +97,8 @@ public sealed class LectorDelInicio
     /// Lee el panel entero. <paramref name="desplazamientoDeMes"/> mueve el calendario:
     /// -1 el mes anterior, 0 el de hoy, 1 el siguiente.
     /// </summary>
+    /// <param name="desplazamientoDeMes">Cuántos meses mover el calendario respecto al de hoy; puede ser negativo.</param>
+    /// <returns>Todo lo que Inicio y la pestaña del flujo pintan, leído de la base una sola vez.</returns>
     public ResumenDeInicio Leer(int desplazamientoDeMes = 0)
     {
         var avisos = new List<Aviso>();
@@ -150,6 +159,10 @@ public sealed class LectorDelInicio
     /// equipo con id 0 para poder ensenar cuantos no lleva nadie, pero no es una persona: si
     /// contara, el cuadro diria un compañero de mas siempre.</para>
     /// </remarks>
+    /// <param name="porCompletar">Los documentos vivos a los que les falta algo, ya repartidos.</param>
+    /// <param name="asignados">Los documentos que ahora mismo lleva un compañero.</param>
+    /// <param name="equipo">El cuadro del equipo, con la fila «Sin asignar» de id 0 al final.</param>
+    /// <param name="sinDevolver">Cuántas hojas de los asignados no han vuelto todavía.</param>
     private static CuadroDeInicio ArmarElCuadro(
         IReadOnlyList<RenglonDeCaso> porCompletar,
         IReadOnlyList<RenglonDeCaso> asignados,
@@ -182,6 +195,9 @@ public sealed class LectorDelInicio
     /// <para><b>No se toca ni una fila.</b> Todo sale de leer las seis columnas que ya
     /// existen desde la migracion 9.</para>
     /// </remarks>
+    /// <param name="todos">La base entera de casos; los archivados se saltan aquí dentro.</param>
+    /// <param name="personasPorCaso">Las personas ya leídas, agrupadas por id de caso.</param>
+    /// <param name="hoy">El día de hoy según el reloj del programa.</param>
     private LoDelSistemaDelObispo ArmarLoDelSistemaDelObispo(
         IReadOnlyList<Caso> todos,
         IReadOnlyDictionary<long, List<Persona>> personasPorCaso,
@@ -238,6 +254,9 @@ public sealed class LectorDelInicio
     /// archivados no cuentan —ese trabajo esta cerrado— pero siguen en la lista de lo
     /// vencido, que es otra pregunta.
     /// </remarks>
+    /// <param name="todos">La base entera de casos.</param>
+    /// <param name="hoy">El día de hoy; un grupo de hoy cuenta como próximo.</param>
+    /// <returns>La fecha más cercana de hoy en adelante, o nulo si nadie viaja a partir de hoy.</returns>
     private static DateOnly? LaFechaDelProximoGrupo(IReadOnlyList<Caso> todos, DateOnly hoy)
     {
         DateOnly? proxima = null;
@@ -253,6 +272,8 @@ public sealed class LectorDelInicio
     }
 
     /// <summary>El reparto de estados de las personas de ese dia; nulo si no hay dia.</summary>
+    /// <param name="fecha">El día del próximo grupo, o nulo si no hay ninguno.</param>
+    /// <param name="personas">Las personas que viajan ese día, de todos sus documentos.</param>
     private static GrupoQueViene? ElProximoGrupo(DateOnly? fecha, IReadOnlyList<Persona> personas)
     {
         if (fecha is not DateOnly cual) return null;
@@ -267,6 +288,10 @@ public sealed class LectorDelInicio
     }
 
     /// <summary>Compone el ticket de una persona: quien es, de que documento y en que paso se quedo.</summary>
+    /// <param name="caso">El documento en el que va la persona.</param>
+    /// <param name="persona">La persona sin la recomendación confirmada.</param>
+    /// <param name="fecha">Su fecha de viaje, ya leída.</param>
+    /// <param name="hoy">El día de hoy, para contar los días que faltan o que pasaron.</param>
     private static PersonaConTicket ArmarElTicket(Caso caso, Persona persona, DateOnly fecha, DateOnly hoy)
         => new(
             caso.Id,
@@ -296,6 +321,7 @@ public sealed class LectorDelInicio
     /// resolver. Hasta ese dia entraban y se marcaban (criterio C21-2, ya deshecho).
     /// </para>
     /// </remarks>
+    /// <param name="tickets">Todos los tickets armados, vencidos o no; aquí se filtran.</param>
     private static IReadOnlyList<PersonaConTicket> LoVencidoPrimeroLoMasReciente(
         IEnumerable<PersonaConTicket> tickets)
         => [.. tickets
@@ -315,6 +341,7 @@ public sealed class LectorDelInicio
     /// <para>Los archivados no entran aqui, y desde el 2026-09-06 tampoco en lo vencido: ese
     /// trabajo esta cerrado. Se filtran antes, en <see cref="ArmarLoDelSistemaDelObispo"/>.</para>
     /// </remarks>
+    /// <param name="tickets">Todos los tickets armados; aquí se quedan los de la ventana.</param>
     private static IReadOnlyList<PersonaConTicket> LoQueApremiaPrimeroLoMasCercano(
         IEnumerable<PersonaConTicket> tickets)
         => [.. tickets
@@ -327,6 +354,7 @@ public sealed class LectorDelInicio
     /// El grupo que viaja un dia, para que la pantalla del grupo lo lea por el mismo camino
     /// que el calendario que lleva hasta el.
     /// </summary>
+    /// <param name="fecha">El día que se pulsó en el calendario.</param>
     public GrupoDelDia GrupoDelDia(DateOnly fecha) => _grupos.DelDia(fecha);
 
     /// <summary>
@@ -347,6 +375,15 @@ public sealed class LectorDelInicio
     /// distintas del mismo documento. Su camino es la segunda vuelta (fase C15), no
     /// volver a la cola de lo que esta listo.</para>
     /// </remarks>
+    /// <param name="deTrabajo">Los casos sin archivar.</param>
+    /// <param name="fechas">La fecha de viaje ya leída de cada caso, nula si no la tiene o no se entiende.</param>
+    /// <param name="personasPorCaso">Las personas de cada caso, por id de caso.</param>
+    /// <param name="duenos">Quién lleva cada caso, por id de caso; el que no está no lo lleva nadie.</param>
+    /// <param name="hoy">El día de hoy.</param>
+    /// <param name="procedencias">La procedencia de toda la base, leída de una pasada.</param>
+    /// <param name="listos">Se llena con lo que nadie lleva y no le falta nada.</param>
+    /// <param name="asignados">Se llena con lo que alguien lleva, le falte algo o no.</param>
+    /// <param name="porCompletar">Se llena con lo que le falta algo, lo lleve alguien o no.</param>
     private static void Repartir(
         IReadOnlyList<Caso> deTrabajo,
         IReadOnlyDictionary<long, DateOnly?> fechas,
@@ -385,6 +422,8 @@ public sealed class LectorDelInicio
     /// 2026-09-07; lo unico que cambia es que ahora se le da nombre porque tambien la usa el
     /// cuadro. La lista de lo listo no cambia de contenido.</para>
     /// </remarks>
+    /// <param name="renglon">El renglón ya armado, que trae cuántos datos le faltan.</param>
+    /// <param name="caso">El caso, por el estado que dejó el Excel del compañero.</param>
     private static bool LeFaltaAlgo(RenglonDeCaso renglon, Caso caso)
         => renglon.CuantoLeFalta > 0 || caso.Estado == EstadoDeRecomendacion.NoCompleta;
 
@@ -398,6 +437,7 @@ public sealed class LectorDelInicio
     /// ya viajo, del que vencio hace menos al que vencio hace mas; y al final lo que no
     /// tiene fecha, que no desaparece (C7-4).
     /// </remarks>
+    /// <param name="renglones">La lista sin ordenar; no se modifica, se devuelve otra.</param>
     private static IReadOnlyList<RenglonDeCaso> PorFechaDeViaje(List<RenglonDeCaso> renglones)
         => [.. renglones
             .OrderBy(r => r.SinFecha ? 2 : r.DiasHastaElViaje < 0 ? 1 : 0)
@@ -420,6 +460,7 @@ public sealed class LectorDelInicio
     /// nombre. Sigue siendo UNA consulta: preguntar por documento serian 2 766 idas a la
     /// base para pintar una pantalla.
     /// </remarks>
+    /// <param name="deTrabajo">Los casos cuyas personas se quieren; las de otros casos se descartan.</param>
     private Dictionary<long, List<Persona>> AgruparLasPersonas(IReadOnlyList<Caso> deTrabajo)
     {
         var queremos = deTrabajo.Select(c => c.Id).ToHashSet();
@@ -469,6 +510,8 @@ public sealed class LectorDelInicio
     /// Lee la fecha de viaje de cada caso una vez. Una fecha con forma rara NO tumba nada
     /// ni hace desaparecer el caso: se queda sin fecha y deja UNA linea de aviso (requisito 9).
     /// </summary>
+    /// <param name="casos">Los casos cuya fecha se lee.</param>
+    /// <param name="avisos">Donde se deja la línea de aviso si alguna fecha tiene forma rara.</param>
     private static Dictionary<long, DateOnly?> LeerLasFechas(IReadOnlyList<Caso> casos, List<Aviso> avisos)
     {
         var fechas = new Dictionary<long, DateOnly?>(casos.Count);
@@ -494,6 +537,8 @@ public sealed class LectorDelInicio
     }
 
     /// <summary>Contra que se comparan las dos cifras; el C1-1 exige decirlo siempre.</summary>
+    /// <param name="enLaBase">Cuántos casos hay en total, archivados incluidos.</param>
+    /// <param name="noArchivados">Cuántos quedan tras quitar los archivados.</param>
     private DenominadoresDeInicio ContarLosDenominadores(int enLaBase, int noArchivados)
         => new(
             enLaBase,
@@ -502,6 +547,12 @@ public sealed class LectorDelInicio
             _companeros.Activos().Count);
 
     /// <summary>Compone el renglon que se pinta, con sus textos ya en espanol.</summary>
+    /// <param name="caso">El documento.</param>
+    /// <param name="fecha">Su fecha de viaje ya leída, o nula.</param>
+    /// <param name="hoy">El día de hoy, para los días que faltan.</param>
+    /// <param name="suyas">Las personas del documento.</param>
+    /// <param name="dueno">Quién lo lleva, o vacío si nadie.</param>
+    /// <param name="procedencias">La procedencia de toda la base, para contar qué le falta.</param>
     private static RenglonDeCaso ArmarRenglon(
         Caso caso,
         DateOnly? fecha,
@@ -529,6 +580,10 @@ public sealed class LectorDelInicio
     /// la leeria dos veces: medido sobre 3 000 documentos y 16 500 personas, <b>362 ms</b>
     /// contra los <b>≤ 200 ms</b> del criterio C20-5. Pasandolas, <b>una sola lectura</b>.
     /// </remarks>
+    /// <param name="hoy">El día de hoy, que se marca.</param>
+    /// <param name="finDeLaVentana">El último día de la ventana sombreada.</param>
+    /// <param name="desplazamientoDeMes">Cuántos meses mover respecto al de hoy.</param>
+    /// <param name="personasPorCaso">Las personas ya leídas, para no volver a la base.</param>
     private MesDelCalendario ArmarElCalendario(
         DateOnly hoy,
         DateOnly finDeLaVentana,
@@ -544,6 +599,8 @@ public sealed class LectorDelInicio
     /// El cuadro de lo asignado: cada companero activo con lo que lleva, y al final los
     /// documentos que no lleva nadie. Los desactivados no salen: no reciben casos nuevos.
     /// </summary>
+    /// <param name="deTrabajo">Los casos sin archivar, para contar los que no lleva nadie.</param>
+    /// <param name="duenos">Quién lleva cada caso, por id de caso.</param>
     private IReadOnlyList<RenglonDeCompanero> ArmarElEquipo(
         IReadOnlyList<Caso> deTrabajo,
         IReadOnlyDictionary<long, string> duenos)

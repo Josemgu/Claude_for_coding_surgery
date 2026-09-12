@@ -28,7 +28,9 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelReporteDeLaSegundaVuelta
 {
+    /// <summary>El día fijo del reloj del escenario.</summary>
     private const string Hoy = "2026-09-05";
+    /// <summary>La marca con la que se arma el reporte en todas las pruebas.</summary>
     private const string GeneradoEn = "2026-09-05 10:00:00";
 
     /// <summary>El reporte dice a que peldano va y cuantos documentos lleva.</summary>
@@ -155,9 +157,14 @@ public class PruebaDelReporteDeLaSegundaVuelta
 
     // ---- el escenario -------------------------------------------------------
 
+    /// <summary>Lo que devuelve el escenario: el motor ya montado y los intentos que suben.</summary>
+    /// <param name="Reportes">El motor sobre el almacén del escenario.</param>
+    /// <param name="Intentos">Los dos documentos que suben, con quien los intentó.</param>
     private sealed record Mundo(ReportesEnPdf Reportes, IReadOnlyList<IntentoAnterior> Intentos);
 
     /// <summary>Dos documentos que suben: uno con dos personas dentro y otro con una.</summary>
+    /// <param name="conComentario">Si las personas llevan comentario del agente o nulo.</param>
+    /// <param name="comentario">El comentario que llevan cuando lo llevan.</param>
     private static Mundo Escenario(bool conComentario, string comentario = "Llamé tres veces al líder y no contestó.")
     {
         var servicios = new ServiciosFalsos(0, 3, new RelojFijo(Hoy));
@@ -186,6 +193,12 @@ public class PruebaDelReporteDeLaSegundaVuelta
             intentos);
     }
 
+    /// <summary>Un caso no completo con ese número y tantas personas, todas con el mismo comentario.</summary>
+    /// <param name="almacen">El almacén falso donde se escribe.</param>
+    /// <param name="numero">El número del caso.</param>
+    /// <param name="personas">Cuántas personas lleva.</param>
+    /// <param name="comentario">La nota del compañero de cada persona, o nula.</param>
+    /// <returns>El id del caso creado.</returns>
     private static long Caso(AlmacenFalso almacen, string numero, int personas, string? comentario)
     {
         var casoId = almacen.SiguienteId();

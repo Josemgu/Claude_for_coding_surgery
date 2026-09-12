@@ -22,8 +22,11 @@ namespace Fichas.Pruebas.App.Paquetes;
 [TestClass]
 public sealed class PruebasDeDarPorBuenoEnBloque
 {
+    /// <summary>Una cédula de mentira, con la forma que la lectura acepta; no es de nadie.</summary>
     private const string CedulaDeUno = "055-1111-3853";
+    /// <summary>Otra cédula de mentira, distinta de la primera.</summary>
     private const string CedulaDeDos = "066-2222-1331";
+    /// <summary>Una tercera, para el documento de dos personas.</summary>
     private const string CedulaDeTres = "003-1122-4455";
 
     /// <summary>Lo que trajo se ve con su cuenta, y lo que no casó aparte con la suya.</summary>
@@ -381,6 +384,9 @@ public sealed class PruebasDeDarPorBuenoEnBloque
     }
 
     /// <summary>Un paquete de un documento con una persona, contestado que sí y ya devuelto.</summary>
+    /// <param name="basePrueba">El banco de la prueba.</param>
+    /// <param name="casoId">El documento que se dio de alta.</param>
+    /// <param name="personaId">La persona que se le colgó.</param>
     private static LoQueTrajoElPaquete UnPaqueteDeVuelta(
         BaseDelPaquete basePrueba, out long casoId, out long personaId)
     {

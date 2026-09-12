@@ -40,6 +40,7 @@ public class PruebaDelLibroDelInforme
     /// <summary>Una unidad cuyo numero empieza por cero, que es lo que Excel se come.</summary>
     private const string LaUnidad = "Cuatricentenaria · 0700016";
 
+    /// <summary>Seis columnas con las tres clases: texto para los ceros, temporal para la fecha, crudo para el resto.</summary>
     private static readonly Columna[] ColumnasDeLaTabla =
     [
         new("N.º de caso", ClaseDeColumna.Texto, 12),
@@ -50,6 +51,7 @@ public class PruebaDelLibroDelInforme
         new("Personas", ClaseDeColumna.Crudo, 10),
     ];
 
+    /// <summary>Una sección de dos filas que junta los casos raros: un «=» delante, una fecha ilegible, un nulo y un recuento.</summary>
     private static readonly Seccion LaTabla = new(
         "Parte 1 — Personas que viajaron, y en qué estado quedó su recomendación",
         ["Entran todas las personas cuyo caso tenía fecha de viaje dentro del período."],
@@ -60,6 +62,7 @@ public class PruebaDelLibroDelInforme
         ],
         "2 personas · 1 con la recomendación completa");
 
+    /// <summary>Una sección sin filas, para ver que conserva su pestaña con la cabecera.</summary>
     private static readonly Seccion LaVacia = new(
         "Dónde se traban",
         [],
@@ -67,6 +70,7 @@ public class PruebaDelLibroDelInforme
         [],
         null);
 
+    /// <summary>El documento de todas las pruebas: portada con dos cifras, un aviso y las dos secciones de arriba.</summary>
     private static readonly Documento ElInforme = new(
         "Fichas — Reporte de recomendaciones al templo",
         "Período: del 1 al 30 de septiembre de 2026",
@@ -81,10 +85,12 @@ public class PruebaDelLibroDelInforme
         ["No se puede fechar cuándo se vio el problema en 3 casos."],
         [LaTabla, LaVacia]);
 
+    /// <summary>El libro de <see cref="ElInforme"/>, nuevo en cada llamada; quien lo pide lo cierra.</summary>
     private static XLWorkbook Libro() => LibroDelInforme.Construir(ElInforme);
 
     // ─────────────────────── la forma del libro ───────────────────────
 
+    /// <summary>Vigila que el libro trae «Resumen» y una pestaña numerada por sección, en ese orden.</summary>
     [TestMethod]
     public void HayUnaHojaDeResumenYUnaHojaPorSeccion()
     {
@@ -111,6 +117,7 @@ public class PruebaDelLibroDelInforme
         CollectionAssert.AreEqual(ColumnasDeLaTabla.Select(c => c.Nombre).ToArray(), rotulos);
     }
 
+    /// <summary>Vigila que la primera persona va en la fila 2 y que tras la última no hay nada.</summary>
     [TestMethod]
     public void CadaFilaDeLaSeccionEsUnaFilaDeLaHojaYEmpiezanEnLaDos()
     {
@@ -122,6 +129,7 @@ public class PruebaDelLibroDelInforme
         Assert.IsTrue(hoja.Cell(4, 1).IsEmpty(), "dos filas de datos, ni una más");
     }
 
+    /// <summary>Vigila que la fila 1 queda fija y el autofiltro está puesto.</summary>
     [TestMethod]
     public void LaCabeceraVaCongeladaYConAutofiltro()
     {
@@ -188,6 +196,7 @@ public class PruebaDelLibroDelInforme
         Assert.AreEqual("0700016", celda.GetString());
     }
 
+    /// <summary>Vigila que un nombre que empieza por «=» entra como texto y no como fórmula.</summary>
     [TestMethod]
     public void UnTextoQueEmpiezaPorIgualNoSeConvierteEnFormula()
     {
@@ -200,6 +209,7 @@ public class PruebaDelLibroDelInforme
 
     // ─────────────────────── lo que hace que sirva de hoja de cálculo ───────────────────────
 
+    /// <summary>Vigila que una fecha legible entra como fecha, con su valor y su formato yyyy-mm-dd.</summary>
     [TestMethod]
     public void LasFechasEntranComoFechaDeVerdadYNoComoTexto()
     {
@@ -213,6 +223,7 @@ public class PruebaDelLibroDelInforme
             "sin formato escrito, la fecha se ve según la configuración regional de la máquina");
     }
 
+    /// <summary>Vigila que «el mes que viene» se queda como texto, sin adivinar una fecha.</summary>
     [TestMethod]
     public void UnaFechaQueNoSePuedeLeerSeDejaTalCualYNoSeInventa()
     {
@@ -233,6 +244,7 @@ public class PruebaDelLibroDelInforme
         Assert.AreEqual(3, celda.GetDouble());
     }
 
+    /// <summary>Vigila que un nulo deja la celda vacía, sin escribir «None» ni nada.</summary>
     [TestMethod]
     public void UnaCeldaSinDatoSeQuedaVaciaYNoDiceNone()
     {
@@ -265,6 +277,7 @@ public class PruebaDelLibroDelInforme
             "el fondo de color es lo que le dice al compañero «esto lo rellenas tú»");
     }
 
+    /// <summary>Vigila que el resumen lleva la frase que separa este archivo del que el compañero devuelve.</summary>
     [TestMethod]
     public void LaPrimeraHojaDiceQueEsteArchivoNoSeDevuelve()
     {
@@ -277,6 +290,7 @@ public class PruebaDelLibroDelInforme
 
     // ─────────────────────── la hoja de resumen ───────────────────────
 
+    /// <summary>Vigila que el resumen trae el título, el subtítulo y el «generado el».</summary>
     [TestMethod]
     public void ElResumenLlevaElTituloElPeriodoYCuandoSeGenero()
     {
@@ -288,6 +302,7 @@ public class PruebaDelLibroDelInforme
         StringAssert.Contains(todo, ElInforme.GeneradoEn);
     }
 
+    /// <summary>Vigila que el resumen trae el titular, la frase y cada cifra con su rótulo.</summary>
     [TestMethod]
     public void ElResumenLlevaLaPortadaConSusCifras()
     {
@@ -324,6 +339,7 @@ public class PruebaDelLibroDelInforme
 
     // ─────────────────────── el archivo ───────────────────────
 
+    /// <summary>Vigila que los bytes se vuelven a abrir como libro con sus tres hojas y el MRN intacto.</summary>
     [TestMethod]
     public void EnBytesDevuelveUnXlsxQueSeVuelveAAbrir()
     {
@@ -336,6 +352,7 @@ public class PruebaDelLibroDelInforme
         Assert.AreEqual(ElMrn, relectura.Worksheet(HojaDeLaTabla).Cell(2, 3).GetString());
     }
 
+    /// <summary>Vigila que el recuento de filas suma las de todas las secciones sin contar cabeceras.</summary>
     [TestMethod]
     public void CuantasFilasLlevaCuentaLasDeTodasLasSeccionesYNoLasCabeceras()
         => Assert.AreEqual(2, LibroDelInforme.CuantasFilasLleva(ElInforme));
@@ -343,6 +360,7 @@ public class PruebaDelLibroDelInforme
     // ─────────────────────── el andamio ───────────────────────
 
     /// <summary>Todo lo escrito en una hoja, junto, para poder buscar dentro sin fijar filas.</summary>
+    /// <param name="hoja">La hoja que se lee.</param>
     private static string TextoDeLaHoja(IXLWorksheet hoja)
         => string.Join("\n", hoja.CellsUsed().Select(c => c.GetFormattedString()));
 }

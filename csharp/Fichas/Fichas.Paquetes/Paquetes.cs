@@ -30,15 +30,30 @@ namespace Fichas.Paquetes;
 /// </remarks>
 public sealed class Paquetes : IPaquetes
 {
+    /// <summary>Cuántos casos se piden por página al buscar por número; <see cref="CasosConEseNumero"/> recorre las que hagan falta.</summary>
     private const int TamanoDelTrozo = 500;
 
+    /// <summary>Para leer casos por id, buscarlos por número y estampar el estado del compañero.</summary>
     private readonly ICasos _casos;
+
+    /// <summary>Para las personas de cada caso y para anotar en ellas la propuesta del compañero.</summary>
     private readonly IPersonas _personas;
+
+    /// <summary>Para comprobar que el compañero existe y poner su nombre en la hoja.</summary>
     private readonly ICompaneros _companeros;
+
+    /// <summary>Donde se anotan las filas del Excel devuelto que no casaron con nadie.</summary>
     private readonly IIlegibles _ilegibles;
+
+    /// <summary>La hora que se estampa en los descartes y en el estado; inyectada para poder probarla.</summary>
     private readonly IReloj _reloj;
 
     /// <summary>Se ata a los puertos que necesita; ninguno se inventa dentro.</summary>
+    /// <param name="casos">El puerto de casos.</param>
+    /// <param name="personas">El puerto de personas.</param>
+    /// <param name="companeros">El puerto de compañeros.</param>
+    /// <param name="ilegibles">El puerto donde se registran las filas descartadas.</param>
+    /// <param name="reloj">El reloj del programa.</param>
     public Paquetes(ICasos casos, IPersonas personas, ICompaneros companeros, IIlegibles ilegibles, IReloj reloj)
     {
         _casos = casos;
@@ -51,6 +66,15 @@ public sealed class Paquetes : IPaquetes
     // ─────────────────────────────── la ida ───────────────────────────────
 
     /// <summary>Genera el Excel de ida de un companero con los casos que lleva.</summary>
+    /// <remarks>
+    /// No se escribe nada si el compañero no existe o si ningún caso tiene personas; con el
+    /// archivo de destino abierto en Excel se devuelve el problema en español y el archivo
+    /// anterior queda intacto. No toca la base.
+    /// </remarks>
+    /// <param name="companeroId">El número interno del compañero al que va el paquete.</param>
+    /// <param name="casoIds">Los casos que lleva, en el orden en que saldrán sus renglones.</param>
+    /// <param name="rutaDestino">Ruta del <c>.xlsx</c> a escribir; se sobrescribe si ya existe.</param>
+    /// <returns>Si se escribió, el id del compañero y los avisos, empezando por el que resume el paquete.</returns>
     public ResultadoDeEscritura GenerarExcelDeCompanero(long companeroId, IReadOnlyList<long> casoIds, string rutaDestino)
     {
         var companero = _companeros.Obtener(companeroId);
@@ -126,6 +150,10 @@ public sealed class Paquetes : IPaquetes
     /// del dueno y dos documentos rotos a proposito, de 7 casos salian 5 hojas y solo las 2
     /// anteriores al primer hueco seguian cuadrando.</para>
     /// </remarks>
+    /// <param name="companeroId">El número interno del compañero al que va el paquete.</param>
+    /// <param name="casoIds">Los mismos casos y en el mismo orden que se pasaron al Excel.</param>
+    /// <param name="rutaDestino">Ruta del <c>.pdf</c> a escribir.</param>
+    /// <returns>Si se escribió, el id del compañero y los avisos: uno por hoja de aviso, y el resumen delante.</returns>
     public ResultadoDeEscritura GenerarPdfDeCompanero(long companeroId, IReadOnlyList<long> casoIds, string rutaDestino)
     {
         ArgumentNullException.ThrowIfNull(casoIds);
@@ -180,6 +208,7 @@ public sealed class Paquetes : IPaquetes
     /// seguiria teniendo las hojas correctas en el orden equivocado, que es el fallo mas dificil
     /// de ver de los dos.
     /// </remarks>
+    /// <param name="casoIds">Los casos del paquete, en el orden del Excel; los que ya no existen se saltan.</param>
     private List<HojaDelPaquete> HojasDeLosCasos(IReadOnlyList<long> casoIds)
     {
         var hojas = new List<HojaDelPaquete>();
@@ -220,6 +249,8 @@ public sealed class Paquetes : IPaquetes
     /// lo que tiene que mirar, no lo que otro contesto. Rellenarlo de antemano invita a
     /// confirmarlo sin comprobarlo, que es la averia contra la que existe la regla permanente 5.
     /// </remarks>
+    /// <param name="casoIds">Los casos del paquete, en el orden en que saldrán.</param>
+    /// <param name="avisos">La lista a la que se añade un aviso por cada caso que ya no está en la base.</param>
     private List<FilaDeTrabajo> ArmarLasFilas(IReadOnlyList<long> casoIds, List<Aviso> avisos)
     {
         var filas = new List<FilaDeTrabajo>();
@@ -268,6 +299,8 @@ public sealed class Paquetes : IPaquetes
 
     /// <summary>A que va la persona al templo, leido de las seis casillas del formulario.</summary>
     /// <remarks>Una casilla sin marcar no dice «no»: dice que nadie la leyo, y por eso no aparece.</remarks>
+    /// <param name="persona">La persona con sus seis casillas <c>Ord*</c>.</param>
+    /// <returns>Las marcadas, en el orden del formulario y separadas por coma; nulo si no hay ninguna.</returns>
     private static string? ResumirOrdenanzas(Persona persona)
     {
         var partes = new List<string>();
@@ -289,6 +322,8 @@ public sealed class Paquetes : IPaquetes
     /// trabajo, lo devuelve, y al reconciliar se descarta — generar es el único momento en que
     /// todavía se puede arreglar sin gastar el trabajo de nadie.
     /// </remarks>
+    /// <param name="filas">Las filas ya armadas del paquete.</param>
+    /// <returns>Ningún aviso, o uno solo que nombra a todos los que van sin MRN.</returns>
     private static IEnumerable<Aviso> AvisosDeQuienNoTieneMrn(IReadOnlyList<FilaDeTrabajo> filas)
     {
         var sinMrn = filas
@@ -323,6 +358,9 @@ public sealed class Paquetes : IPaquetes
     /// son dos cargas distintas del mismo archivo y las dos pasaron.
     /// </para>
     /// </remarks>
+    /// <param name="rutaExcel">Ruta del <c>.xlsx</c> que devolvió el compañero.</param>
+    /// <param name="companeroId">El número interno del compañero que lo devuelve; se guarda con cada marca y cada descarte.</param>
+    /// <returns>Las marcas listas para <see cref="AplicarMarcas"/>, las filas descartadas ya anotadas, y los avisos; con un error de lectura, todo vacío y un solo problema.</returns>
     public ResultadoDelExcelDevuelto LeerExcelDevuelto(string rutaExcel, long companeroId)
     {
         if (_companeros.Obtener(companeroId) is null)
@@ -378,6 +416,9 @@ public sealed class Paquetes : IPaquetes
     /// a alguien al templo con la recomendacion mal.
     /// </para>
     /// </remarks>
+    /// <param name="renglones">Los renglones que casaron con una persona, tal como los dio <see cref="Reconciliacion"/>.</param>
+    /// <param name="avisos">La lista a la que se añaden los avisos de motivos repetidos y de contradicciones.</param>
+    /// <returns>Una marca por renglón, con el estado del documento ya calculado y repetido en cada fila del caso.</returns>
     private List<MarcaDelCompanero> ArmarLasMarcas(
         IReadOnlyList<RenglonDeLaVuelta> renglones, List<Aviso> avisos)
     {
@@ -430,6 +471,9 @@ public sealed class Paquetes : IPaquetes
     /// funcion y nada mas.
     /// </para>
     /// </remarks>
+    /// <param name="estado">El estado que dicen los pasos.</param>
+    /// <param name="motivo">El motivo que eligió el compañero, o sin motivo.</param>
+    /// <returns>«No completa» si estaba sin marcar y hay motivo; en cualquier otro caso, el mismo estado.</returns>
     private static EstadoDeRecomendacion EstadoConElMotivo(
         EstadoDeRecomendacion estado, MotivoDeNoCompletar motivo)
         => estado == EstadoDeRecomendacion.SinMarcar && motivo != MotivoDeNoCompletar.SinMotivo
@@ -446,6 +490,9 @@ public sealed class Paquetes : IPaquetes
     /// NO se pierde en silencio: se dice con su fila. El texto entero de cada uno sigue
     /// entero en el comentario de SU persona.
     /// </remarks>
+    /// <param name="renglones">Los renglones que casaron; solo cuentan los que traen motivo.</param>
+    /// <param name="avisos">La lista a la que se añade un aviso por cada fila cuyo motivo difiere del ya guardado para su caso.</param>
+    /// <returns>El motivo por id de caso; los casos sin ningún motivo no aparecen.</returns>
     private static Dictionary<long, MotivoDeNoCompletar> MotivoPorCaso(
         IReadOnlyList<RenglonDeLaVuelta> renglones, List<Aviso> avisos)
     {
@@ -479,6 +526,11 @@ public sealed class Paquetes : IPaquetes
     /// se guarda igual para que quien lo lea decida. Callar la contradiccion seria elegir
     /// por Miguel.
     /// </remarks>
+    /// <param name="casoId">El caso que se está decidiendo.</param>
+    /// <param name="estado">El estado que dicen los pasos.</param>
+    /// <param name="motivo">El motivo elegido para ese caso.</param>
+    /// <param name="renglones">Todos los renglones que casaron, para nombrar las filas con motivo de este caso.</param>
+    /// <param name="avisos">La lista a la que se añade el aviso, solo si hay contradicción.</param>
     private static void AvisarDeLaContradiccion(
         long casoId,
         EstadoDeRecomendacion estado,
@@ -500,6 +552,13 @@ public sealed class Paquetes : IPaquetes
             + "dar la ronda por cerrada."));
     }
 
+    /// <summary>
+    /// El estado del documento según los pasos de TODAS sus personas en la base: las que
+    /// volvieron en la hoja con lo que trajeron, las que no con lo que ya tenían guardado.
+    /// </summary>
+    /// <param name="casoId">El caso que se está decidiendo.</param>
+    /// <param name="renglones">Todos los renglones que casaron; se filtran a los de este caso.</param>
+    /// <returns>No completa si alguien tiene un «No»; completa si todas tienen los seis «Sí»; si no, sin marcar. Un caso sin personas queda sin marcar.</returns>
     private EstadoDeRecomendacion EstadoDelDocumento(long casoId, IReadOnlyList<RenglonDeLaVuelta> renglones)
     {
         var deLaHoja = renglones.Where(r => r.CasoId == casoId).ToDictionary(r => r.PersonaId, r => r.Respuestas);
@@ -516,6 +575,11 @@ public sealed class Paquetes : IPaquetes
         return estados.All(estado => estado == true) ? EstadoDeRecomendacion.Completa : EstadoDeRecomendacion.SinMarcar;
     }
 
+    /// <summary>
+    /// Las siete respuestas que la persona ya tiene en la base, en la misma forma en que
+    /// vienen las de la hoja, para que <see cref="Pasos.EstadoDeLosPasos"/> las lea igual.
+    /// </summary>
+    /// <param name="persona">Una persona del caso que no volvió en la hoja.</param>
     private static Dictionary<string, bool?> RespuestasGuardadas(Persona persona) => new()
     {
         ["paso_preparacion"] = persona.PasoPreparacion,
@@ -536,6 +600,8 @@ public sealed class Paquetes : IPaquetes
     /// dicho. Una persona con los seis pasos en «Sí» se guarda con estado propuesto nulo y con
     /// sus seis columnas puestas, que es donde consta que alguien la miró y que salió bien.
     /// </remarks>
+    /// <param name="respuestas">Las siete respuestas de la fila, por nombre de columna.</param>
+    /// <returns>«incompleta» si algún paso dice que no; nulo en cualquier otro caso.</returns>
     private static string? EstadoPropuestoDe(IReadOnlyDictionary<string, bool?> respuestas)
         => Pasos.EstadoDeLosPasos(respuestas) == false ? "incompleta" : null;
 
@@ -549,6 +615,10 @@ public sealed class Paquetes : IPaquetes
     /// <c>mrn</c>, y ese camino no cambia: si el par apunta a dos familias, la fila se DESCARTA
     /// con su motivo. No se escoge una al azar.
     /// </remarks>
+    /// <param name="marcas">Las marcas que dio <see cref="LeerExcelDevuelto"/>, una por fila que casó.</param>
+    /// <param name="companeroId">Quién las trae; va en cada propuesta, en cada descarte y en el estado del documento.</param>
+    /// <param name="rutaExcel">De qué archivo salieron; se guarda como origen del estado y en los descartes.</param>
+    /// <returns>Escrito si se aplicó alguna fila o se marcó algún documento; los avisos empiezan por el recuento.</returns>
     public ResultadoDeEscritura AplicarMarcas(IReadOnlyList<MarcaDelCompanero> marcas, long companeroId, string rutaExcel)
     {
         if (_companeros.Obtener(companeroId) is null)
@@ -670,6 +740,9 @@ public sealed class Paquetes : IPaquetes
     /// sin MRN y no hay forma de saber a cual se referia el companero.
     /// </para>
     /// </remarks>
+    /// <param name="numeroCaso">La primera parte de la clave; solo se mira cuando no hay id.</param>
+    /// <param name="mrn">La segunda parte; vacía devuelve la lista vacía sin buscar.</param>
+    /// <param name="casoId">La tercera parte; con ella se busca solo dentro de ese caso.</param>
     private IReadOnlyList<Persona> PersonasQueCasan(string? numeroCaso, string? mrn, long? casoId)
     {
         if (string.IsNullOrWhiteSpace(mrn))
@@ -700,6 +773,7 @@ public sealed class Paquetes : IPaquetes
     /// se puede recuperar.
     /// </para>
     /// </remarks>
+    /// <param name="numeroCaso">El número tal como vino en la clave; se compara sin distinguir mayúsculas.</param>
     private List<Caso> CasosConEseNumero(string numeroCaso)
     {
         var encontrados = new List<Caso>();

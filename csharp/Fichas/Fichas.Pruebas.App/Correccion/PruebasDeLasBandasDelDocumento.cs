@@ -21,7 +21,9 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLasBandasDelDocumento
 {
+    /// <summary>El id fijo del caso con ruta de PDF.</summary>
     private const long CasoDePrueba = 200;
+    /// <summary>La unica persona del caso.</summary>
     private const long PersonaDePrueba = 201;
 
     /// <summary>Monta un caso con ruta de PDF y una persona.</summary>

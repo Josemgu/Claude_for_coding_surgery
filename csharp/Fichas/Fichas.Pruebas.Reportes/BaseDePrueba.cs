@@ -20,12 +20,17 @@ namespace Fichas.Pruebas.Reportes;
 internal static class BaseDePrueba
 {
     /// <summary>Un reloj fijo: sin el, «ya viajo» cambia de respuesta segun el dia que se corra.</summary>
+    /// <param name="hoy">El día que el reloj dirá siempre, en «AAAA-MM-DD».</param>
     internal sealed class RelojFijo(string hoy) : IReloj
     {
+        /// <summary>El día fijo, tal cual se le dio.</summary>
         public string Hoy() => hoy;
 
+        /// <summary>El día fijo a las diez de la mañana, siempre la misma hora.</summary>
         public string Ahora() => $"{hoy} 10:00:00";
 
+        /// <summary>El día fijo desplazado esos días; negativo va hacia atrás.</summary>
+        /// <param name="dias">Cuántos días sumar.</param>
         public string HoyMasDias(int dias)
             => DateOnly.ParseExact(hoy, "yyyy-MM-dd").AddDays(dias).ToString("yyyy-MM-dd");
     }
@@ -34,6 +39,8 @@ internal static class BaseDePrueba
     internal const string Hoy = "2026-09-20";
 
     /// <summary>Monta los servicios falsos con reloj fijo y les anade lo que el generador no pone.</summary>
+    /// <param name="cuantosCasos">Cuántos casos genera la base falsa.</param>
+    /// <param name="semilla">La semilla del generador; con la misma salen los mismos datos.</param>
     internal static ServiciosFalsos Montar(int cuantosCasos, int semilla = 20260904)
     {
         var servicios = new ServiciosFalsos(cuantosCasos, semilla, new RelojFijo(Hoy));
@@ -43,6 +50,8 @@ internal static class BaseDePrueba
     }
 
     /// <summary>Anota a una de cada siete personas como que no pudo viajar, con su motivo.</summary>
+    /// <remarks>Y a la siguiente como que sí pudo; las otras cinco se quedan en nulo, que es lo que trae el generador.</remarks>
+    /// <param name="almacen">El almacén falso que se retoca en sitio.</param>
     private static void AnotarQuienNoPudoViajar(AlmacenFalso almacen)
     {
         var orden = 0;
@@ -60,6 +69,7 @@ internal static class BaseDePrueba
     }
 
     /// <summary>Firma todos los campos de uno de cada cinco casos, para que las metricas cuenten algo.</summary>
+    /// <param name="almacen">El almacén falso que se retoca en sitio.</param>
     private static void FirmarAlgunosCampos(AlmacenFalso almacen)
     {
         var companeroId = almacen.Companeros.Keys.Order().First();
@@ -84,6 +94,13 @@ internal static class BaseDePrueba
         }
     }
 
+    /// <summary>Escribe una fila de procedencia ya firmada para ese campo.</summary>
+    /// <param name="almacen">El almacén falso.</param>
+    /// <param name="tabla">Si el campo es de un caso o de una persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre del campo, tal como lo llama el modelo.</param>
+    /// <param name="companeroId">Quién firma.</param>
+    /// <param name="cuando">La marca «AAAA-MM-DD HH:mm:ss» de la firma.</param>
     private static void Anotar(
         AlmacenFalso almacen, TablaDeProcedencia tabla, long registroId, string campo, long companeroId, string cuando)
     {

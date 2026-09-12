@@ -34,8 +34,13 @@ public sealed partial class VentanaPrincipal
     /// </remarks>
     private static readonly TimeSpan LoQueSeEsperaAlTeclear = TimeSpan.FromMilliseconds(250);
 
+    /// <summary>Quien busca de verdad en los casos; nulo hasta que la cabecera se monta.</summary>
     private BusquedaDeLaCabecera? _busqueda;
+
+    /// <summary>El reloj que espera <see cref="LoQueSeEsperaAlTeclear"/> desde la última tecla antes de consultar.</summary>
     private DispatcherTimer? _esperaAlTeclear;
+
+    /// <summary>Lo que dio la última consulta, para saber adónde ir cuando se pulsa Intro.</summary>
     private LoQueSeEncontro _ultimoHallazgo = LoQueSeEncontro.Nada;
 
     /// <summary>

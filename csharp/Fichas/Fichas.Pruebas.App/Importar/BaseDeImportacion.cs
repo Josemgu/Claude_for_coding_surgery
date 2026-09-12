@@ -24,7 +24,9 @@ namespace Fichas.Pruebas.App.Importar;
 /// </remarks>
 public abstract class BaseDeImportacion
 {
+    /// <summary>La carpeta temporal de esta prueba; se borra al recoger.</summary>
     private string _carpeta = string.Empty;
+    /// <summary>La conexión abierta sobre la base de la prueba; se cierra al recoger.</summary>
     private SqliteConnection? _conexion;
 
     /// <summary>La carpeta temporal donde vive la base de esta prueba.</summary>
@@ -68,6 +70,7 @@ public abstract class BaseDeImportacion
     protected SqliteConnection Conexion => _conexion!;
 
     /// <summary>Cuenta filas de una tabla preguntandole al motor.</summary>
+    /// <param name="tabla">Una de las cuatro tablas de la importación, escrita como literal en la prueba.</param>
     protected long Contar(string tabla)
     {
         using var orden = _conexion!.CreateCommand();
@@ -145,6 +148,8 @@ public abstract class BaseDeImportacion
     }
 
     /// <summary>Una hoja que no se pudo leer, con su motivo.</summary>
+    /// <param name="ruta">El PDF del que sería.</param>
+    /// <param name="motivo">El motivo, que va también como aviso.</param>
     protected static HojaLeida HojaIlegible(string ruta, string motivo) => new(
         RutaPdf: ruta,
         Pagina: 0,
@@ -174,6 +179,11 @@ public abstract class BaseDeImportacion
         Contratos.Puertos.IProcedencia Procedencia,
         Contratos.Puertos.IIlegibles Ilegibles);
 
+    /// <summary>Un campo propuesto de mentira, con banda fija y confianza 0,92; vacío si el valor es nulo.</summary>
+    /// <param name="tabla">Si es del caso o de una persona.</param>
+    /// <param name="nombre">El nombre de la columna.</param>
+    /// <param name="valor">Lo leído; nulo es «el papel no lo traía».</param>
+    /// <param name="fila">El renglón del papel para una persona; nulo para el caso.</param>
     private static CampoPropuesto Campo(
         TablaDeProcedencia tabla, string nombre, string? valor, int? fila = null)
         => new(

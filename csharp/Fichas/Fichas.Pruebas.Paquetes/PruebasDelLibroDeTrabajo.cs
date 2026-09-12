@@ -15,6 +15,11 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDelLibroDeTrabajo
 {
+    /// <summary>Una fila completa con valores fijos, y los cuatro que las pruebas cambian como parámetros.</summary>
+    /// <param name="caso">El número de caso.</param>
+    /// <param name="mrn">La cédula; se cambia para probar la que termina en letra.</param>
+    /// <param name="casoId">El id que va dentro de la clave.</param>
+    /// <param name="viaje">La fecha de viaje en ISO-8601, o nula para ver la cabecera sin fecha límite.</param>
     private static FilaDeTrabajo UnaFila(string caso = "BALC2609", string? mrn = "055-1111-3853", long casoId = 12, string? viaje = "2026-10-15")
         => new()
         {
@@ -28,9 +33,12 @@ public class PruebasDelLibroDeTrabajo
             Clave = Columnas.ArmarLaClave(caso, mrn, casoId),
         };
 
+    /// <summary>La pestaña «Por verificar» de un libro construido con esas filas y el compañero de prueba.</summary>
+    /// <param name="filas">Las filas; ninguna, para ver la hoja vacía.</param>
     private static IXLWorksheet Hoja(params FilaDeTrabajo[] filas)
         => LibroDeTrabajo.Construir(filas, "Sandy").Worksheet(Columnas.NombreDeLaHoja);
 
+    /// <summary>Vigila que el libro tenga una sola pestaña y que se llame como el programa viejo.</summary>
     [TestMethod]
     public void LaHojaSeLlamaPorVerificarYEsLaUnica()
     {
@@ -39,6 +47,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual("Por verificar", libro.Worksheets.First().Name);
     }
 
+    /// <summary>Vigila las cinco filas de cabecera: títulos en la 6, primera persona en la 7, clave la última.</summary>
     [TestMethod]
     public void LosTitulosVanEnLaFilaSeisYLosDatosEnLaSiete()
     {
@@ -48,14 +57,17 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual("BALC2609", hoja.Cell(7, 1).GetString());
     }
 
+    /// <summary>Vigila que la vista quede congelada por debajo de los títulos.</summary>
     [TestMethod]
     public void LaCabeceraCongelaEnLaFilaSeis()
         => Assert.AreEqual(6, Hoja(UnaFila()).SheetView.SplitRow, "congelar en A7 es partir por debajo de la fila 6");
 
+    /// <summary>Vigila la línea 2: templo y fecha de salida legible, separados por «·».</summary>
     [TestMethod]
     public void LaCabeceraLlevaTemploYFechaDeSalida()
         => Assert.AreEqual("Templo: Santo Domingo · Sale el 15-10-2026", Hoja(UnaFila()).Cell(2, 1).GetString());
 
+    /// <summary>Vigila que sin templo la línea 2 no empiece por «Templo:  ·».</summary>
     [TestMethod]
     public void SinTemploGuardadoLaCabeceraNoDejaUnHuecoConSuSeparador()
     {
@@ -63,6 +75,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual("Sale el 15-10-2026", Hoja(fila).Cell(2, 1).GetString());
     }
 
+    /// <summary>Vigila la línea 3: siete días antes de la salida y con la tinta roja.</summary>
     [TestMethod]
     public void LaFechaLimiteVaUnaSemanaAntesYEnRojo()
     {
@@ -71,6 +84,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual(XLColor.FromHtml("#A62E24"), hoja.Cell(3, 1).Style.Font.FontColor);
     }
 
+    /// <summary>Vigila que sin fecha de salida la línea 3 quede en blanco.</summary>
     [TestMethod]
     public void SinFechaDeSalidaNoSeInventaUnaFechaLimite()
     {
@@ -78,14 +92,17 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual(string.Empty, Hoja(fila).Cell(3, 1).GetString(), "una fecha limite falsa es peor que ninguna: el companero se organiza contra ella");
     }
 
+    /// <summary>Vigila la línea 4: el nombre del compañero.</summary>
     [TestMethod]
     public void LaCabeceraDiceQuienEsElAgente()
         => Assert.AreEqual("Agente: Sandy", Hoja(UnaFila()).Cell(4, 1).GetString());
 
+    /// <summary>Vigila el fondo de la fila de títulos.</summary>
     [TestMethod]
     public void LaFilaDeTitulosVaConFondoDeTinta()
         => Assert.AreEqual(XLColor.FromHtml("#16233A"), Hoja(UnaFila()).Cell(6, 3).Style.Fill.BackgroundColor);
 
+    /// <summary>Vigila que solo las columnas que rellena el compañero lleven el fondo piel, y el nombre no.</summary>
     [TestMethod]
     public void LasSieteColumnasDeRespuestaLlevanFondoYLasDemasNo()
     {
@@ -97,6 +114,7 @@ public class PruebasDelLibroDeTrabajo
             "el nombre es editable pero pintarlo pediria teclear un nombre que ya viene puesto");
     }
 
+    /// <summary>Vigila que la clave se escriba entera, en cuerpo 8 y gris: a la vista pero sin robar atención.</summary>
     [TestMethod]
     public void LaClaveVaALaVistaEnGrisPequeno()
     {
@@ -106,6 +124,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual("BALC2609:055-1111-3853:12", celda.GetString(), "un dato oculto es un dato que alguien borra sin saber lo que hace");
     }
 
+    /// <summary>Vigila que haya siete menús de sí o no y uno con las tres frases del motivo.</summary>
     [TestMethod]
     public void HayOchoMenus_SieteDeSiONoYElDelMotivo()
     {
@@ -118,11 +137,13 @@ public class PruebasDelLibroDeTrabajo
             StringAssert.Contains(delMotivo.Value, opcion);
     }
 
+    /// <summary>Vigila que ningún menú muestre error al escribir a mano algo que no está en la lista.</summary>
     [TestMethod]
     public void ElMenuEsUnaAyudaYNoUnaRejaAsiQueNoRechazaLoQueSeEscribaAMano()
         => Assert.IsFalse(Hoja(UnaFila()).DataValidations.Any(v => v.ShowErrorMessage),
             "una celda bloqueada obligaria a dejarla vacia cuando la realidad no cabe en dos opciones, y una celda vacia no distingue «no aplica» de «no lo mire»");
 
+    /// <summary>Vigila que una hoja sin personas no lleve validaciones que caerían sobre los títulos.</summary>
     [TestMethod]
     public void SinNingunaFilaNoSePonenMenusSobreLaCabecera()
         => Assert.AreEqual(0, Hoja().DataValidations.Count());
@@ -148,6 +169,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.IsFalse(hoja.Cell(7, Columnas.IndiceDe("paso_entrevistas")).Style.Protection.Locked);
     }
 
+    /// <summary>Vigila tres anchos de muestra: MRN, clave y un paso.</summary>
     [TestMethod]
     public void LosAnchosSonLosDeCadaColumna()
     {
@@ -170,6 +192,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual("055-1111-3853", hoja.Cell(7, Columnas.IndiceDe("mrn")).GetString());
     }
 
+    /// <summary>Vigila que una cédula terminada en letra entre como texto y sin cambiarle nada.</summary>
     [TestMethod]
     public void UnaCedulaQueTerminaEnLetraSaleTalCualYSinAviso()
     {
@@ -225,6 +248,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual("clave", rotulos[16], "la clave sigue siendo la última y a la vista");
     }
 
+    /// <summary>Vigila que las columnas del compañero salgan vacías: lo que se le manda es lo que tiene que mirar.</summary>
     [TestMethod]
     public void LasSieteRespuestasSalenVaciasAunqueLaPersonaTraigaUnaRondaAnterior()
     {
@@ -244,6 +268,7 @@ public class PruebasDelLibroDeTrabajo
         Assert.AreEqual("=Elena", celda.GetString());
     }
 
+    /// <summary>Vigila que con dos casos el título sea genérico y la fecha límite se calcule sobre la salida más temprana.</summary>
     [TestMethod]
     public void ConVariosCasosElTituloNoNombraNingunoYLaFechaLimiteEsLaDelPrimeroQueViaja()
     {
@@ -255,6 +280,7 @@ public class PruebasDelLibroDeTrabajo
             "una fecha limite calculada sobre el ultimo dejaria pasar sin aviso al grupo que sale antes");
     }
 
+    /// <summary>Vigila que con un solo caso el título lo nombre tras el «·».</summary>
     [TestMethod]
     public void ConUnSoloCasoElTituloLoNombra()
         => Assert.AreEqual("Preparación para las ordenanzas · BALC2609", Hoja(UnaFila()).Cell(1, 1).GetString());

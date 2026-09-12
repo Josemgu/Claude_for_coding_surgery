@@ -28,7 +28,9 @@ namespace Fichas.Pruebas.App.Importar;
 [TestClass]
 public sealed class PruebasDelNumeroQueLaBaseRechaza
 {
+    /// <summary>La carpeta temporal de esta prueba; se borra al recoger.</summary>
     private string _carpeta = string.Empty;
+    /// <summary>La conexión abierta sobre la base de la prueba; se cierra al recoger.</summary>
     private SqliteConnection? _conexion;
 
     /// <summary>Abre una base nueva en una carpeta que nadie mas usa.</summary>
@@ -93,6 +95,8 @@ public sealed class PruebasDelNumeroQueLaBaseRechaza
         Assert.IsFalse(salida[0].PendienteDeIdentificar);
     }
 
+    /// <summary>Una hoja de mentira con una persona y con el número de caso que se le diga, bien o mal leído.</summary>
+    /// <param name="numeroCaso">Lo que «leyó» el OCR en el número de caso; va también como valor crudo.</param>
     private static Fichas.Lectura.HojaLeida HojaConNumero(string numeroCaso) => new(
         RutaPdf: "C:/pdfs/malo.pdf",
         Pagina: 1,
@@ -123,28 +127,39 @@ public sealed class PruebasDelNumeroQueLaBaseRechaza
     /// </remarks>
     private sealed class CasosQueRechazanUnNumeroMalFormado : ICasos
     {
+        /// <summary>El repositorio de verdad al que se le pasa todo menos el alta de un número mal formado.</summary>
         private readonly ICasos _deVerdad;
 
+        /// <summary>Envuelve al repositorio de verdad.</summary>
+        /// <param name="deVerdad">El repositorio de casos sobre SQLite.</param>
         internal CasosQueRechazanUnNumeroMalFormado(ICasos deVerdad) => _deVerdad = deVerdad;
 
+        /// <inheritdoc />
         public PaginaDe<Caso> Listar(FiltroDeCasos filtro, Pagina trozo) => _deVerdad.Listar(filtro, trozo);
 
+        /// <inheritdoc />
         public int Contar(FiltroDeCasos filtro) => _deVerdad.Contar(filtro);
 
+        /// <inheritdoc />
         public Caso? Obtener(long id) => _deVerdad.Obtener(id);
 
+        /// <inheritdoc />
         public IReadOnlyDictionary<long, int> ContarPersonasDe(IReadOnlyList<long> casoIds)
             => _deVerdad.ContarPersonasDe(casoIds);
 
+        /// <summary>Lo único que cambia: un número que el <c>CHECK</c> del esquema viejo no admite se rechaza con el mismo texto que SQLite.</summary>
+        /// <param name="caso">El caso que se intenta guardar.</param>
         public ResultadoDeEscritura Guardar(Caso caso)
             => TieneLaFormaQueLaBaseAcepta(caso.NumeroCaso)
                 ? _deVerdad.Guardar(caso)
                 : ResultadoDeEscritura.NoSeEscribio(Aviso.Problema(
                     "CHECK constraint failed: numero_caso", "numero_caso"));
 
+        /// <inheritdoc />
         public ResultadoDeEscritura MarcarEstado(long casoId, EstadoDeRecomendacion estado, long companeroId, string origen)
             => _deVerdad.MarcarEstado(casoId, estado, companeroId, origen);
 
+        /// <inheritdoc />
         public ResultadoDeEscritura MarcarEstadoDelCompanero(
             long casoId,
             EstadoDeRecomendacion estado,
@@ -153,10 +168,12 @@ public sealed class PruebasDelNumeroQueLaBaseRechaza
             string origen)
             => _deVerdad.MarcarEstadoDelCompanero(casoId, estado, motivo, companeroId, origen);
 
+        /// <inheritdoc />
         public ResultadoDeEscritura Archivar(long casoId, bool archivado, string fechaDeArchivado)
             => _deVerdad.Archivar(casoId, archivado, fechaDeArchivado);
 
         /// <summary>Cuatro letras mayusculas y cuatro digitos, o nulo. El GLOB del esquema.</summary>
+        /// <param name="numeroCaso">El número que se quiere guardar; nulo siempre pasa.</param>
         private static bool TieneLaFormaQueLaBaseAcepta(string? numeroCaso)
             => numeroCaso is null
                || (numeroCaso.Length == 8

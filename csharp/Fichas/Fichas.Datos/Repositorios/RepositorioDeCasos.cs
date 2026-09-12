@@ -15,6 +15,8 @@ namespace Fichas.Datos.Repositorios;
 /// </remarks>
 public sealed class RepositorioDeCasos : RepositorioBase, ICasos
 {
+    /// <summary>Las 22 columnas de <c>casos</c> que se leen, en el orden exacto en que <c>Leer</c> las espera por posición.</summary>
+    /// <remarks>Si se añade una columna aquí, hay que añadirla al final y darle su índice en <c>Leer</c>: la lectura es por posición, no por nombre.</remarks>
     private const string Columnas =
         "id, numero_caso, duplicado_de, estado_marcado_por, estado_marcado_en, " +
         "estado_marcado_origen, estado_del_companero, estado_del_companero_por, " +
@@ -24,6 +26,7 @@ public sealed class RepositorioDeCasos : RepositorioBase, ICasos
         "motivo_del_companero";
 
     /// <summary>Trabaja sobre una conexion ya abierta con el esquema aplicado.</summary>
+    /// <param name="conexion">La conexión abierta; no puede ser nula.</param>
     public RepositorioDeCasos(SqliteConnection conexion) : base(conexion)
     {
     }
@@ -202,6 +205,9 @@ public sealed class RepositorioDeCasos : RepositorioBase, ICasos
             casoId);
     }
 
+    /// <summary>Crea la fila y devuelve su id nuevo con <c>last_insert_rowid()</c>; <c>creado_en</c> se pone a ahora si viene vacío.</summary>
+    /// <param name="caso">El caso con <c>Id</c> 0.</param>
+    /// <param name="avisos">Lo que las reglas de formato ya dijeron; se devuelven junto con el resultado.</param>
     private ResultadoDeEscritura Insertar(Caso caso, IReadOnlyList<Aviso> avisos)
         => Escribir(
             "INSERT INTO casos (numero_caso, duplicado_de, estado_marcado_por, " +
@@ -218,6 +224,9 @@ public sealed class RepositorioDeCasos : RepositorioBase, ICasos
             orden => PonerLosCamposDelCaso(orden, caso),
             avisos);
 
+    /// <summary>Reescribe las 21 columnas de la fila con ese id; si no existe, devuelve un problema en vez de crearla.</summary>
+    /// <param name="caso">El caso con su <c>Id</c>.</param>
+    /// <param name="avisos">Lo que las reglas de formato ya dijeron; se devuelven junto con el resultado.</param>
     private ResultadoDeEscritura Cambiar(Caso caso, IReadOnlyList<Aviso> avisos)
         => Escribir(
             "UPDATE casos SET numero_caso = $numero, duplicado_de = $duplicado, " +
@@ -239,6 +248,9 @@ public sealed class RepositorioDeCasos : RepositorioBase, ICasos
             avisos,
             caso.Id);
 
+    /// <summary>Rellena los marcadores de un caso para INSERT y UPDATE, que comparten los 21 marcadores; el <c>$id</c> lo añade solo el UPDATE.</summary>
+    /// <param name="orden">La orden en la que se añaden los parámetros.</param>
+    /// <param name="caso">De dónde salen los valores.</param>
     private static void PonerLosCamposDelCaso(SqliteCommand orden, Caso caso)
     {
         orden.Parameters.AddWithValue("$numero", ONulo(caso.NumeroCaso));
@@ -319,6 +331,10 @@ public sealed class RepositorioDeCasos : RepositorioBase, ICasos
         return condiciones.Count == 0 ? string.Empty : "WHERE " + string.Join(" AND ", condiciones);
     }
 
+    /// <summary>Rellena los marcadores que <c>ComponerElFiltro</c> dejó, y solo esos: un parámetro sin marcador es un error del motor.</summary>
+    /// <param name="orden">La orden en la que se añaden los parámetros.</param>
+    /// <param name="filtro">El mismo filtro con el que se compuso el WHERE.</param>
+    /// <remarks><c>$hoy</c> se añade siempre, aunque el WHERE no lo use: un parámetro de más no molesta al motor y así el filtro de hoy, la ventana y los vencidos comparten la misma fecha.</remarks>
     private static void PonerLosParametrosDelFiltro(SqliteCommand orden, FiltroDeCasos filtro)
     {
         var hoy = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);

@@ -44,6 +44,9 @@ public sealed class RespaldoAntesDeMigrar
     /// <summary>El trozo que marca una copia previa en el nombre del archivo.</summary>
     public const string MarcaDeLaCopia = "antes-de-migrar";
 
+    /// <summary>Privado a propósito: solo <see cref="PrepararPara"/> sabe si hizo falta copiar, y es la única que construye.</summary>
+    /// <param name="versionDeOrigen">La versión que la base tenía; 0 si no existía o no se pudo leer.</param>
+    /// <param name="rutaDeLaCopia">Dónde quedó la copia, o nulo si no se hizo.</param>
     private RespaldoAntesDeMigrar(int versionDeOrigen, string? rutaDeLaCopia)
     {
         VersionDeOrigen = versionDeOrigen;
@@ -69,6 +72,7 @@ public sealed class RespaldoAntesDeMigrar
     /// sistema. Se puede pasar para poder probar el caso de disco lleno sin llenar uno.
     /// </param>
     /// <exception cref="ErrorDeMigracion">Si no hay sitio, o si la copia no se pudo hacer.</exception>
+    /// <returns>El respaldo hecho, o uno sin copia si la base no existía o ya estaba al día.</returns>
     public static RespaldoAntesDeMigrar PrepararPara(
         string rutaDeLaBase, DateTime? cuando = null, Func<string, long>? espacioLibre = null)
     {
@@ -164,6 +168,7 @@ public sealed class RespaldoAntesDeMigrar
     /// cuaderno del dueno— que su base se acababa de migrar de la 13 a la 15.
     /// </remarks>
     /// <param name="versionFinal">La version en la que la base quedo.</param>
+    /// <returns>Una de tres frases: creada, abierta sin migrar, o migrada de X a Y con la ruta de la copia.</returns>
     public string LineaDeCierre(int versionFinal)
     {
         if (VersionDeOrigen == 0)
@@ -186,6 +191,8 @@ public sealed class RespaldoAntesDeMigrar
     /// Solo lectura a proposito: mirar que version tiene no puede ser la operacion que
     /// modifique el archivo del que todavia no hay copia.
     /// </remarks>
+    /// <param name="rutaDeLaBase">El archivo <c>.db</c>, que tiene que existir.</param>
+    /// <returns>La versión registrada, o 0 si el archivo no tiene <c>version_esquema</c> o no es una base.</returns>
     private static int LeerLaVersionSinTocarNada(string rutaDeLaBase)
     {
         try
@@ -203,6 +210,9 @@ public sealed class RespaldoAntesDeMigrar
     }
 
     /// <summary>Comprueba que cabe la copia y ademas la migracion.</summary>
+    /// <param name="rutaDeLaBase">La base cuyo tamaño se multiplica por <see cref="VecesElTamanoQueHacenFalta"/>.</param>
+    /// <param name="espacioLibre">Cómo saber los bytes libres de la unidad de una ruta.</param>
+    /// <exception cref="ErrorDeMigracion">Si no caben la copia y la migración; el mensaje lleva las dos cifras en MiB.</exception>
     private static void ComprobarQueHaySitio(string rutaDeLaBase, Func<string, long> espacioLibre)
     {
         var tamano = new FileInfo(rutaDeLaBase).Length;
@@ -218,6 +228,8 @@ public sealed class RespaldoAntesDeMigrar
     }
 
     /// <summary>Cuantos bytes quedan libres en la unidad donde vive esa ruta.</summary>
+    /// <param name="ruta">Cualquier ruta de la unidad que se quiere medir.</param>
+    /// <returns>Los bytes libres, o <see cref="long.MaxValue"/> si no se pudo preguntar, para no bloquear el arranque por eso.</returns>
     private static long EspacioLibreDeLaUnidad(string ruta)
     {
         try
@@ -239,6 +251,10 @@ public sealed class RespaldoAntesDeMigrar
     /// existe —dos aperturas en el mismo segundo— se numera: sobrescribir seria perder
     /// justo el respaldo recien hecho.
     /// </remarks>
+    /// <param name="rutaDeLaBase">La base que se va a copiar.</param>
+    /// <param name="version">La versión de origen, que va en el nombre.</param>
+    /// <param name="cuando">La hora que va en el nombre.</param>
+    /// <returns>Una ruta que todavía no existe en la carpeta de la base.</returns>
     private static string SitioLibreParaLaCopia(string rutaDeLaBase, int version, DateTime cuando)
     {
         var candidato = NombreDeLaCopia(rutaDeLaBase, version, cuando);
@@ -253,6 +269,11 @@ public sealed class RespaldoAntesDeMigrar
     }
 
     /// <summary>«fichas-antes-de-migrar-20260904-180537-v13.db», al lado de la base.</summary>
+    /// <param name="rutaDeLaBase">La base original; la copia toma su carpeta, su nombre y su extensión.</param>
+    /// <param name="version">La versión de origen, que va como <c>-vN</c>.</param>
+    /// <param name="cuando">La hora, escrita como <c>yyyyMMdd-HHmmss</c>.</param>
+    /// <param name="vuelta">1 para el primer intento; a partir de 2 se añade <c>-N</c> al final para no pisar una copia del mismo segundo.</param>
+    /// <returns>La ruta completa de la copia; no comprueba si existe.</returns>
     public static string NombreDeLaCopia(
         string rutaDeLaBase, int version, DateTime cuando, int vuelta = 1)
     {
@@ -271,6 +292,7 @@ public sealed class RespaldoAntesDeMigrar
     }
 
     /// <summary>Quita el diario de una migracion rota, que ya no vale para nada.</summary>
+    /// <param name="rutaDeLaBase">La base repuesta; se borran <c>-journal</c>, <c>-wal</c> y <c>-shm</c> si existen.</param>
     private static void BorrarLosSatelitesDelDiario(string rutaDeLaBase)
     {
         foreach (var cola in new[] { "-journal", "-wal", "-shm" })
@@ -280,8 +302,13 @@ public sealed class RespaldoAntesDeMigrar
         }
     }
 
+    /// <summary>Un entero en texto sin separador de miles ni cultura: «13», nunca «13,0» ni «1.300».</summary>
+    /// <param name="valor">El número.</param>
     private static string Numero(int valor) => valor.ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Bytes en mebibytes con un decimal, para el mensaje de disco lleno.</summary>
+    /// <param name="bytes">La cifra en bytes.</param>
+    /// <returns>Por ejemplo «12.5 MiB».</returns>
     private static string EnMiB(long bytes)
         => (bytes / 1024d / 1024d).ToString("0.0", CultureInfo.InvariantCulture) + " MiB";
 }

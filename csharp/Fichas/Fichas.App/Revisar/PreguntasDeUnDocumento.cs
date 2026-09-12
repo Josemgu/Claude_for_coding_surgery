@@ -129,6 +129,10 @@ public static class PreguntasDeUnDocumento
     }
 
     /// <summary>El ticket de una persona: sus seis, como esta y quien lo dijo.</summary>
+    /// <param name="persona">La persona del ticket.</param>
+    /// <param name="firma">Quién contestó sus seis; <c>SinFirmar</c> si nadie.</param>
+    /// <param name="equipo">Los compañeros, para poner nombre a quien firmó.</param>
+    /// <param name="quienMira">Quien tiene el programa abierto, o nulo; decide <c>LoContestoOtro</c>.</param>
     public static TicketDeUnaPersona TicketDe(
         Persona persona,
         FirmaDeLosPasos firma,
@@ -152,6 +156,7 @@ public static class PreguntasDeUnDocumento
     }
 
     /// <summary>Las seis de esa persona con su rótulo y su respuesta de ahora.</summary>
+    /// <param name="persona">La persona cuyas seis columnas se leen.</param>
     public static IReadOnlyList<PreguntaDeUnaPersona> LasSeisDe(Persona persona)
     {
         ArgumentNullException.ThrowIfNull(persona);
@@ -170,6 +175,7 @@ public static class PreguntasDeUnDocumento
     }
 
     /// <summary>Las seis respuestas de la pantalla, listas para escribirse.</summary>
+    /// <param name="preguntas">Las seis, en el orden de <see cref="Rotulos"/>; con otro número se lanza <see cref="ArgumentException"/>.</param>
     public static RespuestaALosPasos ComoSeGuarda(IReadOnlyList<PreguntaDeUnaPersona> preguntas)
     {
         ArgumentNullException.ThrowIfNull(preguntas);
@@ -198,6 +204,7 @@ public static class PreguntasDeUnDocumento
     public static IReadOnlyList<bool?> LasTresRespuestas { get; } = [null, true, false];
 
     /// <summary>«sin mirar», «sí» o «no»; la primera no es la tercera.</summary>
+    /// <param name="respuesta">Sí, no, o nulo si nadie la ha mirado.</param>
     public static string DecirLaRespuesta(bool? respuesta) => respuesta switch
     {
         true => "sí",
@@ -211,6 +218,7 @@ public static class PreguntasDeUnDocumento
     /// contaría como «un documento no completo», y lo que él necesita saber es que es una
     /// persona de cinco. El denominador se ve siempre (criterio C1-1).
     /// </remarks>
+    /// <param name="personas">Las personas del documento; con ninguna se dice que no se sacó ninguna.</param>
     public static string Resumen(IReadOnlyList<Persona> personas)
     {
         ArgumentNullException.ThrowIfNull(personas);
@@ -232,6 +240,8 @@ public static class PreguntasDeUnDocumento
     /// de que nadie sepa nunca de quién se fía. Y se dice también por qué vía, porque no es
     /// lo mismo que venga de su Excel que de esta pantalla.
     /// </remarks>
+    /// <param name="firma">Quién contestó, cuándo y por qué vía.</param>
+    /// <param name="equipo">Los compañeros, para decir el nombre y no el número.</param>
     public static string LineaDeLaFirma(FirmaDeLosPasos firma, IReadOnlyList<Companero> equipo)
     {
         ArgumentNullException.ThrowIfNull(firma);
@@ -247,6 +257,8 @@ public static class PreguntasDeUnDocumento
     }
 
     /// <summary>Qué compañero fue. Sin su fila, se dice su número y no se pierde el rastro.</summary>
+    /// <param name="companeroId">El número del compañero que firmó, o nulo si no quedó anotado.</param>
+    /// <param name="equipo">Los compañeros donde se busca su nombre.</param>
     private static string Quien(long? companeroId, IReadOnlyList<Companero> equipo)
     {
         if (companeroId is not long id) return "un compañero que no quedó anotado";
@@ -262,6 +274,7 @@ public static class PreguntasDeUnDocumento
     /// Una fecha que no se entiende NO tumba la línea: lo importante —quién contestó— se
     /// sigue diciendo. Es la misma regla que ya sigue lo que contestó el compañero.
     /// </remarks>
+    /// <param name="cuando">La fecha tal como la guardó la base.</param>
     private static string? EnEspanol(string? cuando)
     {
         if (string.IsNullOrWhiteSpace(cuando)) return null;
@@ -275,6 +288,7 @@ public static class PreguntasDeUnDocumento
     /// La fila va siempre que se sepa: dos personas del mismo formulario pueden llamarse
     /// igual, y entonces el nombre solo no dice de cuál se habla.
     /// </remarks>
+    /// <param name="persona">La persona de la que se habla.</param>
     private static string DeQuien(Persona persona)
     {
         var nombre = string.IsNullOrWhiteSpace(persona.Nombre)
@@ -287,6 +301,7 @@ public static class PreguntasDeUnDocumento
     }
 
     /// <summary>Su cédula tal como está leída; nunca se inventa ni se completa.</summary>
+    /// <param name="persona">La persona cuya cédula se lee.</param>
     private static string Cedula(Persona persona)
         => string.IsNullOrWhiteSpace(persona.Mrn) ? SinCedula : persona.Mrn.Trim();
 
@@ -295,6 +310,7 @@ public static class PreguntasDeUnDocumento
     /// Lleva el número de caso porque es lo que él lee primero en la tarjeta. Con varias
     /// ventanas abiertas a la vez, un título igual en todas no sirve para volver a ninguna.
     /// </remarks>
+    /// <param name="caso">El documento de la ventana.</param>
     private static string Titulo(Caso caso)
     {
         var numero = string.IsNullOrWhiteSpace(caso.NumeroCaso)
@@ -309,6 +325,7 @@ public static class PreguntasDeUnDocumento
     /// La fecha de viaje va aquí porque es lo que corre: él llama al obispo mirando cuántos
     /// días quedan. Lo que no se sabe se dice, no se deja en blanco.
     /// </remarks>
+    /// <param name="caso">El documento de la ventana.</param>
     private static string Cabecera(Caso caso)
     {
         var partes = new List<string>();
@@ -320,6 +337,9 @@ public static class PreguntasDeUnDocumento
         return string.Join(" · ", partes);
     }
 
+    /// <summary>La firma de una persona, o <c>SinFirmar</c> si el diccionario no la trae.</summary>
+    /// <param name="firmas">Las firmas del documento, por número de persona.</param>
+    /// <param name="personaId">La persona que se busca.</param>
     private static FirmaDeLosPasos Firma(IReadOnlyDictionary<long, FirmaDeLosPasos> firmas, long personaId)
         => firmas.TryGetValue(personaId, out var firma) ? firma : FirmaDeLosPasos.SinFirmar;
 }

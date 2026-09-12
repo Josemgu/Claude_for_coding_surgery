@@ -68,8 +68,6 @@ public sealed class PruebasDelMotivoDeMiguel
         Assert.AreEqual("no se pudo comunicar con el líder", banco.Tablero.De(noSePudo)!.LineaDelMotivo);
         Assert.AreEqual("el líder no lo hizo", banco.Tablero.De(noLoHizo)!.LineaDelMotivo);
         Assert.AreEqual(string.Empty, banco.Tablero.De(aSecas)!.LineaDelMotivo, "«No completado» a secas no inventa motivo.");
-        Assert.IsTrue(banco.Tablero.De(noLoHizo)!.HayLineaDeMotivo, "Y la linea se ensena solo cuando dice algo.");
-        Assert.IsFalse(banco.Tablero.De(aSecas)!.HayLineaDeMotivo);
     }
 
     /// <summary>El motivo se cambia por otro y se quita, y la base y la tarjeta lo siguen.</summary>

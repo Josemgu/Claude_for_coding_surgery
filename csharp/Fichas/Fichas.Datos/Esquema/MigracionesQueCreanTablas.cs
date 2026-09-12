@@ -17,6 +17,8 @@ internal static class MigracionesQueCreanTablas
     // VERSION 8 — lo que no se pudo leer deja su renglon.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 8: la tabla de los PDF o páginas que no se pudieron leer.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion8 =
         "'documentos_ilegibles': cada PDF o pagina que no se pudo leer deja su " +
         "renglon con la ruta, la pagina y el motivo, y se puede consultar despues.";
@@ -50,6 +52,7 @@ internal static class MigracionesQueCreanTablas
         """;
 
     /// <summary>Crea la tabla de los documentos que no se pudieron leer.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion8(SqliteConnection conexion)
     {
         Aplicar(conexion, 8, () =>
@@ -65,6 +68,8 @@ internal static class MigracionesQueCreanTablas
     // VERSION 11 — lo que volvio del Excel y no entro.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 11: la tabla de las filas del Excel de un compañero que no entraron.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion11 =
         "'filas_descartadas': lo que volvio en el Excel de un companero y NO entro en " +
         "la base deja su renglon, que se queda al cerrar el programa.";
@@ -100,6 +105,7 @@ internal static class MigracionesQueCreanTablas
         """;
 
     /// <summary>Crea la tabla de las filas que volvieron y no entraron.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion11(SqliteConnection conexion)
     {
         Aplicar(conexion, 11, () =>
@@ -112,6 +118,11 @@ internal static class MigracionesQueCreanTablas
     }
 
     /// <summary>Ejecuta los pasos de una migracion traduciendo el fallo del motor.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base; solo se comprueba que no sea nula.</param>
+    /// <param name="version">El número de la migración, para nombrarla en el error.</param>
+    /// <param name="pasos">Las instrucciones de la migración, ya cerradas sobre la conexión.</param>
+    /// <exception cref="ErrorDeMigracion">Envuelve cualquier <see cref="SqliteException"/> con la versión y el mensaje del motor en español.</exception>
+    /// <remarks>Copia literal del <c>Aplicar</c> de las otras dos clases de migraciones; se repite a propósito para que cada archivo se lea solo. Sin transacción: aquí no importa porque <c>CREATE TABLE IF NOT EXISTS</c> y <c>CREATE INDEX IF NOT EXISTS</c> se pueden repetir.</remarks>
     private static void Aplicar(SqliteConnection conexion, int version, Action pasos)
     {
         ArgumentNullException.ThrowIfNull(conexion);
@@ -129,6 +140,9 @@ internal static class MigracionesQueCreanTablas
         }
     }
 
+    /// <summary>Atajo a <see cref="ReconstructorDeTablas.Ejecutar"/> para que cada migración se lea sin el nombre de la clase delante.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <param name="instruccion">Una sola instrucción SQL sin parámetros.</param>
     private static void Ejecutar(SqliteConnection conexion, string instruccion)
         => ReconstructorDeTablas.Ejecutar(conexion, instruccion);
 }

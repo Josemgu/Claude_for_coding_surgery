@@ -36,11 +36,17 @@ namespace Fichas.App.Grupo;
 /// </remarks>
 public sealed class LectorDeGrupos
 {
+    /// <summary>De dónde se leen los documentos, en una sola consulta por pintado.</summary>
     private readonly ICasos _casos;
+    /// <summary>De dónde se leen las personas, en una sola consulta por pintado.</summary>
     private readonly IPersonas _personas;
+    /// <summary>De dónde se lee quién lleva cada documento.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>De dónde salen los nombres de quienes llevan cada documento.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>De dónde salió cada campo; se lee en bloque una vez por día.</summary>
     private readonly IProcedencia _procedencia;
+    /// <summary>Cómo se comprueba que el PDF está en su ruta; el disco de verdad salvo que la prueba pase otra cosa.</summary>
     private readonly Func<string, bool> _elArchivoExiste;
 
     /// <summary>Se ata a los cinco puertos que hacen falta para armar un grupo.</summary>
@@ -163,6 +169,7 @@ public sealed class LectorDeGrupos
     /// pantalla se lee «no completado» hasta que esa fase cierre, y no porque aqui falte
     /// nada.</para>
     /// </remarks>
+    /// <param name="caso">El documento; no puede ser nulo.</param>
     public static MotivoDeNoCompletar MotivoDe(Caso caso)
     {
         ArgumentNullException.ThrowIfNull(caso);
@@ -177,6 +184,8 @@ public sealed class LectorDeGrupos
     /// Es el criterio C11-4 tal como esta escrito, y el orden del desempate va declarado a
     /// proposito: «el mas grave» seria una opinion y dos personas lo leerian distinto.
     /// </remarks>
+    /// <param name="casos">Los documentos entre los que se cuenta; los completos no cuentan.</param>
+    /// <returns>El motivo más repetido, o <c>SinMotivo</c> si todos están completos.</returns>
     public static MotivoDeNoCompletar MotivoQueMasSeRepite(IEnumerable<Caso> casos)
     {
         ArgumentNullException.ThrowIfNull(casos);
@@ -207,9 +216,11 @@ public sealed class LectorDeGrupos
     ];
 
     /// <summary>Un documento esta completo cuando su recomendacion lo dice.</summary>
+    /// <param name="caso">El documento que se mira.</param>
     private static bool EstaCompleto(Caso caso) => caso.Estado == EstadoDeRecomendacion.Completa;
 
     /// <summary>Por que clave se junta un dia en unidades; sin numero, por el nombre.</summary>
+    /// <param name="caso">El documento del que se saca la unidad.</param>
     private static string ClaveDeUnidad(Caso caso)
         => string.IsNullOrWhiteSpace(caso.UnidadNumero)
             ? "sin número·" + (caso.UnidadNombre?.Trim() ?? string.Empty)
@@ -262,6 +273,8 @@ public sealed class LectorDeGrupos
     /// con el dia mas cargado de una base de 3 000 eso son 98 consultas para pintar una
     /// pantalla. Se trae la lista entera y se parte aqui, que es lo mismo que ya hace Inicio.
     /// </remarks>
+    /// <param name="casos">Los documentos cuyas personas se quieren; las de otros se descartan.</param>
+    /// <returns>Las personas de cada documento por su número interno; un documento sin personas no aparece.</returns>
     private Dictionary<long, List<Persona>> AgruparLasPersonas(IReadOnlyList<Caso> casos)
     {
         var queremos = casos.Select(c => c.Id).ToHashSet();
@@ -317,6 +330,11 @@ public sealed class LectorDeGrupos
     /// dia todos los documentos tienen la misma, y leerla otra vez seria una segunda fuente que
     /// algun dia diria otra cosa.
     /// </remarks>
+    /// <param name="fecha">El día del viaje, que la cabecera dice.</param>
+    /// <param name="unidad">Los documentos de esa unidad, agrupados por su clave.</param>
+    /// <param name="personasPorCaso">Las personas de cada documento, ya leídas.</param>
+    /// <param name="duenos">Quién lleva cada documento, por número interno.</param>
+    /// <param name="procedencias">De dónde salió cada campo, leída una vez para el día.</param>
     private UnidadDelGrupo ArmarLaUnidad(
         DateOnly fecha,
         IGrouping<string, Caso> unidad,
@@ -377,6 +395,11 @@ public sealed class LectorDeGrupos
     /// ninguna persona cuya recomendacion se pudiera mirar. No se pinta como «no lista».
     /// </para>
     /// </remarks>
+    /// <param name="caso">El documento del que sale.</param>
+    /// <param name="persona">La persona, o nulo para el renglón de un documento sin ninguna.</param>
+    /// <param name="leFalta">Cuántos datos le faltan al documento.</param>
+    /// <param name="hayPdf">Si el PDF está en su ruta.</param>
+    /// <param name="dueno">Quién lleva el documento, o vacío.</param>
     private static PersonaDelGrupo ArmarLaPersona(Caso caso, Persona? persona, int leFalta, bool hayPdf, string dueno)
         => new(
             persona?.Id ?? 0,
@@ -401,6 +424,8 @@ public sealed class LectorDeGrupos
     /// las 3 pastillas por dia no cambian: el numero de elementos visuales sigue sin depender
     /// de cuantos casos haya (C12-2, que sigue mandando).
     /// </remarks>
+    /// <param name="unidad">Los documentos de esa unidad ese día, agrupados por su clave.</param>
+    /// <param name="personasPorCaso">Las personas de cada documento, ya leídas.</param>
     private static PastillaDeDia ArmarLaPastilla(
         IGrouping<string, Caso> unidad,
         IReadOnlyDictionary<long, List<Persona>> personasPorCaso)

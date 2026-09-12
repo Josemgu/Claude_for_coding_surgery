@@ -26,9 +26,12 @@ public sealed record LibroLeido(
 public sealed class ErrorDeLectura : Exception
 {
     /// <summary>Crea el error con su frase en espanol.</summary>
+    /// <param name="mensaje">La frase que verá Miguel, con el nombre del archivo dentro.</param>
     public ErrorDeLectura(string mensaje) : base(mensaje) { }
 
     /// <summary>Crea el error con su frase en espanol y lo que dijo el sistema debajo.</summary>
+    /// <param name="mensaje">La frase que verá Miguel.</param>
+    /// <param name="causa">La excepción de ClosedXML o del sistema de archivos, para no perder su detalle.</param>
     public ErrorDeLectura(string mensaje, Exception causa) : base(mensaje, causa) { }
 }
 
@@ -65,6 +68,7 @@ public static class LectorDeExcel
     /// </summary>
     public const int MaximoDeFilas = 20_000;
 
+    /// <summary>ISO-8601 sin hora: una fecha de Excel vuelve así porque así la guarda la base. La hora, si la tenía, se pierde.</summary>
     private const string FormatoDeFecha = "yyyy-MM-dd";
 
     /// <summary>
@@ -76,6 +80,8 @@ public static class LectorDeExcel
     /// <c>3</c> no se convierta en el texto <c>«3.0»</c> y deje de casar. Y una fecha se
     /// devuelve en ISO-8601, que es como las guarda toda la base.
     /// </remarks>
+    /// <param name="celda">Cualquier celda; una vacía o con solo blancos da nulo.</param>
+    /// <returns>Fecha en «aaaa-MM-dd», booleano como «1»/«0», número sin «.0» si es entero, o el texto recortado.</returns>
     public static string? TextoDeCelda(IXLCell celda)
     {
         if (celda.IsEmpty())
@@ -108,6 +114,9 @@ public static class LectorDeExcel
     /// Las filas totalmente vacias se saltan y no cuentan como descartadas: son el resto de
     /// haber borrado el contenido de una fila.
     /// </remarks>
+    /// <param name="ruta">Ruta del <c>.xlsx</c> en disco.</param>
+    /// <param name="nombreDeLaHoja">La pestaña que se busca; vacía o ausente, se lee la primera con aviso.</param>
+    /// <exception cref="ErrorDeLectura">El archivo no existe, no se abre como libro, o la fila de títulos está toda en blanco.</exception>
     public static LibroLeido Leer(string ruta, string nombreDeLaHoja = Columnas.NombreDeLaHoja)
     {
         if (!File.Exists(ruta))
@@ -146,6 +155,8 @@ public static class LectorDeExcel
     /// arbitrario y hay que elegir algo; se elige la primera porque es la que ve quien mira
     /// el archivo de izquierda a derecha.
     /// </remarks>
+    /// <param name="titulos">La fila de títulos tal como salió de <see cref="Leer"/>; los nulos no entran al diccionario.</param>
+    /// <param name="fila">La fila a convertir; si tiene menos celdas que títulos, las que faltan no aparecen.</param>
     public static IReadOnlyDictionary<string, string?> FilaPorTitulo(IReadOnlyList<string?> titulos, FilaLeida fila)
     {
         var valores = new Dictionary<string, string?>();
@@ -166,6 +177,9 @@ public static class LectorDeExcel
     /// desde otro programa que renombre la pestana, y perder la ronda entera por el nombre de
     /// una pestana seria desproporcionado. Lo que no se hace es callarlo.
     /// </remarks>
+    /// <param name="libro">El libro ya abierto.</param>
+    /// <param name="nombreDeLaHoja">La pestaña pedida; con la cadena vacía se va directo a la primera.</param>
+    /// <returns>La hoja y una lista de avisos: vacía si era la pedida, con uno si se cayó a la primera.</returns>
     private static (IXLWorksheet Hoja, List<Aviso> Avisos) ElegirHoja(XLWorkbook libro, string nombreDeLaHoja)
     {
         if (nombreDeLaHoja.Length > 0 && libro.TryGetWorksheet(nombreDeLaHoja, out var pedida))
@@ -189,6 +203,8 @@ public static class LectorDeExcel
     /// que es la unica que no puede faltar en una hoja de este programa; un archivo que
     /// Miguel arme por su cuenta no la tiene y cae a la fila 1, que es donde el la habra puesto.
     /// </remarks>
+    /// <param name="hoja">La pestaña elegida.</param>
+    /// <returns>La primera fila, hasta <see cref="UltimaFilaDondeSeBuscaLaCabecera"/>, con una celda que diga «clave»; si no, <see cref="FilaDeTitulosPorDefecto"/>.</returns>
     private static int BuscarLaFilaDeTitulos(IXLWorksheet hoja)
     {
         var tituloDeLaClave = Columnas.Por(Columnas.ColumnaDeLaClave).Titulo.Trim().ToLowerInvariant();
@@ -199,6 +215,10 @@ public static class LectorDeExcel
         return FilaDeTitulosPorDefecto;
     }
 
+    /// <summary>Las celdas de una fila como texto, desde la columna 1 hasta la última usada de la hoja.</summary>
+    /// <param name="hoja">La pestaña elegida.</param>
+    /// <param name="numero">El número de fila de Excel, base 1.</param>
+    /// <returns>Una entrada por columna usada, nula donde la celda está vacía; vacía si la hoja no tiene columnas.</returns>
     private static List<string?> TitulosDeUnaFila(IXLWorksheet hoja, int numero)
     {
         var ultima = hoja.LastColumnUsed()?.ColumnNumber() ?? 0;
@@ -208,6 +228,14 @@ public static class LectorDeExcel
         return titulos;
     }
 
+    /// <summary>
+    /// Las filas de datos, con su número de Excel, saltando las que están todas en blanco y
+    /// parando en <see cref="MaximoDeFilas"/> con un aviso.
+    /// </summary>
+    /// <param name="hoja">La pestaña elegida.</param>
+    /// <param name="primera">La fila justo debajo de los títulos.</param>
+    /// <param name="cuantasColumnas">Cuántas celdas se leen por fila: tantas como títulos.</param>
+    /// <param name="avisos">La lista de avisos del libro, a la que se añade el del tope si se alcanza.</param>
     private static List<FilaLeida> LeerLasFilas(IXLWorksheet hoja, int primera, int cuantasColumnas, List<Aviso> avisos)
     {
         var filas = new List<FilaLeida>();

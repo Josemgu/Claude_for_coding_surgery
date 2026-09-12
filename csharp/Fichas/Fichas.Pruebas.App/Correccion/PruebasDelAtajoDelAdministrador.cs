@@ -22,9 +22,13 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDelAtajoDelAdministrador
 {
+    /// <summary>El id fijo del caso que se da por completo.</summary>
     private const long CasoDePrueba = 400;
+    /// <summary>La unica persona del caso; sus campos tampoco se firman.</summary>
     private const long PersonaDePrueba = 401;
+    /// <summary>La unica fila de la base viva del dueno: companera activa y SIN rol de administrador.</summary>
     private const long Sandy = 1;
+    /// <summary>El administrador que se da de alta solo en las pruebas que lo piden.</summary>
     private const long ElAdmin = 2;
 
     /// <summary>Lo que monta cada prueba.</summary>

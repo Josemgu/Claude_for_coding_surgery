@@ -1,8 +1,6 @@
 using Fichas.App.Importar;
 using Fichas.Contratos.Modelos;
-using Fichas.Contratos.Puertos;
 using Fichas.Datos.Mantenimiento;
-using Fichas.Datos.Repositorios;
 
 namespace Fichas.Pruebas.App.Importar;
 
@@ -237,6 +235,10 @@ public sealed class PruebasDeBorrarLosPdfIlegibles : BaseDeImportacion
 
     // ══════════════════════════ Utilidades de estas pruebas ══════════════════════════
 
+    /// <summary>Mete un renglón de ilegible en la base y devuelve su id; falla la prueba si no entra.</summary>
+    /// <param name="rutaPdf">El PDF del renglón.</param>
+    /// <param name="motivo">El código del motivo.</param>
+    /// <param name="casoId">El caso al que apunta, o nulo para un PDF que no dejó documento.</param>
     private long SembrarRenglon(string rutaPdf, string motivo, long? casoId)
     {
         var escrito = Datos.Ilegibles.Registrar(new RenglonIlegible
@@ -252,6 +254,7 @@ public sealed class PruebasDeBorrarLosPdfIlegibles : BaseDeImportacion
         return escrito.Id;
     }
 
+    /// <summary>Los ids de todos los renglones que hay ahora en la base, hasta cien.</summary>
     private IReadOnlyCollection<long> IdsDeLosRenglones()
         => [.. Datos.Ilegibles
                 .Listar(Contratos.Consultas.FiltroDeIlegibles.Todo, Contratos.Consultas.Pagina.Primera(100))

@@ -27,10 +27,14 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDelMotivoDelCompanero
 {
+    /// <summary>La base en memoria de esta prueba, montada en <see cref="Preparar"/>.</summary>
     private BaseInventada _base = null!;
+    /// <summary>La carpeta temporal donde se escriben los <c>.xlsx</c>; se borra en <see cref="Recoger"/>.</summary>
     private string _carpeta = null!;
+    /// <summary>El número interno del compañero de prueba al que se le genera el paquete.</summary>
     private long _sandy;
 
+    /// <summary>Monta la base en memoria, la carpeta temporal y el compañero de cada prueba.</summary>
     [TestInitialize]
     public void Preparar()
     {
@@ -39,6 +43,7 @@ public class PruebasDelMotivoDelCompanero
         _sandy = _base.Companero("Sandy");
     }
 
+    /// <summary>Borra la carpeta temporal; ningún <c>.xlsx</c> se queda en el disco.</summary>
     [TestCleanup]
     public void Recoger()
     {
@@ -46,8 +51,15 @@ public class PruebasDelMotivoDelCompanero
         catch (IOException) { /* si Windows todavia tiene la manija, la limpia el sistema */ }
     }
 
+    /// <summary>La ruta de un archivo dentro de la carpeta temporal de la prueba.</summary>
+    /// <param name="nombre">El nombre del archivo; por defecto el del paquete.</param>
     private string Ruta(string nombre = "por_verificar.xlsx") => Path.Combine(_carpeta, nombre);
 
+    /// <summary>Escribe —o vacía, con nulo— una celda cualquiera de una fila, como haría el compañero.</summary>
+    /// <param name="ruta">El <c>.xlsx</c> a modificar.</param>
+    /// <param name="fila">La fila de Excel, base 1.</param>
+    /// <param name="nombreDeColumna">El nombre de la columna en la base, no su título.</param>
+    /// <param name="valor">El texto, o nulo para vaciar la celda.</param>
     private static void Escribir(string ruta, int fila, string nombreDeColumna, string? valor)
     {
         using var libro = new XLWorkbook(ruta);
@@ -67,6 +79,10 @@ public class PruebasDelMotivoDelCompanero
         libro.Save();
     }
 
+    /// <summary>Da de alta un caso con una persona y le genera el paquete al compañero; falla la prueba si no se escribió.</summary>
+    /// <param name="numero">El número de caso.</param>
+    /// <param name="mrn">La cédula de la persona.</param>
+    /// <returns>El número interno del caso.</returns>
     private long UnCasoConUnaPersona(string numero = "BALC2609", string mrn = "055-1111-385A")
     {
         var caso = _base.Caso(numero);

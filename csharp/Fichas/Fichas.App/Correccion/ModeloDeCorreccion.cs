@@ -22,16 +22,37 @@ namespace Fichas.App.Correccion;
 /// </remarks>
 public sealed partial class ModeloDeCorreccion
 {
+    /// <summary>Por donde se lee y se escribe el caso: sus cinco campos van en UNA fila.</summary>
     private readonly ICasos _casos;
+
+    /// <summary>Por donde se leen y se escriben las personas del caso, una a una.</summary>
     private readonly IPersonas _personas;
+
+    /// <summary>De donde salio cada campo, y el UNICO camino por el que se firma (regla permanente 5).</summary>
     private readonly IProcedencia _procedencia;
+
+    /// <summary>Rasteriza y lee el escaneo; solo se usa para situar las bandas, nunca para cambiar un valor.</summary>
     private readonly ILecturaDePdf _lecturaDePdf;
+
+    /// <summary>Propone campos sobre una hoja leida; de lo propuesto se toma SOLO la banda.</summary>
     private readonly IExtraccion _extraccion;
+
+    /// <summary>La hora del programa, para que una prueba pueda decir que hora es al firmar y al acusar.</summary>
     private readonly IReloj _reloj;
+
+    /// <summary>Para poner nombre a quien contesto en el Excel de vuelta y a quien puso la marca.</summary>
     private readonly ICompaneros _companeros;
 
+    /// <summary>
+    /// Lo tecleado y todavia no guardado, por clave de campo. Una clave ausente significa
+    /// «no se ha tocado»; una clave con nulo significa «se vacio».
+    /// </summary>
     private readonly Dictionary<string, string?> _tecleado = new(StringComparer.Ordinal);
+
+    /// <summary>Todos los campos del caso abierto, en orden de lectura; se vacia y se rehace al cargar.</summary>
     private readonly List<CampoEnPantalla> _campos = [];
+
+    /// <summary>Lo que salio mal al cargar; se suma a los avisos de la cabecera mientras dure el caso.</summary>
     private readonly List<Aviso> _avisosDeCarga = [];
 
     /// <summary>
@@ -52,7 +73,13 @@ public sealed partial class ModeloDeCorreccion
     /// </remarks>
     private IReadOnlyList<RespuestaDelCompanero> _respuestas = [];
 
+    /// <summary>El caso abierto tal como esta en la base; nulo hasta que <see cref="Cargar"/> lo encuentre.</summary>
+    /// <remarks>
+    /// Se relee del almacen despues de cada escritura: la pantalla no se adelanta a la base.
+    /// </remarks>
     private Caso? _caso;
+
+    /// <summary>Las personas del caso abierto. Se REEMPLAZA en cada carga, por lo mismo que <see cref="_respuestas"/>.</summary>
     private IReadOnlyList<Persona> _personasDelCaso = [];
 
     /// <summary>Monta el modelo con las siete puertas que necesita, y nada mas.</summary>
@@ -61,6 +88,13 @@ public sealed partial class ModeloDeCorreccion
     /// NOMBRE a quien contesto en el Excel de vuelta. Sin ella la respuesta se veria igual
     /// pero firmada por «el companero n.º 7», que no dice nada a quien mira la pantalla.
     /// </remarks>
+    /// <param name="casos">El almacen de casos.</param>
+    /// <param name="personas">El almacen de personas.</param>
+    /// <param name="procedencia">El almacen de procedencia, por donde se firma.</param>
+    /// <param name="lecturaDePdf">Quien rasteriza y lee el escaneo.</param>
+    /// <param name="extraccion">Quien propone campos sobre lo leido.</param>
+    /// <param name="reloj">La hora del programa.</param>
+    /// <param name="companeros">El almacen de companeros, para ponerles nombre.</param>
     public ModeloDeCorreccion(
         ICasos casos,
         IPersonas personas,
@@ -160,6 +194,13 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Abre un caso. Devuelve falso y deja su aviso si no se pudo; NUNCA lanza.</summary>
+    /// <remarks>
+    /// Tira lo tecleado del caso anterior: lo que no se guardo antes de cambiar de caso no se
+    /// conserva, y la pantalla lo pregunta antes de llegar aqui. Abrir un caso no escribe ni
+    /// una fila (regla permanente 5): lo vigila <c>PruebasDelModeloDeCorreccion.AbrirUnCasoNoFirmaNada</c>.
+    /// </remarks>
+    /// <param name="casoId">El numero interno del caso; si ya no esta en la base, se dice y se devuelve falso.</param>
+    /// <returns>Verdadero si el caso se abrio con sus campos y sus personas; falso si ya no esta.</returns>
     public bool Cargar(long casoId)
     {
         _tecleado.Clear();
@@ -196,6 +237,8 @@ public sealed partial class ModeloDeCorreccion
     /// ningun campo (regla permanente 5).
     /// </para>
     /// </remarks>
+    /// <param name="casoId">El caso cuyas firmas de los seis pasos se leen de una vez.</param>
+    /// <param name="personas">Las personas del caso; las que no traen respuesta no salen.</param>
     private void ArmarLasRespuestas(long casoId, IReadOnlyList<Persona> personas)
     {
         var firmas = _personas.FirmasDeLosPasosDelCaso(casoId);
@@ -228,6 +271,9 @@ public sealed partial class ModeloDeCorreccion
     /// número al darle de baja borraría el rastro de lo que hizo.
     /// </para>
     /// </remarks>
+    /// <param name="personas">Las personas del caso, de las que se toma <c>propuesto_por</c>.</param>
+    /// <param name="firmas">La firma de los seis pasos de cada persona, de la que se toma <c>pasos_por</c>.</param>
+    /// <returns>Cada id que hizo falta con su compañero, o nulo si ese id ya no está en la base.</returns>
     private Dictionary<long, Companero?> ElEquipoQueHaceFalta(
         IReadOnlyList<Persona> personas, IReadOnlyDictionary<long, FirmaDeLosPasos> firmas)
     {
@@ -250,20 +296,33 @@ public sealed partial class ModeloDeCorreccion
     /// Se revalida al teclear y no al guardar: un campo que se pone rojo media hora despues
     /// obliga a volver a buscar donde estaba el error (<c>interfaz/campo.py</c>).
     /// </remarks>
+    /// <param name="clave">La clave del campo, la que compone <see cref="CampoEnPantalla.ClaveDe"/>.</param>
+    /// <param name="valor">Lo que hay en el cuadro ahora; nulo o vacio significa «se vacio».</param>
     public void Teclear(string clave, string? valor) => _tecleado[clave] = valor;
 
     /// <summary>Lo que hay escrito ahora mismo en ese campo; vacio devuelve nulo.</summary>
+    /// <remarks>
+    /// Manda lo tecleado si lo hay, y si no lo guardado. Los dos pasan por
+    /// <see cref="ReglasDeCampo.Limpiar"/>, asi que un campo con solo espacios es un campo vacio.
+    /// </remarks>
+    /// <param name="campo">El campo que se pregunta.</param>
     public string? ValorDe(CampoEnPantalla campo)
         => ReglasDeCampo.Limpiar(_tecleado.TryGetValue(campo.Clave, out var tecleado) ? tecleado : campo.ValorGuardado);
 
     /// <summary>Por que no vale lo que hay escrito, o nulo si vale.</summary>
+    /// <param name="campo">El campo que se pregunta; su columna decide que regla se aplica.</param>
     public string? MotivoDe(CampoEnPantalla campo) => ReglasDeCampo.MotivoDe(campo.Campo, ValorDe(campo));
 
-    /// <summary>En cual de los cinco estados esta el campo ahora mismo.</summary>
+    /// <summary>En cual de los seis estados esta el campo ahora mismo, con lo tecleado incluido.</summary>
+    /// <param name="campo">El campo que se pregunta.</param>
     public EstadoDeCampo EstadoDe(CampoEnPantalla campo)
         => EstadosDeCampo.Decidir(campo.Procedencia, MotivoDe(campo) is null);
 
     /// <summary>Si lo escrito es distinto de lo guardado.</summary>
+    /// <remarks>
+    /// Se compara ya limpio por los dos lados: escribir un espacio de mas no es un cambio.
+    /// </remarks>
+    /// <param name="campo">El campo que se pregunta.</param>
     public bool Cambio(CampoEnPantalla campo)
         => !string.Equals(ValorDe(campo), ReglasDeCampo.Limpiar(campo.ValorGuardado), StringComparison.Ordinal);
 
@@ -271,6 +330,7 @@ public sealed partial class ModeloDeCorreccion
     public bool HayCambiosSinGuardar => _campos.Any(Cambio);
 
     /// <summary>Si este campo es de los que hay que mirar primero (criterio C4-13).</summary>
+    /// <param name="campo">El campo que se pregunta.</param>
     private bool EsDudoso(CampoEnPantalla campo)
         => EstadosDeCampo.EsDudoso(ValorDe(campo), campo.Procedencia, MotivoDe(campo) is null);
 
@@ -325,6 +385,7 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Lo que hay escrito ahora en un campo del caso, por su nombre de columna.</summary>
+    /// <param name="campo">El nombre de la columna; una que no se dibuja devuelve nulo.</param>
     private string? ValorDelCampo(string campo)
     {
         var ficha = _campos.FirstOrDefault(c => c.Tabla == TablaDeProcedencia.Casos && c.Campo == campo);

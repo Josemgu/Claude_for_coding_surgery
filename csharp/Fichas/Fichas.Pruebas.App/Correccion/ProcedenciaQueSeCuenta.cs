@@ -22,9 +22,11 @@ namespace Fichas.Pruebas.App.Correccion;
 /// </remarks>
 internal sealed class ProcedenciaQueSeCuenta : IProcedencia
 {
+    /// <summary>A quien se le pasa todo tal cual despues de contar.</summary>
     private readonly IProcedencia _deVerdad;
 
     /// <summary>Envuelve al de verdad.</summary>
+    /// <param name="deVerdad">El almacen que contesta; este solo cuenta.</param>
     public ProcedenciaQueSeCuenta(IProcedencia deVerdad) => _deVerdad = deVerdad;
 
     /// <summary>Cuantas veces se pregunto por UN registro; es la llamada cara si se repite.</summary>

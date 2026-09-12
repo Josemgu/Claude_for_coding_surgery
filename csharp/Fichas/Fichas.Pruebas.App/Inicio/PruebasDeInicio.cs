@@ -5,7 +5,6 @@ using Fichas.App.Revisar;
 using Fichas.Pruebas.App.Revisar;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
-using Fichas.Datos.Falso;
 
 namespace Fichas.Pruebas.App.Inicio;
 
@@ -295,7 +294,7 @@ public sealed class PruebasDeInicio
 
         Assert.HasCount(1, pastillas, "Lo archivado se queda en el calendario (2026-09-07).");
         Assert.AreEqual(DosEstados.Resuelto, pastillas[0].Etiqueta, "Y se lee resuelto: lo cerró él.");
-        Assert.IsTrue(pastillas[0].EstaResuelta, "Lo que decide su verde.");
+        Assert.AreEqual(ColorDeLaPastilla.Verde, pastillas[0].Color, "Lo que decide su verde.");
         Assert.IsFalse(
             pastillas[0].Etiqueta.Contains("archivad", StringComparison.OrdinalIgnoreCase),
             "La etiqueta «ARCHIVADO» no vuelve: era lo que le confundía.");

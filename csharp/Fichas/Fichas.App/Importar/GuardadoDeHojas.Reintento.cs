@@ -75,6 +75,8 @@ public sealed partial class GuardadoDeHojas
     /// si de verdad retira más que el primero; ofrecer dos recortes iguales sería preguntarle
     /// dos veces lo mismo a la base.
     /// </remarks>
+    /// <param name="caso">El caso tal como la base lo rechazó.</param>
+    /// <returns>Cero, uno o dos recortes, cada uno con los campos que retira; vacío si el caso no trae ningún campo con forma fija.</returns>
     private static IEnumerable<IReadOnlyList<CampoRetirado>> RecortesQueSeIntentan(Caso caso)
     {
         var traidos = LosCamposConFormaQueTraeElCaso(caso);
@@ -85,6 +87,8 @@ public sealed partial class GuardadoDeHojas
     }
 
     /// <summary>Los campos con forma fija que ESTE caso trae, y si su valor tiene esa forma.</summary>
+    /// <param name="caso">El caso rechazado; los campos a nulo no se listan.</param>
+    /// <returns>Un par por campo presente, en el orden de <see cref="CamposConFormaFija"/>; <c>TieneSuForma</c> es si la normalización lo deja igual.</returns>
     private static IReadOnlyList<(CampoRetirado Retirado, bool TieneSuForma)> LosCamposConFormaQueTraeElCaso(Caso caso)
     {
         var salida = new List<(CampoRetirado, bool)>(CamposConFormaFija.Length);
@@ -99,6 +103,8 @@ public sealed partial class GuardadoDeHojas
     }
 
     /// <summary>El mismo caso con esos campos a nulo. No toca ningún otro.</summary>
+    /// <param name="caso">El caso rechazado.</param>
+    /// <param name="retirados">Los campos que se ponen a nulo; uno que no sea de los tres con forma fija se ignora.</param>
     private static Caso SinLosCampos(Caso caso, IReadOnlyList<CampoRetirado> retirados)
     {
         foreach (var retirado in retirados)
@@ -121,6 +127,7 @@ public sealed partial class GuardadoDeHojas
     /// número, el caso no se puede cruzar con el Excel que devuelven los compañeros. Los demás
     /// solo dejan un hueco que rellenar.
     /// </remarks>
+    /// <param name="retirado">El campo que se quitó, con el valor que traía.</param>
     private static Aviso AvisoDeLoRetirado(CampoRetirado retirado)
         => retirado.Campo == CamposDeLaHoja.CampoNumeroCaso
             ? Aviso.Advierte(

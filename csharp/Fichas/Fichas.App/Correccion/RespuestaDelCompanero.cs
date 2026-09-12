@@ -72,17 +72,6 @@ public sealed record RespuestaDelCompanero(
 public static class LoQueContestoElCompanero
 {
     /// <summary>
-    /// Los seis pasos de «Preparación para las ordenanzas», con su rótulo y en su orden.
-    /// </summary>
-    /// <remarks>
-    /// El orden es el de la pantalla del líder, y no se altera: el compañero los copia de
-    /// arriba abajo, y en otro orden hay que ir y venir para comprobarlos.
-    /// <para>
-    /// ⚠️ NO son las seis ordenanzas del formulario —las <c>Ord*</c> de <see cref="Persona"/>—:
-    /// aquellas dicen a QUÉ va la persona al templo, y éstas si está en condiciones de ir.
-    /// </para>
-    /// </remarks>
-    /// <summary>
     /// Lo que se dice de la via por la que el Excel del companero contesta las seis.
     /// </summary>
     /// <remarks>
@@ -101,6 +90,23 @@ public static class LoQueContestoElCompanero
     /// </remarks>
     public const string TodaviaNoHaVuelto = "El compañero todavía no ha devuelto su Excel de esta persona.";
 
+    /// <summary>
+    /// Los seis pasos de «Preparación para las ordenanzas», con su rótulo y en su orden.
+    /// </summary>
+    /// <remarks>
+    /// El orden es el de la pantalla del líder, y no se altera: el compañero los copia de
+    /// arriba abajo, y en otro orden hay que ir y venir para comprobarlos. Son las seis que
+    /// el dueno confirmo el 2026-09-05 como las de su sistema (<c>DECISIONES.md</c>, «Las
+    /// seis preguntas SON las del sistema del obispo»).
+    /// <para>
+    /// ⚠️ NO son las seis ordenanzas del formulario —las <c>Ord*</c> de <see cref="Persona"/>—:
+    /// aquellas dicen a QUÉ va la persona al templo, y éstas si está en condiciones de ir.
+    /// </para>
+    /// <para>
+    /// Hasta el 2026-09-11 este comentario colgaba de <see cref="ElExcelDeVuelta"/>, la
+    /// constante de encima, porque se metio otra declaracion en medio sin mover el bloque.
+    /// </para>
+    /// </remarks>
     private static readonly (Func<Persona, bool?> Leer, string Rotulo)[] LosSeisPasos =
     [
         (persona => persona.PasoPreparacion, "1. Preparación"),
@@ -123,6 +129,8 @@ public static class LoQueContestoElCompanero
     /// «contestó a medias» viéndose igual que «no contestó», que es justo la distinción que
     /// el dueño pidió poder hacer sin abrir el documento.
     /// </remarks>
+    /// <param name="persona">La persona tal como esta en la base.</param>
+    /// <exception cref="ArgumentNullException">Si la persona es nula.</exception>
     public static bool YaContesto(Persona persona)
     {
         ArgumentNullException.ThrowIfNull(persona);
@@ -135,6 +143,8 @@ public static class LoQueContestoElCompanero
     }
 
     /// <summary>Por cuántas personas de esa lista contestó ya el compañero.</summary>
+    /// <param name="personas">Las personas del documento.</param>
+    /// <exception cref="ArgumentNullException">Si la lista es nula.</exception>
     public static int CuantasContestadas(IReadOnlyList<Persona> personas)
     {
         ArgumentNullException.ThrowIfNull(personas);
@@ -151,6 +161,8 @@ public static class LoQueContestoElCompanero
     /// Los compañeros que se conocen, para poner un nombre en vez de un número. Puede ir
     /// vacío: entonces se dice el número y no se pierde el rastro.
     /// </param>
+    /// <returns>La respuesta ya en palabras, o nulo si de esa persona no consta nada.</returns>
+    /// <exception cref="ArgumentNullException">Si la persona, la firma o el equipo son nulos.</exception>
     public static RespuestaDelCompanero? De(
         Persona persona,
         Companero? companero,
@@ -187,6 +199,7 @@ public static class LoQueContestoElCompanero
     /// Excel volvió es justo lo que hacía que las respuestas de Miguel salieran a nombre del
     /// compañero.
     /// </remarks>
+    /// <param name="persona">La persona tal como esta en la base.</param>
     private static bool DevolvioSuExcel(Persona persona)
         => persona.EstadoPropuesto is not null
         || persona.NotaCompanero is not null
@@ -211,6 +224,9 @@ public static class LoQueContestoElCompanero
     /// las dos pantallas dijeran cosas distintas del mismo dato.</b>
     /// </para>
     /// </remarks>
+    /// <param name="persona">La persona, de la que se cuentan los seis <c>paso_*</c> contestados.</param>
+    /// <param name="firma">La firma de la pantalla; puede ir sin firmar.</param>
+    /// <param name="equipo">Los companeros conocidos, para poner nombre.</param>
     private static string LineaDeLosPasos(
         Persona persona, FirmaDeLosPasos firma, IReadOnlyList<Companero> equipo)
     {
@@ -231,6 +247,7 @@ public static class LoQueContestoElCompanero
     }
 
     /// <summary>«4 de 6 contestadas»; el denominador va siempre (criterio C1-1).</summary>
+    /// <param name="contestados">Cuantos de los seis tienen respuesta.</param>
     private static string Cuantas(int contestados)
         => $"{contestados.ToString(CultureInfo.InvariantCulture)} de "
          + $"{LosSeisPasos.Length.ToString(CultureInfo.InvariantCulture)} contestadas";
@@ -268,6 +285,10 @@ public static class LoQueContestoElCompanero
     /// propósito es una respuesta (criterio C19-6).
     /// </para>
     /// </remarks>
+    /// <param name="persona">La persona, de la que se lee <c>propuesto_por</c> y <c>propuesto_en</c>.</param>
+    /// <param name="firma">La firma de la pantalla —<c>pasos_por</c> y <c>pasos_en</c>—.</param>
+    /// <param name="contestados">Cuantos de los seis tienen respuesta; con cero, la del Excel no vale.</param>
+    /// <returns>La firma que se esta viendo y, si hubo otra antes, cual era.</returns>
     private static (FirmaDeLosPasos? QueVale, FirmaDeLosPasos? LaDeAntes) QueFirmaEscribioLasSeis(
         Persona persona, FirmaDeLosPasos firma, int contestados)
     {
@@ -285,12 +306,15 @@ public static class LoQueContestoElCompanero
     }
 
     /// <summary>Si la escritura del Excel es posterior; falso cuando no se puede saber.</summary>
+    /// <param name="delExcel">La marca de tiempo del Excel de vuelta.</param>
+    /// <param name="deLaPantalla">La marca de tiempo de la pantalla de las seis.</param>
     private static bool ElExcelLlegoDespues(string? delExcel, string? deLaPantalla)
         => Instante(delExcel) is DateTime uno
         && Instante(deLaPantalla) is DateTime otro
         && uno > otro;
 
     /// <summary>Una marca de tiempo leída, o nulo si no se entiende.</summary>
+    /// <param name="texto">Una marca de tiempo tal como esta guardada; nula o en blanco devuelve nulo.</param>
     private static DateTime? Instante(string? texto)
     {
         if (ReglasDeCampo.Limpiar(texto) is not string limpio) return null;
@@ -300,6 +324,8 @@ public static class LoQueContestoElCompanero
     }
 
     /// <summary>El nombre de quien firmó, o su número si ya no está en la base.</summary>
+    /// <param name="firma">De quien se busca el nombre.</param>
+    /// <param name="equipo">Donde se busca; si no esta, se dice su numero.</param>
     private static string NombreDe(FirmaDeLosPasos firma, IReadOnlyList<Companero> equipo)
     {
         if (firma.Por is not long id) return "un compañero que no quedó anotado";
@@ -313,6 +339,7 @@ public static class LoQueContestoElCompanero
     /// La fila va siempre que se sepa, incluso con el nombre delante: dos personas del mismo
     /// formulario pueden llamarse igual, y entonces el nombre solo no dice de cuál se habla.
     /// </remarks>
+    /// <param name="persona">La persona; sin nombre leido se dice asi, no se inventa uno.</param>
     private static string DeQuien(Persona persona)
     {
         var nombre = ReglasDeCampo.Limpiar(persona.Nombre) ?? "una persona sin nombre leído";
@@ -326,6 +353,8 @@ public static class LoQueContestoElCompanero
     /// Tirar la respuesta entera por no poder poner un nombre sería perder justo el dato que
     /// esto viene a enseñar. Y decir «alguien» a secas no deja rastro por donde tirar.
     /// </remarks>
+    /// <param name="persona">La persona, por si hay que decir el numero de <c>propuesto_por</c>.</param>
+    /// <param name="companero">El companero ya resuelto, o nulo si no esta en la base.</param>
     private static string Quien(Persona persona, Companero? companero)
     {
         if (companero is not null && ReglasDeCampo.Limpiar(companero.Nombre) is string nombre) return nombre;
@@ -339,6 +368,7 @@ public static class LoQueContestoElCompanero
     /// Una fecha que no se entiende NO tumba la respuesta (requisito 9 del dueño): se queda
     /// sin fecha, y lo importante —qué contestó y quién— se sigue diciendo.
     /// </remarks>
+    /// <param name="propuestoEn">La marca de tiempo del Excel, tal como esta guardada.</param>
     private static string Cuando(string? propuestoEn)
     {
         if (ReglasDeCampo.Limpiar(propuestoEn) is not string texto) return string.Empty;
@@ -355,6 +385,7 @@ public static class LoQueContestoElCompanero
     /// enseña tal cual. Solo se traducen los dos valores que escribe el propio programa al
     /// leer el Excel de vuelta, porque «no_completa» con guion bajo no es español.
     /// </remarks>
+    /// <param name="estadoPropuesto">Lo que dice <c>estado_propuesto</c>; nulo dice que no lo dijo.</param>
     private static string Estado(string? estadoPropuesto)
     {
         var texto = ReglasDeCampo.Limpiar(estadoPropuesto);
@@ -372,6 +403,7 @@ public static class LoQueContestoElCompanero
     /// no reprobada. Pintarla como «no» le inventaría al compañero una respuesta que no dio,
     /// y eso es exactamente lo que prohíbe la regla permanente 1.
     /// </remarks>
+    /// <param name="contestado">Lo que hay en la columna del paso: si, no o nada.</param>
     private static string Respuesta(bool? contestado) => contestado switch
     {
         true => "sí",
@@ -381,6 +413,7 @@ public static class LoQueContestoElCompanero
 
     /// <summary>Si llamó al líder, dicho con palabras; vacío si no consta.</summary>
     /// <remarks>NO es un séptimo paso y no cuenta como tal: por eso va aparte de la lista.</remarks>
+    /// <param name="llamo">Lo que hay en <c>llamo_al_lider</c>: si, no o nada.</param>
     private static string LlamoAlLider(bool? llamo) => llamo switch
     {
         true => "El compañero llamó al líder.",
@@ -395,6 +428,9 @@ public static class LoQueContestoElCompanero
     /// contestó. Mezclarlas era lo que hacía que los pasos de Miguel se leyeran detrás del
     /// nombre de Sandy.
     /// </remarks>
+    /// <param name="quien">Quien propuso el estado, ya en palabras.</param>
+    /// <param name="cuando">Cuando, en espanol; vacio se omite.</param>
+    /// <param name="estado">Lo que dijo del conjunto, ya en palabras.</param>
     private static string Resumen(string quien, string cuando, string estado)
     {
         var partes = new List<string> { $"Contestó {quien}" };

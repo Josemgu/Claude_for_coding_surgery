@@ -27,6 +27,7 @@ namespace Fichas.Pruebas.App.Revisar;
 [TestClass]
 public sealed class PruebasDeLasSeisPreguntas
 {
+    /// <summary>El día en el que se paran los relojes de estas pruebas; es el de la petición del dueño.</summary>
     private const string DiaDeLasPruebas = "2026-09-05";
 
     // ═════════ C19-5 y C19-6: las seis, con tres respuestas y reversibles ═════════
@@ -312,6 +313,7 @@ public sealed class PruebasDeLasSeisPreguntas
         Assert.AreEqual(0, despues, "Contestar las seis firmo un campo, y firmar campos es otra cosa.");
     }
 
+    /// <summary>Las seis contestadas que sí, que es lo que deja a una persona resuelta.</summary>
     private static RespuestaALosPasos LasSeisEnSi => new(true, true, true, true, true, true);
 
     /// <summary>
@@ -324,12 +326,19 @@ public sealed class PruebasDeLasSeisPreguntas
     /// </remarks>
     private sealed class BancoDePreguntas
     {
+        /// <summary>El almacén en memoria sobre el que corren los repositorios falsos.</summary>
         private readonly AlmacenFalso _almacen;
+        /// <summary>Los documentos de la prueba.</summary>
         private readonly RepositorioDeCasosFalso _casos;
+        /// <summary>El equipo: Sandy primero y, si se pide, Miguel administrador después.</summary>
         private readonly RepositorioDeCompanerosFalso _companeros;
+        /// <summary>La procedencia de campos, solo para comprobar que contestar no firma ninguno.</summary>
         private readonly RepositorioDeProcedenciaFalso _procedencia;
+        /// <summary>Lo que se prueba: las acciones de las seis preguntas, montadas sobre los falsos.</summary>
         private readonly AccionesDeLasPreguntas _acciones;
 
+        /// <summary>Siembra el equipo y monta las acciones.</summary>
+        /// <param name="conAdministrador">Si se da de alta a Miguel como administrador; sin él nadie puede firmar.</param>
         public BancoDePreguntas(bool conAdministrador = true)
         {
             _almacen = new AlmacenFalso(new RelojFijo(DiaDeLasPruebas), semilla: 1);
@@ -358,10 +367,15 @@ public sealed class PruebasDeLasSeisPreguntas
             _acciones = new AccionesDeLasPreguntas(Personas_, _companeros);
         }
 
+        /// <summary>El puerto de personas, expuesto para leer las firmas y las seis columnas escritas.</summary>
         public IPersonas Personas_ { get; }
 
+        /// <summary>El número interno de Sandy, la compañera que NO es administradora.</summary>
         public long Sandy { get; }
 
+        /// <summary>Mete un documento con esas personas, numeradas.</summary>
+        /// <param name="cuantas">Cuántas personas trae el documento.</param>
+        /// <returns>El número interno del documento.</returns>
         public long SembrarUnDocumentoDe(int cuantas)
         {
             var caso = _casos.Guardar(new Caso
@@ -387,13 +401,21 @@ public sealed class PruebasDeLasSeisPreguntas
             return caso;
         }
 
+        /// <summary>Las personas de un documento, releídas de la base.</summary>
+        /// <param name="casoId">El documento.</param>
         public IReadOnlyList<Persona> Personas(long casoId) => Personas_.DeCaso(casoId);
 
+        /// <summary>Quién firmaría, según la regla del administrador; nulo si no hay exactamente uno.</summary>
         public Companero? QuienContesta() => _acciones.QuienContesta();
 
+        /// <summary>Contesta las seis de una persona por el camino de la ventana.</summary>
+        /// <param name="personaId">La persona.</param>
+        /// <param name="respuesta">Las seis, cada una en sí, no o en blanco.</param>
         public ResultadoDeEscritura Contestar(long personaId, RespuestaALosPasos respuesta)
             => _acciones.Guardar(personaId, respuesta);
 
+        /// <summary>Lo que vería la ventana de ese documento, compuesto por el mismo camino que ella.</summary>
+        /// <param name="casoId">El documento que se abre.</param>
         public DocumentoConPreguntas Abrir(long casoId)
             => PreguntasDeUnDocumento.De(
                 _casos.Obtener(casoId)!,
@@ -402,6 +424,7 @@ public sealed class PruebasDeLasSeisPreguntas
                 _companeros.Activos(),
                 QuienContesta());
 
+        /// <summary>Cuántos campos del documento están firmados «Todo correcto»; tiene que seguir en cero.</summary>
         public int CamposFirmados() => _procedencia.DeRegistro(TablaDeProcedencia.Casos, 1).Count(c => c.Verificado);
     }
 
@@ -411,5 +434,6 @@ public sealed class PruebasDeLasSeisPreguntas
     /// dueño y sigue con su detalle. Se parte aquí para que cada prueba diga qué mira: la
     /// palabra, o lo que la explica.
     /// </remarks>
+    /// <param name="frase">La frase entera de una persona, con sus trozos separados por « · ».</param>
     private static string Palabra(string frase) => frase.Split(" · ")[0];
 }

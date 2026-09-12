@@ -101,7 +101,6 @@
                 mira cuando le falta alguien. Abre un flyout, no un cuadro: no detiene nada.
             -->
             <Button
-                x:Name="_botonDeEquipo"
                 Grid.Column="2"
                 AutomationProperties.Name="Equipo"
                 Click="AlPulsarEquipo"
@@ -165,7 +164,6 @@
                         Click="AlPulsarNoAsignarElGrupo"
                         Content="No asignar nada" />
                     <Button
-                        x:Name="_botonDeConfirmarElGrupo"
                         AutomationProperties.Name="Asignarlos ahora"
                         Click="AlPulsarConfirmarElGrupo"
                         Content="Asignarlos ahora"

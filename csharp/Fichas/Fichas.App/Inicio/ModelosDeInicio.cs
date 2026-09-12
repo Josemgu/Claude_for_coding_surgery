@@ -98,6 +98,7 @@ public sealed record CuadroDeInicio(
            + $"{LineaDeLosAgentes}. Pulse para abrir el flujo de trabajo.";
 
     /// <summary>Escribe un numero sin que el idioma de la maquina le cambie el separador.</summary>
+    /// <param name="numero">La cifra que va grande en el cuadro.</param>
     private static string EnCifras(int numero)
         => numero.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }
@@ -319,15 +320,6 @@ public sealed record PastillaDeDia(
     /// </remarks>
     public string Etiqueta => DosEstados.Cuenta(CuantasPersonasResueltas, CuantasPersonas);
 
-    /// <summary>Si a esta pastilla no le queda ninguna persona pendiente.</summary>
-    /// <remarks>
-    /// <para>Con cero personas NO esta resuelto: nadie ha dicho nada de nadie.</para>
-    /// <para>⚠️ Mira <see cref="CuantasPersonasResueltas"/> y no
-    /// <see cref="CuantasPersonasConfirmadas"/>: un documento archivado va en verde aunque sus
-    /// seis preguntas no digan que si, porque lo cerro el. Es la peticion del 2026-09-07.</para>
-    /// </remarks>
-    public bool EstaResuelta => CuantasPersonas > 0 && CuantasPersonasResueltas >= CuantasPersonas;
-
     /// <summary>
     /// Si de esta unidad no se leyo ni una persona; entonces no hay a quien confirmar.
     /// </summary>
@@ -340,6 +332,11 @@ public sealed record PastillaDeDia(
     public bool SinNadieALaVista => CuantasPersonas == 0;
 
     /// <summary>De qué color va esta pastilla; la plantilla lo pinta, la regla vive aquí.</summary>
+    /// <remarks>
+    /// ⚠️ Mira <see cref="CuantasPersonasResueltas"/> y no
+    /// <see cref="CuantasPersonasConfirmadas"/>: un documento archivado va en verde aunque sus
+    /// seis preguntas no digan que si, porque lo cerro el. Es la peticion del 2026-09-07.
+    /// </remarks>
     public ColorDeLaPastilla Color => ColoresDeLaPastilla.De(CuantasPersonasResueltas, CuantasPersonas);
 
     /// <summary>Lo que lee en voz alta un lector de pantalla; la pastilla es diminuta.</summary>

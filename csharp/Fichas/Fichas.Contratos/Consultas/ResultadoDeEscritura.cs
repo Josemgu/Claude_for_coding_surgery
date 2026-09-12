@@ -21,12 +21,17 @@ public sealed record ResultadoDeEscritura(
     IReadOnlyList<Aviso> Avisos)
 {
     /// <summary>Salio bien y no hay nada que decir.</summary>
+    /// <param name="id">La fila que se escribió; en un alta, el id recién asignado.</param>
     public static ResultadoDeEscritura Bien(long id) => new(true, id, Array.Empty<Aviso>());
 
     /// <summary>Salio bien y ademas hay algo que senalar.</summary>
+    /// <param name="id">La fila que se escribió.</param>
+    /// <param name="avisos">Lo que se guardó igual y queda señalado, o lo que ya estaba así; ninguno detiene nada.</param>
     public static ResultadoDeEscritura BienCon(long id, params Aviso[] avisos) => new(true, id, avisos);
 
     /// <summary>No se escribio nada, y aqui esta el porque en una linea.</summary>
+    /// <param name="avisos">El motivo, normalmente un <see cref="Aviso.Problema"/>; es lo que sustituye a lanzar.</param>
+    /// <returns><see cref="SeEscribio"/> en falso e <see cref="Id"/> en 0.</returns>
     public static ResultadoDeEscritura NoSeEscribio(params Aviso[] avisos) => new(false, 0, avisos);
 
     /// <summary>Si hay algo que ensenar en la franja.</summary>

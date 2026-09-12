@@ -52,14 +52,24 @@ public static class EstadosDeCampo
     public const double UmbralDeConfianzaBaja = 0.6;
 
     /// <summary>
-    /// Cual de los cinco estados le toca, mirando su procedencia y si lo escrito vale.
+    /// Cual de los seis estados le toca, mirando su procedencia y si lo escrito vale.
     /// </summary>
     /// <remarks>
     /// El orden importa y es este: primero lo que no valida, porque un valor mal formado hay
     /// que arreglarlo venga de donde venga; despues lo que Miguel marco como que no está en
     /// el papel, que es la marca mas reciente y la que dice que ahi no hay nada que buscar;
     /// despues el tachon, que es una marca del propio papel; despues el origen y la confianza.
+    /// <para>
+    /// ⚠️ El tachon va ANTES que el origen, y no es casual: <c>DECISIONES.md</c> midio el
+    /// 2026-09-06 («Un campo tachado en el papel llega a la base como si fuera bueno») que la
+    /// marca significa «el valor que viaja esta anulado», y un campo asi tiene que salir como
+    /// tachado aunque su origen diga OCR con confianza alta. Un valor tachado con la forma
+    /// correcta es justo el que nadie miraria si se pintara de verde.
+    /// </para>
     /// </remarks>
+    /// <param name="procedencia">La fila de procedencia del campo; nula significa que no hay lectura guardada.</param>
+    /// <param name="esValido">Si lo que hay escrito cumple su regla de formato.</param>
+    /// <param name="umbral">Por debajo de esta confianza el OCR se marca para revisar.</param>
     public static EstadoDeCampo Decidir(
         ProcedenciaDeCampo? procedencia,
         bool esValido,
@@ -77,6 +87,7 @@ public static class EstadosDeCampo
     }
 
     /// <summary>La palabra escrita de cada estado; ninguna se repite y ninguna es un color.</summary>
+    /// <param name="estado">El estado que se pone en palabras.</param>
     public static string Palabra(EstadoDeCampo estado) => estado switch
     {
         EstadoDeCampo.Anotacion => "anotación",
@@ -95,10 +106,18 @@ public static class EstadosDeCampo
     /// «firmado»: son dos frases de la misma ficha que se contradicen. Pasa de verdad con
     /// <c>templo_nombre</c>, que se firma sin que nadie sepa de donde salio su valor.
     /// </remarks>
+    /// <param name="estado">El estado decidido por <see cref="Decidir"/>.</param>
+    /// <param name="procedencia">La fila de procedencia, de la que se mira solo si esta firmada.</param>
     public static string PalabraEnPantalla(EstadoDeCampo estado, ProcedenciaDeCampo? procedencia)
         => procedencia?.Verificado == true ? "dado por bueno" : Palabra(estado);
 
     /// <summary>La linea pequena bajo el campo: de donde salio y con que confianza.</summary>
+    /// <remarks>
+    /// La confianza se escribe con coma decimal («confianza 0,87»): es texto para el dueno,
+    /// no para una maquina, y en su pantalla la coma es la que se lee.
+    /// </remarks>
+    /// <param name="estado">El estado decidido por <see cref="Decidir"/>; tres de ellos tienen frase propia.</param>
+    /// <param name="procedencia">La fila de procedencia; nula dice «sin lectura guardada».</param>
     public static string Descripcion(EstadoDeCampo estado, ProcedenciaDeCampo? procedencia)
     {
         if (estado == EstadoDeCampo.Anotacion) return "confianza 1,00 · escrito en el PDF";
@@ -126,6 +145,8 @@ public static class EstadosDeCampo
     /// dijera que ese dato no existe en la hoja.
     /// </para>
     /// </remarks>
+    /// <param name="valor">Lo que hay guardado en el campo; con algo dentro no se dice nada.</param>
+    /// <param name="procedencia">La fila de procedencia, de la que sale <c>valor_ocr</c>.</param>
     public static string LineaDeLoQueSeLeyo(string? valor, ProcedenciaDeCampo? procedencia)
     {
         if (ReglasDeCampo.Limpiar(valor) is not null) return string.Empty;
@@ -151,7 +172,15 @@ public static class EstadosDeCampo
     /// Un contador que no baja al trabajar no guia a nadie. Resuelto es firmado —Miguel lo
     /// dio por bueno— o marcado como que no está en el papel —no hay nada que comprobar—.
     /// </para>
+    /// <para>
+    /// Un campo tachado sin correccion cuenta como dudoso aunque traiga valor: es el suelo de
+    /// la regla permanente 5 —lo que no pase su comprobacion va a la cola para completarlo a
+    /// mano— y la decision del 2026-09-06 sobre el tachon.
+    /// </para>
     /// </remarks>
+    /// <param name="valor">Lo que hay en el campo ahora, con lo tecleado incluido.</param>
+    /// <param name="procedencia">La fila de procedencia; nula es dudoso.</param>
+    /// <param name="esValido">Si lo que hay cumple su regla de formato; falso es dudoso siempre.</param>
     public static bool EsDudoso(string? valor, ProcedenciaDeCampo? procedencia, bool esValido)
     {
         if (!esValido) return true;

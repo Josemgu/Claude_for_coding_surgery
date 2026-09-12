@@ -30,6 +30,8 @@ public sealed class PruebasDeLaProcedenciaInventada
     /// <summary>La semilla; la misma semilla da siempre exactamente la misma base.</summary>
     private const int Semilla = 20260904;
 
+    /// <summary>Genera la base inventada parada en el día de la prueba.</summary>
+    /// <param name="cuantos">Cuántos casos; 3 000 por defecto, que es la cifra del requisito 5.</param>
     private static AlmacenFalso Base(int cuantos = CasosDePrueba)
         => GeneradorFalso.Generar(cuantos, Semilla, new RelojFijo(ElDiaDeLaPrueba));
 

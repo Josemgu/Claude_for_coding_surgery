@@ -34,6 +34,7 @@ public static class RutasDePdf
     /// entrar tampoco detiene nada (requisito 9), pero NO se calla: sale nombrada en
     /// <see cref="LoQueSeEncontro.CarpetasQueNoSeDejaronLeer"/>.</para>
     /// </remarks>
+    /// <param name="origenes">Archivos y carpetas mezclados, tal como salieron del selector.</param>
     public static LoQueSeEncontro Reunir(IEnumerable<string> origenes)
     {
         ArgumentNullException.ThrowIfNull(origenes);
@@ -45,6 +46,7 @@ public static class RutasDePdf
     }
 
     /// <summary>Si el nombre acaba en «.pdf», da igual como este escrito.</summary>
+    /// <param name="ruta">La ruta o el nombre del archivo.</param>
     internal static bool EsPdf(string ruta)
         => Path.GetExtension(ruta).Equals(ExtensionDePdf, StringComparison.OrdinalIgnoreCase);
 }

@@ -24,6 +24,9 @@ public static class Plural
         => $"{cuantos} {(cuantos == 1 ? singular : plural)}";
 
     /// <summary>Solo la palabra, sin el numero delante.</summary>
+    /// <param name="cuantos">La cifra que decide la forma; no se escribe.</param>
+    /// <param name="singular">Como se escribe con uno.</param>
+    /// <param name="plural">Como se escribe con cualquier otra cantidad, el cero incluido.</param>
     public static string Palabra(int cuantos, string singular, string plural)
         => cuantos == 1 ? singular : plural;
 }

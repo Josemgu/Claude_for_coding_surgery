@@ -228,7 +228,6 @@
                 documentacion, y es el criterio C4-3.
             -->
             <ScrollView
-                x:Name="_columnaDeCampos"
                 Grid.Column="1"
                 Padding="0,0,4,0"
                 BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
@@ -321,7 +320,6 @@
                         <Border Padding="12,8" Background="{ThemeResource SystemFillColorAttentionBackgroundBrush}">
                             <StackPanel Spacing="2">
                                 <TextBlock
-                                    x:Name="_tituloDeLaRecomendacion"
                                     FontWeight="SemiBold"
                                     Text="Listo para viajar · la recomendación en el sistema del obispo" />
                                 <TextBlock
@@ -581,7 +579,6 @@
                     Content="Dar por completo"
                     Visibility="Collapsed" />
                 <Button
-                    x:Name="_botonDeGuardar"
                     Grid.Column="2"
                     Click="AlPulsarGuardar"
                     Content="Guardar"

@@ -3,7 +3,6 @@ using Fichas.App.Cascara;
 using Fichas.App.Inicio;
 using Fichas.App.Paquetes;
 using Fichas.App.Revisar;
-using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Pruebas.App.Paquetes;
 using Fichas.Reportes;
@@ -36,6 +35,7 @@ namespace Fichas.Pruebas.App.Revisar;
 [TestClass]
 public sealed class PruebasDeQueArchivarQuitaLaAsignacion
 {
+    /// <summary>Cuántos documentos lleva el agente al empezar cada prueba.</summary>
     private const int N = 5;
 
     /// <summary>Archivar dos de sus N le deja N−2 vivas, y las dos retiradas siguen en la base con su fecha.</summary>
@@ -245,12 +245,17 @@ public sealed class PruebasDeQueArchivarQuitaLaAsignacion
 
     // ---- el montaje ---------------------------------------------------------
 
+    /// <summary>La cifra que el informe del agente pone al lado de ese renglón.</summary>
+    /// <param name="loQueHizo">La sección «lo que hizo» del informe.</param>
+    /// <param name="renglon">El rótulo de la fila que se busca; tiene que haber exactamente una.</param>
     private static string? CifraDelMes(Seccion loQueHizo, string renglon)
         => loQueHizo.Filas.Single(fila => fila[0] == renglon)[1];
 
     /// <summary>Un agente con N documentos, y las puertas de Revisar, Inicio y el informe montadas encima.</summary>
     private sealed class BancoDelArchivado : IDisposable
     {
+        /// <summary>Da de alta al agente, le asigna esos documentos y monta las puertas encima.</summary>
+        /// <param name="cuantos">Cuántos documentos con gente se le asignan.</param>
         public BancoDelArchivado(int cuantos)
         {
             Base = new BaseDelPaquete();
@@ -261,22 +266,31 @@ public sealed class PruebasDeQueArchivarQuitaLaAsignacion
             Acciones = new AccionesDeRevisar(Base.Casos, Base.Reloj, Base.Avisos, Retirada);
         }
 
+        /// <summary>La base SQLite de la prueba, con sus puertos y su reloj.</summary>
         public BaseDelPaquete Base { get; }
+        /// <summary>El agente al que se le asignó todo.</summary>
         public Companero Sandy { get; }
+        /// <summary>Los documentos asignados, en el orden en que se metieron.</summary>
         public List<long> Casos { get; }
+        /// <summary>La retirada de verdad, para llamar aparte al caso de los 1 000.</summary>
         public RetiradaAlArchivar Retirada { get; }
+        /// <summary>Las acciones de Revisar con la retirada puesta, como en el programa.</summary>
         public AccionesDeRevisar Acciones { get; }
 
+        /// <summary>Archiva por la acción de verdad y exige que entren todos; si no, el montaje está mal.</summary>
+        /// <param name="casoIds">Los documentos que se archivan.</param>
         public void Archivar(params long[] casoIds)
         {
             var resumen = Acciones.ArchivarEnLote(casoIds);
             Assert.AreEqual(casoIds.Length, resumen.Hechos, "no se pudieron archivar todos al montar la prueba");
         }
 
+        /// <summary>Lo que vería Inicio, leído por el mismo lector que la pantalla.</summary>
         public ResumenDeInicio LeerInicio()
             => new LectorDelInicio(Base.Casos, Base.Personas, Base.Companeros, Base.Asignaciones, Base.Reloj, Base.Procedencia)
                 .Leer();
 
+        /// <summary>La primera sección del informe del agente en septiembre: lo que hizo.</summary>
         public Seccion LoQueHizoEnSuInforme()
         {
             var reportes = new ReportesEnPdf(
@@ -285,6 +299,9 @@ public sealed class PruebasDeQueArchivarQuitaLaAsignacion
             return reportes.DocumentoDeCompanero(Sandy.Id, periodo, Base.Reloj.Ahora()).Secciones[0];
         }
 
+        /// <summary>Un documento que viaja el 17 de septiembre con una persona dentro.</summary>
+        /// <param name="numero">El número de caso, único en la prueba.</param>
+        /// <returns>El número interno del documento.</returns>
         private long UnDocumentoConGente(string numero)
         {
             var casoId = Base.Caso(numero, "2026-09-17");
@@ -292,6 +309,7 @@ public sealed class PruebasDeQueArchivarQuitaLaAsignacion
             return casoId;
         }
 
+        /// <summary>Cierra la base de la prueba.</summary>
         public void Dispose() => Base.Dispose();
     }
 }

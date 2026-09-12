@@ -486,6 +486,9 @@ public sealed class PruebaDeLaMigracion18
         return personas;
     }
 
+    /// <summary>Los nombres de las columnas de la tabla, en el orden en que el motor los devuelve.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="tabla">El nombre de la tabla; sale de las listas literales de esta clase, nunca de fuera.</param>
     private static string[] ColumnasDe(SqliteConnection conexion, string tabla)
     {
         using var orden = conexion.CreateCommand();
@@ -501,6 +504,9 @@ public sealed class PruebaDeLaMigracion18
         return [.. columnas];
     }
 
+    /// <summary>El <c>CREATE TABLE</c> que el motor guarda en <c>sqlite_master</c>, o una frase si la tabla no existe.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="tabla">El nombre de la tabla; sale de las listas literales de esta clase, nunca de fuera.</param>
     private static string DdlDe(SqliteConnection conexion, string tabla)
     {
         using var orden = conexion.CreateCommand();
@@ -509,6 +515,8 @@ public sealed class PruebaDeLaMigracion18
         return orden.ExecuteScalar() as string ?? $"(no hay ninguna tabla '{tabla}')";
     }
 
+    /// <summary>Filas por tabla, sin <c>version_esquema</c>, que crece al migrar y no sirve para comparar antes y después.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
     private static Dictionary<string, long> ContarPorTabla(SqliteConnection conexion)
     {
         var conteo = new Dictionary<string, long>(StringComparer.Ordinal);

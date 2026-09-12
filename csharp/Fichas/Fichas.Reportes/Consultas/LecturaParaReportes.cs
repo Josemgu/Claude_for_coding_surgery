@@ -28,8 +28,17 @@ namespace Fichas.Reportes.Consultas;
 /// </remarks>
 public sealed class LecturaParaReportes
 {
+    /// <summary>
+    /// La página que lo pide todo de una vez. Los puertos paginan siempre, y un reporte no puede
+    /// quedarse con la primera página de los casos del periodo.
+    /// </summary>
     private static readonly Pagina Entera = new(0, int.MaxValue);
 
+    /// <summary>Guarda las cuatro lecturas; solo entran por <see cref="Leer"/>, <see cref="DeMemoria"/> o <see cref="SoloEstosCasos"/>.</summary>
+    /// <param name="casos">Todos los casos, archivados incluidos.</param>
+    /// <param name="personasPorCaso">Las personas de cada caso, por id de caso.</param>
+    /// <param name="companerosPorCaso">Los nombres de quien lleva cada caso, por id de caso.</param>
+    /// <param name="casosConSuVerificacion">Cada caso con su recuento de campos y su última firma.</param>
     private LecturaParaReportes(
         IReadOnlyList<Caso> casos,
         IReadOnlyDictionary<long, IReadOnlyList<Persona>> personasPorCaso,
@@ -69,6 +78,10 @@ public sealed class LecturaParaReportes
     /// compararlo linea a linea con el que produce el Python. No es un atajo de produccion: el
     /// programa siempre entra por <see cref="Leer"/>.
     /// </remarks>
+    /// <param name="casos">Todos los casos, archivados incluidos.</param>
+    /// <param name="personasPorCaso">Las personas de cada caso, por id de caso.</param>
+    /// <param name="companerosPorCaso">Los nombres de quien lleva cada caso, por id de caso.</param>
+    /// <param name="casosConSuVerificacion">Cada caso con su recuento de campos y su última firma.</param>
     public static LecturaParaReportes DeMemoria(
         IReadOnlyList<Caso> casos,
         IReadOnlyDictionary<long, IReadOnlyList<Persona>> personasPorCaso,
@@ -77,6 +90,16 @@ public sealed class LecturaParaReportes
         => new(casos, personasPorCaso, companerosPorCaso, casosConSuVerificacion);
 
     /// <summary>Lee de los puertos todo lo que un reporte necesita, de una sola vez.</summary>
+    /// <remarks>
+    /// Es la única entrada de producción. Pide los casos con archivados incluidos y todas las
+    /// personas en una página entera, y ordena las personas de cada caso por su fila del
+    /// formulario con el id de desempate.
+    /// </remarks>
+    /// <param name="casos">El puerto de casos.</param>
+    /// <param name="personas">El puerto de personas.</param>
+    /// <param name="companeros">El puerto de compañeros; se leen activos e inactivos.</param>
+    /// <param name="asignaciones">El puerto de asignaciones; solo se leen las vivas.</param>
+    /// <param name="procedencia">El puerto de procedencia; se consulta una vez por caso y una por persona.</param>
     public static LecturaParaReportes Leer(
         ICasos casos, IPersonas personas, ICompaneros companeros,
         IAsignaciones asignaciones, IProcedencia procedencia)
@@ -110,6 +133,8 @@ public sealed class LecturaParaReportes
     /// El orden es el de lectura: por fecha de viaje, luego por caso, luego por la fila del
     /// formulario. Con dos casos del mismo numero, el id desempata (migracion 12).
     /// </remarks>
+    /// <param name="periodo">El periodo; se compara contra la fecha de viaje del caso, sin hora.</param>
+    /// <returns>Las personas en orden de lectura; vacía si ningún caso viaja en el periodo.</returns>
     public IReadOnlyList<PersonaConSuCaso> PersonasDelPeriodo(Periodo periodo)
         => Casos
             .Where(c => periodo.ContieneFecha(c.FechaViaje))
@@ -151,6 +176,7 @@ public sealed class LecturaParaReportes
             .ToList();
 
     /// <summary>Las personas de un caso; una lista vacia si no tiene ninguna.</summary>
+    /// <param name="casoId">El id del caso, no su número.</param>
     public IReadOnlyList<Persona> PersonasDe(long casoId)
         => PersonasPorCaso.TryGetValue(casoId, out var suyas) ? suyas : [];
 
@@ -165,6 +191,9 @@ public sealed class LecturaParaReportes
     /// mas de un companero (la P-11 sigue abierta), y en SU informe la tabla del equipo tiene
     /// que hablar de el. La pregunta que contesta es «¿de qué respondo yo?».
     /// </remarks>
+    /// <param name="casoIds">Los ids de los casos que se quedan; el resto desaparece de las cuatro lecturas.</param>
+    /// <param name="nombreDelCompanero">El nombre que se pone como único responsable de todos los que quedan.</param>
+    /// <returns>Una lectura nueva; esta no se toca.</returns>
     public LecturaParaReportes SoloEstosCasos(IReadOnlySet<long> casoIds, string nombreDelCompanero)
     {
         var casos = Casos.Where(c => casoIds.Contains(c.Id)).ToList();
@@ -180,6 +209,15 @@ public sealed class LecturaParaReportes
 
     // ---- lo que se lee una sola vez -----------------------------------------
 
+    /// <summary>Los nombres de quien lleva cada caso hoy, por id de caso y en orden ordinal.</summary>
+    /// <remarks>
+    /// Solo entran las asignaciones vivas, pero los nombres se buscan entre activos e inactivos:
+    /// un caso que lleva alguien que ya se fue sigue teniendo un nombre al que preguntar. Una
+    /// asignación cuyo compañero no aparece sale como <see cref="Vocabulario.SinAgente"/>.
+    /// </remarks>
+    /// <param name="companeros">El puerto de compañeros.</param>
+    /// <param name="asignaciones">El puerto de asignaciones.</param>
+    /// <returns>Solo los casos que tienen alguien; un caso sin asignación no está en el diccionario.</returns>
     private static Dictionary<long, IReadOnlyList<string>> LeerLosCompaneros(
         ICompaneros companeros, IAsignaciones asignaciones)
     {
@@ -205,6 +243,10 @@ public sealed class LecturaParaReportes
     /// La marca es la del ULTIMO campo verificado del caso: el instante en que alguien termino
     /// de mirarlo. Es nula mientras no haya ni un campo verificado.
     /// </remarks>
+    /// <param name="casos">Todos los casos.</param>
+    /// <param name="personasPorCaso">Las personas de cada caso, por id de caso.</param>
+    /// <param name="procedencia">El puerto de procedencia; se llama una vez por caso y una por persona.</param>
+    /// <returns>Un registro por caso, ordenados por número de caso y luego por id.</returns>
     private static List<CasoConSuVerificacion> LeerLaVerificacion(
         IReadOnlyList<Caso> casos,
         IReadOnlyDictionary<long, IReadOnlyList<Persona>> personasPorCaso,

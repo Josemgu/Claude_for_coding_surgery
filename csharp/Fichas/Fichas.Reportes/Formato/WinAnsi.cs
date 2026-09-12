@@ -55,6 +55,7 @@ public static class WinAnsi
 
     /// <summary>Codifica a WinAnsi y devuelve los bytes con cuantos caracteres no cupieron.</summary>
     /// <param name="texto">El texto a codificar; un nulo cuenta como vacio.</param>
+    /// <returns>Un byte por elemento de texto —«?» donde no cupo— y cuántos no cupieron.</returns>
     public static (byte[] Crudo, int Perdidos) Codificar(string? texto)
     {
         if (string.IsNullOrEmpty(texto)) return ([], 0);
@@ -83,9 +84,12 @@ public static class WinAnsi
     }
 
     /// <summary>Cuantos caracteres de ese texto no existen en WinAnsi.</summary>
+    /// <param name="texto">El texto; un nulo cuenta como vacío y pierde cero.</param>
     public static int Perdidos(string? texto) => Codificar(texto).Perdidos;
 
     /// <summary>Si ese elemento de texto es un solo caracter que WinAnsi sabe escribir.</summary>
+    /// <param name="elemento">Un elemento de texto de Unicode: un <c>char</c>, o varios si es un par sustituto o lleva marca combinante.</param>
+    /// <param name="octeto">El byte WinAnsi si cabe; cero si no.</param>
     private static bool Cabe(string elemento, out byte octeto)
     {
         octeto = 0;

@@ -31,8 +31,11 @@ namespace Fichas.Pruebas.App.Grupo;
 [TestClass]
 public sealed class PruebasDeUnSoloVeredicto
 {
+    /// <summary>El número interno del único documento de estas pruebas.</summary>
     private const long ElCaso = 400;
+    /// <summary>El número interno de su única persona.</summary>
     private const long LaPersona = 401;
+    /// <summary>El número interno del compañero que firma cuando la prueba firma algo.</summary>
     private const long ElCompanero = 1;
 
     /// <summary>La cedula que el papel trae y que cumple su forma.</summary>
@@ -105,6 +108,15 @@ public sealed class PruebasDeUnSoloVeredicto
         return new Montaje(servicios, procedencia);
     }
 
+    /// <summary>Deja una fila de procedencia para un campo, con lo que la prueba quiera que diga.</summary>
+    /// <param name="procedencia">Donde se anota.</param>
+    /// <param name="tabla">Si el campo es del caso o de la persona.</param>
+    /// <param name="registroId">El número interno del registro.</param>
+    /// <param name="campo">El nombre de la columna.</param>
+    /// <param name="origen">De dónde salió el valor.</param>
+    /// <param name="confianza">La confianza del OCR, o nula si no se sabe.</param>
+    /// <param name="tachado">Si el valor está anulado por un tachón.</param>
+    /// <param name="ausente">Si Miguel marcó que no está en el papel.</param>
     private static void Anotar(
         ProcedenciaComoLaDeVerdad procedencia, TablaDeProcedencia tabla, long registroId,
         string campo, OrigenDeCampo origen, double? confianza,
@@ -123,9 +135,14 @@ public sealed class PruebasDeUnSoloVeredicto
     /// <summary>El documento montado, con las dos preguntas ya cableadas.</summary>
     private sealed class Montaje
     {
+        /// <summary>Los servicios falsos donde vive el documento.</summary>
         private readonly ServiciosFalsos _servicios;
+        /// <summary>La procedencia con las mismas consultas que la de verdad; es lo que las dos pantallas leen.</summary>
         private readonly ProcedenciaComoLaDeVerdad _procedencia;
 
+        /// <summary>Guarda los dos sitios de los que leen las dos preguntas.</summary>
+        /// <param name="servicios">Los servicios falsos donde vive el documento.</param>
+        /// <param name="procedencia">La procedencia que leen las dos pantallas.</param>
         internal Montaje(ServiciosFalsos servicios, ProcedenciaComoLaDeVerdad procedencia)
         {
             _servicios = servicios;
@@ -159,10 +176,13 @@ public sealed class PruebasDeUnSoloVeredicto
         private ProcedenciasDeUnaPasada Procedencias
             => ProcedenciasDeUnaPasada.DeTodaLaBase(_procedencia);
 
+        /// <summary>El documento, releído del almacén cada vez.</summary>
         private Caso Caso => _servicios.Almacen.Casos[ElCaso];
 
+        /// <summary>Sus personas, releídas del almacén cada vez.</summary>
         private IReadOnlyList<Persona> Personas => _servicios.Almacen.PersonasDe(ElCaso);
 
+        /// <summary>La pantalla de Corrección con el documento cargado, montada como la de verdad.</summary>
         private ModeloDeCorreccion Modelo()
         {
             var modelo = new ModeloDeCorreccion(
@@ -174,6 +194,8 @@ public sealed class PruebasDeUnSoloVeredicto
     }
 
     /// <summary>Las dos preguntas, hechas sobre el mismo documento, tienen que dar lo mismo.</summary>
+    /// <param name="montaje">El documento con las dos preguntas cableadas.</param>
+    /// <param name="caso">El nombre de la fila de la tabla, para que el fallo diga cuál.</param>
     private static void LasDosDicenLoMismo(Montaje montaje, string caso)
         => Assert.AreEqual(
             montaje.CorreccionLoDaPorListo,

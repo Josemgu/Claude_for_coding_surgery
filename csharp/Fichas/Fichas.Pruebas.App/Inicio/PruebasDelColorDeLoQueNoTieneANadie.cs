@@ -104,7 +104,6 @@ public sealed class PruebasDelColorDeLoQueNoTieneANadie
         Assert.IsFalse(pastilla.Etiqueta.Contains("0 de 0", StringComparison.Ordinal));
         Assert.AreEqual(ColorDeLaPastilla.Gris, pastilla.Color);
         Assert.IsTrue(pastilla.SinNadieALaVista);
-        Assert.IsFalse(pastilla.EstaResuelta, "Con cero personas no está resuelto: nadie dijo nada.");
 
         // Y en voz alta se explica, porque quien no ve la pantalla no ve el gris.
         StringAssert.Contains(pastilla.ParaElLector, "sin ninguna persona leída");

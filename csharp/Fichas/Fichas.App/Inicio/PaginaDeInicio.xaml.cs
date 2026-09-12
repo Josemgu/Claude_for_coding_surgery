@@ -27,19 +27,25 @@ namespace Fichas.App.Inicio;
 /// </remarks>
 public sealed partial class PaginaDeInicio : PaginaDeFichas
 {
+    /// <summary>
+    /// Las 42 celdas del mes que se enseña, guardadas para saber qué día se pulsó por su
+    /// posición en el repetidor (ver <see cref="EnLaLista{T}"/>).
+    /// </summary>
     private IReadOnlyList<DiaDelCalendario> _losDias = [];
 
+    /// <summary>Quien calcula todo lo que se pinta; nulo hasta que llegan los servicios en <see cref="AlLlegar"/>.</summary>
     private LectorDelInicio? _lector;
+    /// <summary>Cuántos meses se ha movido el calendario respecto al de hoy; 0 es el mes de hoy.</summary>
     private int _mesQueSeEnsena;
+    /// <summary>Cuántas pasadas de medición van; la tercera cierra la medición (ver <see cref="AlTerminarDeColocar"/>).</summary>
     private int _cuantasVecesSeMidio;
+    /// <summary>Lo que tardó la última llamada a <see cref="LectorDelInicio.Leer"/>, para el registro y el informe.</summary>
     private double _milisegundosDelResumen;
+    /// <summary>Cronómetro de la pasada de medición en curso; nulo si no se está midiendo.</summary>
     private Stopwatch? _relojDelPintado;
 
     /// <summary>Monta la pantalla.</summary>
     public PaginaDeInicio() => InitializeComponent();
-
-    /// <summary>Cuanto costo la ultima lectura completa del panel, en milisegundos.</summary>
-    public double MilisegundosDelResumen => _milisegundosDelResumen;
 
     /// <summary>Monta el lector con los seis puertos que necesita y pinta el mes de hoy.</summary>
     protected override void AlLlegar()
@@ -69,6 +75,7 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     }
 
     /// <summary>Lee el panel entero y lo reparte por la pantalla, midiendo lo que cuesta.</summary>
+    /// <param name="desplazamientoDeMes">Cuántos meses mover el calendario respecto al de hoy.</param>
     private void Pintar(int desplazamientoDeMes)
     {
         if (_lector is null || Servicios is null) return;
@@ -124,6 +131,7 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// base; el motivo esta en <see cref="LectorDelInicio"/> y lo cronometra
     /// <c>PruebasDelCuadroDeInicio</c>.
     /// </remarks>
+    /// <param name="resumen">Lo que acaba de leer el lector.</param>
     private void LlenarElCuadro(ResumenDeInicio resumen)
     {
         var cuadro = resumen.Cuadro;
@@ -140,6 +148,7 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     }
 
     /// <summary>El calendario del mes que se ensena, con su titulo, la fecha de hoy y el denominador.</summary>
+    /// <param name="resumen">Lo que acaba de leer el lector.</param>
     private void LlenarElCalendario(ResumenDeInicio resumen)
     {
         var hoy = FechasEnEspanol.Leer(_lector!.Hoy);
@@ -152,15 +161,22 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     }
 
     /// <summary>Retrocede un mes en el calendario.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirElMesAnterior(object quien, RoutedEventArgs cuando) => MoverElMes(_mesQueSeEnsena - 1);
 
     /// <summary>Vuelve al mes de hoy.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirElMesDeHoy(object quien, RoutedEventArgs cuando) => MoverElMes(0);
 
     /// <summary>Avanza un mes en el calendario.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirElMesSiguiente(object quien, RoutedEventArgs cuando) => MoverElMes(_mesQueSeEnsena + 1);
 
     /// <summary>Cambia el mes que se ensena y vuelve a pintar.</summary>
+    /// <param name="desplazamiento">Cuántos meses respecto al de hoy; se guarda para el siguiente pintado.</param>
     private void MoverElMes(int desplazamiento)
     {
         _mesQueSeEnsena = desplazamiento;
@@ -168,6 +184,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     }
 
     /// <summary>El dueno cambio de tema: se vuelve a pintar entera con la paleta nueva.</summary>
+    /// <param name="quien">La página, que es quien avisa del cambio.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCambiarElTema(FrameworkElement quien, object cuando)
     {
         PonerLaPaletaDelTema();
@@ -200,6 +218,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// boton suelto con un rotulo; ahora es la cifra, que ademas dice cuantos son antes de
     /// pulsar. <c>PruebasDeLaPestanaDelFlujo</c> vigila que la puerta siga aqui.
     /// </remarks>
+    /// <param name="quien">La cifra que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirLoIncompleto(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -215,6 +235,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// <c>Cascara/VentanaPrincipal.xaml.cs</c>. La puerta principal del flujo es su entrada del
     /// menu, que si marca; esta es el atajo desde la cifra que se acaba de leer.
     /// </remarks>
+    /// <param name="quien">La cifra que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirElFlujo(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -222,6 +244,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     }
 
     /// <summary>Pulsar un dia del calendario abre el grupo que viaja ese dia.</summary>
+    /// <param name="quien">El botón de la celda; por él se sube al renglón del repetidor.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarUnDia(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -239,6 +263,11 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// porque las ataduras compiladas se actualizan por otro camino y no pasan por ahi.
     /// La posicion sí la sabe el repetidor.
     /// </remarks>
+    /// <typeparam name="T">El tipo del dato que hay detrás de cada renglón.</typeparam>
+    /// <param name="lista">Los datos con los que se llenó el repetidor, en el mismo orden.</param>
+    /// <param name="repetidor">El repetidor cuyos renglones se buscan.</param>
+    /// <param name="quien">El control que se pulsó, en cualquier profundidad dentro del renglón.</param>
+    /// <returns>El dato del renglón, o nulo si el control no cuelga de ese repetidor.</returns>
     private static T? EnLaLista<T>(IReadOnlyList<T> lista, ItemsRepeater repetidor, object? quien)
         where T : class
     {
@@ -276,6 +305,7 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// <c>Cascara/VentanaPrincipal.xaml.cs</c>. Por eso la pantalla del grupo trae su propio
     /// boton de volver.</para>
     /// </remarks>
+    /// <param name="dia">La celda que se pulsó; si no tiene grupos, no se hace nada.</param>
     private void AbrirElGrupoDelDia(DiaDelCalendario dia)
     {
         if (!dia.SePuedePulsar) return;
@@ -290,6 +320,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// empujada desde fuera no dejaria ninguna huella y «la lista tambien baja» seria
     /// una afirmacion.
     /// </remarks>
+    /// <param name="cual">El desplazamiento que se vigila.</param>
+    /// <param name="comoSeLlama">Cómo se nombra en el informe.</param>
     private static void Escuchar(ScrollView cual, string comoSeLlama)
         => cual.ViewChanged += (quien, cuando) => MedicionDeInicio.Anotar(
             $"RUEDA   «{comoSeLlama}» se movio a {MedicionDeInicio.Cifra(cual.VerticalOffset)} px "
@@ -305,6 +337,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// es el momento en que se asignan las listas, sino aquel en que WinUI ha medido y
     /// colocado los elementos. Cronometrar lo primero daria una cifra bonita y falsa.
     /// </remarks>
+    /// <param name="quien">Quien avisa de que la disposición cambió; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlTerminarDeColocar(object? quien, object cuando)
     {
         if (_relojDelPintado is null) return;
@@ -361,6 +395,8 @@ public sealed partial class PaginaDeInicio : PaginaDeFichas
     /// Lo que queda medido es lo que queda en pantalla —el cuadro y el calendario—, y las dos
     /// cifras del cuadro se escriben enteras para poder comprobarlas sin abrir la ventana.
     /// </remarks>
+    /// <param name="deQuePasada">Qué pasada de las tres es, en palabras, para la cabecera del informe.</param>
+    /// <param name="milisegundosHastaColocar">Lo que tardó desde que se pidió pintar hasta quedar colocado.</param>
     private void EscribirElInforme(string deQuePasada, double milisegundosHastaColocar)
     {
         var casos = Servicios?.Argumentos.CasosInventados ?? 0;

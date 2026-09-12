@@ -55,15 +55,21 @@ public static class Anotaciones
     // 2026-09-02 (45 tachones y 1 resaltador; 0 sin clasificar) y vueltas a ver el
     // 2026-09-04 en los siete escaneos del dueno, donde los 30 /Ink son todos tachones
     // con exactamente estos valores.
+    /// <summary>Canal rojo del tachón, en la escala 0–1 del diccionario <c>/C</c> del PDF (≈ 227/255).</summary>
     private const double RojoDelTachon = 0.8902;
+    /// <summary>Canal verde del tachón (≈ 24/255): casi nulo, es lo que lo separa del resaltador.</summary>
     private const double VerdeDelTachon = 0.0941;
+    /// <summary>Canal azul del tachón (≈ 45/255).</summary>
     private const double AzulDelTachon = 0.1765;
 
     /// <summary>Grosor medido del tachon rojo.</summary>
     public const double GrosorDelTachon = 1.65;
 
+    /// <summary>Canal rojo del resaltador verde (≈ 126/255).</summary>
     private const double RojoDelResaltador = 0.4941;
+    /// <summary>Canal verde del resaltador (≈ 196/255): el canal que manda en esta familia.</summary>
     private const double VerdeDelResaltador = 0.7686;
+    /// <summary>Canal azul del resaltador: exactamente cero en el único ejemplar medido.</summary>
     private const double AzulDelResaltador = 0.0;
 
     /// <summary>Grosor medido del resaltador verde.</summary>
@@ -89,12 +95,29 @@ public static class Anotaciones
     /// </remarks>
     public const double ToleranciaRelativaDeGrosor = 0.20;
 
+    /// <summary>
+    /// Cierto cuando los tres canales del trazo caen a menos de <see cref="ToleranciaDeColor"/>
+    /// de los de una familia. Falso si falta cualquier canal: un <c>/Ink</c> sin <c>/C</c> no se
+    /// clasifica, no se supone.
+    /// </summary>
+    /// <param name="rojo">Canal rojo leído del PDF, o <c>null</c> si la anotación no trae color.</param>
+    /// <param name="verde">Canal verde leído del PDF, o <c>null</c>.</param>
+    /// <param name="azul">Canal azul leído del PDF, o <c>null</c>.</param>
+    /// <param name="r">Canal rojo de referencia de la familia que se compara.</param>
+    /// <param name="v">Canal verde de referencia.</param>
+    /// <param name="a">Canal azul de referencia.</param>
     private static bool ColorSeParece(double? rojo, double? verde, double? azul, double r, double v, double a)
         => rojo is not null && verde is not null && azul is not null
            && Math.Abs(rojo.Value - r) <= ToleranciaDeColor
            && Math.Abs(verde.Value - v) <= ToleranciaDeColor
            && Math.Abs(azul.Value - a) <= ToleranciaDeColor;
 
+    /// <summary>
+    /// Cierto cuando el grosor cae dentro del ±20 % (<see cref="ToleranciaRelativaDeGrosor"/>)
+    /// del de referencia. Falso si el trazo no trae <c>/BS /W</c>.
+    /// </summary>
+    /// <param name="grosor">Grosor leído del PDF, o <c>null</c> si la anotación no lo trae.</param>
+    /// <param name="referencia">Grosor medido de la familia que se compara.</param>
     private static bool GrosorSeParece(double? grosor, double referencia)
         => grosor is not null && Math.Abs(grosor.Value - referencia) <= referencia * ToleranciaRelativaDeGrosor;
 
@@ -105,6 +128,11 @@ public static class Anotaciones
     /// Exige que coincidan las DOS cosas, color y grosor. Con solo el color, un trazo
     /// rojo grueso hecho para resaltar se leeria como tachon y anularia un campo bueno.
     /// </remarks>
+    /// <param name="rojo">Canal rojo del trazo (0–1), o <c>null</c> si no trae color.</param>
+    /// <param name="verde">Canal verde del trazo (0–1), o <c>null</c>.</param>
+    /// <param name="azul">Canal azul del trazo (0–1), o <c>null</c>.</param>
+    /// <param name="grosor">Grosor del trazo en puntos, o <c>null</c> si no lo trae.</param>
+    /// <returns>La familia reconocida, o <see cref="ClaseDeTrazo.Desconocida"/> si no encaja en ninguna o falta un dato.</returns>
     public static ClaseDeTrazo ClasificarTrazo(double? rojo, double? verde, double? azul, double? grosor)
     {
         if (ColorSeParece(rojo, verde, azul, RojoDelTachon, VerdeDelTachon, AzulDelTachon)
@@ -121,12 +149,14 @@ public static class Anotaciones
     }
 
     /// <summary>Que clase de trazo es esta anotacion; desconocida si no es un `/Ink`.</summary>
+    /// <param name="anotacion">La anotación tal como la leyó <see cref="LecturaDePdf"/>.</param>
     public static ClaseDeTrazo ClaseDe(AnotacionDelPdf anotacion)
         => anotacion.Subtipo != SubtipoDeTrazo
             ? ClaseDeTrazo.Desconocida
             : ClasificarTrazo(anotacion.Rojo, anotacion.Verde, anotacion.Azul, anotacion.Grosor);
 
     /// <summary>Cierto cuando la anotacion es una nota escrita a mano encima del papel, con texto.</summary>
+    /// <param name="anotacion">La anotación a examinar; una <c>/FreeText</c> vacía cuenta como no-corrección.</param>
     public static bool EsCorreccionAMano(AnotacionDelPdf anotacion)
         => anotacion.Subtipo == SubtipoDeTexto && !string.IsNullOrWhiteSpace(anotacion.Texto);
 
@@ -139,13 +169,16 @@ public static class Anotaciones
     /// eso entran por la misma puerta de la precedencia. Cuando coinciden en una banda, la
     /// nota a mano gana: <see cref="Campos.ResolverCampo"/> lleva escrito por que.
     /// </remarks>
+    /// <param name="anotacion">La anotación a examinar.</param>
     public static bool EsCorreccionEscrita(AnotacionDelPdf anotacion)
         => EsCorreccionAMano(anotacion) || EsCampoTecleado(anotacion);
 
     /// <summary>Cierto cuando la anotacion es un campo del formulario con algo tecleado dentro.</summary>
+    /// <param name="anotacion">La anotación a examinar; un campo <c>/Tx</c> en blanco cuenta como no tecleado.</param>
     public static bool EsCampoTecleado(AnotacionDelPdf anotacion)
         => anotacion.Subtipo == SubtipoDeCampoDeTexto && !string.IsNullOrWhiteSpace(anotacion.Texto);
 
     /// <summary>Cierto cuando la anotacion es un tachon que anula lo que hay debajo.</summary>
+    /// <param name="anotacion">La anotación a examinar; solo un <c>/Ink</c> con el color y el grosor medidos da cierto.</param>
     public static bool EsTachon(AnotacionDelPdf anotacion) => ClaseDe(anotacion) == ClaseDeTrazo.Tachon;
 }

@@ -7,18 +7,23 @@ namespace Fichas.Datos.Falso;
 /// <summary>Los companeros inventados. Cumple <see cref="ICompaneros"/> sin tocar ningun archivo.</summary>
 public sealed class RepositorioDeCompanerosFalso : ICompaneros
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public RepositorioDeCompanerosFalso(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Devuelve un trozo de la lista de companeros que cumplen el filtro, con el total detras.</summary>
+    /// <param name="filtro">Qué compañeros entran; ver <see cref="Filtrar"/>.</param>
+    /// <param name="trozo">Qué página se pide.</param>
     public PaginaDe<Companero> Listar(FiltroDeCompaneros filtro, Pagina trozo) => Trozos.Cortar(Filtrar(filtro), trozo);
 
     /// <summary>Devuelve todos los activos, ordenados por nombre.</summary>
     public IReadOnlyList<Companero> Activos() => Filtrar(FiltroDeCompaneros.Activos);
 
     /// <summary>Devuelve un companero por su id, o nulo si no esta.</summary>
+    /// <param name="id">El número interno.</param>
     public Companero? Obtener(long id) => _almacen.Companeros.TryGetValue(id, out var companero) ? companero : null;
 
     /// <summary>Da de alta un companero o cambia su nombre.</summary>
@@ -28,6 +33,7 @@ public sealed class RepositorioDeCompanerosFalso : ICompaneros
     /// lo rechazaba: una pantalla probada contra este doble creeria que el alta salio
     /// bien y en la maquina del dueno no habria entrado nadie.
     /// </remarks>
+    /// <param name="companero">El compañero; con <c>Id</c> 0 se le da uno nuevo y, si viene sin <c>CreadoEn</c>, el instante del reloj.</param>
     public ResultadoDeEscritura Guardar(Companero companero)
     {
         if (string.IsNullOrWhiteSpace(companero.Nombre))
@@ -52,6 +58,9 @@ public sealed class RepositorioDeCompanerosFalso : ICompaneros
     /// que falta tapa que quien llama se olvido de pasarlo, y en el de verdad el esquema
     /// lo rechaza.
     /// </remarks>
+    /// <param name="companeroId">A quién; si no existe, no se escribe y se dice.</param>
+    /// <param name="desactivadoEn">Cuándo, en ISO; en blanco no se escribe.</param>
+    /// <returns>Bien; con advertencia si todavía lleva casos, que no se retiran solos.</returns>
     public ResultadoDeEscritura Desactivar(long companeroId, string desactivadoEn)
     {
         if (string.IsNullOrWhiteSpace(desactivadoEn))
@@ -77,6 +86,12 @@ public sealed class RepositorioDeCompanerosFalso : ICompaneros
     }
 
     /// <summary>Aplica los filtros simples y devuelve la lista ordenada por nombre.</summary>
+    /// <remarks>
+    /// ⚠️ Ordena con la cultura de la máquina (<c>CurrentCulture</c>), que es lo único de este
+    /// proyecto que depende de ella; el de verdad ordena como ordene SQLite. Con nombres solo
+    /// ASCII dan lo mismo.
+    /// </remarks>
+    /// <param name="filtro">Solo activos, y un texto que se busca en el nombre.</param>
     private List<Companero> Filtrar(FiltroDeCompaneros filtro)
     {
         IEnumerable<Companero> companeros = _almacen.Companeros.Values;

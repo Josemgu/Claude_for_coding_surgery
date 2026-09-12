@@ -3,8 +3,6 @@ using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Contratos.Puertos;
 using Fichas.Reportes;
-using Fichas.Reportes.Armado;
-using Fichas.Reportes.Consultas;
 using Fichas.Reportes.Reglas;
 
 namespace Fichas.Pruebas.Reportes;
@@ -16,8 +14,12 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelReporteDelPeriodo
 {
+    /// <summary>Los casos de la base falsa en estas pruebas; bastan para que todas las secciones tengan filas.</summary>
     private const int CuantosCasos = 300;
 
+    /// <summary>El motor sobre la base falsa con reloj fijo.</summary>
+    /// <param name="servicios">Los servicios falsos, para contar aparte sobre los puertos.</param>
+    /// <param name="casos">Cuántos casos genera la base.</param>
     private static ReportesEnPdf Montar(out Fichas.Datos.Falso.ServiciosFalsos servicios, int casos = CuantosCasos)
     {
         servicios = BaseDePrueba.Montar(casos);
@@ -26,11 +28,14 @@ public class PruebaDelReporteDelPeriodo
             servicios.Asignaciones, servicios.Procedencia, servicios.Reloj);
     }
 
+    /// <summary>Una ruta única en la carpeta temporal, para que dos pruebas en paralelo no se pisen.</summary>
+    /// <param name="nombre">Cómo acaba el archivo.</param>
     private static string RutaTemporal(string nombre)
         => Path.Combine(Path.GetTempPath(), "fichas-pruebas-reportes", $"{Guid.NewGuid():N}-{nombre}");
 
     // ---- el PDF existe y abre ------------------------------------------------
 
+    /// <summary>Vigila que el reporte del mes se escribe y el archivo tiene cabecera, catálogo, startxref y %%EOF.</summary>
     [TestMethod]
     public void GenerarElReporteDeUnMesEscribeUnPdfQueAbre()
     {
@@ -53,6 +58,7 @@ public class PruebaDelReporteDelPeriodo
         File.Delete(ruta);
     }
 
+    /// <summary>Vigila que un periodo del revés no deja archivo y devuelve el aviso, sin lanzar.</summary>
     [TestMethod]
     public void UnPeriodoDelRevesNoEscribeNadaYLoDice_NoLanza()
     {
@@ -66,6 +72,7 @@ public class PruebaDelReporteDelPeriodo
         Assert.IsFalse(File.Exists(ruta), "No se escribe un PDF con todos los numeros a cero.");
     }
 
+    /// <summary>Vigila que una unidad de disco inexistente devuelve un problema, sin lanzar.</summary>
     [TestMethod]
     public void UnaRutaImposibleSeAvisa_NoLanza()
     {
@@ -80,6 +87,7 @@ public class PruebaDelReporteDelPeriodo
 
     // ---- las cifras son las que dan los contratos ---------------------------
 
+    /// <summary>Vigila que las cuatro cifras de la portada coinciden con la cuenta hecha aparte sobre los puertos.</summary>
     [TestMethod]
     public void LasCuatroCifrasDeLaPortadaCuadranConLoQueDicenLosPuertos()
     {
@@ -109,6 +117,7 @@ public class PruebaDelReporteDelPeriodo
         Assert.AreEqual(casosDelPeriodo.Count, documento.Portada.Cifras[3].Numero, "casos en el período");
     }
 
+    /// <summary>Vigila que el titular abre con «N de las M personas» y no lleva «%».</summary>
     [TestMethod]
     public void ElTitularDiceElDenominadorYNoLlevaPorcentajes()
     {
@@ -124,6 +133,7 @@ public class PruebaDelReporteDelPeriodo
         Assert.DoesNotContain("%", frase);
     }
 
+    /// <summary>Vigila que la fila de la métrica 3 y la nota de la sección dicen los denominadores.</summary>
     [TestMethod]
     public void LaMetricaTresDiceSuDenominadorYSusCincoCubos()
     {
@@ -139,6 +149,7 @@ public class PruebaDelReporteDelPeriodo
         StringAssert.Contains(metricas.Notas[1], "Casos del período por fecha de viaje:");
     }
 
+    /// <summary>Vigila que ninguna cadena del documento nombra transporte, alimentos, alojamiento, costos ni «$».</summary>
     [TestMethod]
     public void NingunaSeccionHablaDeDinero()
     {
@@ -196,6 +207,7 @@ public class PruebaDelReporteDelPeriodo
 
     // ---- criterio C8-3: los archivados siguen contando ----------------------
 
+    /// <summary>Vigila que archivar un caso del periodo deja iguales la portada y el tamaño de cada sección (C8-3).</summary>
     [TestMethod]
     public void ArchivarUnCasoDelPeriodoNoCambiaNingunTotalDelReporte()
     {
@@ -225,6 +237,7 @@ public class PruebaDelReporteDelPeriodo
 
     // ---- un caso sin numero no revienta el reporte entero -------------------
 
+    /// <summary>Vigila que con todos los casos del mes sin número el PDF se escribe y el aviso nombra al caso sin número.</summary>
     [TestMethod]
     public void UnCasoSinNumeroNoRevientaElReporteNiElPdf()
     {
@@ -259,13 +272,19 @@ public class PruebaDelReporteDelPeriodo
 
     // ---- ayudas -------------------------------------------------------------
 
+    /// <summary>Los seis pasos en sí, escrito aparte para no fiarse de <c>Pasos.Estado</c> al contar contra los puertos.</summary>
+    /// <param name="p">La persona.</param>
     private static bool EsCompleta(Persona p)
         => p.PasoPreparacion == true && p.PasoInformacion == true && p.PasoCitaDelTemplo == true
            && p.PasoAccionesRequeridas == true && p.PasoEntrevistas == true && p.PasoListoParaElTemplo == true;
 
+    /// <summary>Todos los casos del puerto, archivados incluidos, en una sola página.</summary>
+    /// <param name="casos">El puerto de casos.</param>
     private static List<Caso> TodosLosCasos(ICasos casos)
         => casos.Listar(new FiltroDeCasos(IncluirArchivados: true), new Pagina(0, int.MaxValue)).Elementos.ToList();
 
+    /// <summary>Cada cadena que se imprime en el documento, una a una, para poder buscar palabras prohibidas.</summary>
+    /// <param name="documento">El documento armado.</param>
     private static IEnumerable<string> TodosLosTextos(Fichas.Reportes.Modelo.Documento documento)
     {
         yield return documento.Titulo;

@@ -15,6 +15,11 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDelDesplegableDeCasos
 {
+    /// <summary>Un caso con lo justo para el desplegable: numero, archivo y de quien es duplicado.</summary>
+    /// <param name="id">El id interno.</param>
+    /// <param name="numero">El numero de caso; nulo si no se pudo leer.</param>
+    /// <param name="archivo">El nombre del PDF, que va dentro de una ruta inventada.</param>
+    /// <param name="duplicadoDe">El id del original, o nulo si no es duplicado.</param>
     private static Caso Caso(long id, string? numero, string archivo, long? duplicadoDe = null) => new()
     {
         Id = id,

@@ -61,6 +61,9 @@ public static class TextoDeLaMarcaDelEstado
     /// son lo unico que hay que reconocer de un vistazo; las otras dos llevan el estado y el
     /// nombre, porque ahi lo que importa es <b>quien</b> lo dijo.
     /// </remarks>
+    /// <param name="caso">El caso, tal como esta en la base.</param>
+    /// <param name="quienMarco">El nombre de quien puso la marca; nulo si no se pudo resolver, y entonces no se inventa.</param>
+    /// <exception cref="ArgumentNullException">Si el caso es nulo.</exception>
     public static string Corta(Caso caso, string? quienMarco)
     {
         ArgumentNullException.ThrowIfNull(caso);
@@ -80,6 +83,8 @@ public static class TextoDeLaMarcaDelEstado
     /// primero y el administrador remato despues conserva <c>estado_del_companero</c>, que
     /// es lo que quiso la migracion 14. Lo que vale ahora es lo ultimo que se escribio.
     /// </remarks>
+    /// <param name="caso">El caso, del que se lee <c>estado_marcado_origen</c>.</param>
+    /// <exception cref="ArgumentNullException">Si el caso es nulo.</exception>
     public static bool LoMarcoElAdministrador(Caso caso)
     {
         ArgumentNullException.ThrowIfNull(caso);
@@ -87,6 +92,7 @@ public static class TextoDeLaMarcaDelEstado
     }
 
     /// <summary>«completa» o «no está completa», que es lo que el estado significa.</summary>
+    /// <param name="caso">El caso, del que se lee el estado vigente; aqui nunca llega sin marcar.</param>
     private static string ComoEsta(Caso caso)
         => caso.Estado == EstadoDeRecomendacion.Completa ? "completa" : "no está completa";
 
@@ -99,6 +105,8 @@ public static class TextoDeLaMarcaDelEstado
     /// comprobo» de «este documento esta completo porque el administrador lo dijo». Sin esa
     /// mitad, el atajo se leeria como una verificacion que nadie hizo.
     /// </remarks>
+    /// <param name="caso">El caso, del que se leen el origen y <c>estado_del_companero</c>.</param>
+    /// <param name="quienMarco">El nombre de quien puso la marca; nulo se calla.</param>
     private static string DeDondeVino(Caso caso, string? quienMarco)
     {
         var firma = quienMarco is null ? string.Empty : $" · {quienMarco}";
@@ -121,6 +129,7 @@ public static class TextoDeLaMarcaDelEstado
     /// hoja es su ruta, que es texto libre y no se puede reconocer por su pinta sin acabar
     /// adivinando.
     /// </remarks>
+    /// <param name="caso">El caso, del que se lee <c>estado_del_companero</c>.</param>
     private static bool LoMarcoElExcelDeUnCompanero(Caso caso)
         => !string.IsNullOrWhiteSpace(caso.EstadoDelCompanero);
 }

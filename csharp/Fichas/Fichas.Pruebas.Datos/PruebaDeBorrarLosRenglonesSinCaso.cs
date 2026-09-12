@@ -312,6 +312,11 @@ public sealed class PruebaDeBorrarLosRenglonesSinCaso
 
     // ══════════════════ Utilidades de estas pruebas ══════════════════
 
+    /// <summary>Un renglón de ilegible con o sin documento detrás, según venga <paramref name="casoId"/>.</summary>
+    /// <param name="ilegibles">El repositorio de verdad.</param>
+    /// <param name="rutaPdf">La ruta que llevará el renglón.</param>
+    /// <param name="casoId">Nulo para un renglón huérfano; un id para uno que sí dejó documento.</param>
+    /// <returns>El id del renglón.</returns>
     private static long SembrarRenglon(IIlegibles ilegibles, string rutaPdf, long? casoId)
     {
         var escrito = ilegibles.Registrar(new RenglonIlegible
@@ -327,6 +332,10 @@ public sealed class PruebaDeBorrarLosRenglonesSinCaso
         return escrito.Id;
     }
 
+    /// <summary>Un caso mínimo, para que un renglón tenga a qué apuntar.</summary>
+    /// <param name="baseDePrueba">La base sobre la que se siembra.</param>
+    /// <param name="numeroCaso">El número que llevará.</param>
+    /// <returns>El id del caso.</returns>
     private static long SembrarUnCaso(BaseDePrueba baseDePrueba, string numeroCaso)
     {
         var caso = new RepositorioDeCasos(baseDePrueba.Conexion).Guardar(new Caso
@@ -351,6 +360,8 @@ public sealed class PruebaDeBorrarLosRenglonesSinCaso
         Assert.AreEqual(1, orden.ExecuteNonQuery());
     }
 
+    /// <summary>Los ids de todos los renglones que hay (hasta 100), para pedir un plan con «todo lo marcado».</summary>
+    /// <param name="ilegibles">El repositorio de verdad.</param>
     private static IReadOnlyCollection<long> IdsDeLosRenglones(IIlegibles ilegibles)
         => [.. ilegibles.Listar(FiltroDeIlegibles.Todo, Pagina.Primera(100)).Elementos.Select(r => r.Id)];
 }

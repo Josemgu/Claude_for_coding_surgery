@@ -29,7 +29,9 @@ namespace Fichas.App.Grupo;
 /// </remarks>
 public sealed partial class PaginaDeIncompletos : PaginaDeFichas
 {
+    /// <summary>Lo último que se pintó, en el orden del repetidor; por posición se sabe qué renglón se pulsó.</summary>
     private IReadOnlyList<RenglonDeLoIncompleto> _lo = [];
+    /// <summary>Lo que tardó la última lectura; lo expone <see cref="MilisegundosDeLaLectura"/> para que una prueba lo mida.</summary>
     private double _milisegundosDeLaLectura;
 
     /// <summary>Monta la pantalla.</summary>
@@ -51,6 +53,8 @@ public sealed partial class PaginaDeIncompletos : PaginaDeFichas
     }
 
     /// <summary>El dueno cambio de tema: se vuelve a pintar entera con la paleta nueva.</summary>
+    /// <param name="quien">La página cuyo tema cambió.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCambiarElTema(FrameworkElement quien, object cuando)
     {
         PonerLaPaletaDelTema();
@@ -94,6 +98,8 @@ public sealed partial class PaginaDeIncompletos : PaginaDeFichas
     }
 
     /// <summary>Vuelve a la pantalla de Inicio.</summary>
+    /// <param name="quien">El botón de volver.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirVolver(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -101,6 +107,8 @@ public sealed partial class PaginaDeIncompletos : PaginaDeFichas
     }
 
     /// <summary>Abre el grupo entero del dia cuya cabecera se pulso.</summary>
+    /// <param name="quien">El botón de la cabecera de fecha que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPedirElGrupoDeEseDia(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -116,6 +124,8 @@ public sealed partial class PaginaDeIncompletos : PaginaDeFichas
     /// volver. Palabras del dueno: <i>«No tengo opción de regresar a la ventana de atrás, que
     /// quiero seguir trabajando»</i>.
     /// </remarks>
+    /// <param name="quien">El botón del renglón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarUnDocumento(object quien, RoutedEventArgs cuando)
     {
         if (Frame is null || Servicios is null) return;
@@ -141,6 +151,8 @@ public sealed partial class PaginaDeIncompletos : PaginaDeFichas
     /// <c>ItemsRepeater</c> con una plantilla de <c>x:Bind</c> lo tiene vacio. Medido el
     /// 2026-09-04 en Inicio.
     /// </remarks>
+    /// <param name="donde">El control que se pulsó, en cualquier profundidad dentro de un renglón.</param>
+    /// <returns>El renglón pulsado, o nulo si el control no cuelga del repetidor.</returns>
     private RenglonDeLoIncompleto? QueSePulso(object? donde)
     {
         var actual = donde as DependencyObject;

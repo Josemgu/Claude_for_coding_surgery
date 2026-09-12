@@ -45,13 +45,17 @@ public static class EscritorDePdf
     /// <summary>Alto de la pagina en puntos.</summary>
     public const int AltoPagina = 792;
 
+    /// <summary>El color con el que arranca todo bloque de texto y al que cae un color que no se puede leer.</summary>
     private const string Negro = "#151515";
 
     // Los bytes se arman con Latin1, que es byte a byte identico a lo que ya devolvio
     // WinAnsi: aqui no se vuelve a codificar nada, solo se pegan literales ASCII.
+    /// <summary>La codificación con la que se escriben los literales del archivo; ver el comentario de arriba.</summary>
     private static readonly Encoding Bytes = Encoding.Latin1;
 
     /// <summary>Escapa los tres caracteres que un literal de cadena de PDF no admite.</summary>
+    /// <param name="crudo">Los bytes ya codificados en WinAnsi.</param>
+    /// <returns>Los mismos bytes con una barra delante de cada <c>\</c>, <c>(</c> y <c>)</c>.</returns>
     public static byte[] Escapar(byte[] crudo)
     {
         var salida = new List<byte>(crudo.Length + 8);
@@ -66,6 +70,7 @@ public static class EscritorDePdf
     /// <summary>El archivo PDF entero de esas paginas ya colocadas.</summary>
     /// <param name="paginas">Cada pagina, con sus lineas y la <c>y</c> de cada una.</param>
     /// <param name="marco">Lo que se repite en todas las paginas; nulo si no se repite nada.</param>
+    /// <returns>El archivo completo, de <c>%PDF-1.4</c> a <c>%%EOF</c>; con cero páginas sale un PDF válido sin páginas.</returns>
     public static byte[] BytesDelPdf(
         IReadOnlyList<IReadOnlyList<(double Y, Linea Linea)>> paginas,
         MarcoDePagina? marco)
@@ -80,6 +85,9 @@ public static class EscritorDePdf
     /// Las paginas ocupan los pares (3, 5, 7...) y sus flujos los impares siguientes; las
     /// dos fuentes van al final.
     /// </remarks>
+    /// <param name="paginas">Cada página con sus líneas ya colocadas.</param>
+    /// <param name="marco">Lo que se repite en todas; nulo si nada.</param>
+    /// <returns>Catálogo, árbol de páginas, un par página/flujo por página, y las dos fuentes; sin cabecera de objeto.</returns>
     private static List<byte[]> ObjetosDelPdf(
         IReadOnlyList<IReadOnlyList<(double Y, Linea Linea)>> paginas,
         MarcoDePagina? marco)
@@ -135,6 +143,9 @@ public static class EscritorDePdf
     /// es de estado, no de operacion: el que dejo puesto el ultimo rectangulo de la cinta
     /// seguiria vigente dentro del texto, y el informe entero saldria del color de la cinta.
     /// </remarks>
+    /// <param name="pagina">Las líneas de la página, las del contenido y las del marco juntas.</param>
+    /// <param name="adornos">Lo que se pinta detrás del texto.</param>
+    /// <returns>El flujo de contenido sin su diccionario de longitud, que lo pone quien lo envuelve.</returns>
     private static byte[] FlujoDeUnaPagina(
         IReadOnlyList<(double Y, Linea Linea)> pagina,
         IReadOnlyList<Adorno> adornos)
@@ -186,6 +197,7 @@ public static class EscritorDePdf
     /// Va antes del bloque de texto a proposito. Un rectangulo dibujado despues taparia lo
     /// que hay debajo, y la cinta negra de la cabecera se comeria su propio titulo.
     /// </remarks>
+    /// <param name="adornos">Rectángulos y rayas; cualquier otro <see cref="Adorno"/> se ignora en silencio.</param>
     private static byte[] FlujoDeLosAdornos(IReadOnlyList<Adorno> adornos)
     {
         var partes = new List<byte[]>();
@@ -213,9 +225,11 @@ public static class EscritorDePdf
     // ---- color --------------------------------------------------------------
 
     /// <summary>La instruccion que fija el color con el que se rellena a partir de ahi.</summary>
+    /// <param name="color">Un <c>#RRGGBB</c>; nulo o ilegible da negro.</param>
     private static byte[] ColorDeRelleno(string? color) => Bytes.GetBytes(Componentes(color) + " rg\n");
 
     /// <summary>La instruccion que fija el color con el que se dibujan las rayas.</summary>
+    /// <param name="color">Un <c>#RRGGBB</c>; nulo o ilegible da negro.</param>
     private static byte[] ColorDeTrazo(string? color) => Bytes.GetBytes(Componentes(color) + " RG\n");
 
     /// <summary>Un <c>#RRGGBB</c> como los tres numeros de 0 a 1 que espera el PDF.</summary>
@@ -224,6 +238,8 @@ public static class EscritorDePdf
     /// color que no se puede leer sale NEGRO, que es el que ya tenia el documento antes de
     /// que existieran los colores: un fallo de formato no puede dejar un numero invisible.
     /// </remarks>
+    /// <param name="color">Un <c>#RRGGBB</c>, con o sin la almohadilla.</param>
+    /// <returns>Tres fracciones con tres decimales separadas por espacio, por ejemplo «0.082 0.082 0.082».</returns>
     private static string Componentes(string? color)
     {
         var crudo = (color ?? Negro).TrimStart('#');
@@ -247,6 +263,8 @@ public static class EscritorDePdf
     /// dañado». Por eso se anota la posicion real de cada objeto mientras se escribe, en vez
     /// de calcularla despues.
     /// </remarks>
+    /// <param name="objetos">Los cuerpos de los objetos, en el orden en que se numeran desde el 1.</param>
+    /// <returns>El archivo entero, byte a byte reproducible: la misma entrada da siempre los mismos bytes.</returns>
     private static byte[] Ensamblar(List<byte[]> objetos)
     {
         var salida = new List<byte>(64 * 1024);
@@ -275,6 +293,8 @@ public static class EscritorDePdf
         return [.. salida];
     }
 
+    /// <summary>Concatena trozos de bytes en uno solo, reservando el tamaño exacto de una vez.</summary>
+    /// <param name="partes">Los trozos, en orden.</param>
     private static byte[] Pegar(List<byte[]> partes)
     {
         var salida = new byte[partes.Sum(p => p.Length)];

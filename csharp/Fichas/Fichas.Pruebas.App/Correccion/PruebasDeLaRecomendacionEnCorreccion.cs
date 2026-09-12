@@ -29,7 +29,9 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLaRecomendacionEnCorreccion
 {
+    /// <summary>El id fijo del caso con tres personas.</summary>
     private const long CasoDePrueba = 500;
+    /// <summary>La companera que contesta las seis; el id es distinto de 1 a proposito, para cazar un «primero de la lista».</summary>
     private const long Sandy = 9;
 
     /// <summary>Las respuestas con nombre; el analizador de pruebas rechaza el literal.</summary>
@@ -87,6 +89,8 @@ public sealed class PruebasDeLaRecomendacionEnCorreccion
             PasoListoParaElTemplo = todas,
         };
 
+    /// <summary>Monta el modelo con el almacen de procedencia como el de verdad y abre el caso.</summary>
+    /// <param name="servicios">La base inventada de la prueba.</param>
     private static ModeloDeCorreccion ModeloSobre(ServiciosFalsos servicios)
     {
         var modelo = new ModeloDeCorreccion(

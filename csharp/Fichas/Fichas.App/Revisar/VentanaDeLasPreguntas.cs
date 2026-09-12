@@ -36,9 +36,13 @@ namespace Fichas.App.Revisar;
 /// </remarks>
 public sealed class VentanaDeLasPreguntas : Window
 {
+    /// <summary>Los servicios del programa: de aquí se lee el documento y sus personas cada vez que se repinta.</summary>
     private readonly Servicios _servicios;
+    /// <summary>Lo único que escribe desde esta ventana: las seis de una persona, con quién las contestó.</summary>
     private readonly AccionesDeLasPreguntas _acciones;
+    /// <summary>El documento de esta ventana; una ventana es de un documento y no cambia.</summary>
     private readonly long _casoId;
+    /// <summary>El tema con el que se abrió, copiado de la ventana principal para que las dos se vean igual.</summary>
     private readonly ElementTheme _tema;
 
     /// <summary>De qué personas se pulsó el atajo de las seis y todavía no se ha guardado.</summary>
@@ -56,8 +60,11 @@ public sealed class VentanaDeLasPreguntas : Window
     /// </remarks>
     private readonly HashSet<long> _marcadasDeUnTiron = [];
 
+    /// <summary>La lista de tarjetas, una por persona; se vacía y se rehace en cada <see cref="Repintar"/>.</summary>
     private readonly StackPanel _personas = new() { Spacing = 10 };
+    /// <summary>La cabecera: archivo, unidad y fecha de viaje, y debajo cuántas personas están confirmadas.</summary>
     private readonly TextBlock _resumen = new() { FontSize = 13, TextWrapping = TextWrapping.Wrap };
+    /// <summary>La franja de avisos del pie; escondida hasta que hay algo que decir.</summary>
     private readonly TextBlock _franja = new()
     {
         FontSize = 12,
@@ -66,6 +73,9 @@ public sealed class VentanaDeLasPreguntas : Window
     };
 
     /// <summary>Abre la ventana de un documento con el tema que tenga la principal.</summary>
+    /// <param name="servicios">Los servicios del programa.</param>
+    /// <param name="casoId">El documento que se abre.</param>
+    /// <param name="tema">El tema de la ventana principal, para que esta se vea igual.</param>
     public VentanaDeLasPreguntas(Servicios servicios, long casoId, ElementTheme tema)
     {
         _servicios = servicios;
@@ -162,6 +172,7 @@ public sealed class VentanaDeLasPreguntas : Window
     }
 
     /// <summary>La tarjeta de una persona: quién es, cómo está, quién contestó y sus seis.</summary>
+    /// <param name="ticket">La persona que se pinta.</param>
     private FrameworkElement TarjetaDe(TicketDeUnaPersona ticket)
     {
         var caja = new StackPanel { Spacing = 4 };
@@ -247,6 +258,8 @@ public sealed class VentanaDeLasPreguntas : Window
     /// un clic de más no puede convertir «no lo he mirado» en «está todo bien» (regla
     /// permanente 5). El porqué entero está en <see cref="MarcarLasSeisDeUnTiron"/>.
     /// </remarks>
+    /// <param name="ticket">La persona de la que son los botones.</param>
+    /// <param name="desplegables">Sus seis desplegables, en el orden de las preguntas.</param>
     private FrameworkElement BotonesDe(TicketDeUnaPersona ticket, IReadOnlyList<ComboBox> desplegables)
     {
         var fila = new StackPanel
@@ -277,6 +290,8 @@ public sealed class VentanaDeLasPreguntas : Window
     /// El sello se pone DESPUÉS de mover los desplegables: moverlos dispara
     /// <c>SelectionChanged</c>, que es justo lo que lo quita.
     /// </remarks>
+    /// <param name="ticket">La persona cuyas seis se ponen en «sí».</param>
+    /// <param name="desplegables">Sus seis desplegables, en el orden de las preguntas.</param>
     private void PonerLasSeisEnSi(TicketDeUnaPersona ticket, IReadOnlyList<ComboBox> desplegables)
     {
         var propuestas = MarcarLasSeisDeUnTiron.LoQuePropone(ticket);
@@ -299,6 +314,8 @@ public sealed class VentanaDeLasPreguntas : Window
     /// «Sin mirar» va la primera y se puede volver a ella: si contestar fuera irreversible,
     /// nadie se atrevería a contestar (criterio C19-6).
     /// </remarks>
+    /// <param name="ticket">La persona, para nombrar el desplegable ante un lector de pantalla.</param>
+    /// <param name="pregunta">La pregunta y su respuesta de ahora, que es la que queda elegida.</param>
     private static ComboBox DesplegableDe(TicketDeUnaPersona ticket, PreguntaDeUnaPersona pregunta)
     {
         var desplegable = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -327,6 +344,8 @@ public sealed class VentanaDeLasPreguntas : Window
     /// después: es lo único que separa en la base «las miré una a una» de «las marqué en
     /// bloque», porque las seis columnas quedan idénticas por los dos caminos.
     /// </remarks>
+    /// <param name="ticket">La persona cuyas seis se guardan.</param>
+    /// <param name="desplegables">Sus seis desplegables, de donde se leen las respuestas elegidas.</param>
     private void Guardar(TicketDeUnaPersona ticket, IReadOnlyList<ComboBox> desplegables)
     {
         var elegidas = desplegables
@@ -369,6 +388,7 @@ public sealed class VentanaDeLasPreguntas : Window
     }
 
     /// <summary>Enseña lo que pasó, sin detener nada y sin abrir un cuadro.</summary>
+    /// <param name="avisos">Lo que se enseña, uno por renglón; con ninguno la franja se esconde.</param>
     private void Decir(IReadOnlyList<Aviso> avisos)
     {
         if (avisos.Count == 0)

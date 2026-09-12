@@ -22,9 +22,11 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDeLasColumnas
 {
+    /// <summary>Vigila el recuento: 16 del Python, menos dos, más dos, más una.</summary>
     [TestMethod]
     public void LaHojaTieneDiecisieteColumnas() => Assert.HasCount(17, Columnas.Todas);
 
+    /// <summary>Vigila los diecisiete títulos impresos, letra por letra y en su orden.</summary>
     [TestMethod]
     public void LosTitulosSonLosDeLaHojaQueElDuenoVerifica()
     {
@@ -39,6 +41,7 @@ public class PruebasDeLasColumnas
         CollectionAssert.AreEqual(esperados, Columnas.Titulos().ToArray());
     }
 
+    /// <summary>Vigila los diecisiete nombres de columna en la base, en el mismo orden que los títulos.</summary>
     [TestMethod]
     public void LosNombresDeColumnaSonLosDeLaBase()
     {
@@ -143,16 +146,19 @@ public class PruebasDeLasColumnas
         Assert.AreEqual(ClaseDeRespuesta.TextoLibre, Columnas.Por(MotivosDeLaHoja.ColumnaDelComentario).Respuesta);
     }
 
+    /// <summary>Vigila que solo el número de caso y el MRN se declaren clave: son el par de respaldo cuando no hay columna «clave».</summary>
     [TestMethod]
     public void ElParQueReconciliaEsElNumeroDeCasoYElMrn()
         => CollectionAssert.AreEqual(new[] { "numero_caso", "mrn" }, Columnas.Todas.Where(c => c.EsClave).Select(c => c.Nombre).ToArray());
 
+    /// <summary>Vigila que las cuatro con ceros o guiones que Excel normalizaría vayan con formato de texto, y ninguna más.</summary>
     [TestMethod]
     public void LasCuatroColumnasDeTextoSonLasQueExcelPuedeEstropear()
         => CollectionAssert.AreEqual(
             new[] { "numero_caso", "unidad_numero", "mrn", "clave" },
             Columnas.Todas.Where(c => c.Clase == ClaseDeColumna.Texto).Select(c => c.Nombre).ToArray());
 
+    /// <summary>Vigila los anchos medidos del programa viejo, y los dos que se cambiaron con su motivo.</summary>
     [TestMethod]
     public void LosAnchosSonLosDelProgramaEnPython()
     {
@@ -164,10 +170,12 @@ public class PruebasDeLasColumnas
         Assert.AreEqual(40, Columnas.AnchoDe(MotivosDeLaHoja.ColumnaDelComentario));
     }
 
+    /// <summary>Vigila que la clave sea la última columna: a la vista, donde se nota si falta.</summary>
     [TestMethod]
     public void LaClaveEsLaUltimaColumnaYVaALaVista()
         => Assert.AreEqual(Columnas.Todas.Count, Columnas.IndiceDe("clave"));
 
+    /// <summary>Vigila que pedir una columna inexistente lance nombrando las que sí hay.</summary>
     [TestMethod]
     public void PedirUnaColumnaQueNoExisteDiceCualesHay()
     {

@@ -30,6 +30,7 @@ public interface IReportesDeLaEscalera
     /// <param name="categoria">El peldano que lo recibe.</param>
     /// <param name="intentos">Los documentos que suben, con quien los intento y por que no salio.</param>
     /// <param name="rutaDestino">Donde queda el PDF.</param>
+    /// <returns>Nunca lanza por un dato raro: con <c>SeEscribio</c> en falso y su aviso si no sube nada o la ruta falla.</returns>
     ResultadoDeEscritura GenerarReporteDeLaSegundaVuelta(
         int categoria, IReadOnlyList<IntentoAnterior> intentos, string rutaDestino);
 }

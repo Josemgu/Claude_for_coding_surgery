@@ -45,6 +45,8 @@ public static class ManejadorSeguro
     /// Es una funcion aparte para poder probarla sin abrir ventana: lo que importa de este
     /// archivo es QUE se dice cuando algo falla, y eso se puede comprobar por los bordes.
     /// </remarks>
+    /// <param name="queSePulso">Cómo se llama el botón en la pantalla.</param>
+    /// <param name="fallo">Lo que se escapó del trabajo; va entero en el detalle.</param>
     public static Aviso TextoDelFallo(string queSePulso, Exception fallo)
     {
         ArgumentNullException.ThrowIfNull(fallo);
@@ -60,6 +62,9 @@ public static class ManejadorSeguro
     }
 
     /// <summary>Espera al trabajo y, si se rompe, lo deja dicho en los tres sitios.</summary>
+    /// <param name="queSePulso">Cómo se llama el botón en la pantalla.</param>
+    /// <param name="servicios">De donde salen el buzón y el cuaderno; nulo si la pantalla aún no los tiene, y entonces solo se dice en el pie.</param>
+    /// <param name="trabajo">Lo que hace el botón.</param>
     private static async Task CorrerYContar(string queSePulso, Servicios? servicios, Func<Task> trabajo)
     {
         try

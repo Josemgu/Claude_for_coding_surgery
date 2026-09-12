@@ -15,10 +15,13 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed class CamposDeLaHoja
 {
+    /// <summary>Los campos del caso por nombre de columna; si la hoja trae uno repetido, se queda el primero.</summary>
     private readonly Dictionary<string, CampoPropuesto> _delCaso;
+    /// <summary>Las personas con algo leído, ordenadas por el renglón del papel.</summary>
     private readonly List<PersonaDeLaHoja> _personas;
 
     /// <summary>Reparte los campos de una hoja entre el caso y sus personas.</summary>
+    /// <param name="campos">La lista plana que devuelve la lectura, con campos del caso y de las personas mezclados.</param>
     public CamposDeLaHoja(IReadOnlyList<CampoPropuesto> campos)
     {
         ArgumentNullException.ThrowIfNull(campos);
@@ -93,6 +96,7 @@ public sealed class CamposDeLaHoja
     public IReadOnlyList<PersonaDeLaHoja> Personas => _personas;
 
     /// <summary>El campo del caso que se pida, o nulo si esa hoja no lo trae.</summary>
+    /// <param name="campo">Nombre de la columna, una de las constantes <c>Campo…</c> de esta clase.</param>
     public CampoPropuesto? Del(string campo) => _delCaso.GetValueOrDefault(campo);
 
     /// <summary>El valor de un campo del caso, o nulo.</summary>
@@ -100,6 +104,7 @@ public sealed class CamposDeLaHoja
     /// Un valor tachado NO se resucita: el papel dice que no vale, y darlo por bueno seria
     /// leer lo contrario de lo que esta escrito. El valor crudo sigue en la procedencia.
     /// </remarks>
+    /// <param name="campo">Nombre de la columna, una de las constantes <c>Campo…</c> de esta clase.</param>
     public string? ValorDe(string campo)
     {
         var propuesto = Del(campo);
@@ -128,7 +133,8 @@ public sealed record PersonaDeLaHoja(
     /// <summary>La cedula, o nula; un tachon no se resucita.</summary>
     public string? ValorDelMrn => Mrn is null || Mrn.AnuladoPorTachon ? null : Mrn.Valor;
 
-    /// <summary>El campo que se pida de esta persona.</summary>
+    /// <summary>El campo que se pida de esta persona; nulo si se pide uno que una persona no tiene.</summary>
+    /// <param name="campo"><see cref="CamposDeLaHoja.CampoNombre"/> o <see cref="CamposDeLaHoja.CampoMrn"/>.</param>
     public CampoPropuesto? Del(string campo) => campo switch
     {
         CamposDeLaHoja.CampoNombre => Nombre,

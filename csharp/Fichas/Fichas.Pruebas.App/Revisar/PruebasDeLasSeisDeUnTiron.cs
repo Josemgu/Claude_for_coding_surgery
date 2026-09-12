@@ -30,6 +30,7 @@ namespace Fichas.Pruebas.App.Revisar;
 [TestClass]
 public sealed class PruebasDeLasSeisDeUnTiron
 {
+    /// <summary>El día en el que se paran los relojes de estas pruebas; es el de la decisión del atajo.</summary>
     private const string DiaDeLasPruebas = "2026-09-09";
 
     // ═════════ Un clic no escribe: propone, y firma el de guardar ═════════
@@ -269,6 +270,7 @@ public sealed class PruebasDeLasSeisDeUnTiron
     }
 
     /// <summary>Las seis columnas de una persona, en una línea, para poder compararlas.</summary>
+    /// <param name="persona">La persona cuyas seis columnas se leen.</param>
     private static string LasSeisDe(Persona persona)
         => string.Join(
             ",",
@@ -287,12 +289,19 @@ public sealed class PruebasDeLasSeisDeUnTiron
     /// </remarks>
     private sealed class BancoDeUnTiron
     {
+        /// <summary>El almacén en memoria sobre el que corren los repositorios falsos.</summary>
         private readonly AlmacenFalso _almacen;
+        /// <summary>Los documentos de la prueba.</summary>
         private readonly RepositorioDeCasosFalso _casos;
+        /// <summary>El equipo: Sandy primero y, si se pide, Miguel administrador después.</summary>
         private readonly RepositorioDeCompanerosFalso _companeros;
+        /// <summary>La procedencia de campos, solo para comprobar que el atajo no firma ninguno.</summary>
         private readonly RepositorioDeProcedenciaFalso _procedencia;
+        /// <summary>Lo que se prueba: las acciones de las seis preguntas, montadas sobre los falsos.</summary>
         private readonly AccionesDeLasPreguntas _acciones;
 
+        /// <summary>Siembra el equipo y monta las acciones.</summary>
+        /// <param name="conAdministrador">Si se da de alta a Miguel como administrador; sin él nadie puede firmar.</param>
         public BancoDeUnTiron(bool conAdministrador = true)
         {
             _almacen = new AlmacenFalso(new RelojFijo(DiaDeLasPruebas), semilla: 2);
@@ -321,8 +330,12 @@ public sealed class PruebasDeLasSeisDeUnTiron
             _acciones = new AccionesDeLasPreguntas(Personas_, _companeros);
         }
 
+        /// <summary>El puerto de personas, expuesto para leer las firmas y las seis columnas escritas.</summary>
         public IPersonas Personas_ { get; }
 
+        /// <summary>Mete un documento «no completa» con esas personas, numeradas.</summary>
+        /// <param name="cuantas">Cuántas personas trae el documento.</param>
+        /// <returns>El número interno del documento.</returns>
         public long SembrarUnDocumentoDe(int cuantas)
         {
             var caso = _casos.Guardar(new Caso
@@ -349,22 +362,32 @@ public sealed class PruebasDeLasSeisDeUnTiron
             return caso;
         }
 
+        /// <summary>Las personas de un documento, releídas de la base.</summary>
+        /// <param name="casoId">El documento.</param>
         public IReadOnlyList<Persona> Personas(long casoId) => Personas_.DeCaso(casoId);
 
+        /// <summary>Lo que dice <c>estado_recomendacion</c> ahora mismo, tal cual está guardado.</summary>
+        /// <param name="casoId">El documento.</param>
         public string? EstadoDelCaso(long casoId) => _casos.Obtener(casoId)?.EstadoRecomendacion;
 
         /// <summary>Las tres columnas de la firma tal como quedaron ESCRITAS en la base.</summary>
+        /// <param name="casoId">El documento.</param>
+        /// <param name="personaId">La persona cuya firma se lee.</param>
         public FirmaDeLosPasos FirmaDe(long casoId, long personaId)
             => Personas_.FirmasDeLosPasosDelCaso(casoId)[personaId];
 
         /// <summary>Las seis a mano, una a una, que es el camino que ya existía.</summary>
+        /// <param name="personaId">La persona a la que se le contestan las seis en «sí».</param>
         public ResultadoDeEscritura ContestarUnaAUna(long personaId)
             => _acciones.Guardar(personaId, new RespuestaALosPasos(true, true, true, true, true, true));
 
         /// <summary>Las seis de un tirón, que es el atajo nuevo.</summary>
+        /// <param name="personaId">La persona a la que se le marcan las seis en «sí».</param>
         public ResultadoDeEscritura ContestarDeUnTiron(long personaId)
             => _acciones.GuardarDeUnTiron(personaId, new RespuestaALosPasos(true, true, true, true, true, true));
 
+        /// <summary>Lo que vería la ventana de ese documento, compuesto por el mismo camino que ella.</summary>
+        /// <param name="casoId">El documento que se abre.</param>
         public DocumentoConPreguntas Abrir(long casoId)
             => PreguntasDeUnDocumento.De(
                 _casos.Obtener(casoId)!,
@@ -373,6 +396,7 @@ public sealed class PruebasDeLasSeisDeUnTiron
                 _companeros.Activos(),
                 _acciones.QuienContesta());
 
+        /// <summary>Cuántos campos del documento están firmados «Todo correcto»; tiene que seguir en cero.</summary>
         public int CamposFirmados() => _procedencia.DeRegistro(TablaDeProcedencia.Casos, 1).Count(c => c.Verificado);
     }
 }

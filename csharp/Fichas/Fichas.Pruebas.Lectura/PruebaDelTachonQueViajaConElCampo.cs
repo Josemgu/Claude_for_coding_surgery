@@ -38,6 +38,7 @@ public class PruebaDelTachonQueViajaConElCampo
     /// <summary>El rótulo impreso del que cuelga la banda de la fecha de viaje.</summary>
     private static readonly BandaDeLaPagina Rotulo = new(0.05, 0.42, 0.21, 0.44);
 
+    /// <summary>La etiqueta «Date traveling to the temple» leída con confianza 1,0 en el rótulo.</summary>
     private static LineaDeOcr Ancla()
         => new("Date traveling to the temple", 1.0, Rotulo);
 
@@ -55,6 +56,9 @@ public class PruebaDelTachonQueViajaConElCampo
         => new(Anotaciones.SubtipoDeTexto, texto, new BandaDeLaPagina(0.24, 0.443, 0.32, 0.453),
             null, null, null, null);
 
+    /// <summary>Extrae los campos del caso y devuelve el de la fecha de viaje; falla la prueba si no se propuso.</summary>
+    /// <param name="lineas">Las líneas del OCR de la página.</param>
+    /// <param name="anotaciones">Los trazos y las notas de la página.</param>
     private static CampoPropuesto FechaPropuesta(
         IReadOnlyList<LineaDeOcr> lineas, IReadOnlyList<AnotacionDelPdf> anotaciones)
     {

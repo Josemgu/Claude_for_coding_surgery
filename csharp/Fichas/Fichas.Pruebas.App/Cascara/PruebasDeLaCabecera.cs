@@ -139,6 +139,7 @@ public sealed class PruebasDeLaCabecera
         Assert.IsEmpty(malos, string.Join(Environment.NewLine, malos.Take(5)));
     }
 
+    /// <summary>La carpeta <c>Fichas.App</c> del árbol de código, subiendo desde donde corre la prueba; no concluyente si no está.</summary>
     private static string LaCarpetaDeLaApp()
     {
         var actual = new DirectoryInfo(AppContext.BaseDirectory);

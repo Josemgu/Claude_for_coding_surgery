@@ -26,12 +26,20 @@ namespace Fichas.App.Asignar;
 /// </remarks>
 public sealed class ListaParaAsignar
 {
+    /// <summary>Los documentos; es de donde salen los que se ofrecen, sin archivados.</summary>
     private readonly ICasos _casos;
+    /// <summary>Las asignaciones vivas, para decir quién lleva ya cada documento.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>El equipo: los destinos activos y los nombres de quien lleva algo.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>Las personas, para poner nombre a quién viaja en cada documento.</summary>
     private readonly IPersonas _personas;
 
     /// <summary>Ata la lista a los cuatro repositorios que necesita.</summary>
+    /// <param name="casos">Los documentos.</param>
+    /// <param name="asignaciones">Quién lleva cada documento.</param>
+    /// <param name="companeros">El equipo.</param>
+    /// <param name="personas">Las personas de cada documento.</param>
     public ListaParaAsignar(ICasos casos, IAsignaciones asignaciones, ICompaneros companeros, IPersonas personas)
     {
         _casos = casos;
@@ -75,6 +83,7 @@ public sealed class ListaParaAsignar
            - CuantosSePuedenOfrecer();
 
     /// <summary>Cuantos casos ofrece la pantalla con lo que haya escrito en el buscador.</summary>
+    /// <param name="texto">Lo escrito en el buscador; vacío no filtra nada.</param>
     public int CuantosSeOfrecen(string texto = "") => _casos.Contar(ConTexto(texto));
 
     /// <summary>Los companeros a los que se puede dar trabajo: los ACTIVOS, y esa es la unica condicion.</summary>
@@ -89,6 +98,9 @@ public sealed class ListaParaAsignar
     /// Los casos que se ofrecen, en el trozo que se pida. Todos los que no estan archivados:
     /// no hay filtro de estado y no hace falta haber elegido companero (criterios C5-4 y C5-5).
     /// </summary>
+    /// <param name="trozo">Qué página de la lista se pide.</param>
+    /// <param name="texto">Lo escrito en el buscador; vacío no filtra nada.</param>
+    /// <returns>Los renglones de esa página con el total detrás; la página vacía si no hay ninguno.</returns>
     public PaginaDe<RenglonParaAsignar> Ofrecer(Pagina trozo, string texto = "")
     {
         var pagina = _casos.Listar(ConTexto(texto), trozo);
@@ -106,6 +118,10 @@ public sealed class ListaParaAsignar
     }
 
     /// <summary>Compone el renglon de un caso con lo ya leido; no vuelve a preguntar por caso.</summary>
+    /// <param name="caso">El documento.</param>
+    /// <param name="personas">Cuántas personas tiene cada caso del trozo, por id de caso.</param>
+    /// <param name="quienViaja">Los nombres de quienes viajan en cada caso, por id de caso.</param>
+    /// <param name="portadores">Quién lleva cada caso, por id de caso; el que no está no lo lleva nadie.</param>
     private static RenglonParaAsignar Componer(
         Caso caso,
         IReadOnlyDictionary<long, int> personas,
@@ -160,6 +176,7 @@ public sealed class ListaParaAsignar
     /// <para>El orden es el del formulario, que es el que trae <c>IPersonas.Listar</c>: por caso,
     /// por fila y por id. Asi «el primero» es siempre el mismo y es quien encabeza el papel.</para>
     /// </remarks>
+    /// <param name="casoIds">Los casos del trozo; las personas de otros casos se descartan.</param>
     private Dictionary<long, List<string>> QuienViajaEnCada(IReadOnlyList<long> casoIds)
     {
         var queremos = casoIds.ToHashSet();
@@ -184,6 +201,8 @@ public sealed class ListaParaAsignar
     }
 
     /// <summary>Quien lleva vivo cada caso del trozo, en UNA pasada por las asignaciones vivas.</summary>
+    /// <param name="casoIds">Los casos del trozo; las asignaciones de otros casos se descartan.</param>
+    /// <returns>Por id de caso, los nombres de quienes lo llevan, separados por coma si son varios.</returns>
     private Dictionary<long, string> QuienLlevaCada(IReadOnlyList<long> casoIds)
     {
         var pedidos = casoIds.ToHashSet();
@@ -207,6 +226,7 @@ public sealed class ListaParaAsignar
     }
 
     /// <summary>El filtro de la pantalla con el texto del buscador puesto, y nada mas.</summary>
+    /// <param name="texto">Lo escrito en el buscador; en blanco devuelve el filtro sin texto.</param>
     private static FiltroDeCasos ConTexto(string texto)
         => string.IsNullOrWhiteSpace(texto)
             ? SinFiltroDeEstadoNiArchivados

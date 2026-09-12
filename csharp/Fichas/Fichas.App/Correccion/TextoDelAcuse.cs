@@ -136,6 +136,8 @@ public static class TextoDelAcuse
     /// pie no se lee, y un «y 2 más» sigue diciendo que hay dos mas. Lo que NUNCA se
     /// recorta es el primero, porque entonces no se nombraria ninguno.
     /// </remarks>
+    /// <param name="nombres">Las etiquetas, en el orden en que se ven; la primera va siempre.</param>
+    /// <param name="largoDisponible">Cuantos caracteres quedan en la linea para la lista.</param>
     private static string Enumerar(IReadOnlyList<string> nombres, int largoDisponible)
     {
         var cabidos = new List<string>();
@@ -161,6 +163,7 @@ public static class TextoDelAcuse
     /// Una hora que no se entiende NO tumba el acuse (requisito 9): se queda sin hora, y
     /// lo importante —que se guardo y cuanto— se sigue diciendo.
     /// </remarks>
+    /// <param name="instanteIso">El instante tal como lo da el reloj; si no se entiende, vacio.</param>
     public static string HoraDe(string instanteIso)
     {
         return DateTime.TryParse(
@@ -173,5 +176,6 @@ public static class TextoDelAcuse
     }
 
     /// <summary>La «s» del plural, para no repetir el ternario en cuatro sitios.</summary>
+    /// <param name="cuantos">La cifra que va delante.</param>
     private static string Plural(int cuantos) => cuantos == 1 ? string.Empty : "s";
 }

@@ -22,7 +22,9 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLasBandasEnTresPasos
 {
+    /// <summary>El id fijo del caso con ruta de PDF.</summary>
     private const long CasoDePrueba = 400;
+    /// <summary>La unica persona del caso.</summary>
     private const long PersonaDePrueba = 401;
 
     /// <summary>Monta un caso con ruta de PDF y una persona.</summary>

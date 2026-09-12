@@ -62,7 +62,7 @@ public sealed class PruebasDelTextoDeLaCola
         StringAssert.Contains(linea, "quedan 7");
         Assert.IsFalse(linea.Contains("verificado", StringComparison.OrdinalIgnoreCase),
             "La cola no verifica nada: la palabra no puede salir de aqui (regla permanente 5).");
-        Assert.IsFalse(linea.Contains(LasDosPreguntas.ListoParaAsignar, StringComparison.OrdinalIgnoreCase),
+        Assert.IsFalse(linea.Contains("listo para asignar", StringComparison.OrdinalIgnoreCase),
             "«Listo para asignar» se retiró de la pantalla el 2026-09-07.");
     }
 

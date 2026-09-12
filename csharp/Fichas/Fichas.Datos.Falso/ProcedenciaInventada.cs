@@ -98,6 +98,13 @@ public static class ProcedenciaInventada
     }
 
     /// <summary>Siembra los campos de UN registro, cada uno con el valor que ya tenía.</summary>
+    /// <param name="almacen">Dónde se escriben las filas.</param>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
+    /// <param name="tabla">Si el registro es un caso o una persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campos">Los nombres de columna, en orden.</param>
+    /// <param name="valores">El valor de cada columna, en el mismo orden; nulo o en blanco es un campo vacío.</param>
+    /// <param name="capturaManual">Si el documento está escrito a mano, que baja las confianzas.</param>
     private static void SembrarLosDe(
         AlmacenFalso almacen,
         SorteoDeterminista sorteo,
@@ -141,6 +148,13 @@ public static class ProcedenciaInventada
     ///   que así vienen; OCR entre 0,90 y 0,99 en las demás.</description></item>
     /// </list>
     /// </remarks>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
+    /// <param name="tabla">Si el registro es un caso o una persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna.</param>
+    /// <param name="valor">Lo que ya tiene la columna; nulo o en blanco da origen vacío.</param>
+    /// <param name="capturaManual">Si el documento está escrito a mano.</param>
+    /// <returns>La fila sin id —el que llama se lo pone—, o nulo cuando al campo no le toca ninguna.</returns>
     private static ProcedenciaDeCampo? Componer(
         SorteoDeterminista sorteo,
         TablaDeProcedencia tabla,
@@ -178,8 +192,10 @@ public static class ProcedenciaInventada
     }
 
     /// <summary>De 0,30 a 0,59: por debajo del umbral, o sea un dato que hay que mirar.</summary>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
     private static double ConfianzaBaja(SorteoDeterminista sorteo) => sorteo.Entre(30, 60) / 100.0;
 
     /// <summary>De 0,90 a 0,99, que es lo que dieron los siete escaneos de verdad.</summary>
+    /// <param name="sorteo">El sorteo ya empezado.</param>
     private static double ConfianzaAlta(SorteoDeterminista sorteo) => sorteo.Entre(90, 100) / 100.0;
 }

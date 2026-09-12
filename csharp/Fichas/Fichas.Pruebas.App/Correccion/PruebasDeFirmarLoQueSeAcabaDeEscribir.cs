@@ -31,8 +31,11 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeFirmarLoQueSeAcabaDeEscribir
 {
+    /// <summary>El id fijo del caso que monta cada prueba.</summary>
     private const long CasoDePrueba = 100;
+    /// <summary>La unica persona del caso.</summary>
     private const long PersonaDePrueba = 101;
+    /// <summary>El companero que firma; el almacen de verdad se niega con cualquier otro id.</summary>
     private const long CompaneroDePrueba = 1;
 
     /// <summary>Lo que se monta en cada prueba: el almacen, la procedencia y el modelo.</summary>

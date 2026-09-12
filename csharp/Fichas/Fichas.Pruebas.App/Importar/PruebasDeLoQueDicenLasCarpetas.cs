@@ -23,8 +23,11 @@ namespace Fichas.Pruebas.App.Importar;
 [TestClass]
 public sealed class PruebasDeLoQueDicenLasCarpetas
 {
+    /// <summary>La carpeta que Miguel «eligió» en estas pruebas; lo de fuera de ella no se mira.</summary>
     private const string Raiz = @"C:\escaneos";
 
+    /// <summary>Lee las carpetas de un camino que cuelga de <see cref="Raiz"/>; el último trozo es el archivo.</summary>
+    /// <param name="carpetasYArchivo">Los nombres de carpeta, de fuera adentro, y el nombre del PDF al final.</param>
     private static LoQueDicenLasCarpetas Leer(params string[] carpetasYArchivo)
         => LoQueDicenLasCarpetas.Leer(Path.Combine([Raiz, .. carpetasYArchivo]), Raiz);
 

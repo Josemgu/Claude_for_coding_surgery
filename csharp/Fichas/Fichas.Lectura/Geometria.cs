@@ -34,6 +34,10 @@ public static class Geometria
     /// deja en 3500. Es el equivalente exacto del <c>math.nextafter(..., 0.0)</c> del
     /// Python, y `PruebaDeLecturaDePdf` fija los dos numeros.
     /// </remarks>
+    /// <param name="anchoPuntos">Ancho de la página en puntos PDF.</param>
+    /// <param name="altoPuntos">Alto de la página en puntos PDF.</param>
+    /// <param name="ladoLargoMaximoPx">El tope en píxeles del lado más largo; las pruebas lo cambian para medir el redondeo.</param>
+    /// <returns>El factor por el que se multiplican los puntos para obtener píxeles.</returns>
     public static double EscalaDeRasterizado(double anchoPuntos, double altoPuntos, int ladoLargoMaximoPx = LadoLargoMaximoPx)
         => Math.BitDecrement(ladoLargoMaximoPx / Math.Max(anchoPuntos, altoPuntos));
 
@@ -46,6 +50,13 @@ public static class Geometria
     /// centro de la pagina, y el sistema anula campos que estaban buenos. Por eso la
     /// conversion esta aislada aqui y tiene prueba propia.
     /// </remarks>
+    /// <param name="izquierda">Primera coordenada <c>x</c> del <c>/Rect</c>; si viene al revés que <paramref name="derecha"/> se ordenan.</param>
+    /// <param name="abajo">Primera coordenada <c>y</c> del <c>/Rect</c>, medida desde el pie de la página.</param>
+    /// <param name="derecha">Segunda coordenada <c>x</c> del <c>/Rect</c>.</param>
+    /// <param name="arriba">Segunda coordenada <c>y</c> del <c>/Rect</c>.</param>
+    /// <param name="anchoPuntos">Ancho de la página en puntos.</param>
+    /// <param name="altoPuntos">Alto de la página en puntos.</param>
+    /// <returns>La caja en fracciones 0–1 con el origen arriba; con una página de tamaño cero o negativo, la caja nula en vez de dividir por cero.</returns>
     public static BandaDeLaPagina RectanguloPdfAFracciones(
         double izquierda, double abajo, double derecha, double arriba, double anchoPuntos, double altoPuntos)
     {
@@ -59,6 +70,10 @@ public static class Geometria
     }
 
     /// <summary>La caja que envuelve una lista de puntos en pixeles, ya en fracciones.</summary>
+    /// <param name="puntos">Las esquinas del polígono que devuelve el detector del OCR, en píxeles de la imagen.</param>
+    /// <param name="anchoPx">Ancho de la imagen rasterizada.</param>
+    /// <param name="altoPx">Alto de la imagen rasterizada.</param>
+    /// <returns>El rectángulo mínimo que los contiene, en fracciones; la caja nula si no hay puntos o la imagen no tiene tamaño.</returns>
     public static BandaDeLaPagina BandaDesdePuntos(IEnumerable<(double X, double Y)> puntos, int anchoPx, int altoPx)
     {
         if (anchoPx <= 0 || altoPx <= 0) return new BandaDeLaPagina(0.0, 0.0, 0.0, 0.0);
@@ -77,6 +92,9 @@ public static class Geometria
     }
 
     /// <summary>Lo que los dos rectangulos comparten de alto. Nunca negativo.</summary>
+    /// <param name="rectangulo">Una caja en fracciones de página.</param>
+    /// <param name="banda">La otra; el orden no cambia el resultado.</param>
+    /// <returns>El alto común en fracciones de página, o 0,0 si no se tocan en vertical.</returns>
     public static double TraslapeVertical(BandaDeLaPagina rectangulo, BandaDeLaPagina banda)
         => Math.Max(0.0, Math.Min(rectangulo.Y1, banda.Y1) - Math.Max(rectangulo.Y0, banda.Y0));
 
@@ -87,6 +105,8 @@ public static class Geometria
     /// El denominador es la altura de la BANDA y no la del rectangulo: asi lo fija
     /// `DECISIONES.md`. Una banda de alto cero devuelve 0,0 en vez de reventar.
     /// </remarks>
+    /// <param name="rectangulo">La caja de una línea del OCR o de una anotación.</param>
+    /// <param name="banda">La fila de valor cuyo alto hace de denominador.</param>
     public static double FraccionDeTraslapeVertical(BandaDeLaPagina rectangulo, BandaDeLaPagina banda)
     {
         double altoDeLaBanda = banda.Y1 - banda.Y0;
@@ -112,21 +132,13 @@ public static class Geometria
     /// <b>0,588 a 1,000</b>; las que son de otra fila dan de <b>0,354 a 0,481</b>.</para>
     /// <para>Un rectangulo de alto cero devuelve 0,0 en vez de reventar.</para>
     /// </remarks>
+    /// <param name="rectangulo">La caja de una línea del OCR, cuyo alto hace de denominador.</param>
+    /// <param name="banda">La fila de valor que cuelga del ancla.</param>
     public static double FraccionDelRectanguloDentroDeLaBanda(BandaDeLaPagina rectangulo, BandaDeLaPagina banda)
     {
         double altoDelRectangulo = rectangulo.Y1 - rectangulo.Y0;
         return altoDelRectangulo <= 0.0 ? 0.0 : TraslapeVertical(rectangulo, banda) / altoDelRectangulo;
     }
-
-    /// <summary>
-    /// Cierto cuando el traslape SUPERA la fraccion pedida.
-    /// </summary>
-    /// <remarks>
-    /// La comparacion es estricta: `DECISIONES.md` dice «supera el 50%», y con el empate
-    /// exacto la banda no se anula.
-    /// </remarks>
-    public static bool PerteneceALaBanda(BandaDeLaPagina rectangulo, BandaDeLaPagina banda, double fraccionMinima = 0.5)
-        => FraccionDeTraslapeVertical(rectangulo, banda) > fraccionMinima;
 
     /// <summary>
     /// Cierto cuando los dos comparten al menos algo de ancho.
@@ -136,6 +148,8 @@ public static class Geometria
     /// columna izquierda: el formulario tiene dos columnas y una banda no ocupa la
     /// pagina entera.
     /// </remarks>
+    /// <param name="rectangulo">Una caja en fracciones de página.</param>
+    /// <param name="banda">La otra; tocarse solo en el borde no cuenta como solapar.</param>
     public static bool SeSolapanEnHorizontal(BandaDeLaPagina rectangulo, BandaDeLaPagina banda)
         => Math.Min(rectangulo.X1, banda.X1) > Math.Max(rectangulo.X0, banda.X0);
 }

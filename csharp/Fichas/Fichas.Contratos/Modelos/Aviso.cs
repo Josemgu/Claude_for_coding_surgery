@@ -19,14 +19,23 @@ public sealed record Aviso(
     string? Detalle = null)
 {
     /// <summary>Atajo para el aviso que solo informa de que algo salio bien.</summary>
+    /// <param name="linea">Un renglón para la franja; sin saltos de línea.</param>
+    /// <param name="campo">El campo al que se refiere, o vacío si es general.</param>
+    /// <param name="detalle">Lo largo, para el «ver»; nulo si no hay más que contar.</param>
     public static Aviso Informa(string linea, string campo = "", string? detalle = null)
         => new(GravedadDeAviso.Informacion, linea, campo, detalle);
 
     /// <summary>Atajo para el aviso de un dato que se guardo igual y queda senalado.</summary>
+    /// <param name="linea">Un renglón para la franja; sin saltos de línea.</param>
+    /// <param name="campo">El campo al que se refiere, o vacío si es general.</param>
+    /// <param name="detalle">Lo largo, para el «ver»; nulo si no hay más que contar.</param>
     public static Aviso Advierte(string linea, string campo = "", string? detalle = null)
         => new(GravedadDeAviso.Advertencia, linea, campo, detalle);
 
     /// <summary>Atajo para el aviso de algo que no se pudo hacer; sustituye a lanzar.</summary>
+    /// <param name="linea">Un renglón para la franja; sin saltos de línea.</param>
+    /// <param name="campo">El campo al que se refiere, o vacío si es general.</param>
+    /// <param name="detalle">Lo largo, para el «ver»; nulo si no hay más que contar.</param>
     public static Aviso Problema(string linea, string campo = "", string? detalle = null)
         => new(GravedadDeAviso.Problema, linea, campo, detalle);
 }

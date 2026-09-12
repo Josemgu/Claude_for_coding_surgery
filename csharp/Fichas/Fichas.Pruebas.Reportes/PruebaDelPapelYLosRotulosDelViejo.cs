@@ -34,6 +34,7 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelPapelYLosRotulosDelViejo
 {
+    /// <summary>La marca con la que se arma el informe; el mismo día que el reloj fijo de la base de prueba.</summary>
     private const string GeneradoEn = "2026-09-20 10:00:00";
 
     /// <summary>Dado el informe de los jefes, cuando se escribe el PDF, es Carta VERTICAL.</summary>

@@ -28,13 +28,18 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLoQueContestoElCompanero
 {
+    /// <summary>El id fijo del caso con dos personas.</summary>
     private const long CasoDePrueba = 400;
+    /// <summary>La persona por la que el companero contesta.</summary>
     private const long PrimeraPersona = 401;
+    /// <summary>La persona por la que NADIE contesta; de ella no puede salir respuesta.</summary>
     private const long SegundaPersona = 402;
+    /// <summary>La companera que devuelve su Excel; el id 7 no es el primero de ninguna lista, a proposito.</summary>
     private const long Sandy = 7;
 
     // ---- el montaje ------------------------------------------------------
 
+    /// <summary>Un caso con dos personas y a Sandy dada de alta, sin ninguna respuesta todavia.</summary>
     private static ServiciosFalsos MontarConDosPersonas()
     {
         var servicios = new ServiciosFalsos(0, 20260905, new RelojFijo("2026-09-05"));
@@ -84,6 +89,8 @@ public sealed class PruebasDeLoQueContestoElCompanero
             LlamoAlLider = !completa,
         };
 
+    /// <summary>Monta el modelo con el almacen de procedencia como el de verdad y abre el caso.</summary>
+    /// <param name="servicios">La base inventada de la prueba.</param>
     private static ModeloDeCorreccion ModeloSobre(ServiciosFalsos servicios)
     {
         var modelo = new ModeloDeCorreccion(

@@ -374,6 +374,9 @@ public sealed class PruebaDeLaMigracion19
                     Leer(conexion, $"SELECT COUNT(*) FROM \"{tabla}\""), CultureInfo.InvariantCulture),
                 StringComparer.Ordinal);
 
+    /// <summary>El primer valor de la primera fila de la consulta, o nulo.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="consulta">Un SELECT escalar; el texto sale de esta clase.</param>
     private static object? Leer(SqliteConnection conexion, string consulta)
     {
         using var orden = conexion.CreateCommand();
@@ -381,6 +384,10 @@ public sealed class PruebaDeLaMigracion19
         return orden.ExecuteScalar();
     }
 
+    /// <summary>Ejecuta una instrucción con sus parámetros nombrados.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="instruccion">La instrucción SQL con marcadores <c>$nombre</c>.</param>
+    /// <param name="parametros">Pares (marcador, valor).</param>
     private static void Ejecutar(SqliteConnection conexion, string instruccion, params (string, object)[] parametros)
     {
         using var orden = conexion.CreateCommand();

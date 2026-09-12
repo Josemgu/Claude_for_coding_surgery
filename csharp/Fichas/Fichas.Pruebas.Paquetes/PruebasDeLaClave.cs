@@ -15,18 +15,22 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDeLaClave
 {
+    /// <summary>Vigila la forma completa de la clave: las tres partes y el separador «:».</summary>
     [TestMethod]
     public void LaClaveLlevaElCasoElMrnYElIdSeparadosPorDosPuntos()
         => Assert.AreEqual("BALC2609:055-1111-3853:12", Columnas.ArmarLaClave("BALC2609", "055-1111-3853", 12));
 
+    /// <summary>Vigila que sin MRN la parte del medio quede vacía («CASO::ID») en vez de rellenarse.</summary>
     [TestMethod]
     public void UnaPersonaSinMrnSaleConLaClaveAMediasYNoConUnaInventada()
         => Assert.AreEqual("BALC2609::12", Columnas.ArmarLaClave("BALC2609", null, 12));
 
+    /// <summary>Vigila que con el id nulo la clave salga en el formato viejo de dos partes, sin «:» colgando.</summary>
     [TestMethod]
     public void SinIdDeCasoLaClaveSaleConDosPartes()
         => Assert.AreEqual("BALC2609:055-1111-3853", Columnas.ArmarLaClave("BALC2609", "055-1111-3853", null));
 
+    /// <summary>Vigila que partir una clave de tres partes devuelva caso, MRN e id con su tipo.</summary>
     [TestMethod]
     public void PartirDevuelveLasTresPartes()
     {
@@ -37,6 +41,7 @@ public class PruebasDeLaClave
         Assert.AreEqual(12L, partida.Value.CasoId);
     }
 
+    /// <summary>Vigila que un paquete anterior al 2026-09-03 siga volviendo: dos partes se leen y el id queda nulo.</summary>
     [TestMethod]
     public void UnaClaveViejaDeDosPartesSigueVolviendoConElIdEnNulo()
     {
@@ -47,6 +52,7 @@ public class PruebasDeLaClave
         Assert.IsNull(partida.Value.CasoId, "una clave de dos partes no trae id y no se inventa uno");
     }
 
+    /// <summary>Vigila que una tercera parte con letras no reviente ni se convierta: el id queda nulo.</summary>
     [TestMethod]
     public void UnaTerceraParteQueNoEsUnNumeroDejaElIdEnNulo()
     {
@@ -55,6 +61,7 @@ public class PruebasDeLaClave
         Assert.IsNull(partida.Value.CasoId);
     }
 
+    /// <summary>Vigila que nulo, vacío, blancos o un texto sin «:» den nulo, no una excepción.</summary>
     [TestMethod]
     public void UnaClaveVaciaODeUnaSolaPiezaNoSePuedePartir()
     {
@@ -77,6 +84,7 @@ public class PruebasDeLaClave
         Assert.AreEqual("055-1111-385A", Columnas.PartirLaClave(clave)!.Value.Mrn);
     }
 
+    /// <summary>Vigila que armar y partir no toquen el cero inicial del MRN.</summary>
     [TestMethod]
     public void ElCeroDeDelanteDelMrnSobreviveALaIdaYALaVuelta()
         => Assert.AreEqual("055-1111-3853", Columnas.PartirLaClave(Columnas.ArmarLaClave("X", "055-1111-3853", 1))!.Value.Mrn);

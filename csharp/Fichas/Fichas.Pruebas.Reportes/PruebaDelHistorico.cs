@@ -19,6 +19,9 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelHistorico
 {
+    /// <summary>El motor sobre la base falsa con reloj fijo.</summary>
+    /// <param name="servicios">Los servicios falsos, por si la prueba necesita mirar los puertos.</param>
+    /// <param name="casos">Cuántos casos genera la base.</param>
     private static ReportesEnPdf Montar(out Fichas.Datos.Falso.ServiciosFalsos servicios, int casos = 300)
     {
         servicios = BaseDePrueba.Montar(casos);
@@ -27,9 +30,12 @@ public class PruebaDelHistorico
             servicios.Asignaciones, servicios.Procedencia, servicios.Reloj);
     }
 
+    /// <summary>Una ruta única en la carpeta temporal, para que dos pruebas en paralelo no se pisen.</summary>
+    /// <param name="nombre">Cómo acaba el archivo.</param>
     private static string RutaTemporal(string nombre)
         => Path.Combine(Path.GetTempPath(), "fichas-pruebas-reportes", $"{Guid.NewGuid():N}-{nombre}");
 
+    /// <summary>Vigila que el histórico se escribe y el archivo empieza por %PDF-1.4 y acaba en %%EOF.</summary>
     [TestMethod]
     public void ElHistoricoEscribeUnPdfQueAbre()
     {
@@ -46,6 +52,7 @@ public class PruebaDelHistorico
         File.Delete(ruta);
     }
 
+    /// <summary>Vigila que la tabla tiene exactamente una fila por caso archivado de los puertos.</summary>
     [TestMethod]
     public void SoloSalenLosArchivadosYTodosLosArchivados()
     {
@@ -62,6 +69,7 @@ public class PruebaDelHistorico
         Assert.HasCount(archivados.Count, tabla.Filas);
     }
 
+    /// <summary>Vigila que la columna «Archivado» de cada fila empieza por la palabra del dueño.</summary>
     [TestMethod]
     public void CadaFilaDelHistoricoDiceArchivadoYSuFecha()
     {
@@ -79,6 +87,7 @@ public class PruebaDelHistorico
         }
     }
 
+    /// <summary>Vigila que las fechas de archivado bajan de la primera fila a la última.</summary>
     [TestMethod]
     public void ElUltimoArchivadoVaPrimero()
     {
@@ -98,6 +107,7 @@ public class PruebaDelHistorico
         CollectionAssert.AreEqual(ordenadas, fechas, "El histórico se lee del último archivado hacia atrás.");
     }
 
+    /// <summary>Vigila que la suma de «Personas» del histórico coincide con las personas de los archivados en los puertos.</summary>
     [TestMethod]
     public void CadaFilaDiceCuantasPersonasLlevaYCuantasNoPudieronViajar()
     {
@@ -118,6 +128,7 @@ public class PruebaDelHistorico
         Assert.AreEqual(totalDeLosPuertos, totalDelHistorico);
     }
 
+    /// <summary>Vigila que sin archivados la tabla sale vacía y el resumen dice que no se ha archivado nada.</summary>
     [TestMethod]
     public void SinNingunArchivadoElHistoricoLoDiceEnVezDeSalirVacio()
     {
@@ -139,6 +150,7 @@ public class PruebaDelHistorico
 
     // ---- el reporte de un companero ----------------------------------------
 
+    /// <summary>Vigila que en el informe de un compañero la tabla del equipo solo lo nombra a él.</summary>
     [TestMethod]
     public void ElReporteDeUnCompaneroSoloTraeSusCasos()
     {
@@ -160,6 +172,7 @@ public class PruebaDelHistorico
         }
     }
 
+    /// <summary>Vigila que un id de compañero inexistente devuelve un problema en vez de lanzar.</summary>
     [TestMethod]
     public void UnCompaneroQueNoExisteSeAvisa_NoLanza()
     {

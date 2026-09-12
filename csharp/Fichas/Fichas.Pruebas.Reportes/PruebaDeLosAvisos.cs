@@ -20,11 +20,15 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDeLosAvisos
 {
+    /// <summary>Una persona anotada como que no pudo viajar, en un caso con ese número (o sin él).</summary>
+    /// <param name="numeroCaso">El número del caso; nulo para probar el caso sin número.</param>
+    /// <param name="personaId">El id, que se usa también como id del caso.</param>
     private static PersonaConSuCaso Fila(string? numeroCaso, long personaId)
         => new(
             new Persona { Id = personaId, CasoId = personaId, Nombre = "Ana Anonimo", PudoViajar = false },
             new Caso { Id = personaId, NumeroCaso = numeroCaso });
 
+    /// <summary>Vigila que un caso sin número no tumba el aviso y sale como «(sin número de caso)» junto a los demás.</summary>
     [TestMethod]
     public void UnCasoSinNumeroNoRevientaElAvisoYSaleConSuPalabra()
     {
@@ -37,6 +41,7 @@ public class PruebaDeLosAvisos
         StringAssert.Contains(aviso, "CASP2609");
     }
 
+    /// <summary>Vigila que la palabra del caso sin número no se repite aunque haya dos.</summary>
     [TestMethod]
     public void DosCasosSinNumeroSalenUnaSolaVez()
     {
@@ -47,6 +52,7 @@ public class PruebaDeLosAvisos
         Assert.AreEqual(1, veces, "El conjunto de numeros de caso no puede repetir la misma palabra.");
     }
 
+    /// <summary>Vigila que el «1 personas» del Python no vuelve: con una, singular.</summary>
     [TestMethod]
     public void ConUnaSolaPersonaElAvisoHablaEnSingular()
     {
@@ -58,6 +64,7 @@ public class PruebaDeLosAvisos
         StringAssert.Contains(aviso, "no pudo viajar");
     }
 
+    /// <summary>Vigila que con dos personas el aviso va en plural.</summary>
     [TestMethod]
     public void ConDosPersonasElAvisoHablaEnPlural()
     {
@@ -68,10 +75,12 @@ public class PruebaDeLosAvisos
         StringAssert.Contains(aviso, "no pudieron viajar");
     }
 
+    /// <summary>Vigila que con la lista vacía el aviso es nulo, no una frase con cero.</summary>
     [TestMethod]
     public void SinNadieSinFechaNoHayAviso()
         => Assert.IsNull(Avisos.DeLosQueNoCabenEnElPeriodo([]));
 
+    /// <summary>Vigila que el aviso se apagó solo desde que «completa» resuelve (2026-09-03).</summary>
     [TestMethod]
     public void ElAvisoDeLaRecomendacionCompletaNoSaleYaQueCompletaResuelve()
     {
@@ -81,6 +90,7 @@ public class PruebaDeLosAvisos
         Assert.IsNull(Avisos.DeLaRecomendacionCompleta());
     }
 
+    /// <summary>Vigila que el aviso abre con «N de los M casos», con el denominador delante.</summary>
     [TestMethod]
     public void ElAvisoDeLosCasosSinEstadoDiceElDenominador()
     {
@@ -95,6 +105,7 @@ public class PruebaDeLosAvisos
         StringAssert.StartsWith(aviso, "12 de los 40 casos");
     }
 
+    /// <summary>Vigila que con cero casos sin estado el aviso es nulo.</summary>
     [TestMethod]
     public void SinCasosSinEstadoNoHayAviso()
     {

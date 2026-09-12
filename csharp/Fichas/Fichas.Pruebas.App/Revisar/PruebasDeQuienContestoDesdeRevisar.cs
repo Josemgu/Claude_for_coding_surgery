@@ -33,7 +33,9 @@ namespace Fichas.Pruebas.App.Revisar;
 [TestClass]
 public sealed class PruebasDeQuienContestoDesdeRevisar
 {
+    /// <summary>El día en el que se paran los relojes de estas pruebas.</summary>
     private const string DiaDeLasPruebas = "2026-09-05";
+    /// <summary>Lo que <c>pasos_origen</c> guarda cuando contesta la ventana; copiado aquí para que la prueba lo compare letra a letra.</summary>
     private const string OrigenAMano = "a mano en la pantalla";
 
     /// <summary>
@@ -182,13 +184,20 @@ public sealed class PruebasDeQuienContestoDesdeRevisar
     /// </remarks>
     private sealed class BancoDeLaVentana
     {
+        /// <summary>El almacén en memoria sobre el que corren los repositorios falsos.</summary>
         private readonly AlmacenFalso _almacen;
+        /// <summary>Los documentos de la prueba.</summary>
         private readonly RepositorioDeCasosFalso _casos;
+        /// <summary>Las personas, con sus seis columnas y sus firmas.</summary>
         private readonly RepositorioDePersonasFalso _personas;
+        /// <summary>El equipo: Sandy primero y Miguel administrador después.</summary>
         private readonly RepositorioDeCompanerosFalso _companeros;
+        /// <summary>Lo que se prueba: las acciones de las seis preguntas, montadas sobre los falsos.</summary>
         private readonly AccionesDeLasPreguntas _acciones;
+        /// <summary>El número interno de Sandy, a cuyo nombre se anota lo que trae su Excel.</summary>
         private readonly long _sandy;
 
+        /// <summary>Siembra el equipo y monta las acciones.</summary>
         public BancoDeLaVentana()
         {
             _almacen = new AlmacenFalso(new RelojFijo(DiaDeLasPruebas), semilla: 1);
@@ -213,6 +222,9 @@ public sealed class PruebasDeQuienContestoDesdeRevisar
             _acciones = new AccionesDeLasPreguntas(_personas, _companeros);
         }
 
+        /// <summary>Mete un documento con esas personas, numeradas.</summary>
+        /// <param name="cuantas">Cuántas personas trae el documento.</param>
+        /// <returns>El número interno del documento.</returns>
         public long SembrarUnDocumentoDe(int cuantas)
         {
             var caso = _casos.Guardar(new Caso
@@ -238,9 +250,12 @@ public sealed class PruebasDeQuienContestoDesdeRevisar
             return caso;
         }
 
+        /// <summary>Las personas de un documento, releídas de la base.</summary>
+        /// <param name="casoId">El documento.</param>
         public IReadOnlyList<Persona> Personas(long casoId) => _personas.DeCaso(casoId);
 
         /// <summary>El Excel de vuelta de Sandy, que contesta preguntas y propone un estado.</summary>
+        /// <param name="personaId">La persona de la que habla su hoja.</param>
         public void ElExcelDeSandyContesta(long personaId)
             => _personas.AnotarPropuesta(
                 personaId,
@@ -259,18 +274,26 @@ public sealed class PruebasDeQuienContestoDesdeRevisar
                 _sandy);
 
         /// <summary>Un Excel que solo dice el estado: no contestó ninguna de las seis.</summary>
+        /// <param name="personaId">La persona de la que habla su hoja.</param>
         public void ElExcelDeSandyDiceElEstadoYNadaMas(long personaId)
             => _personas.AnotarPropuesta(
                 personaId,
                 new Persona { EstadoPropuesto = "completa", LlamoAlLider = true },
                 _sandy);
 
+        /// <summary>Miguel contesta las seis en «sí» desde la ventana, por la acción de verdad.</summary>
+        /// <param name="personaId">La persona a la que contesta.</param>
         public void MiguelContestaAMano(long personaId)
             => _acciones.Guardar(personaId, new RespuestaALosPasos(true, true, true, true, true, true));
 
+        /// <summary>Las tres columnas de la firma tal como quedaron escritas en la base.</summary>
+        /// <param name="casoId">El documento.</param>
+        /// <param name="personaId">La persona cuya firma se lee.</param>
         public FirmaDeLosPasos FirmaDe(long casoId, long personaId)
             => _personas.FirmasDeLosPasosDelCaso(casoId)[personaId];
 
+        /// <summary>Lo que vería la ventana de ese documento, compuesto por el mismo camino que ella.</summary>
+        /// <param name="casoId">El documento que se abre.</param>
         public DocumentoConPreguntas Abrir(long casoId)
             => PreguntasDeUnDocumento.De(
                 _casos.Obtener(casoId)!,

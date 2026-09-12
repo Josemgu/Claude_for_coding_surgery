@@ -47,6 +47,8 @@ public static class AplicadorDeEsquema
     /// <summary>
     /// Deja la base en la version al dia y devuelve el numero al que llego.
     /// </summary>
+    /// <param name="conexion">La conexión abierta sobre la base; se deja abierta.</param>
+    /// <returns>La versión en la que quedó la base, que es <see cref="VersionAlDia"/> si nada falló.</returns>
     public static int Aplicar(SqliteConnection conexion) => AplicarHasta(conexion, VersionAlDia);
 
     /// <summary>
@@ -60,6 +62,8 @@ public static class AplicadorDeEsquema
     /// </remarks>
     /// <param name="conexion">La conexion sobre la que se aplica.</param>
     /// <param name="versionDestino">La ultima version que se quiere aplicar.</param>
+    /// <returns>La versión que la base tiene al terminar: la pedida, o la que ya tenía si era mayor.</returns>
+    /// <exception cref="ErrorDeMigracion">Si una migración falla; la base se queda en la última que sí se registró.</exception>
     public static int AplicarHasta(SqliteConnection conexion, int versionDestino)
     {
         ArgumentNullException.ThrowIfNull(conexion);
@@ -91,6 +95,7 @@ public static class AplicadorDeEsquema
     /// ⚠️ Deja la base en un esquema ANTIGUO a proposito. Quien quiera una base
     /// utilizable llama a <see cref="Aplicar"/>, no a esto.
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
     public static void CrearLasTablasDeLaVersionInicial(SqliteConnection conexion)
     {
         ArgumentNullException.ThrowIfNull(conexion);
@@ -101,6 +106,9 @@ public static class AplicadorDeEsquema
     }
 
     /// <summary>La version vigente de la base, o nula si todavia no se aplico ninguna.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <returns>El mayor número de <c>version_esquema</c>, o nulo si la tabla está vacía.</returns>
+    /// <remarks>Lanza <see cref="SqliteException"/> si la tabla <c>version_esquema</c> no existe: quien pregunta por la versión de un archivo que quizá no sea una base (véase <c>RespaldoAntesDeMigrar</c>) tiene que contar con ello.</remarks>
     public static int? VersionDeLaBase(SqliteConnection conexion)
     {
         ArgumentNullException.ThrowIfNull(conexion);
@@ -121,6 +129,9 @@ public static class AplicadorDeEsquema
     /// Con <c>INSERT OR IGNORE</c>: arrancar dos veces sobre una base ya creada deja el
     /// conteo igual y no duplica nada (idempotencia, FASE 1 crit. 8).
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <param name="version">El número que se registra.</param>
+    /// <param name="descripcion">Qué cambió, en español; se guarda tal cual para que <c>version_esquema</c> se pueda leer sin el código delante.</param>
     private static void AnotarVersion(SqliteConnection conexion, int version, string descripcion)
     {
         using var orden = conexion.CreateCommand();
@@ -138,6 +149,7 @@ public static class AplicadorDeEsquema
     /// Hora local y no UTC, igual que el Python: quien lee esta base mira su reloj de
     /// pared, y una marca en UTC le saldria corrida cuatro horas sin decirselo.
     /// </remarks>
+    /// <returns>La hora local como <c>yyyy-MM-dd HH:mm:ss</c>, sin zona horaria.</returns>
     public static string MarcaDeTiempo()
         => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 }

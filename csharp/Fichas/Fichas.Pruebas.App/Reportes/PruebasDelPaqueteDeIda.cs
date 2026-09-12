@@ -17,6 +17,7 @@ namespace Fichas.Pruebas.App.Reportes;
 [TestClass]
 public sealed class PruebasDelPaqueteDeIda
 {
+    /// <summary>La carpeta propia de esta prueba; se borra al recoger.</summary>
     private string _carpeta = string.Empty;
 
     /// <summary>Una carpeta propia por prueba; nunca la carpeta de datos del dueno.</summary>

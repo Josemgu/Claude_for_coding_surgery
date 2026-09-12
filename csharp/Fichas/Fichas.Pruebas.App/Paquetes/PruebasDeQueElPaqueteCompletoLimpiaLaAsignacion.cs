@@ -238,6 +238,8 @@ public sealed class PruebasDeQueElPaqueteCompletoLimpiaLaAsignacion
     /// Por el puerto de asignaciones y con <c>SoloActivas: true</c>, que es exactamente lo que
     /// miran Asignar, Inicio y el paquete siguiente. Contarlo de otra manera mediría otra cosa.
     /// </remarks>
+    /// <param name="banco">El banco de la prueba.</param>
+    /// <param name="companeroId">El compañero.</param>
     private static List<long> CasosVivosDe(BaseDelPaquete banco, long companeroId)
         => [.. banco.Asignaciones
             .Listar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true), Pagina.Primera(int.MaxValue))
@@ -246,6 +248,8 @@ public sealed class PruebasDeQueElPaqueteCompletoLimpiaLaAsignacion
             .Order()];
 
     /// <summary>La sección «Lo que hizo» del informe real de ese agente.</summary>
+    /// <param name="banco">El banco de la prueba, del que salen los repositorios para el motor de PDF.</param>
+    /// <param name="companeroId">El compañero del informe.</param>
     private static Seccion LoQueHizoEnSuInforme(BaseDelPaquete banco, long companeroId)
     {
         var reportes = new ReportesEnPdf(
@@ -257,10 +261,14 @@ public sealed class PruebasDeQueElPaqueteCompletoLimpiaLaAsignacion
     }
 
     /// <summary>La cifra del mes de ese renglón de «Lo que hizo».</summary>
+    /// <param name="loQueHizo">La sección del informe.</param>
+    /// <param name="renglon">El rótulo del renglón, tal como lo escribe el informe.</param>
     private static string? CifraDelMes(Seccion loQueHizo, string renglon)
         => loQueHizo.Filas.Single(fila => fila[0] == renglon)[1];
 
     /// <summary>Un documento con dos personas dentro, y devuelve su id.</summary>
+    /// <param name="banco">El banco de la prueba.</param>
+    /// <param name="numero">El número de caso; sus cuatro cifras hacen distintas a las cédulas.</param>
     private static long UnDocumentoConGente(BaseDelPaquete banco, string numero)
     {
         var casoId = banco.Caso(numero, "2026-09-17");

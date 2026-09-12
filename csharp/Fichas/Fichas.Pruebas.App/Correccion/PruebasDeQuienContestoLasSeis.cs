@@ -36,10 +36,15 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeQuienContestoLasSeis
 {
+    /// <summary>El id fijo del caso con dos personas.</summary>
     private const long CasoDePrueba = 500;
+    /// <summary>La persona por la que contesta el Excel de Sandy.</summary>
     private const long LaDeSandy = 501;
+    /// <summary>La persona por la que contesta Miguel desde la pantalla.</summary>
     private const long LaDeMiguel = 502;
+    /// <summary>La companera que devuelve su Excel.</summary>
     private const long Sandy = 7;
+    /// <summary>El administrador que contesta las seis dentro del programa.</summary>
     private const long Miguel = 9;
 
     /// <summary>Lo que la ventana de las preguntas guarda en <c>pasos_origen</c>.</summary>
@@ -47,6 +52,7 @@ public sealed class PruebasDeQuienContestoLasSeis
 
     // ---- el montaje ------------------------------------------------------
 
+    /// <summary>Un caso con dos personas, Sandy y Miguel dados de alta, y ninguna respuesta todavia.</summary>
     private static ServiciosFalsos MontarConDosPersonas()
     {
         var servicios = new ServiciosFalsos(0, 20260906, new RelojFijo("2026-09-06"));
@@ -114,6 +120,8 @@ public sealed class PruebasDeQuienContestoLasSeis
         servicios.Almacen.FirmasDeLosPasos[personaId] = new FirmaDeLosPasos(Miguel, cuando, ALaMano);
     }
 
+    /// <summary>Monta el modelo con el almacen de procedencia como el de verdad y abre el caso.</summary>
+    /// <param name="servicios">La base inventada de la prueba.</param>
     private static ModeloDeCorreccion ModeloSobre(ServiciosFalsos servicios)
     {
         var modelo = new ModeloDeCorreccion(
@@ -123,6 +131,9 @@ public sealed class PruebasDeQuienContestoLasSeis
         return modelo;
     }
 
+    /// <summary>La respuesta de esa persona; falla la prueba si no hay exactamente una.</summary>
+    /// <param name="modelo">El modelo con el caso abierto.</param>
+    /// <param name="personaId">De quien se busca.</param>
     private static RespuestaDelCompanero LaDe(ModeloDeCorreccion modelo, long personaId)
         => modelo.RespuestasDeLosCompaneros.Single(una => una.PersonaId == personaId);
 

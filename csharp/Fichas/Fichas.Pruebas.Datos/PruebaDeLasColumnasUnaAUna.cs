@@ -31,6 +31,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDeLasColumnasUnaAUna
 {
+    /// <summary>Las nueve tablas con sus columnas por nombre y en orden, copiadas de la medición del Python más las siete de la 18 y la 19.</summary>
     private static readonly (string Tabla, string[] Columnas)[] EsquemaEsperado =
     [
         ("asignaciones", [
@@ -79,6 +80,7 @@ public sealed class PruebaDeLasColumnasUnaAUna
             "version", "aplicada_en", "descripcion"]),
     ];
 
+    /// <summary>Vigila que cada tabla de una base nueva devuelve exactamente la lista esperada, elemento a elemento.</summary>
     [TestMethod]
     public void CadaTablaTieneSusColumnasConSuNombreYEnSuOrden()
     {
@@ -97,6 +99,7 @@ public sealed class PruebaDeLasColumnasUnaAUna
         }
     }
 
+    /// <summary>El denominador de la prueba de arriba: la lista de esta clase no se ha recortado.</summary>
     [TestMethod]
     public void LaListaEsperadaSumaCientoOnceColumnas()
     {
@@ -110,6 +113,7 @@ public sealed class PruebaDeLasColumnasUnaAUna
             "el Python, mas las cuatro de la migracion 18 y las tres de la 19.");
     }
 
+    /// <summary>Vigila en el DDL real que <c>casos.numero_caso</c> no lleva GLOB ni UNIQUE (decisión del dueño, 2026-09-04).</summary>
     [TestMethod]
     public void ElNumeroDeCasoNoLlevaElCheckDeCuatroLetrasYCuatroDigitos()
     {
@@ -130,6 +134,7 @@ public sealed class PruebaDeLasColumnasUnaAUna
             "`casos.numero_caso` sigue siendo UNIQUE, y la version 12 se lo quito.");
     }
 
+    /// <summary>El control de las dos anteriores: el esquema sigue teniendo 51 CHECK y quitar dos no se llevó el resto.</summary>
     [TestMethod]
     public void LosDemasCheckDeCoherenciaSiSiguenPuestos()
     {
@@ -155,6 +160,7 @@ public sealed class PruebaDeLasColumnasUnaAUna
             "CUATRO de la migracion 18 y el UNO de la 19.");
     }
 
+    /// <summary>Vigila en el DDL real que <c>personas.mrn</c> no lleva GLOB (migración 17).</summary>
     [TestMethod]
     public void LaCedulaNoLlevaNingunCheckDeForma()
     {
@@ -173,6 +179,9 @@ public sealed class PruebaDeLasColumnasUnaAUna
             "lleve: una cedula mal leida se guarda y se senala.\n" + ddl);
     }
 
+    /// <summary>Los nombres de las columnas en el orden del motor, con el identificador entrecomillado al modo de SQLite.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="tabla">El nombre de la tabla; sale de las listas literales de esta clase, nunca de fuera.</param>
     private static string[] LeerColumnasDe(SqliteConnection conexion, string tabla)
     {
         using var orden = conexion.CreateCommand();
@@ -188,6 +197,9 @@ public sealed class PruebaDeLasColumnasUnaAUna
         return [.. columnas];
     }
 
+    /// <summary>El <c>CREATE TABLE</c> guardado en <c>sqlite_master</c>, o vacío si no existe.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="tabla">El nombre de la tabla; sale de las listas literales de esta clase, nunca de fuera.</param>
     private static string LeerDdlDe(SqliteConnection conexion, string tabla)
     {
         using var orden = conexion.CreateCommand();
@@ -196,6 +208,9 @@ public sealed class PruebaDeLasColumnasUnaAUna
         return Convert.ToString(orden.ExecuteScalar()) ?? string.Empty;
     }
 
+    /// <summary>Cuántas veces aparece la aguja en el texto, sin solaparse.</summary>
+    /// <param name="texto">Dónde se busca.</param>
+    /// <param name="aguja">Qué se busca.</param>
     private static int ContarApariciones(string texto, string aguja)
     {
         var apariciones = 0;

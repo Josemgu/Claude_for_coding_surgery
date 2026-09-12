@@ -20,9 +20,11 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed class ResumenDeLaTanda
 {
+    /// <summary>Un resultado por documento procesado, en el orden en que llegaron; de aquí salen el detalle y las listas de casos y rutas.</summary>
     private readonly List<ResultadoDeUnDocumento> _documentos = [];
 
     /// <summary>Empieza el recuento de una tanda de tantos documentos.</summary>
+    /// <param name="totalDeDocumentos">Cuántos PDF se pidieron importar; es el tope de la barra.</param>
     public ResumenDeLaTanda(int totalDeDocumentos) => TotalDeDocumentos = totalDeDocumentos;
 
     /// <summary>Cuantos documentos se pidieron importar.</summary>
@@ -65,6 +67,7 @@ public sealed class ResumenDeLaTanda
         [.. _documentos.Select(uno => uno.RutaPdf).Distinct(StringComparer.OrdinalIgnoreCase)];
 
     /// <summary>Suma lo de un documento y devuelve el mismo resultado, para encadenar.</summary>
+    /// <param name="resultado">Las cifras del documento que acaba de procesarse.</param>
     public ResultadoDeUnDocumento Anotar(ResultadoDeUnDocumento resultado)
     {
         ArgumentNullException.ThrowIfNull(resultado);

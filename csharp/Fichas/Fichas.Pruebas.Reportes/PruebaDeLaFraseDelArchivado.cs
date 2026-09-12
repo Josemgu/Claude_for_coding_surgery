@@ -138,6 +138,9 @@ public sealed class PruebaDeLaFraseDelArchivado
             + "perdió del todo.");
     }
 
+    /// <summary>El motor sobre la base falsa con reloj fijo.</summary>
+    /// <param name="servicios">Los servicios falsos, para mirar los puertos.</param>
+    /// <param name="casos">Cuántos casos genera la base.</param>
     private static Fichas.Reportes.ReportesEnPdf Montar(out Fichas.Datos.Falso.ServiciosFalsos servicios, int casos = 300)
     {
         servicios = BaseDePrueba.Montar(casos);

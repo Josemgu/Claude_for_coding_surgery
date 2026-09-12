@@ -73,6 +73,7 @@ public static class ArmadoDelHistorico
         + "se marca «Ver los archivados», que es desde donde se desarchiva. Y sigue contando "
         + "entero en los reportes del período y en este histórico.";
 
+    /// <summary>Las ocho columnas del histórico; la última lleva la palabra «archivado» con su fecha.</summary>
     private static readonly Columna[] ColumnasDelHistorico =
     [
         new("N.º de caso", ClaseDeColumna.Texto, 12),
@@ -88,6 +89,10 @@ public static class ArmadoDelHistorico
     ];
 
     /// <summary>Arma el historico entero. Devuelve el documento, sin escribirlo.</summary>
+    /// <remarks>No recibe periodo: el histórico es todo lo archivado desde siempre, el último primero.</remarks>
+    /// <param name="lectura">La lectura entera; de ella salen los archivados y el total de casos para el denominador.</param>
+    /// <param name="generadoEn">La marca de tiempo; entra desde fuera, no se lee el reloj.</param>
+    /// <returns>Un documento de una sola sección; con la base vacía de archivados sale igual, con su aviso.</returns>
     public static Documento Armar(LecturaParaReportes lectura, string generadoEn)
     {
         var archivados = lectura.Archivados();
@@ -109,6 +114,10 @@ public static class ArmadoDelHistorico
     /// la base tiene 45 o 3 000, y un numero sin su denominador es la forma mas facil de
     /// enganar a quien lee un informe.
     /// </remarks>
+    /// <param name="archivados">Cuántos casos están archivados.</param>
+    /// <param name="personas">Cuántas personas hay en esos casos.</param>
+    /// <param name="sinPoderViajar">Cuántas de ellas constan como que no pudieron viajar.</param>
+    /// <param name="casosEnLaBase">Cuántos casos hay en la base en total, archivados o no.</param>
     private static Portada Portada(int archivados, int personas, int sinPoderViajar, int casosEnLaBase)
         => new(
             "Qué se ha archivado, y qué sigue contando",
@@ -125,6 +134,9 @@ public static class ArmadoDelHistorico
             ]);
 
     /// <summary>De que no se fia este historico. Nace de una medicion, no esta escrito a mano.</summary>
+    /// <param name="archivados">Cuántos casos están archivados.</param>
+    /// <param name="casosEnLaBase">Cuántos casos hay en la base en total.</param>
+    /// <returns>Un solo aviso posible —hay casos y ninguno archivado—, o ninguno.</returns>
     private static IReadOnlyList<string> Avisos(int archivados, int casosEnLaBase)
     {
         var avisos = new List<string>();
@@ -140,6 +152,8 @@ public static class ArmadoDelHistorico
         return avisos;
     }
 
+    /// <summary>La única tabla: un renglón por caso archivado, con la frase de qué le pasa a un archivado como nota.</summary>
+    /// <param name="archivados">Los casos archivados, ya en orden del último al primero.</param>
     private static Seccion Tabla(IReadOnlyList<CasoArchivado> archivados)
         => new(
             "Histórico — casos archivados",
@@ -171,6 +185,7 @@ public static class ArmadoDelHistorico
     /// El esquema ata las dos —o las dos o ninguna—, pero un dato que llega roto no puede
     /// tumbar el informe: se escribe lo que hay y se dice que falta la fecha (requisito 9).
     /// </remarks>
+    /// <param name="caso">Un caso que ya se sabe archivado.</param>
     private static string TextoDeArchivado(Caso caso)
         => string.IsNullOrWhiteSpace(caso.FechaArchivado)
             ? $"{Vocabulario.Archivado}, sin fecha"

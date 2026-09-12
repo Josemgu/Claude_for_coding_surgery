@@ -97,6 +97,7 @@ public static class EstadosQueSeVen
     /// archivando y la otra la dio por buena el Excel de un compañero lo sigue diciendo la
     /// firma del pie (<see cref="TarjetaDeDocumento.Firma"/>) y el detalle.</para>
     /// </remarks>
+    /// <param name="estado">El estado que se ve, uno de los cuatro.</param>
     public static LoQueSeLee LoQueSeLeeDe(EstadoQueSeVe estado) => estado switch
     {
         EstadoQueSeVe.Completa => LoQueSeLee.Resuelto,
@@ -111,6 +112,7 @@ public static class EstadosQueSeVen
     /// <see cref="RenglonParaAsignar.PalabraDe"/>. Se retiran el 2026-09-07 por decisión del
     /// dueño; lo que decían no se pierde, se mueve al detalle, que se abre cuando él lo pide.
     /// </remarks>
+    /// <param name="estado">El estado que se ve, uno de los cuatro.</param>
     public static string PalabraDe(EstadoQueSeVe estado) => DosEstados.Palabra(LoQueSeLeeDe(estado));
 
     /// <summary>La clave del pincel del fondo de la pastilla de una lectura.</summary>
@@ -130,8 +132,10 @@ public static class EstadosQueSeVen
     /// este cambio viene a quitar. Lo que separaba aquellos cuatro no se pierde: sigue en la
     /// base, en la firma del pie y en el detalle.</para>
     /// </remarks>
+    /// <param name="lectura">La lectura cuya pastilla se pinta.</param>
     public static string ClaveDelFondo(LoQueSeLee lectura) => $"FondoDelEstado{lectura}";
 
     /// <summary>La clave del pincel de la letra y el borde de la pastilla de una lectura.</summary>
+    /// <param name="lectura">La lectura cuya pastilla se pinta.</param>
     public static string ClaveDeLaTinta(LoQueSeLee lectura) => $"TintaDelEstado{lectura}";
 }

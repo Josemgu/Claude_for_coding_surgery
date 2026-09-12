@@ -9,22 +9,58 @@ namespace Fichas.Contratos.Puertos;
 /// <remarks>
 /// Las dos listas viven juntas por el mismo motivo: son trabajo que se perdio y que
 /// alguien tiene que poder mirar despues. Un cuadro que se cierra con Aceptar no vale.
+/// <para>
+/// <b>Quién lo implementa:</b> <c>Fichas.Datos.Repositorios.RepositorioDeIlegibles</c>
+/// (en dos archivos: el segundo, <c>.Borrado</c>, lleva los dos métodos de borrar) y
+/// <c>Fichas.Datos.Falso.RepositorioDeIlegiblesFalso</c>, que nunca borra porque no hay base
+/// que copiar. <b>Quién lo consume:</b> Importar (<c>GuardadoDeHojas</c> registra,
+/// <c>LoQueEntroSinInformacion</c> lista, <c>OperacionDeBorrarLosPdfIlegibles</c> borra),
+/// la vuelta de Paquetes (lista las descartadas) y <c>Fichas.Paquetes</c> (las registra).
+/// </para>
 /// </remarks>
 public interface IIlegibles
 {
     /// <summary>Devuelve un trozo de la lista de documentos ilegibles, con el total detras.</summary>
+    /// <remarks>Orden: lo más reciente primero. El filtro por ruta busca por contenido; el de motivo, por código exacto.</remarks>
+    /// <param name="filtro">Qué renglones; <see cref="FiltroDeIlegibles.Todo"/> para todos.</param>
+    /// <param name="trozo">Qué parte; más allá del final vuelve vacío.</param>
+    /// <returns>Nunca nulo: sin nada, un trozo vacío con total 0.</returns>
     PaginaDe<RenglonIlegible> Listar(FiltroDeIlegibles filtro, Pagina trozo);
 
     /// <summary>Cuenta cuantos renglones ilegibles cumplen el filtro, sin traerlos.</summary>
+    /// <remarks>Hoy no lo llama ninguna pantalla (grep del 2026-09-11); se documenta y no se toca.</remarks>
+    /// <param name="filtro">El mismo que en <see cref="Listar"/>.</param>
+    /// <returns>0 si ninguno.</returns>
     int Contar(FiltroDeIlegibles filtro);
 
     /// <summary>Anota que un PDF o una pagina no se pudo leer, con su codigo de motivo.</summary>
+    /// <remarks>
+    /// <b>Escribe</b> siempre una fila nueva: la tabla no tiene unicidad a propósito, porque el
+    /// mismo archivo deja un renglón por hoja o por reintento, y registrar dos veces son dos
+    /// renglones. La fecha vacía se rellena con el reloj. La base real ignora el
+    /// <see cref="RenglonIlegible.Id"/> que venga, guarda un motivo vacío como
+    /// <c>sin_motivo</c> y con la ruta vacía no escribe y lo dice; ⚠️ el doble respeta un id
+    /// distinto de 0 y admite la ruta vacía (medido el 2026-09-11, apuntado en la entrega).
+    /// </remarks>
+    /// <param name="renglon">El renglón, con la ruta del PDF, que es lo único que lo hace útil.</param>
+    /// <returns>El id del renglón nuevo, o no escrito con su motivo.</returns>
     ResultadoDeEscritura Registrar(RenglonIlegible renglon);
 
     /// <summary>Devuelve un trozo de las filas del Excel que no entraron, con el total detras.</summary>
+    /// <param name="companeroId">Solo las de ese compañero; nulo para las de todos.</param>
+    /// <param name="trozo">Qué parte; más allá del final vuelve vacío.</param>
+    /// <returns>Nunca nulo; lo más reciente primero.</returns>
     PaginaDe<FilaDescartada> ListarDescartadas(long? companeroId, Pagina trozo);
 
     /// <summary>Anota una fila del Excel que no caso con nadie, tal como venia escrita.</summary>
+    /// <remarks>
+    /// <b>Escribe</b> siempre una fila nueva y <b>no valida el contenido</b>: ni el número de
+    /// caso ni el MRN, porque lo que venía escrito puede ser justo lo que estaba mal. Lo único
+    /// que tiene que existir es el compañero, que es clave foránea y no una regla de contenido.
+    /// Un motivo vacío se guarda como «No se dijo por que no entro».
+    /// </remarks>
+    /// <param name="fila">La fila tal como volvió, con el número de fila del Excel para poder ir a mirarla.</param>
+    /// <returns>El id de la fila nueva, o no escrito si el compañero no existe.</returns>
     ResultadoDeEscritura RegistrarDescartada(FilaDescartada fila);
 
     /// <summary>La tabla de estos renglones; es la marca que lleva un plan de borrado suyo.</summary>
@@ -75,6 +111,12 @@ public interface IIlegibles
     /// decirlo en pantalla, o el dueno creera que borro un archivo que sigue ahi.</para>
     /// </remarks>
     /// <param name="renglonIds">Los numeros internos de los renglones marcados.</param>
+    /// <returns>
+    /// Un plan con alcance <see cref="AlcanceDelBorrado.Documentos"/> y un único conteo, el de
+    /// <see cref="TablaDeLosRenglones"/>. Sin permiso de borrar cuando no hay ninguno
+    /// marcado, cuando todos tienen documento, o cuando la copia previa no se pudo hacer; en
+    /// el doble, siempre sin permiso. No escribe en la base: solo copia el archivo y cuenta.
+    /// </returns>
     PlanDeBorrado PlanearBorradoDeRenglonesSinCaso(IReadOnlyCollection<long> renglonIds);
 
     /// <summary>
@@ -86,5 +128,11 @@ public interface IIlegibles
     /// sin copia previa no se ejecuta, y se vuelve a comprobar que los renglones siguen sin
     /// documento, porque entre la pregunta y el «si» pudo cambiar algo.
     /// </remarks>
+    /// <param name="plan">El que devolvió <see cref="PlanearBorradoDeRenglonesSinCaso"/>, con <see cref="PlanDeBorrado.SePuedeBorrar"/> y su copia; uno de <see cref="IMantenimiento"/> se rechaza.</param>
+    /// <returns>
+    /// Borrado con cuántos renglones cayeron, o no borrado con su motivo: plan de otro sitio,
+    /// sin permiso, sin copia, renglones que ya tienen documento, o el motor que lo rechazó
+    /// (y entonces nada cambió: va en una transacción). En el doble, nunca se borra.
+    /// </returns>
     ResultadoDeBorrado BorrarRenglonesSinCaso(PlanDeBorrado plan);
 }

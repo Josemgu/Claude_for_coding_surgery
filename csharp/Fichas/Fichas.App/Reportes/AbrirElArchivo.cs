@@ -21,6 +21,8 @@ namespace Fichas.App.Reportes;
 public static class AbrirElArchivo
 {
     /// <summary>Abre ese archivo con Windows; devuelve el aviso si no se pudo.</summary>
+    /// <param name="ruta">El archivo generado; nula o vacía si todavía no hay ninguno.</param>
+    /// <returns>Nulo si Windows lo abrió; si no, una advertencia (no hay archivo) o un problema (no está o no se pudo abrir).</returns>
     public static Aviso? Abrir(string? ruta)
     {
         if (string.IsNullOrWhiteSpace(ruta))
@@ -43,6 +45,8 @@ public static class AbrirElArchivo
     }
 
     /// <summary>Abre en el Explorador la carpeta donde quedo el archivo.</summary>
+    /// <param name="ruta">El archivo generado; su carpeta es lo que se abre. Nula o vacía si todavía no hay ninguno.</param>
+    /// <returns>Nulo si Windows la abrió; si no, el aviso con el motivo.</returns>
     public static Aviso? AbrirLaCarpeta(string? ruta)
     {
         if (string.IsNullOrWhiteSpace(ruta))
@@ -72,6 +76,9 @@ public static class AbrirElArchivo
     /// <c>UseShellExecute</c> en verdadero es lo que hace que Windows elija el programa
     /// asociado; sin el, .NET intentaria ejecutar el propio PDF como si fuera un programa.
     /// </remarks>
+    /// <param name="queSeAbre">La ruta del archivo o de la carpeta.</param>
+    /// <param name="comoSeLlama">Cómo nombrarlo en el aviso si falla.</param>
+    /// <returns>Nulo si se abrió; el problema con lo que dijo el sistema si no.</returns>
     private static Aviso? Lanzar(string queSeAbre, string comoSeLlama)
     {
         try

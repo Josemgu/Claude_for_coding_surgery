@@ -51,6 +51,7 @@ public sealed class PruebasDelGenerador
     }
 
     /// <summary>Se generan exactamente los casos que se piden, tambien tres mil.</summary>
+    /// <param name="cuantos">Cuántos se piden; el cero también tiene que salir bien.</param>
     [TestMethod]
     [DataRow(0)]
     [DataRow(1)]

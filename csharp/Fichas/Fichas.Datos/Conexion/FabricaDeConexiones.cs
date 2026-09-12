@@ -37,6 +37,7 @@ public static class FabricaDeConexiones
     /// requisito 9 SI reserva: no es un valor raro de un campo, es que la base entera
     /// no esta defendida y ninguna pantalla puede decidir nada sobre eso.
     /// </exception>
+    /// <returns>La conexión ya abierta; quien la recibe la cierra.</returns>
     public static SqliteConnection Abrir(string rutaDeLaBase)
         => AbrirCon(rutaDeLaBase, SqliteOpenMode.ReadWriteCreate);
 
@@ -48,10 +49,16 @@ public static class FabricaDeConexiones
     /// dueno mientras se diagnostica algo. Una escritura sobre esta conexion falla en
     /// el motor, no por convenio.
     /// </remarks>
+    /// <param name="rutaDeLaBase">La ruta del archivo <c>.db</c>, que tiene que existir.</param>
+    /// <returns>La conexión ya abierta en modo <see cref="SqliteOpenMode.ReadOnly"/>.</returns>
+    /// <exception cref="SqliteException">Si el archivo no existe: en solo lectura el motor no lo crea.</exception>
     public static SqliteConnection AbrirSoloLectura(string rutaDeLaBase)
         => AbrirCon(rutaDeLaBase, SqliteOpenMode.ReadOnly);
 
     /// <summary>El trabajo comun de las dos aperturas, con el modo por parametro.</summary>
+    /// <param name="rutaDeLaBase">La ruta del archivo <c>.db</c>.</param>
+    /// <param name="modo">Crear y escribir, o solo leer.</param>
+    /// <returns>La conexión abierta, con las claves foráneas encendidas y comprobadas.</returns>
     private static SqliteConnection AbrirCon(string rutaDeLaBase, SqliteOpenMode modo)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rutaDeLaBase);
@@ -77,6 +84,7 @@ public static class FabricaDeConexiones
     }
 
     /// <summary>Enciende las claves foraneas ANTES de la primera consulta.</summary>
+    /// <param name="conexion">La conexión recién abierta.</param>
     private static void EncenderLasClavesForaneas(SqliteConnection conexion)
     {
         using var orden = conexion.CreateCommand();
@@ -93,6 +101,8 @@ public static class FabricaDeConexiones
     /// proveedor dejaria las foraneas apagadas y nadie se enteraria hasta que faltara
     /// una fila.
     /// </remarks>
+    /// <param name="conexion">La conexión recién abierta; si falla la comprobación, se cierra aquí antes de lanzar.</param>
+    /// <exception cref="ErrorDeConexion">Si <c>PRAGMA foreign_keys</c> no devuelve 1.</exception>
     private static void ComprobarQueQuedaronEncendidas(SqliteConnection conexion)
     {
         using var orden = conexion.CreateCommand();
@@ -116,11 +126,14 @@ public static class FabricaDeConexiones
 public sealed class ErrorDeConexion : InvalidOperationException
 {
     /// <summary>Con el motivo escrito en espanol.</summary>
+    /// <param name="mensaje">Qué no quedó como el esquema exige.</param>
     public ErrorDeConexion(string mensaje) : base(mensaje)
     {
     }
 
     /// <summary>Con el motivo y la causa de debajo.</summary>
+    /// <param name="mensaje">Qué no quedó como el esquema exige.</param>
+    /// <param name="causa">La excepción de debajo.</param>
     public ErrorDeConexion(string mensaje, Exception causa) : base(mensaje, causa)
     {
     }

@@ -47,10 +47,20 @@ public static class CarpetaDeDatos
     // no seguro entero por dos llamadas al sistema es un precio que esta capa no tiene
     // por que pagar. Son dos firmas de tipos simples: no hay nada que el generador
     // pudiera hacer mejor aqui.
+    /// <summary>
+    /// <c>SHGetKnownFolderPath</c> de <c>shell32.dll</c>: la única vía admitida para saber dónde está Documentos.
+    /// </summary>
+    /// <param name="identificador">El GUID de la carpeta conocida.</param>
+    /// <param name="banderas">Las <c>KNOWN_FOLDER_FLAG</c>; aquí siempre 0.</param>
+    /// <param name="testigo">El testigo del usuario; <see cref="IntPtr.Zero"/> es el usuario actual.</param>
+    /// <param name="ruta">Sale apuntando a una cadena UTF-16 que hay que liberar con <see cref="LiberarMemoriaDeLaTarea"/>.</param>
+    /// <returns>Un <c>HRESULT</c>: 0 si fue bien.</returns>
     [DllImport("shell32.dll", EntryPoint = "SHGetKnownFolderPath", ExactSpelling = true)]
     private static extern int PedirCarpetaConocida(
         in Guid identificador, uint banderas, IntPtr testigo, out IntPtr ruta);
 
+    /// <summary><c>CoTaskMemFree</c> de <c>ole32.dll</c>: libera la cadena que devolvió <see cref="PedirCarpetaConocida"/>.</summary>
+    /// <param name="apuntador">El apuntador que salió por <c>ruta</c>; se ignora si es cero.</param>
     [DllImport("ole32.dll", EntryPoint = "CoTaskMemFree", ExactSpelling = true)]
     private static extern void LiberarMemoriaDeLaTarea(IntPtr apuntador);
 
@@ -62,6 +72,7 @@ public static class CarpetaDeDatos
     /// un sitio equivocado: esta es una de las excepciones que el requisito 9 SI
     /// reserva, porque ninguna pantalla puede seguir sin saber donde escribe.
     /// </exception>
+    /// <returns>La ruta de Documentos tal como la devuelve Windows, sin barra final.</returns>
     public static string ResolverCarpetaDeDocumentos()
     {
         if (!OperatingSystem.IsWindows())
@@ -96,6 +107,7 @@ public static class CarpetaDeDatos
     }
 
     /// <summary>La carpeta donde viven la base y el Excel espejo. No la crea.</summary>
+    /// <returns>Documentos más <see cref="NombreDeLaCarpetaDeDatos"/>.</returns>
     public static string ResolverCarpetaDeDatos()
         => Path.Combine(ResolverCarpetaDeDocumentos(), NombreDeLaCarpetaDeDatos);
 
@@ -103,6 +115,7 @@ public static class CarpetaDeDatos
     /// <param name="carpetaDeDatos">
     /// La carpeta a usar; si es nula se resuelve por la API.
     /// </param>
+    /// <returns>La carpeta más <see cref="NombreDeLaBase"/>.</returns>
     public static string RutaDeLaBase(string? carpetaDeDatos = null)
         => Path.Combine(carpetaDeDatos ?? ResolverCarpetaDeDatos(), NombreDeLaBase);
 
@@ -115,6 +128,8 @@ public static class CarpetaDeDatos
     /// Un argumento presente pero sin valor detras devuelve nulo en vez de reventar:
     /// el programa sigue con la carpeta que resuelve la API, que es lo correcto.
     /// </remarks>
+    /// <param name="argumentos">Los argumentos de línea de órdenes tal como llegan, sin el nombre del programa.</param>
+    /// <returns>La carpeta que dicen, o nula si no está el argumento o viene sin valor.</returns>
     public static string? LeerCarpetaDeLosArgumentos(IReadOnlyList<string> argumentos)
     {
         ArgumentNullException.ThrowIfNull(argumentos);
@@ -144,6 +159,8 @@ public static class CarpetaDeDatos
     /// La carpeta de datos que toca usar: la de los argumentos si la dicen, y si no
     /// la que resuelve la API de Windows.
     /// </summary>
+    /// <param name="argumentos">Los argumentos de línea de órdenes.</param>
+    /// <returns>Una carpeta, siempre; no comprueba que exista.</returns>
     public static string ResolverCarpetaDeDatos(IReadOnlyList<string> argumentos)
         => LeerCarpetaDeLosArgumentos(argumentos) ?? ResolverCarpetaDeDatos();
 
@@ -154,6 +171,8 @@ public static class CarpetaDeDatos
     /// Compara segmento a segmento y NO por subcadena: 'OneDriveViejo' no es OneDrive,
     /// y una carpeta llamada 'MisOneDrivers' tampoco.
     /// </remarks>
+    /// <param name="ruta">Una ruta absoluta o relativa; se parte por las dos barras.</param>
+    /// <returns>Verdadero si algún segmento es exactamente «OneDrive», sin distinguir mayúsculas.</returns>
     public static bool EstaBajoOneDrive(string ruta)
     {
         ArgumentException.ThrowIfNullOrEmpty(ruta);
@@ -169,11 +188,14 @@ public static class CarpetaDeDatos
 public sealed class ErrorDeRuta : InvalidOperationException
 {
     /// <summary>Con el motivo escrito en espanol.</summary>
+    /// <param name="mensaje">Qué respondió Windows, o por qué no se pudo preguntar.</param>
     public ErrorDeRuta(string mensaje) : base(mensaje)
     {
     }
 
     /// <summary>Con el motivo y la causa de debajo.</summary>
+    /// <param name="mensaje">Qué respondió Windows, o por qué no se pudo preguntar.</param>
+    /// <param name="causa">La excepción de debajo.</param>
     public ErrorDeRuta(string mensaje, Exception causa) : base(mensaje, causa)
     {
     }

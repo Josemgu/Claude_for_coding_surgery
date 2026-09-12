@@ -85,7 +85,7 @@ public static class QueEntraEnCorreccion
     /// </summary>
     /// <remarks>
     /// <para>⛔ <b>La segunda mitad NO es un veredicto nuevo, es la puerta de salida.</b> «Le
-    /// falta algo» lo sigue contestando <see cref="LoQueLeFalta"/> y nadie mas. Lo que se anade
+    /// falta algo» lo sigue contestando <see cref="Grupo.LoQueLeFalta"/> y nadie mas. Lo que se anade
     /// es que no se sale por una puerta que no existe: un documento sin fecha de viaje no tiene
     /// grupo de dia al que pasar, asi que sacarlo de Correccion seria hacerlo desaparecer.</para>
     ///
@@ -140,7 +140,8 @@ public static class QueEntraEnCorreccion
     /// decia «2 con algo que falta, de 6» y el pie «queda 1 documento con algo que falta». Dos
     /// cifras de la misma pantalla que no encajan, y ninguna forma de saber cual creer. La
     /// diferencia era el invitado —el documento que acaba de resolverse y sigue delante—, y por
-    /// eso se cuenta con el mismo <see cref="SaleDeCorreccion"/> que decide quien entra.</para>
+    /// eso se cuenta con el mismo <see cref="SaleDeCorreccion(GrupoParaCorregir, bool)"/> que
+    /// decide quien entra.</para>
     /// </remarks>
     /// <param name="grupos">Los grupos ya filtrados.</param>
     /// <param name="leFaltaAlgo">Si a ese documento le queda algo que hacer.</param>

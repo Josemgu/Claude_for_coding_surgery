@@ -17,6 +17,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 3 — los huecos que tapaban la pantalla de correccion.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 3: las siete columnas que la pantalla de corrección necesitaba para señalar de dónde salió cada campo y si estaba tachado.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion3 =
         "Los huecos que tapaban la pantalla de correccion: 'casos' gana 'pagina_pdf' " +
         "y 'unidad_nombre', y 'procedencia_campo' gana las cuatro coordenadas de la " +
@@ -31,6 +33,7 @@ internal static class MigracionesQueAnadenColumnas
     /// cualquier escala. El tachon no es lo mismo que «vacio»: el papel llevaba algo
     /// escrito y alguien lo tacho.
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion3(SqliteConnection conexion)
     {
         Aplicar(conexion, 3, () =>
@@ -62,6 +65,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 4 — de que hoja salio cada persona.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 4: cada persona sabe de qué hoja del PDF salió.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion4 =
         "'personas' gana 'pagina_pdf': cada persona sabe de que hoja del PDF salio, " +
         "y su tira del escaneo se recorta de esa hoja y no de la del caso.";
@@ -74,6 +79,7 @@ internal static class MigracionesQueAnadenColumnas
     /// 12 personas en 6 hojas. Recortar las 12 tiras de la hoja del caso ensenaba la
     /// fila de OTRA persona al lado del MRN.
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion4(SqliteConnection conexion)
     {
         Aplicar(conexion, 4, () => Ejecutar(conexion,
@@ -85,6 +91,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 5 — lo que las FASES 6 y 7 no tenian donde guardar.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 5: la propuesta del compañero sobre cada persona y quién contactó a quién.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion5 =
         "Lo que las FASES 6 y 7 no tenian donde guardar: 'personas' gana las cuatro " +
         "columnas de la propuesta del companero, y 'contactos' gana quien contacto y " +
@@ -99,6 +107,7 @@ internal static class MigracionesQueAnadenColumnas
     /// <c>verificado = 1</c>, y eso es marcar como verificado automaticamente, que es
     /// justo lo que la regla permanente 5 prohibe.
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion5(SqliteConnection conexion)
     {
         Aplicar(conexion, 5, () =>
@@ -123,6 +132,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 6 — quien no pudo viajar, y por que.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 6: quién no pudo viajar y por qué, para el reporte.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion6 =
         "'personas' gana 'pudo_viajar' y 'motivo_no_viajo': el reporte de la FASE 8 " +
         "tiene que decir quien no pudo viajar y por que, y no habia donde guardarlo.";
@@ -136,6 +147,7 @@ internal static class MigracionesQueAnadenColumnas
     /// El reporte habla de PERSONAS y no de casos: en <c>casos</c>, una familia de
     /// cuatro donde falla uno saldria como cuatro personas con el motivo copiado.
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion6(SqliteConnection conexion)
     {
         Aplicar(conexion, 6, () =>
@@ -153,6 +165,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 9 — los seis pasos del sistema del lider.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 9: los seis pasos del sistema del líder y si el compañero llamó al líder.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion9 =
         "'personas' gana los seis pasos del sistema del lider y si el companero " +
         "llamo al lider: un solo estado dice que no esta lista, los seis pasos dicen " +
@@ -167,6 +181,7 @@ internal static class MigracionesQueAnadenColumnas
     /// <c>paso_*</c> son los pasos del sistema del lider que devuelve el companero.
     /// Y <c>llamo_al_lider</c> NO es un septimo paso.
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion9(SqliteConnection conexion)
     {
         Aplicar(conexion, 9, () =>
@@ -185,6 +200,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 10 — el nombre del templo.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 10: el nombre del templo impreso en el formulario.</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion10 =
         "'casos.templo_nombre': el templo esta impreso en el formulario y hasta ese " +
         "dia se descartaba; la cabecera del Excel del agente lo pide.";
@@ -196,6 +213,7 @@ internal static class MigracionesQueAnadenColumnas
     /// Texto libre y SIN catalogo: la lista de templos con su color es decision del
     /// dueno y no la ha tomado (P-10).
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion10(SqliteConnection conexion)
     {
         Aplicar(conexion, 10, () => Ejecutar(conexion,
@@ -206,6 +224,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 13 — el duplicado entra y queda marcado.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 13: un documento repetido entra y queda marcado con el caso al que repite (DECISIONES.md 2026-09-03, «P-5: un duplicado se avisa, no se rechaza»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion13 =
         "'casos.duplicado_de': un documento que repite a otro ENTRA igual y queda " +
         "marcado con el caso del que es duplicado. Nunca se pisa el que ya estaba.";
@@ -222,6 +242,7 @@ internal static class MigracionesQueAnadenColumnas
     /// tiene que ser NULL. Y aqui lo es, que ademas es lo correcto: un caso que no
     /// repite a ninguno no tiene nada que decir.
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion13(SqliteConnection conexion)
     {
         Aplicar(conexion, 13, () => Ejecutar(conexion,
@@ -233,6 +254,8 @@ internal static class MigracionesQueAnadenColumnas
     // VERSION 14 — quien marco el estado, y lo que dijo el companero.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 14: quién marcó el estado y cuándo, aparte de lo que dijo la hoja del compañero (DECISIONES.md 2026-09-03, «Regla definitiva del Excel de los compañeros»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion14 =
         "'casos' gana quien marco el estado y cuando, y aparte lo que dijo la hoja " +
         "del companero, que no se borra cuando Miguel corrige encima; " +
@@ -251,6 +274,7 @@ internal static class MigracionesQueAnadenColumnas
     /// la v3 y por el mismo motivo: sin ella, «no esta en el papel» se ve igual que
     /// «el OCR no supo leerlo».
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion14(SqliteConnection conexion)
     {
         Aplicar(conexion, 14, () =>
@@ -285,6 +309,8 @@ internal static class MigracionesQueAnadenColumnas
     //              y en que peldano de la escalera esta cada companero.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 18: por qué un caso no está completo, y el rol y la categoría de cada compañero (DECISIONES.md 2026-09-05, «Categorías de agentes, y la escalera del que no consiguió hablar»).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion18 =
         "'casos' gana POR QUE no esta completa, en dos columnas: la que vale ahora y la " +
         "que dijo la hoja del companero, que no se borra cuando Miguel corrige encima; " +
@@ -335,6 +361,7 @@ internal static class MigracionesQueAnadenColumnas
     /// que estan dentro de sus listas.
     /// </para>
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion18(SqliteConnection conexion)
     {
         Aplicar(conexion, 18, () =>
@@ -359,6 +386,8 @@ internal static class MigracionesQueAnadenColumnas
     //              cuando y desde donde.
     // ==================================================================
 
+    /// <summary>La frase que <c>version_esquema</c> guarda para la versión 19: quién contestó los seis pasos de cada persona, cuándo y por qué vía (ADR-0006 §2.4).</summary>
+    /// <remarks>Historia de la base del dueño: se lee, no se edita. Cambiarla no cambiaría lo que las bases ya migradas tienen escrito.</remarks>
     internal const string DescripcionDeLaVersion19 =
         "'personas' gana quien contesto sus seis pasos, cuando y por que via: la misma " +
         "forma que la 14 le dio al estado de 'casos', y por el mismo motivo. El estado NO " +
@@ -411,6 +440,7 @@ internal static class MigracionesQueAnadenColumnas
     /// migracion no toca aquella tabla.
     /// </para>
     /// </remarks>
+    /// <param name="conexion">La conexión abierta sobre la base que se migra; la migración no la abre ni la cierra.</param>
     internal static void AVersion19(SqliteConnection conexion)
     {
         Aplicar(conexion, 19, () =>
@@ -432,6 +462,8 @@ internal static class MigracionesQueAnadenColumnas
     }
 
     /// <summary>Una de las dos columnas de motivo, con su lista cerrada de tres claves.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <param name="columna">El nombre de la columna; solo los dos literales de <see cref="AVersion18"/>, nunca texto de fuera.</param>
     private static void AnadirMotivoACasos(SqliteConnection conexion, string columna)
     {
         // `columna` NO viene de fuera: sale de las dos llamadas literales de este mismo
@@ -444,6 +476,8 @@ internal static class MigracionesQueAnadenColumnas
     }
 
     /// <summary>Una casilla de tres estados: si, no, o nadie lo miro.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <param name="columna">El nombre de la casilla; solo los siete literales de <see cref="AVersion9"/>, nunca texto de fuera.</param>
     private static void AnadirCasillaAPersonas(SqliteConnection conexion, string columna)
     {
         // `columna` NO viene de fuera: sale de las llamadas literales de este mismo
@@ -455,6 +489,11 @@ internal static class MigracionesQueAnadenColumnas
     }
 
     /// <summary>Ejecuta los pasos de una migracion traduciendo el fallo del motor.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base; solo se comprueba que no sea nula.</param>
+    /// <param name="version">El número de la migración, para nombrarla en el error.</param>
+    /// <param name="pasos">Las instrucciones de la migración, ya cerradas sobre la conexión.</param>
+    /// <exception cref="ErrorDeMigracion">Envuelve cualquier <see cref="SqliteException"/> con la versión y el mensaje del motor en español.</exception>
+    /// <remarks>⚠️ Sin transacción: si una migración de varias columnas falla en la tercera, las dos primeras ya están puestas y el número de versión no se registró. El mensaje dice «se queda en la versión anterior», y es verdad para el número, no para el esquema. Se deja apuntado en la entrega, no se toca aquí.</remarks>
     private static void Aplicar(SqliteConnection conexion, int version, Action pasos)
     {
         ArgumentNullException.ThrowIfNull(conexion);
@@ -472,6 +511,9 @@ internal static class MigracionesQueAnadenColumnas
         }
     }
 
+    /// <summary>Atajo a <see cref="ReconstructorDeTablas.Ejecutar"/> para que cada migración se lea sin el nombre de la clase delante.</summary>
+    /// <param name="conexion">La conexión abierta sobre la base.</param>
+    /// <param name="instruccion">Una sola instrucción SQL sin parámetros.</param>
     private static void Ejecutar(SqliteConnection conexion, string instruccion)
         => ReconstructorDeTablas.Ejecutar(conexion, instruccion);
 }

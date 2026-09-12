@@ -31,6 +31,9 @@ public sealed record ResumenEnPantalla(
     IReadOnlyList<Aviso> Avisos)
 {
     /// <summary>Junta las lineas y los detalles de unos avisos en un solo texto para «ver».</summary>
+    /// <param name="avisos">Los avisos; cada uno aporta su línea y, si lo tiene, su detalle debajo.</param>
+    /// <param name="alFinal">Párrafos que van después de los avisos; los vacíos se saltan.</param>
+    /// <returns>Los trozos separados por una línea en blanco; vacío si no hay nada.</returns>
     public static string DetalleDe(IReadOnlyList<Aviso> avisos, params string[] alFinal)
     {
         ArgumentNullException.ThrowIfNull(avisos);
@@ -53,6 +56,7 @@ public sealed record ResumenEnPantalla(
     /// existe habiendolo mirado, en vez de repetir lo que dijo quien lo escribio. El nulo se
     /// pinta como «no está», nunca como cero.
     /// </remarks>
+    /// <param name="ruta">El archivo que se mira.</param>
     public static long? TamanoDe(string ruta)
     {
         try
@@ -74,6 +78,7 @@ public sealed record ResumenEnPantalla(
     /// en ingles, y un «1.234 bytes» leido por la maquina equivocada es un archivo mil veces
     /// mas pequeno de lo que es.
     /// </remarks>
+    /// <param name="cuantos">El tamaño en bytes.</param>
     public static string EnBytes(long cuantos)
         => cuantos.ToString(CultureInfo.InvariantCulture) + " bytes";
 }

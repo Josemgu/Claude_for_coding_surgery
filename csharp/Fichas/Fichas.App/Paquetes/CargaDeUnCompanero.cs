@@ -74,6 +74,10 @@ public sealed record CargaDelCompanero(
         ? "ningún caso asignado"
         : $"nada pendiente · {Plural(YaLosDevolvioCompletos.Count, "caso ya devuelto completo", "casos ya devueltos completos")}";
 
+    /// <summary>«1 caso» o «3 casos»: la cifra con la palabra que le toca.</summary>
+    /// <param name="cuantos">La cifra.</param>
+    /// <param name="una">La palabra en singular.</param>
+    /// <param name="varias">La palabra en plural.</param>
     private static string Plural(int cuantos, string una, string varias)
         => $"{cuantos} {(cuantos == 1 ? una : varias)}";
 }
@@ -111,6 +115,10 @@ public sealed record CargaDelCompanero(
 public static class CargaDeUnCompanero
 {
     /// <summary>Los casos que le tocan a ese companero y cuanta gente hay dentro.</summary>
+    /// <param name="asignaciones">Por donde se leen las asignaciones vivas.</param>
+    /// <param name="casos">Por donde se lee qué dijo el compañero de cada caso y cuántas personas tiene.</param>
+    /// <param name="companeroId">De quién es la carga.</param>
+    /// <returns>Nunca nulo: sin asignaciones vivas, una carga con las tres listas vacías.</returns>
     public static CargaDelCompanero Leer(IAsignaciones asignaciones, ICasos casos, long companeroId)
     {
         ArgumentNullException.ThrowIfNull(asignaciones);
@@ -150,6 +158,8 @@ public static class CargaDeUnCompanero
     /// un caso puede tener mas de una asignacion viva (la P-11 sigue abierta) y mandarlo dos
     /// veces al Excel duplicaria a toda su familia dentro de la hoja.
     /// </remarks>
+    /// <param name="asignaciones">Por donde se listan.</param>
+    /// <param name="companeroId">De quién.</param>
     private static List<long> LosQueLleva(IAsignaciones asignaciones, long companeroId)
         => [.. asignaciones
             .Listar(
@@ -178,6 +188,9 @@ public static class CargaDeUnCompanero
     /// las asignaciones vivas y no decide por su cuenta cuales cuentan; si uno se colara vivo,
     /// se veria aqui en vez de esconderse.</para>
     /// </remarks>
+    /// <param name="casos">Por donde se listan los casos con asignación viva a ese compañero.</param>
+    /// <param name="companeroId">El compañero; solo cuentan los casos cuyo estado escribió él.</param>
+    /// <returns>Id del caso → estado que él dijo; un caso del que no dijo nada no está en el diccionario.</returns>
     private static Dictionary<long, EstadoDeRecomendacion> LoQueEsteCompaneroYaDijoDeCadaUno(
         ICasos casos, long companeroId)
         => casos

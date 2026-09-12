@@ -1,5 +1,3 @@
-using Fichas.Datos.Conexion;
-using Fichas.Datos.Esquema;
 using Microsoft.Data.Sqlite;
 
 namespace Fichas.Pruebas.Datos;
@@ -54,6 +52,7 @@ public sealed class PruebaDelEsquema
         "idx_personas_caso", "idx_procedencia_registro",
     ];
 
+    /// <summary>Vigila que una base nueva tiene exactamente las nueve tablas, por nombre.</summary>
     [TestMethod]
     public void LaBaseAlDiaTieneLasNueveTablasDeLaArquitectura()
     {
@@ -71,6 +70,7 @@ public sealed class PruebaDelEsquema
             $"Se encontraron {tablas.Length}: {string.Join(", ", tablas)}");
     }
 
+    /// <summary>Vigila que cada tabla tiene el número de columnas de ARQUITECTURA §2, una a una.</summary>
     [TestMethod]
     public void CadaTablaTieneLasColumnasQueDeclaraLaArquitectura()
     {
@@ -86,6 +86,7 @@ public sealed class PruebaDelEsquema
         }
     }
 
+    /// <summary>Vigila que las columnas de las nueve tablas suman 111 (el nombre dice 108: quedó viejo cuando entraron las de la 18 y la 19; se apunta en la entrega).</summary>
     [TestMethod]
     public void ElEsquemaSumaLasCientoOchoColumnasDeLaArquitectura()
     {
@@ -105,6 +106,7 @@ public sealed class PruebaDelEsquema
             "migracion 18, mas las tres de la 19.");
     }
 
+    /// <summary>Vigila que los índices propios son exactamente los ocho de ARQUITECTURA §6.</summary>
     [TestMethod]
     public void LaBaseAlDiaTieneLosOchoIndicesPropiosDeLaArquitectura()
     {
@@ -122,6 +124,7 @@ public sealed class PruebaDelEsquema
             $"Se encontraron {indices.Length}: {string.Join(", ", indices)}");
     }
 
+    /// <summary>Vigila que <c>PRAGMA foreign_keys</c> devuelve 1 en una conexión recién abierta.</summary>
     [TestMethod]
     public void LasClavesForaneasQuedanEncendidasEnCadaConexion()
     {
@@ -138,6 +141,7 @@ public sealed class PruebaDelEsquema
             "Las claves foraneas no quedaron encendidas en la conexion.");
     }
 
+    /// <summary>Vigila que <c>PRAGMA journal_mode</c> no es WAL (ARQUITECTURA §1.8, por OneDrive).</summary>
     [TestMethod]
     public void ElDiarioSeQuedaEnElDeDefectoYNoEnWal()
     {

@@ -33,6 +33,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDeLaParidadDelFalso
 {
+    /// <summary>La fecha del <see cref="RelojFijo"/> del falso y de las marcas sembradas a mano en el de verdad.</summary>
     private const string DiaDeLasPruebas = "2026-09-05";
 
     // ═════════════════════════════ Casos ═════════════════════════════
@@ -309,6 +310,10 @@ public sealed class PruebaDeLaParidadDelFalso
         return (deVerdad, falso, baseDePrueba);
     }
 
+    /// <summary>El mismo caso guardado en los dos repositorios; los ids no coinciden porque cada almacén numera aparte.</summary>
+    /// <param name="deVerdad">Los repositorios sobre SQLite.</param>
+    /// <param name="falso">Los repositorios sobre el almacén en memoria.</param>
+    /// <returns>El id que dio cada uno.</returns>
     private static (long DeVerdad, long Falso) SembrarUnCasoEnLosDos(Juego deVerdad, JuegoFalso falso)
     {
         var caso = new Caso
@@ -321,6 +326,11 @@ public sealed class PruebaDeLaParidadDelFalso
         return (deVerdad.Casos.Guardar(caso).Id, falso.Casos.Guardar(caso).Id);
     }
 
+    /// <summary>El mismo compañero guardado en los dos repositorios.</summary>
+    /// <param name="deVerdad">Los repositorios sobre SQLite.</param>
+    /// <param name="falso">Los repositorios sobre el almacén en memoria.</param>
+    /// <param name="nombre">El nombre del compañero.</param>
+    /// <returns>El id que dio cada uno.</returns>
     private static (long DeVerdad, long Falso) SembrarUnCompaneroEnLosDos(
         Juego deVerdad, JuegoFalso falso, string nombre)
     {

@@ -12,10 +12,12 @@ namespace Fichas.App.Correccion;
 /// impedir») convertido en firma: un valor raro no puede tumbar nada porque no hay nada
 /// que tumbar. Quien llama decide que hace con el motivo; aqui solo se dice cual es.
 /// <para>
-/// ⚠️ <b>Esto vive aqui porque <c>Fichas.Contratos</c> esta congelado.</b> Cuando exista
-/// <c>Fichas.Datos</c> (fase C2) las mismas cuatro reglas estaran tambien en la capa de
-/// datos, y entonces hay que decidir cual manda. Va dicho en la entrega, no resuelto a
-/// mitad de fase.
+/// ⚠️ <b>Esto vive aqui porque <c>Fichas.Contratos</c> esta congelado.</b> Cuando se escribio
+/// no existia <c>Fichas.Datos</c>; el 2026-09-11 se midio con <c>grep GeneratedRegex</c> que
+/// <c>Fichas.Datos/Validacion/ReglasDeFormato.cs</c> lleva los MISMOS cuatro patrones
+/// —numero de caso, cedula, unidad y fecha— escritos otra vez. Son dos verdades que se
+/// separan el dia que alguien toque una, y nadie ha decidido cual manda. Sigue nombrado en
+/// la entrega, no resuelto aqui.
 /// </para>
 /// <para>
 /// Regla permanente 1: aqui no se corrige nada. Una cedula en minuscula queda en
@@ -50,6 +52,11 @@ public static partial class ReglasDeCampo
     private static partial Regex PatronDeLaFecha();
 
     /// <summary>Por que no vale la cedula de miembro, o nulo si vale. El vacio vale.</summary>
+    /// <remarks>
+    /// El ultimo caracter puede ser letra: lo midio el dueno el 2026-09-04 sobre sus escaneos
+    /// («la cédula PUEDE terminar en letra: la validación estaba mal, no el OCR»).
+    /// </remarks>
+    /// <param name="valor">Lo que hay en el campo; se limpia antes de mirarlo.</param>
     public static string? MotivoDelMrn(string? valor)
     {
         var limpio = Limpiar(valor);
@@ -58,6 +65,8 @@ public static partial class ReglasDeCampo
     }
 
     /// <summary>Por que no vale el numero de unidad, o nulo si vale. El vacio vale.</summary>
+    /// <remarks>Seis o siete digitos: manda el papel (<c>DECISIONES.md</c>, 2026-09-02).</remarks>
+    /// <param name="valor">Lo que hay en el campo; se limpia antes de mirarlo.</param>
     public static string? MotivoDeLaUnidadNumero(string? valor)
     {
         var limpio = Limpiar(valor);
@@ -66,6 +75,8 @@ public static partial class ReglasDeCampo
     }
 
     /// <summary>Por que no vale la fecha de viaje, o nulo si vale. El vacio vale.</summary>
+    /// <remarks>Dos comprobaciones: la forma AAAA-MM-DD y que la fecha exista.</remarks>
+    /// <param name="valor">Lo que hay en el campo; se limpia antes de mirarlo.</param>
     public static string? MotivoDeLaFechaDeViaje(string? valor)
     {
         var limpio = Limpiar(valor);
@@ -79,6 +90,7 @@ public static partial class ReglasDeCampo
     }
 
     /// <summary>Por que no vale el numero de caso, o nulo si vale. El vacio vale: puede no leerse.</summary>
+    /// <param name="valor">Lo que hay en el campo; se limpia antes de mirarlo.</param>
     public static string? MotivoDelNumeroDeCaso(string? valor)
     {
         var limpio = Limpiar(valor);
@@ -87,6 +99,8 @@ public static partial class ReglasDeCampo
     }
 
     /// <summary>Por que no vale el nombre de unidad, o nulo si vale.</summary>
+    /// <remarks>La unica regla es el largo: un nombre larguisimo es una linea de OCR que se colo entera.</remarks>
+    /// <param name="valor">Lo que hay en el campo; se limpia antes de mirarlo.</param>
     public static string? MotivoDelNombreDeUnidad(string? valor)
     {
         var limpio = Limpiar(valor);
@@ -107,6 +121,8 @@ public static partial class ReglasDeCampo
     /// que la importacion escribia, un valor mal leido por el OCR no se pintaba de rojo.
     /// </para>
     /// </remarks>
+    /// <param name="campo">El nombre de la columna, tal como esta en <see cref="Extraccion"/>.</param>
+    /// <param name="valor">Lo que hay en el campo.</param>
     public static string? MotivoDe(string campo, string? valor) => campo switch
     {
         Extraccion.CampoCedula => MotivoDelMrn(valor),
@@ -124,7 +140,15 @@ public static partial class ReglasDeCampo
     /// Decision del dueno (DECISIONES.md 2026-09-02, P-2): como pared haria imposible
     /// guardar un viaje reprogramado a otro mes. Es la regla permanente 5 —el sistema
     /// propone, Miguel confirma— aplicada a una fecha.
+    /// <para>
+    /// Los cuatro digitos del numero de caso son AAMM: «CASP2609» es septiembre de 2026, y se
+    /// comparan con el ano y el mes de la fecha. Sin numero, sin fecha, o con cualquiera de los
+    /// dos mal formado, no hay con que comparar y no se inventa un aviso.
+    /// </para>
     /// </remarks>
+    /// <param name="numeroCaso">El numero de caso, ya valido o no; se limpia antes.</param>
+    /// <param name="fechaViaje">La fecha de viaje en AAAA-MM-DD; se limpia antes.</param>
+    /// <returns>La frase del aviso, o nulo si cuadra o si no se puede comparar.</returns>
     public static string? AvisoDelMesCruzado(string? numeroCaso, string? fechaViaje)
     {
         var caso = Limpiar(numeroCaso);
@@ -143,6 +167,7 @@ public static partial class ReglasDeCampo
     /// En esta base <c>NULL</c> significa «no hay dato» y <c>''</c> no significa nada. Dos
     /// formas de decir lo mismo son dos formas de que una consulta se olvide de una.
     /// </remarks>
+    /// <param name="valor">Cualquier texto, nulo incluido.</param>
     public static string? Limpiar(string? valor)
     {
         var limpio = valor?.Trim();

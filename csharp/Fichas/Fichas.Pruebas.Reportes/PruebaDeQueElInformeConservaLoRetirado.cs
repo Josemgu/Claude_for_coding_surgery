@@ -31,8 +31,11 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDeQueElInformeConservaLoRetirado
 {
+    /// <summary>El primer día del periodo que se pide.</summary>
     private const string Desde = "2026-09-01";
+    /// <summary>El último día del periodo que se pide.</summary>
     private const string Hasta = "2026-09-30";
+    /// <summary>La marca con la que se arma el informe: el «hoy» de la base de prueba a las diez.</summary>
     private const string Generado = BaseDePrueba.Hoy + " 10:00:00";
 
     /// <summary>Cuántos casos hizo Sandy en total: los que cuenta «lo que hizo».</summary>
@@ -43,6 +46,7 @@ public class PruebaDeQueElInformeConservaLoRetirado
 
     // ─────────────────────── lo que hizo, que ya conservaba ───────────────────────
 
+    /// <summary>Vigila que «Documentos que se le asignaron» cuenta los siete, retirados incluidos.</summary>
     [TestMethod]
     public void LoQueHizoSigueContandoLosSieteYNoSoloLosTresVivos()
     {
@@ -57,6 +61,7 @@ public class PruebaDeQueElInformeConservaLoRetirado
 
     // ─────────────────────── las secciones de cola, que NO conservaban ───────────────────────
 
+    /// <summary>Vigila que las tres tablas de cola traen las siete filas y no solo las tres de asignación viva.</summary>
     [TestMethod]
     public void LasSeccionesDeColaTraenLosSieteCasosYNoSoloLosTresVivos()
     {
@@ -79,6 +84,7 @@ public class PruebaDeQueElInformeConservaLoRetirado
         }
     }
 
+    /// <summary>Vigila que los cuatro números de caso devueltos siguen en «Los viajes».</summary>
     [TestMethod]
     public void LosCuatroCasosDevueltosSiguenSaliendoConSuNumeroDeCaso()
     {
@@ -96,6 +102,7 @@ public class PruebaDeQueElInformeConservaLoRetirado
         }
     }
 
+    /// <summary>Vigila que «El equipo» trae solo a Sandy y le cuenta las siete personas.</summary>
     [TestMethod]
     public void LaTablaDelEquipoCuentaLasSietePersonasDeLasQueRespondio()
     {
@@ -112,6 +119,7 @@ public class PruebaDeQueElInformeConservaLoRetirado
 
     // ─────────────────────── la pregunta que NO se contesta igual ───────────────────────
 
+    /// <summary>Vigila que el resumen de «Lo que hizo» sigue diciendo tres, los vivos, y no siete.</summary>
     [TestMethod]
     public void ElResumenSigueDiciendoSoloLoQueLlevaEncimaAhoraMismo()
     {
@@ -127,6 +135,7 @@ public class PruebaDeQueElInformeConservaLoRetirado
             + "retirados dentro deja de poder contestarla.");
     }
 
+    /// <summary>Vigila que la cifra «se le asignaron» de la portada es siete, la misma que su tabla.</summary>
     [TestMethod]
     public void LaPortadaSaleDeLoQueHizoYNoDeLoQueLeQueda()
     {
@@ -141,12 +150,16 @@ public class PruebaDeQueElInformeConservaLoRetirado
 
     // ---- el escenario -------------------------------------------------------
 
+    /// <summary>El informe de Sandy del mes entero, sobre el escenario de siete casos.</summary>
     private static Documento InformeDeSandy()
     {
         var (reportes, sandy) = Escenario();
         return reportes.DocumentoDeCompanero(sandy, Periodo.Leer(Desde, Hasta).Periodo!, Generado);
     }
 
+    /// <summary>La sección con ese título; si no está, la prueba falla diciendo cuáles hay.</summary>
+    /// <param name="documento">El informe armado.</param>
+    /// <param name="titulo">El título exacto de la sección.</param>
     private static Seccion Seccion(Documento documento, string titulo)
     {
         var seccion = documento.Secciones.FirstOrDefault(s => s.Titulo == titulo);
@@ -167,6 +180,7 @@ public class PruebaDeQueElInformeConservaLoRetirado
     ///
     /// Ningún dato es de nadie: nombres, números de caso y unidad son inventados.
     /// </remarks>
+    /// <returns>El motor sobre ese almacén y el id de Sandy.</returns>
     private static (ReportesEnPdf Reportes, long Sandy) Escenario()
     {
         var servicios = new ServiciosFalsos(0, 11, new BaseDePrueba.RelojFijo(BaseDePrueba.Hoy));
@@ -197,6 +211,11 @@ public class PruebaDeQueElInformeConservaLoRetirado
             sandy.Id);
     }
 
+    /// <summary>Un caso con una persona sin pasos y su asignación a Sandy, viva o retirada.</summary>
+    /// <param name="almacen">El almacén falso donde se escribe.</param>
+    /// <param name="quien">Sandy.</param>
+    /// <param name="numero">El número del caso.</param>
+    /// <param name="sigueAsignado">Verdadero deja la asignación viva y el caso sin contestar; falso lo deja devuelto completo y retirado.</param>
     private static void Caso(AlmacenFalso almacen, Companero quien, string numero, bool sigueAsignado)
     {
         var casoId = almacen.SiguienteId();

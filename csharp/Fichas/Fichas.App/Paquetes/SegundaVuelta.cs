@@ -67,6 +67,10 @@ public sealed record LoQueSube(
         }
     }
 
+    /// <summary>La palabra que le toca a la cifra; solo la palabra, sin el número delante.</summary>
+    /// <param name="cuantos">La cifra.</param>
+    /// <param name="uno">La palabra en singular.</param>
+    /// <param name="varios">La palabra en plural.</param>
     private static string Plural(int cuantos, string uno, string varios) => cuantos == 1 ? uno : varios;
 }
 
@@ -118,6 +122,11 @@ public static class SegundaVuelta
     /// los deja fuera por defecto. Es la regla del dueno del 2026-09-05, <i>«cuando yo archive,
     /// debe salir del sistema visible»</i>, y un paquete es sistema visible.
     /// </remarks>
+    /// <param name="casos">Por donde se listan los documentos no completos.</param>
+    /// <param name="asignaciones">Por donde se sabe quién llevó cada uno.</param>
+    /// <param name="companeros">Por donde se lee la categoría de quien lo llevó.</param>
+    /// <param name="quienLoRecibe">El compañero al que iría el paquete; su categoría es el peldaño.</param>
+    /// <returns>Nunca nulo; con cero que entran cuando nadie de más abajo se trabó en un documento.</returns>
     public static LoQueSube Para(
         ICasos casos, IAsignaciones asignaciones, ICompaneros companeros, Companero quienLoRecibe)
     {
@@ -185,10 +194,19 @@ public static class SegundaVuelta
     /// lo correcto; lo falso era el porque. Una asignacion se retira a mano, y desde el
     /// 2026-09-07 hay un boton que retira las de un companero de golpe.</para>
     ///
+    /// <para>⚠️ Y más tarde ese mismo 2026-09-07 cambió otra vez: la vuelta SÍ retira las
+    /// asignaciones de lo que el compañero devolvió completo (<see cref="LimpiezaAlVolver"/>).
+    /// Lo no completo —que es lo único que sube— sigue vivo, así que para esta regla da igual;
+    /// pedirlas todas, vivas y retiradas, sigue siendo lo correcto.</para>
+    ///
     /// <para>Devuelve nulo cuando nadie de un peldano mas bajo lo intento. Eso incluye el caso
     /// que nunca se asigno a nadie —no se puede escalar lo que no se ha intentado— y el que se
     /// trabo en este mismo peldano o mas arriba.</para>
     /// </remarks>
+    /// <param name="asignaciones">Por donde se listan todas las asignaciones del caso.</param>
+    /// <param name="companeros">Por donde se lee la categoría de cada uno.</param>
+    /// <param name="casoId">El documento.</param>
+    /// <param name="categoriaDeQuienLoRecibe">El peldaño al que se sube; solo cuentan los de más abajo.</param>
     private static Companero? QuienLoIntentoMasAbajo(
         IAsignaciones asignaciones, ICompaneros companeros, long casoId, int categoriaDeQuienLoRecibe)
     {

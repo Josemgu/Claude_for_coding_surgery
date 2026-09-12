@@ -7,14 +7,24 @@ namespace Fichas.Datos.Falso;
 /// <summary>La procedencia inventada. Cumple <see cref="IProcedencia"/> sin tocar ningun archivo.</summary>
 public sealed class RepositorioDeProcedenciaFalso : IProcedencia
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
+    /// <summary>
+    /// El índice de ids de fila por (tabla, registro); nulo hasta la primera lectura y se
+    /// rehace cuando cambia el número de filas. Por qué guarda ids y no filas: <see cref="IdsDe"/>.
+    /// </summary>
     private Dictionary<(TablaDeProcedencia Tabla, long RegistroId), List<long>>? _idsPorRegistro;
+    /// <summary>Cuántas filas había cuando se armó el índice; -1 es «nunca». Si el almacén tiene otras tantas, el índice está viejo.</summary>
     private int _filasCuandoSeIndexo = -1;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public RepositorioDeProcedenciaFalso(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Devuelve la procedencia de todos los campos de una fila.</summary>
+    /// <param name="tabla">De qué tabla es el registro.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <returns>Sus filas ordenadas por nombre de campo; vacía si no tiene ninguna.</returns>
     public IReadOnlyList<ProcedenciaDeCampo> DeRegistro(TablaDeProcedencia tabla, long registroId)
         => [.. IdsDe(tabla, registroId)
             .Select(id => _almacen.Procedencias[id])
@@ -42,6 +52,8 @@ public sealed class RepositorioDeProcedenciaFalso : IProcedencia
     /// camino de borrado ni en este doble ni en <c>IProcedencia</c>. El dia que lo haya, esta
     /// cuenta deja de bastar y hay que invalidar el indice al borrar.</para>
     /// </remarks>
+    /// <param name="tabla">De qué tabla es el registro.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
     private List<long> IdsDe(TablaDeProcedencia tabla, long registroId)
     {
         if (_idsPorRegistro is null || _filasCuandoSeIndexo != _almacen.Procedencias.Count)
@@ -56,12 +68,17 @@ public sealed class RepositorioDeProcedenciaFalso : IProcedencia
     }
 
     /// <summary>La fila de ese campo concreto, o nula si ese campo no tiene ninguna.</summary>
+    /// <param name="tabla">De qué tabla es el registro.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna, tal cual.</param>
     private ProcedenciaDeCampo? LaDe(TablaDeProcedencia tabla, long registroId, string campo)
         => IdsDe(tabla, registroId)
             .Select(id => _almacen.Procedencias[id])
             .FirstOrDefault(fila => string.Equals(fila.Campo, campo, StringComparison.Ordinal));
 
     /// <summary>Devuelve un trozo de los campos por debajo de una confianza, que son los que hay que mirar.</summary>
+    /// <param name="umbral">La confianza por debajo de la cual un campo entra; los que no tienen confianza no entran.</param>
+    /// <param name="trozo">Qué página se pide.</param>
     public PaginaDe<ProcedenciaDeCampo> PorDebajoDeConfianza(double umbral, Pagina trozo)
     {
         var flojos = _almacen.Procedencias.Values
@@ -80,6 +97,7 @@ public sealed class RepositorioDeProcedenciaFalso : IProcedencia
     /// probada contra este doble estaria verde sobre un hueco de la base de verdad, que es
     /// justo el defecto que ese archivo existe para cazar.
     /// </remarks>
+    /// <param name="umbral">La confianza por debajo de la cual un campo pesa en el veredicto.</param>
     public IReadOnlyList<ProcedenciaDeCampo> LasQuePesanEnElVeredicto(double umbral)
         => [.. _almacen.Procedencias.Values
             .Where(fila => fila.Verificado
@@ -99,6 +117,7 @@ public sealed class RepositorioDeProcedenciaFalso : IProcedencia
     /// elementos. Se ordena para que el doble y la base de verdad —que ordena en el
     /// <c>ORDER BY</c>— devuelvan lo mismo en el mismo orden.
     /// </remarks>
+    /// <param name="tabla">De qué tabla se quieren los registros.</param>
     public IReadOnlyDictionary<long, IReadOnlyList<string>> CamposAnotadosDe(TablaDeProcedencia tabla)
     {
         var porRegistro = new Dictionary<long, List<string>>();
@@ -126,10 +145,13 @@ public sealed class RepositorioDeProcedenciaFalso : IProcedencia
     }
 
     /// <summary>Cuenta cuantos campos de una fila estan firmados; al recien extraer es 0.</summary>
+    /// <param name="tabla">De qué tabla es el registro.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
     public int ContarVerificados(TablaDeProcedencia tabla, long registroId)
         => IdsDe(tabla, registroId).Count(id => _almacen.Procedencias[id].Verificado);
 
     /// <summary>Anota la procedencia de un campo. Nunca pone verificado: eso es <see cref="Firmar"/>.</summary>
+    /// <param name="procedencia">La fila; si ese campo ya tenía una, se sustituye conservando su id y su firma.</param>
     public ResultadoDeEscritura Anotar(ProcedenciaDeCampo procedencia)
     {
         // Regla permanente 5: por esta puerta NO se marca nada como verificado, venga como venga.
@@ -150,6 +172,9 @@ public sealed class RepositorioDeProcedenciaFalso : IProcedencia
     }
 
     /// <summary>Retira la firma de un campo, que es lo que toca cuando su valor cambia.</summary>
+    /// <param name="tabla">De qué tabla es el registro.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna.</param>
     public ResultadoDeEscritura RetirarLaFirma(TablaDeProcedencia tabla, long registroId, string campo)
     {
         var existente = LaDe(tabla, registroId, campo);
@@ -178,6 +203,11 @@ public sealed class RepositorioDeProcedenciaFalso : IProcedencia
     }
 
     /// <summary>Firma un campo como bueno con quien y cuando; el unico camino a verificado.</summary>
+    /// <param name="tabla">De qué tabla es el registro.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna; si no tenía fila, se crea con origen manual.</param>
+    /// <param name="companeroId">Quién firma; tiene que existir, si no no se escribe.</param>
+    /// <param name="verificadoEn">Cuándo; en blanco se pone el instante del reloj.</param>
     public ResultadoDeEscritura Firmar(TablaDeProcedencia tabla, long registroId, string campo, long companeroId, string verificadoEn)
     {
         // El esquema lo impone y aqui tambien: no hay verificado sin quien y sin cuando.

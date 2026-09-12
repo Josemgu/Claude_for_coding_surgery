@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace Fichas.App.Cascara;
 
+
 /// <summary>
 /// Los cuadros de «abrir», «abrir varios», «elegir carpeta» y «guardar como» de Windows,
 /// pedidos directamente a Win32. El UNICO selector de la aplicacion.
@@ -61,25 +62,46 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 public static class SelectorDeArchivos
 {
-    // Las banderas de OPENFILENAME que se usan, con su nombre de Windows al lado.
-    private const int OfnSobrescribirPregunta = 0x00000002;     // OFN_OVERWRITEPROMPT
-    private const int OfnNoCambiarDeCarpeta = 0x00000008;       // OFN_NOCHANGEDIR
-    private const int OfnVariosALaVez = 0x00000200;             // OFN_ALLOWMULTISELECT
-    private const int OfnLaRutaTieneQueExistir = 0x00000800;    // OFN_PATHMUSTEXIST
-    private const int OfnElArchivoTieneQueExistir = 0x00001000; // OFN_FILEMUSTEXIST
-    private const int OfnExplorador = 0x00080000;               // OFN_EXPLORER
+    // Las banderas de OPENFILENAME que se usan, con su nombre de Windows en cada una.
+    /// <summary><c>OFN_OVERWRITEPROMPT</c>: al guardar sobre un archivo que ya existe, el cuadro pregunta antes.</summary>
+    private const int OfnSobrescribirPregunta = 0x00000002;
+
+    /// <summary><c>OFN_NOCHANGEDIR</c>: el cuadro no cambia la carpeta de trabajo del programa al cerrarse.</summary>
+    private const int OfnNoCambiarDeCarpeta = 0x00000008;
+
+    /// <summary><c>OFN_ALLOWMULTISELECT</c>: se pueden elegir varios archivos; vuelven separados por ceros.</summary>
+    private const int OfnVariosALaVez = 0x00000200;
+
+    /// <summary><c>OFN_PATHMUSTEXIST</c>: el cuadro no acepta una carpeta que no exista.</summary>
+    private const int OfnLaRutaTieneQueExistir = 0x00000800;
+
+    /// <summary><c>OFN_FILEMUSTEXIST</c>: al abrir, el archivo tiene que existir; no se acepta un nombre tecleado que no esté.</summary>
+    private const int OfnElArchivoTieneQueExistir = 0x00001000;
+
+    /// <summary><c>OFN_EXPLORER</c>: el cuadro moderno del Explorador, que es el que admite varios a la vez con ceros por separador.</summary>
+    private const int OfnExplorador = 0x00080000;
 
     // Las banderas de SHBrowseForFolder, igual.
-    private const int SoloCarpetasDeVerdad = 0x00000001; // BIF_RETURNONLYFSDIRS
-    private const int ConCasillaParaEscribir = 0x00000010; // BIF_EDITBOX
-    private const int CuadroModerno = 0x00000040;        // BIF_NEWDIALOGSTYLE
+    /// <summary><c>BIF_RETURNONLYFSDIRS</c>: solo se puede aceptar una carpeta del disco, no «Este equipo» ni una impresora.</summary>
+    private const int SoloCarpetasDeVerdad = 0x00000001;
+
+    /// <summary><c>BIF_EDITBOX</c>: con una casilla para teclear o pegar la ruta, además del árbol.</summary>
+    private const int ConCasillaParaEscribir = 0x00000010;
+
+    /// <summary><c>BIF_NEWDIALOGSTYLE</c>: el cuadro grande que se puede redimensionar, no el antiguo diminuto.</summary>
+    private const int CuadroModerno = 0x00000040;
 
     // Los dos mensajes del enganche de SHBrowseForFolder, con su nombre de Windows.
-    private const int CuadroYaAbierto = 1;                // BFFM_INITIALIZED
-    private const int PonerLaSeleccion = 0x400 + 103;     // BFFM_SETSELECTIONW
+    /// <summary><c>BFFM_INITIALIZED</c>: el mensaje que el cuadro manda al enganche cuando ya está montado y admite órdenes.</summary>
+    private const int CuadroYaAbierto = 1;
+
+    /// <summary><c>BFFM_SETSELECTIONW</c> (<c>WM_USER + 103</c>): la orden al cuadro de seleccionar la ruta que se le manda.</summary>
+    private const int PonerLaSeleccion = 0x400 + 103;
+
 
     /// <summary>Lo mas largo que puede medir una ruta suelta que se devuelva.</summary>
     private const int LargoDeUnaRuta = 4096;
+
 
     /// <summary>
     /// El hueco de la seleccion multiple: 96 000 letras.
@@ -91,6 +113,7 @@ public static class SelectorDeArchivos
     /// cuadro se lee como «cancelado», que es un fallo mudo.
     /// </remarks>
     private const int LargoDeVariasRutas = 96_000;
+
 
     /// <summary>Lo que cabe en una ruta para <c>SHGetPathFromIDList</c>: <c>MAX_PATH</c>.</summary>
     private const int LargoDeUnaCarpeta = 260;
@@ -112,6 +135,7 @@ public static class SelectorDeArchivos
             OfnExplorador | OfnSobrescribirPregunta | OfnLaRutaTieneQueExistir | OfnNoCambiarDeCarpeta,
             guardar: true, LargoDeUnaRuta)?.FirstOrDefault();
 
+
     /// <summary>Pide un archivo que ya existe; devuelve la ruta, o nulo si se cerro sin elegir.</summary>
     public static string? CualAbrir(
         nint ventana, string titulo, string descripcionDelTipo, string extension,
@@ -120,6 +144,7 @@ public static class SelectorDeArchivos
             ventana, titulo, string.Empty, descripcionDelTipo, extension, carpetaDeSalida,
             OfnExplorador | OfnElArchivoTieneQueExistir | OfnLaRutaTieneQueExistir | OfnNoCambiarDeCarpeta,
             guardar: false, LargoDeUnaRuta)?.FirstOrDefault();
+
 
     /// <summary>Pide varios archivos a la vez; devuelve vacio si se cerro sin elegir.</summary>
     /// <remarks>Es por donde entran los PDF escaneados en la pantalla de Importar.</remarks>
@@ -133,6 +158,7 @@ public static class SelectorDeArchivos
                     | OfnLaRutaTieneQueExistir | OfnNoCambiarDeCarpeta,
                 guardar: false, LargoDeVariasRutas)
             ?? []);
+
 
     /// <summary>Pide una carpeta; devuelve la ruta, o nulo si se cerro sin elegir.</summary>
     /// <remarks>
@@ -211,6 +237,7 @@ public static class SelectorDeArchivos
 
     /// <summary>Lo que Windows llama cuando pasa algo en el cuadro de la carpeta.</summary>
     private delegate int EngancheDelCuadroDeCarpeta(nint ventana, int mensaje, nint parametro, nint dato);
+
 
     /// <summary>En cuanto el cuadro esta abierto, se le dice por donde empezar.</summary>
     /// <remarks>
@@ -346,28 +373,73 @@ public static class SelectorDeArchivos
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct NombreDeArchivo
     {
+        /// <summary><c>lStructSize</c>: los bytes de esta estructura; Windows lo usa para saber qué versión se le pasa.</summary>
         public int TamanoDeLaEstructura;
+
+        /// <summary><c>hwndOwner</c>: la ventana dueña del cuadro, para que salga encima de ella y la bloquee mientras está abierto.</summary>
         public nint Ventana;
+
+        /// <summary><c>hInstance</c>: solo para plantillas propias; aquí cero.</summary>
         public nint Instancia;
+
+        /// <summary><c>lpstrFilter</c>: los pares «rótulo, patrón» separados por ceros: «Archivos PDF», «*.pdf».</summary>
         public nint Filtro;
+
+        /// <summary><c>lpstrCustomFilter</c>: dónde guardar el filtro que teclee la persona; aquí cero.</summary>
         public nint FiltroAMedida;
+
+        /// <summary><c>nMaxCustFilter</c>: el largo del hueco anterior; aquí cero.</summary>
         public int LargoDelFiltroAMedida;
+
+        /// <summary><c>nFilterIndex</c>: cuál de los pares del filtro está elegido, empezando en 1.</summary>
         public int IndiceDelFiltro;
+
+        /// <summary><c>lpstrFile</c>: el hueco donde Windows escribe la ruta (o las rutas) elegidas.</summary>
         public nint Archivo;
+
+        /// <summary><c>nMaxFile</c>: cuántos caracteres caben en ese hueco.</summary>
         public int LargoDelArchivo;
+
+        /// <summary><c>lpstrFileTitle</c>: un hueco para solo el nombre sin carpeta; aquí cero, no se usa.</summary>
         public nint SoloElNombre;
+
+        /// <summary><c>nMaxFileTitle</c>: el largo del hueco anterior; aquí cero.</summary>
         public int LargoDeSoloElNombre;
+
+        /// <summary><c>lpstrInitialDir</c>: la carpeta por la que abre el cuadro.</summary>
         public nint CarpetaInicial;
+
+        /// <summary><c>lpstrTitle</c>: el título del cuadro.</summary>
         public nint Titulo;
+
+        /// <summary><c>Flags</c>: las banderas <c>OFN_*</c> de arriba, sumadas.</summary>
         public int Banderas;
+
+        /// <summary><c>nFileOffset</c>: en la ruta devuelta, en qué posición empieza el nombre del archivo.</summary>
         public short DondeEmpiezaElNombre;
+
+        /// <summary><c>nFileExtension</c>: en la ruta devuelta, en qué posición empieza la extensión.</summary>
         public short DondeEmpiezaLaExtension;
+
+        /// <summary><c>lpstrDefExt</c>: la extensión que se añade si la persona teclea un nombre sin ella.</summary>
         public nint ExtensionPorDefecto;
+
+        /// <summary><c>lCustData</c>: un dato cualquiera para el enganche; aquí cero.</summary>
         public nint DatoDeQuienLlama;
+
+        /// <summary><c>lpfnHook</c>: la función a la que el cuadro avisa de sus mensajes; aquí cero.</summary>
         public nint Enganche;
+
+        /// <summary><c>lpTemplateName</c>: una plantilla propia del cuadro; aquí cero.</summary>
         public nint Plantilla;
+
+        /// <summary><c>pvReserved</c>: reservado por Windows; cero.</summary>
         public nint Reservado;
+
+        /// <summary><c>dwReserved</c>: reservado por Windows; cero.</summary>
         public int TambienReservado;
+
+        /// <summary><c>FlagsEx</c>: banderas extra (<c>OFN_EX_NOPLACESBAR</c>); aquí cero.</summary>
         public int BanderasDeMas;
     }
 
@@ -375,33 +447,64 @@ public static class SelectorDeArchivos
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct DatosDeLaCarpeta
     {
+        /// <summary><c>hwndOwner</c>: la ventana dueña del cuadro.</summary>
         public nint Ventana;
+
+        /// <summary><c>pidlRoot</c>: desde qué carpeta arranca el árbol; cero es el escritorio entero.</summary>
         public nint CarpetaRaiz;
+
+        /// <summary><c>pszDisplayName</c>: un hueco donde Windows deja el nombre visible de lo elegido.</summary>
         public nint NombreQueSeVe;
+
+        /// <summary><c>lpszTitle</c>: el texto que se ve encima del árbol.</summary>
         public nint Titulo;
+
+        /// <summary><c>ulFlags</c>: las banderas <c>BIF_*</c> de arriba, sumadas.</summary>
         public int Banderas;
+
+        /// <summary><c>lpfn</c>: la función a la que el cuadro manda sus mensajes; aquí, la que pone la selección inicial.</summary>
         public nint Enganche;
+
+        /// <summary><c>lParam</c>: lo que el enganche recibe con cada mensaje; aquí, la ruta inicial.</summary>
         public nint DatoDeQuienLlama;
+
+        /// <summary><c>iImage</c>: el icono de lo elegido; lo escribe Windows, no se usa.</summary>
         public int Icono;
     }
 
+    /// <summary>El cuadro «Guardar como» de Windows; devuelve falso si se canceló o falló.</summary>
+    /// <param name="datos">La estructura rellenada; Windows escribe en ella la ruta elegida.</param>
     [DllImport("comdlg32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetSaveFileNameW(ref NombreDeArchivo datos);
 
+
+    /// <summary>El cuadro «Abrir» de Windows; devuelve falso si se canceló o falló.</summary>
+    /// <param name="datos">La estructura rellenada; Windows escribe en ella la ruta o las rutas elegidas.</param>
     [DllImport("comdlg32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetOpenFileNameW(ref NombreDeArchivo datos);
 
+
+    /// <summary>El cuadro de elegir carpeta de Windows; devuelve el identificador de la elegida, o cero si se canceló.</summary>
+    /// <param name="datos">La estructura rellenada con el título, las banderas y el enganche.</param>
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     private static extern nint SHBrowseForFolderW(ref DatosDeLaCarpeta datos);
 
+
+    /// <summary>Traduce el identificador que devuelve <see cref="SHBrowseForFolderW"/> a una ruta de disco.</summary>
+    /// <param name="identificador">Lo que devolvió el cuadro.</param>
+    /// <param name="hueco">Dónde escribir la ruta; tiene que caber <c>MAX_PATH</c>.</param>
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SHGetPathFromIDListW(nint identificador, nint hueco);
 
+
+    /// <summary>Libera el identificador que devolvió el cuadro: lo reservó Windows y lo tiene que soltar Windows.</summary>
+    /// <param name="memoria">El identificador a liberar.</param>
     [DllImport("ole32.dll")]
     private static extern void CoTaskMemFree(nint memoria);
+
 
     /// <summary>Para decirle al cuadro de la carpeta por donde empezar, y para nada mas.</summary>
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]

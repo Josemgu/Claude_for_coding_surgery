@@ -23,6 +23,9 @@ namespace Fichas.Datos.Repositorios;
 /// </remarks>
 public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
 {
+    /// <summary>Las 25 columnas de <c>personas</c> que se leen, en el orden exacto en que <c>Leer</c> las espera por posición.</summary>
+    /// <remarks>Si se añade una columna aquí, hay que añadirla al final y darle su índice en <c>Leer</c>: la lectura es por posición, no por nombre.</remarks>
+    /// <remarks>Faltan a propósito <c>pasos_por</c>, <c>pasos_en</c> y <c>pasos_origen</c>: ver la nota de la clase.</remarks>
     private const string Columnas =
         "id, caso_id, mrn, nombre, fila_formulario, ord_recibir_propias, " +
         "ord_observar_sellamiento, ord_traductor, ord_investidura, " +
@@ -56,6 +59,7 @@ public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
     public const string OrigenDelExcelDeVuelta = "su Excel de vuelta";
 
     /// <summary>Trabaja sobre una conexion ya abierta con el esquema aplicado.</summary>
+    /// <param name="conexion">La conexión abierta; no puede ser nula.</param>
     public RepositorioDePersonas(SqliteConnection conexion) : base(conexion)
     {
     }
@@ -193,6 +197,8 @@ public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
     /// ⚠️ <c>llamo_al_lider</c> NO cuenta: no es un septimo paso.
     /// </para>
     /// </remarks>
+    /// <param name="propuesta">Lo que trajo el Excel del compañero.</param>
+    /// <returns>Verdadero si alguno de los seis <c>Paso*</c> no es nulo.</returns>
     private static bool ContestaAlgunaDeLasSeis(Persona propuesta)
         => propuesta.PasoPreparacion is not null
         || propuesta.PasoInformacion is not null
@@ -254,6 +260,9 @@ public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
         return firmas;
     }
 
+    /// <summary>Crea la fila y devuelve su id nuevo con <c>last_insert_rowid()</c>. Las tres <c>pasos_*</c> nacen en NULL: nadie ha contestado.</summary>
+    /// <param name="persona">La persona con <c>Id</c> 0.</param>
+    /// <param name="avisos">Lo que las reglas de formato ya dijeron; se devuelven junto con el resultado.</param>
     private ResultadoDeEscritura Insertar(Persona persona, IReadOnlyList<Aviso> avisos)
         => Escribir(
             "INSERT INTO personas (caso_id, mrn, nombre, fila_formulario, " +
@@ -269,6 +278,9 @@ public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
             orden => PonerLosCamposDeLaPersona(orden, persona),
             avisos);
 
+    /// <summary>Reescribe las 24 columnas de la fila con ese id, sin tocar las tres <c>pasos_*</c>; si no existe, devuelve un problema en vez de crearla.</summary>
+    /// <param name="persona">La persona con su <c>Id</c>.</param>
+    /// <param name="avisos">Lo que las reglas de formato ya dijeron; se devuelven junto con el resultado.</param>
     private ResultadoDeEscritura Cambiar(Persona persona, IReadOnlyList<Aviso> avisos)
         => Escribir(
             "UPDATE personas SET caso_id = $caso, mrn = $mrn, nombre = $nombre, " +
@@ -289,6 +301,9 @@ public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
             avisos,
             persona.Id);
 
+    /// <summary>Rellena los marcadores de una persona para INSERT y UPDATE, que comparten los 24 marcadores; el <c>$id</c> lo añade solo el UPDATE.</summary>
+    /// <param name="orden">La orden en la que se añaden los parámetros.</param>
+    /// <param name="persona">De dónde salen los valores.</param>
     private static void PonerLosCamposDeLaPersona(SqliteCommand orden, Persona persona)
     {
         orden.Parameters.AddWithValue("$caso", persona.CasoId);
@@ -320,6 +335,9 @@ public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
         orden.Parameters.AddWithValue("$lider", DeCasilla(persona.LlamoAlLider));
     }
 
+    /// <summary>Compone el WHERE del filtro con marcadores <c>$nombre</c>; el texto del usuario nunca entra aquí, solo en <c>PonerLosParametrosDelFiltro</c>.</summary>
+    /// <param name="filtro">Lo que la pantalla pide.</param>
+    /// <returns>Una cláusula <c>WHERE …</c>, o vacío si el filtro no dice nada.</returns>
     private static string ComponerElFiltro(FiltroDePersonas filtro)
     {
         var condiciones = new List<string>();
@@ -345,6 +363,9 @@ public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
         return condiciones.Count == 0 ? string.Empty : "WHERE " + string.Join(" AND ", condiciones);
     }
 
+    /// <summary>Rellena los marcadores que <c>ComponerElFiltro</c> dejó, y solo esos: un parámetro sin marcador es un error del motor.</summary>
+    /// <param name="orden">La orden en la que se añaden los parámetros.</param>
+    /// <param name="filtro">El mismo filtro con el que se compuso el WHERE.</param>
     private static void PonerLosParametrosDelFiltro(SqliteCommand orden, FiltroDePersonas filtro)
     {
         if (filtro.CasoId is not null)

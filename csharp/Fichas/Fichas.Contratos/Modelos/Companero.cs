@@ -37,6 +37,8 @@ public sealed record Companero
     public int Categoria { get; init; } = 1;
 
     /// <summary>Traduce la clave guardada a enumerado sin lanzar nunca; lo raro es companero.</summary>
+    /// <param name="texto">Lo que hay en <c>companeros.rol</c>, tal cual.</param>
+    /// <returns><see cref="RolDeCompanero.Gerente"/> o <see cref="RolDeCompanero.Administrador"/> si la clave lo dice; <see cref="RolDeCompanero.Companero"/> para nulo, vacío o cualquier otra cosa.</returns>
     public static RolDeCompanero LeerRol(string? texto) => texto?.Trim().ToLowerInvariant() switch
     {
         "gerente" => RolDeCompanero.Gerente,
@@ -45,6 +47,8 @@ public sealed record Companero
     };
 
     /// <summary>Traduce el enumerado a la clave que admite el <c>CHECK</c> de la columna.</summary>
+    /// <param name="rol">El rol que se quiere guardar.</param>
+    /// <returns>Siempre una de las tres claves; nunca nulo, porque la columna tampoco lo admite.</returns>
     public static string EscribirRol(RolDeCompanero rol) => rol switch
     {
         RolDeCompanero.Gerente => "gerente",

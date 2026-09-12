@@ -22,10 +22,14 @@ namespace Fichas.App.Paquetes;
 /// </remarks>
 public sealed class LoQueVuelve
 {
+    /// <summary>Por donde se vuelve a leer cada documento después de aplicar la hoja.</summary>
     private readonly ICasos _casos;
+    /// <summary>Por donde se vuelve a encontrar a la persona por caso y cédula.</summary>
     private readonly IPersonas _personas;
 
     /// <summary>Se ata a los dos puertos que necesita y a nada mas.</summary>
+    /// <param name="casos">Repositorio de casos.</param>
+    /// <param name="personas">Repositorio de personas.</param>
     public LoQueVuelve(ICasos casos, IPersonas personas)
     {
         _casos = casos;
@@ -33,6 +37,9 @@ public sealed class LoQueVuelve
     }
 
     /// <summary>Lo que trajo esa hoja: lo que se puede mirar, lo que no caso y lo que no se pudo.</summary>
+    /// <param name="deQuien">El nombre del compañero que devolvió la hoja.</param>
+    /// <param name="marcas">Las marcas que <c>Fichas.Paquetes</c> leyó de la hoja, ya aplicadas a la base.</param>
+    /// <param name="noEntraron">Las filas que se cayeron al aplicar, con su motivo; no se vuelven a contar aquí.</param>
     public LoQueTrajoElPaquete De(
         string deQuien,
         IReadOnlyList<MarcaDelCompanero> marcas,
@@ -69,6 +76,8 @@ public sealed class LoQueVuelve
     /// error del programa: la hoja es de antes del id en la clave, el documento ya no esta,
     /// o la persona ya no esta. Los tres se ensenan aparte y ninguno se firma.
     /// </remarks>
+    /// <param name="marca">La marca de una fila de la hoja.</param>
+    /// <param name="porQueNo">El motivo escrito cuando se devuelve nulo; nulo cuando se devuelve la información.</param>
     private InformacionQueVolvio? Mirar(MarcaDelCompanero marca, out string? porQueNo)
     {
         porQueNo = null;
@@ -102,6 +111,9 @@ public sealed class LoQueVuelve
     }
 
     /// <summary>Los siete campos, leidos de la base, con el estado que puso el companero.</summary>
+    /// <param name="marca">La marca, de la que solo se toma la fila del Excel.</param>
+    /// <param name="caso">El documento tal como está en la base.</param>
+    /// <param name="persona">La única persona del caso con esa cédula.</param>
     private static InformacionQueVolvio DeLaBase(MarcaDelCompanero marca, Caso caso, Persona persona)
         => new()
         {
@@ -119,6 +131,7 @@ public sealed class LoQueVuelve
         };
 
     /// <summary>El numero de fila para el mensaje; «?» cuando la hoja no lo dijo.</summary>
+    /// <param name="marca">La marca de la fila.</param>
     private static string Fila(MarcaDelCompanero marca)
         => marca.FilaExcel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "?";
 }

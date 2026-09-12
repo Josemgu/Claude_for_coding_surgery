@@ -46,6 +46,7 @@ public sealed class PruebasDeLaPersonaAMano
         return (servicios, modelo, casoId);
     }
 
+    /// <summary>Vigila que un documento sin nadie dentro NO esta listo para asignar: sin persona no hay a quien recomendar (dueno, 2026-09-06).</summary>
     [TestMethod]
     public void ElDocumentoSinNadieEmpiezaAtascado()
     {
@@ -56,6 +57,7 @@ public sealed class PruebasDeLaPersonaAMano
         Assert.IsEmpty(modelo.Personas);
     }
 
+    /// <summary>Dado un documento sin nadie, cuando se teclean nombre y cedula, entonces hay UNA persona en la base con esos dos datos y en la fila 1.</summary>
     [TestMethod]
     public void EscribirNombreYCedulaDejaUnaPersonaEnLaBase()
     {
@@ -132,6 +134,7 @@ public sealed class PruebasDeLaPersonaAMano
         Assert.HasCount(antes + 2, modelo.Campos, "la cédula y el nombre de la persona nueva");
     }
 
+    /// <summary>Sin nombre no entra nadie, y se dice por que: un boton que no hace nada y calla es un boton roto (requisito 9).</summary>
     [TestMethod]
     public void SinNombreNoSeEscribeNadaYSeDicePorQue()
     {

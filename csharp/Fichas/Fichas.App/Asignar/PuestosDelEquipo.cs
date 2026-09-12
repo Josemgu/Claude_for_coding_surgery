@@ -29,10 +29,14 @@ namespace Fichas.App.Asignar;
 /// </remarks>
 public sealed class PuestosDelEquipo
 {
+    /// <summary>El equipo; el alta y el cambio de puesto escriben por su <c>Guardar</c>.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>La franja de la cáscara, donde se deja el aviso de cada escritura y de cada rechazo.</summary>
     private readonly BuzonDeAvisos _avisos;
 
     /// <summary>Ata los puestos al repositorio de companeros y al buzon de la franja.</summary>
+    /// <param name="companeros">El equipo.</param>
+    /// <param name="avisos">El buzón de la franja.</param>
     public PuestosDelEquipo(ICompaneros companeros, BuzonDeAvisos avisos)
     {
         _companeros = companeros;
@@ -63,6 +67,7 @@ public sealed class PuestosDelEquipo
     /// <c>administrador</c>— y aqui estan las palabras que se leen. Cambiar la redaccion no
     /// obliga a migrar datos, que es para lo que se separan.
     /// </remarks>
+    /// <param name="rol">El rol tal como está en la base.</param>
     public static string DecirElRol(RolDeCompanero rol) => rol switch
     {
         RolDeCompanero.Gerente => "Gerente",
@@ -96,6 +101,9 @@ public sealed class PuestosDelEquipo
     /// <c>DesactivadoEn</c>, <c>CreadoEn</c> y el nombre salen tal cual entraron. Poner un
     /// puesto <b>no</b> es una puerta trasera para reactivar a quien esta de baja.
     /// </remarks>
+    /// <param name="companeroId">A quién se le cambia; si ya no está, se dice y no se escribe.</param>
+    /// <param name="rol">El rol nuevo.</param>
+    /// <param name="categoria">El peldaño nuevo, desde <see cref="CategoriaMinima"/>.</param>
     public ResultadoDeEscritura Cambiar(long companeroId, RolDeCompanero rol, int categoria)
     {
         if (RechazarPeldano(categoria) is ResultadoDeEscritura malo) return malo;
@@ -139,6 +147,8 @@ public sealed class PuestosDelEquipo
     /// que sin esta guarda un cero pasaria en las pruebas y reventaria en la maquina del dueno.
     /// No se corrige en silencio: un valor asi solo puede venir de un defecto del programa.
     /// </remarks>
+    /// <param name="categoria">El peldaño que se pidió.</param>
+    /// <returns>El «no se escribió» con su aviso, o nulo si el peldaño vale.</returns>
     private ResultadoDeEscritura? RechazarPeldano(int categoria)
         => categoria >= CategoriaMinima
             ? null
@@ -149,6 +159,7 @@ public sealed class PuestosDelEquipo
                 + "Los peldaños de arriba no tienen tope: pon el número que quieras a partir de ahí."));
 
     /// <summary>Deja el aviso en la franja y devuelve el «no se escribió» que lo lleva dentro.</summary>
+    /// <param name="aviso">Lo que hay que decir.</param>
     private ResultadoDeEscritura Decir(Aviso aviso)
     {
         var resultado = ResultadoDeEscritura.NoSeEscribio(aviso);

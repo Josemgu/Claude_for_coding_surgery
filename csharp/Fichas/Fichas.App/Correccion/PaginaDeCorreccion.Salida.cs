@@ -34,10 +34,6 @@ namespace Fichas.App.Correccion;
 /// </remarks>
 public sealed partial class PaginaDeCorreccion
 {
-    /// <summary>Que dice ahora mismo la banda de salida; lo lee la medicion.</summary>
-    public string LoQueDiceLaBandaDeLaSalida
-        => _bandaDeLaSalida.Visibility == Visibility.Visible ? _yaEstaResuelto.Text : string.Empty;
-
     /// <summary>
     /// Ensena o esconde la banda del documento que ya no tiene nada que falte.
     /// </summary>

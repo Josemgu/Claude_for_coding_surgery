@@ -1,4 +1,3 @@
-using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Falso;
 using Fichas.Reportes;
@@ -34,7 +33,9 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDelInformeDeAgente
 {
+    /// <summary>El día fijo del reloj del escenario: el último del mes que se pide.</summary>
     private const string Hoy = "2026-09-30";
+    /// <summary>La marca con la que se arma el informe en todas las pruebas.</summary>
     private const string GeneradoEn = "2026-09-30 10:00:00";
 
     /// <summary>El informe abre diciendo que hizo esa persona, con su nombre.</summary>
@@ -192,6 +193,10 @@ public class PruebaDelInformeDeAgente
 
     // ---- el escenario -------------------------------------------------------
 
+    /// <summary>Lo que devuelve el escenario: los servicios, el motor y el compañero del que se reporta.</summary>
+    /// <param name="Servicios">Los servicios falsos, para contar a mano sobre el almacén.</param>
+    /// <param name="Reportes">El motor sobre ese almacén.</param>
+    /// <param name="Sandy">El compañero del que se pide el informe.</param>
     private sealed record Mundo(ServiciosFalsos Servicios, ReportesEnPdf Reportes, Companero Sandy);
 
     /// <summary>
@@ -233,6 +238,12 @@ public class PruebaDelInformeDeAgente
     }
 
     /// <summary>Un caso con su persona y su asignacion viva a Sandy.</summary>
+    /// <param name="almacen">El almacén falso donde se escribe.</param>
+    /// <param name="quien">El compañero que lo lleva y, si contestó, quien firma el estado.</param>
+    /// <param name="numero">El número del caso.</param>
+    /// <param name="estadoDelCompanero">Lo que dijo su hoja, o nulo si no ha contestado.</param>
+    /// <param name="motivo">La clave del motivo de no completar, o nula.</param>
+    /// <param name="cuandoContesto">La marca de la respuesta; nula deja el caso sin contestar.</param>
     private static void Caso(
         AlmacenFalso almacen, Companero quien, string numero,
         string? estadoDelCompanero, string? motivo, string? cuandoContesto)
@@ -271,6 +282,9 @@ public class PruebaDelInformeDeAgente
     }
 
     /// <summary>Si esa marca con hora cae en el trozo, con el limite de arriba abierto.</summary>
+    /// <param name="marca">La marca «AAAA-MM-DD HH:mm:ss», o nula.</param>
+    /// <param name="desde">El primer día, incluido.</param>
+    /// <param name="siguienteAHasta">El día de después del último, excluido.</param>
     private static bool EstaEntre(string? marca, string desde, string siguienteAHasta)
         => marca is not null
            && string.CompareOrdinal(marca, desde) >= 0

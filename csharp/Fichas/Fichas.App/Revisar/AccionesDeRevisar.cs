@@ -26,9 +26,13 @@ namespace Fichas.App.Revisar;
 /// </remarks>
 public sealed class AccionesDeRevisar
 {
+    /// <summary>El puerto de documentos: aquí se archiva, se marca y se pone la fecha.</summary>
     private readonly ICasos _casos;
+    /// <summary>De dónde sale la fecha de archivado; nunca de <c>DateTime.Now</c>, para poder probarla.</summary>
     private readonly IReloj _reloj;
+    /// <summary>La franja de la cáscara: aquí se dejan los motivos de lo que no entró.</summary>
     private readonly BuzonDeAvisos _avisos;
+    /// <summary>Lo que se le quita a un documento al archivarlo: su asignación (dueño, 2026-09-11).</summary>
     private readonly RetiradaAlArchivar _retirada;
 
     /// <summary>Ata las acciones al repositorio de casos, al reloj, al buzon de la franja y a la retirada.</summary>
@@ -37,6 +41,10 @@ public sealed class AccionesDeRevisar
     /// vuelta en <c>OperacionDeLaVuelta</c>: montarla sin ella dejaria las pruebas midiendo
     /// una tuberia mas corta que la del programa.
     /// </remarks>
+    /// <param name="casos">El puerto de documentos.</param>
+    /// <param name="reloj">De dónde sale «hoy».</param>
+    /// <param name="avisos">La franja donde se dejan los motivos.</param>
+    /// <param name="retirada">La que quita la asignación a lo que queda archivado.</param>
     public AccionesDeRevisar(ICasos casos, IReloj reloj, BuzonDeAvisos avisos, RetiradaAlArchivar retirada)
     {
         _casos = casos;
@@ -60,7 +68,15 @@ public sealed class AccionesDeRevisar
     ///
     /// <para>⚠️ Desarchivar NO la devuelve. Un documento que vuelve del archivo queda sin
     /// asignar y el dueno decide a quien va; devolverselo solo al de antes seria decidir por el.</para>
+    ///
+    /// <para>⚠️ <b>Dónde se ve después un archivado no lo decide esta función</b>, y la frase
+    /// del resumen sobre el calendario viene de antes de que el dueño lo cambiara: el 2026-09-06
+    /// pidió que desapareciera «de todas partes» y el 2026-09-07 (§5 de esa entrada) que en el
+    /// calendario se quedara «marcado en verde». Aquí solo se escribe <c>archivado</c> con su
+    /// fecha y se quita la asignación; cada pantalla lee esa columna con su propia regla.</para>
     /// </remarks>
+    /// <param name="casoIds">Los números internos de los documentos marcados.</param>
+    /// <returns>Cuántos entraron, cuántos no y cuántos dejaron de estar asignados; los motivos ya quedaron en la franja.</returns>
     public ResumenDeLote ArchivarEnLote(IReadOnlyCollection<long> casoIds)
     {
         var retirados = 0;
@@ -83,6 +99,8 @@ public sealed class AccionesDeRevisar
     /// Por el mismo camino en lo que toca al caso; la asignacion que se quito al archivar
     /// <b>no</b> se devuelve, y eso es a proposito (ver <see cref="ArchivarEnLote"/>).
     /// </remarks>
+    /// <param name="casoIds">Los números internos de los documentos marcados.</param>
+    /// <returns>Cuántos entraron y cuántos no; <c>DejanDeEstarAsignados</c> va en cero porque desarchivar no asigna a nadie.</returns>
     public ResumenDeLote DesarchivarEnLote(IReadOnlyCollection<long> casoIds)
         => EnLote(casoIds, id => _casos.Archivar(id, false, string.Empty), "desarchivado", "desarchivados");
 
@@ -94,6 +112,9 @@ public sealed class AccionesDeRevisar
     /// campo que escribe el Excel del companero, y por eso deja dicho de donde vino la
     /// marca: en la tarjeta se distingue «Completada por Sandy» de lo que puso Miguel.
     /// </remarks>
+    /// <param name="casoId">El documento que se marca.</param>
+    /// <param name="estado">Lo que se dice de la recomendación.</param>
+    /// <param name="quienMarca">Quién lo está marcando; su nombre queda en la firma del estado.</param>
     public ResultadoDeEscritura MarcarAMano(long casoId, EstadoDeRecomendacion estado, long quienMarca)
         => MarcarAMano(casoId, estado, MotivoDeNoCompletar.SinMotivo, quienMarca);
 
@@ -214,6 +235,7 @@ public sealed class AccionesDeRevisar
     /// lo dejara quien llama, un camino que se olvidara de hacerlo dejaría al dueño con una
     /// fecha que no entró y sin nada en pantalla que se lo dijera.
     /// </remarks>
+    /// <param name="porque">El aviso que explica por qué no entró la fecha.</param>
     private ResultadoDeEscritura NoSePuso(Aviso porque)
     {
         _avisos.Dejar([porque]);
@@ -226,6 +248,8 @@ public sealed class AccionesDeRevisar
     /// Con <c>TryParse</c> a secas, «9/17/26» se interpretaría según el idioma de la máquina
     /// y en media Europa saldría otro día del que se escribió.
     /// </remarks>
+    /// <param name="fecha">Lo que se escribió en el cuadro; se le quitan los espacios de los lados.</param>
+    /// <returns>La fecha normalizada como AAAA-MM-DD, o nulo si no es un día que exista escrito así.</returns>
     private static string? LeerLaFecha(string? fecha)
         => DateOnly.TryParseExact(
             fecha?.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia)
@@ -254,6 +278,9 @@ public sealed class AccionesDeRevisar
     /// dejan en la franja: hablan de campos que este gesto no toca y ya se dijeron cuando el
     /// documento entro. Si la escritura falla, el problema si sale entero.
     /// </remarks>
+    /// <param name="casoId">El documento cuyo motivo se deja vigente.</param>
+    /// <param name="motivo">El motivo de Miguel; <c>SinMotivo</c> lo vacía.</param>
+    /// <returns>«Bien» si ya era ese o si se escribió; si no, lo que devolvió <c>Guardar</c>.</returns>
     private ResultadoDeEscritura EscribirElMotivo(long casoId, MotivoDeNoCompletar motivo)
     {
         if (_casos.Obtener(casoId) is not Caso caso)
@@ -291,6 +318,7 @@ public sealed class AccionesDeRevisar
     /// se esta LEYENDO un estado y aqui se esta ELIGIENDO, y quien elige tiene que saber que
     /// esa opcion ademas quita el motivo que hubiera puesto antes.
     /// </remarks>
+    /// <param name="motivo">La opción del menú que se está pintando.</param>
     public static string DecirLaOpcion(MotivoDeNoCompletar motivo) => motivo switch
     {
         MotivoDeNoCompletar.SinMotivo => "No está completa, sin decir por qué",
@@ -312,11 +340,18 @@ public sealed class AccionesDeRevisar
     /// que se llame Miguel, y si no lo hay, el primer activo. Si no hay ninguno activo se
     /// devuelve nulo y quien llame deja un aviso: no se inventa una firma.
     /// </remarks>
+    /// <param name="activos">Los compañeros activos ahora mismo.</param>
+    /// <returns>El compañero que firma, o nulo si no hay ninguno activo.</returns>
     public static Companero? QuienFirmaAMano(IReadOnlyList<Companero> activos)
         => activos.FirstOrDefault(c => string.Equals(c.Nombre, "Miguel", StringComparison.OrdinalIgnoreCase))
            ?? activos.FirstOrDefault();
 
     /// <summary>Aplica la misma escritura a cada caso marcado y cuenta lo que entro y lo que no.</summary>
+    /// <param name="casoIds">Los documentos sobre los que se escribe.</param>
+    /// <param name="escribir">La escritura que se aplica a cada uno.</param>
+    /// <param name="participioSingular">Cómo se dice de uno: «archivado».</param>
+    /// <param name="participioPlural">Cómo se dice de varios: «archivados».</param>
+    /// <returns>Cuántos entraron y cuántos no; los avisos de todos quedan juntos en la franja.</returns>
     private ResumenDeLote EnLote(
         IReadOnlyCollection<long> casoIds,
         Func<long, ResultadoDeEscritura> escribir,

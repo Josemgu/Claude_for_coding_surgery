@@ -42,6 +42,13 @@ public static class Encuadre
     public static readonly double[] PasosDeZoom = [0.50, 0.75, 1.00, 1.50, 2.00, 3.00];
 
     /// <summary>El rectangulo de una banda sobre una hoja de ese tamano.</summary>
+    /// <remarks>
+    /// La banda viene en fracciones de la hoja (0 a 1) porque un pixel depende de la escala a
+    /// la que se rasterizo; aqui se multiplica por el tamano real de la hoja que se esta viendo.
+    /// </remarks>
+    /// <param name="banda">Donde estaba el campo, en fracciones de la hoja.</param>
+    /// <param name="ancho">Ancho de la hoja rasterizada, en pixeles.</param>
+    /// <param name="alto">Alto de la hoja rasterizada, en pixeles.</param>
     public static RectanguloEnPixeles RectanguloDeLaBanda(BandaDeLaPagina banda, double ancho, double alto)
         => new(banda.X0 * ancho, banda.Y0 * alto, banda.Ancho * ancho, banda.Alto * alto);
 
@@ -52,11 +59,15 @@ public static class Encuadre
     /// Es el modo con el que nace el visor, y lo eligio el dueno: «¿Para que me pones el PDF
     /// al lado si no puedo moverme dentro de el? Esta muy pequeno».
     /// </remarks>
+    /// <param name="anchoVisible">Ancho del panel, en pixeles de pantalla; 0 o menos devuelve 1.</param>
+    /// <param name="anchoDeLaHoja">Ancho de la hoja rasterizada; 0 o menos devuelve 1.</param>
     public static double ZoomParaElAncho(double anchoVisible, double anchoDeLaHoja)
         => anchoVisible <= 0 || anchoDeLaHoja <= 0 ? 1.0 : anchoVisible / anchoDeLaHoja;
 
     /// <summary>El paso de zoom siguiente hacia arriba (1) o hacia abajo (-1).</summary>
     /// <remarks>En los topes devuelve el tope: otro paso no se sale de la escala.</remarks>
+    /// <param name="zoomActual">La escala de ahora, que puede no ser ninguno de los pasos.</param>
+    /// <param name="direccion">Positivo para acercar, cero o negativo para alejar.</param>
     public static double PasoDeZoom(double zoomActual, int direccion)
     {
         if (direccion > 0)
@@ -130,6 +141,12 @@ public static class Encuadre
     }
 
     /// <summary>Un solo eje del calculo de arriba; los dos se comportan igual.</summary>
+    /// <param name="principio">Donde empieza la banda en ese eje, ya en pixeles de pantalla.</param>
+    /// <param name="final">Donde acaba la banda en ese eje, ya en pixeles de pantalla.</param>
+    /// <param name="visible">Cuanto panel hay en ese eje; 0 o menos deja la vista donde esta.</param>
+    /// <param name="offset">Donde esta la vista ahora en ese eje.</param>
+    /// <param name="margen">Papel que se deja alrededor al traer la banda.</param>
+    /// <returns>El offset nuevo; el mismo si la banda ya cabia entera.</returns>
     private static double OffsetDeUnEje(double principio, double final, double visible, double offset, double margen)
     {
         if (visible <= 0) return offset;

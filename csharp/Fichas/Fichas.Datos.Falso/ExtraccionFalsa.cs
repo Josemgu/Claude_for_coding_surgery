@@ -24,6 +24,10 @@ namespace Fichas.Datos.Falso;
 public sealed class ExtraccionFalsa : IExtraccion
 {
     /// <summary>Propone los campos del caso buscando la etiqueta de cada uno en las lineas.</summary>
+    /// <remarks>Solo tres: <c>templo_nombre</c>, <c>fecha_viaje</c> y <c>unidad_nombre</c>. Las anotaciones no se usan para proponer nada; solo se cuenta cuántas hay para avisarlo.</remarks>
+    /// <param name="lineas">Las líneas de OCR de la hoja; vacía deja los tres campos con origen vacío.</param>
+    /// <param name="anotaciones">Las anotaciones de la hoja; solo se cuentan.</param>
+    /// <returns>Siempre tres campos, con valor o sin él, y una advertencia si alguno quedó sin leer.</returns>
     public ResultadoDeExtraccion ProponerCamposDelCaso(
         IReadOnlyList<LineaDeOcr> lineas,
         IReadOnlyList<AnotacionDelPdf> anotaciones)
@@ -56,6 +60,9 @@ public sealed class ExtraccionFalsa : IExtraccion
     }
 
     /// <summary>Propone una persona por cada linea que parezca traer un MRN.</summary>
+    /// <param name="lineas">Las líneas de OCR de la hoja; se busca en cada una la forma 000-0000-0000.</param>
+    /// <param name="anotaciones">No se usan aquí; están por cumplir el contrato.</param>
+    /// <returns>Un campo <c>mrn</c> por persona reconocida, numeradas por orden de aparición; sin ninguna, la lista vacía con una advertencia y nunca una persona inventada.</returns>
     public ResultadoDeExtraccion ProponerCamposDePersonas(
         IReadOnlyList<LineaDeOcr> lineas,
         IReadOnlyList<AnotacionDelPdf> anotaciones)
@@ -81,6 +88,9 @@ public sealed class ExtraccionFalsa : IExtraccion
     }
 
     /// <summary>Recorta espacios y devuelve el valor tal cual; no arregla nada (regla permanente 1).</summary>
+    /// <param name="campo">La columna a la que va; se copia tal cual en el campo propuesto, siempre con tabla <c>casos</c>.</param>
+    /// <param name="valorLeido">Lo leído; nulo, vacío o solo espacios da un campo con origen vacío y valor nulo.</param>
+    /// <returns>Un solo campo propuesto, sin confianza ni banda.</returns>
     public ResultadoDeExtraccion Normalizar(string campo, string? valorLeido)
     {
         var limpio = valorLeido?.Trim();
@@ -95,6 +105,12 @@ public sealed class ExtraccionFalsa : IExtraccion
     }
 
     /// <summary>Busca la primera linea que empiece por la etiqueta y devuelve lo que va detras.</summary>
+    /// <remarks>Si la etiqueta aparece pero no lleva nada detrás, se deja de buscar: ese es el campo vacío del papel, no un motivo para mirar la línea siguiente.</remarks>
+    /// <param name="lineas">Dónde buscar.</param>
+    /// <param name="etiqueta">El texto fijo que precede al valor, sin distinguir mayúsculas.</param>
+    /// <param name="tabla">A qué tabla irá el campo propuesto.</param>
+    /// <param name="campo">El nombre de la columna que se propone.</param>
+    /// <returns>El campo con el valor, la confianza y la banda de esa línea; o con origen vacío y valor nulo si no se encontró.</returns>
     private static CampoPropuesto BuscarTrasLaEtiqueta(
         IReadOnlyList<LineaDeOcr> lineas, string etiqueta, TablaDeProcedencia tabla, string campo)
     {
@@ -110,6 +126,9 @@ public sealed class ExtraccionFalsa : IExtraccion
     }
 
     /// <summary>Busca un MRN con la forma 000-0000-0000 dentro de un texto; nulo si no hay.</summary>
+    /// <remarks>Once dígitos exactos: aquí no se admite la letra final que sí admite el guardado de personas, porque esto solo tiene que reconocer los MRN que inventa el generador.</remarks>
+    /// <param name="texto">La línea entera; se prueba cada ventana de 13 caracteres.</param>
+    /// <returns>El primer trozo que cumpla la forma, o nulo.</returns>
     private static string? BuscarUnMrn(string texto)
     {
         for (var i = 0; i + 13 <= texto.Length; i++)

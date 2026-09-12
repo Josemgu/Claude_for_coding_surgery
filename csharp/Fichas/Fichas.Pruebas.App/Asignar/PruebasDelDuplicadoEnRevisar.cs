@@ -1,4 +1,3 @@
-using Fichas.App.Revisar;
 using Fichas.Contratos.Modelos;
 
 namespace Fichas.Pruebas.App.Asignar;
@@ -126,6 +125,12 @@ public sealed class PruebasDelDuplicadoEnRevisar
     }
 
     /// <summary>Mete una hoja con su archivo, su pagina y, si lo repite, el caso del que es duplicado.</summary>
+    /// <param name="banco">La base de prueba donde se mete.</param>
+    /// <param name="numero">El número del papel.</param>
+    /// <param name="rutaPdf">El archivo del que sale la hoja.</param>
+    /// <param name="pagina">Qué página de ese archivo.</param>
+    /// <param name="duplicadoDe">El caso del que es copia, o nulo si es el original.</param>
+    /// <returns>El id del caso.</returns>
     private static long MeterHoja(BaseDePrueba banco, string numero, string rutaPdf, int pagina, long? duplicadoDe)
         => banco.Servicios.Casos.Guardar(new Caso
         {

@@ -20,6 +20,7 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed partial class PaginaDeImportar : PaginaDeFichas
 {
+    /// <summary>El freno de la tanda en curso; nulo cuando no hay ninguna. «Detener» lo cancela y <see cref="Parar"/> lo suelta.</summary>
     private CancellationTokenSource? _freno;
 
     /// <summary>Monta la pantalla.</summary>
@@ -39,6 +40,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     }
 
     /// <summary>Abre el selector de archivos y arranca la tanda con lo que se elija.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private async void AlElegirArchivos(object quien, RoutedEventArgs cuando)
         => await SinTragarseNadaAsync("Elegir archivos", async () =>
         {
@@ -52,6 +55,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
         });
 
     /// <summary>Abre el selector de carpeta y arranca la tanda con todo lo que haya dentro.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private async void AlElegirCarpeta(object quien, RoutedEventArgs cuando)
         => await SinTragarseNadaAsync("Elegir una carpeta", async () =>
         {
@@ -69,10 +74,14 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
         });
 
     /// <summary>Pide parar. Lo ya procesado se queda guardado.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlDetener(object quien, RoutedEventArgs cuando)
         => SinTragarseNada("Detener", () => _freno?.Cancel());
 
     /// <summary>Abre o cierra el detalle. NO es un cuadro modal: se abre aqui debajo.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVer(object quien, RoutedEventArgs cuando)
         => SinTragarseNada("Ver el detalle", () =>
         {
@@ -96,6 +105,10 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     /// Sin ellas, «no pasa nada al pulsar» y «se abrio y lo cerre sin querer» se leen igual
     /// desde fuera.</para>
     /// </remarks>
+    /// <param name="queSeAbre">La línea que se anota en el cuaderno antes de abrir el cuadro.</param>
+    /// <param name="abrirElCuadro">Quien abre el cuadro sobre el asa de la ventana y devuelve lo elegido.</param>
+    /// <returns>Lo elegido; vacío si se cerró sin elegir.</returns>
+    /// <exception cref="InvalidOperationException">Si no hay ventana principal a la que colgar el cuadro.</exception>
     private IReadOnlyList<string> PedirAlSistema(
         string queSeAbre, Func<nint, IReadOnlyList<string>> abrirElCuadro)
     {
@@ -144,6 +157,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     }
 
     /// <summary>Lo mismo para un manejador que no espera a nada.</summary>
+    /// <param name="accion">Que se estaba haciendo, tal como se lee en el botón.</param>
+    /// <param name="trabajo">Lo que el manejador hace de verdad.</param>
     private void SinTragarseNada(string accion, Action trabajo)
     {
         try
@@ -156,7 +171,9 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
         }
     }
 
-    /// <summary>Deja el fallo en la franja, en el pie y en el cuaderno.</summary>
+    /// <summary>Deja el fallo en la franja, en el pie y en el cuaderno, y suelta los botones.</summary>
+    /// <param name="accion">Que se estaba haciendo, tal como se lee en el botón.</param>
+    /// <param name="fallo">Lo que se escapó del manejador.</param>
     private void Contar(string accion, Exception fallo)
     {
         var aviso = AvisoDeUnFalloEnPantalla.Describir(accion, fallo);
@@ -170,6 +187,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     }
 
     /// <summary>Reune los PDF de lo elegido y los importa, avisando por la barra.</summary>
+    /// <remarks>No hace nada si no hay servicios o el lector no está disponible; con datos inventados los botones ya vienen apagados.</remarks>
+    /// <param name="origenes">Archivos o carpetas tal como salieron del selector.</param>
     private async Task ImportarAsync(IReadOnlyList<string> origenes)
     {
         var servicios = Servicios;
@@ -212,6 +231,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     /// porque la franja se cierra y esas rutas es lo que hace falta despues para saber
     /// exactamente que no entro.</para>
     /// </remarks>
+    /// <param name="servicios">Por donde se llega a la franja y al cuaderno.</param>
+    /// <param name="encontrado">Lo que salió de recorrer lo elegido.</param>
     private static void ContarLoQueSeQuedoFuera(Cascara.Servicios servicios, LoQueSeEncontro encontrado)
     {
         foreach (var renglon in encontrado.RenglonesParaElCuaderno()) servicios.Registro.Anotar(renglon);
@@ -225,6 +246,7 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     }
 
     /// <summary>Prepara la barra y bloquea los botones que no tocan durante la tanda.</summary>
+    /// <param name="cuantosDocumentos">El tope de la barra: cuántos PDF va a leer la tanda.</param>
     private void PonerEnMarcha(int cuantosDocumentos)
     {
         _freno?.Dispose();
@@ -260,6 +282,7 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     /// —una para la barra y otra para el final— serian dos cuentas que pueden no coincidir,
     /// y entonces habria que preguntarse cual creerse.
     /// </remarks>
+    /// <param name="enCurso">El resumen tal como va, que el motor entrega después de cada documento.</param>
     private void PintarElAvance(ResumenDeLaTanda enCurso)
     {
         _barra.Value = enCurso.Documentos;
@@ -273,6 +296,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     /// programa, el pie acusa recibo de que la accion termino, y la pantalla guarda el
     /// detalle para poder volver a leerlo sin repetir la importacion.
     /// </remarks>
+    /// <param name="servicios">Por donde se llega a la franja y al cuaderno.</param>
+    /// <param name="resumen">El resumen final de la tanda.</param>
     private void EnsenarElResumen(Cascara.Servicios servicios, ResumenDeLaTanda resumen)
     {
         _lineaDelResumen.Text = resumen.Linea();
@@ -297,6 +322,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     }
 
     /// <summary>«3 de 500 documentos», con la concordancia bien puesta.</summary>
+    /// <param name="van">Cuántos documentos ya se procesaron.</param>
+    /// <param name="total">Cuántos tiene la tanda.</param>
     private static string TextoDeLaCuenta(int van, int total) => string.Format(
         CultureInfo.InvariantCulture,
         "{0} de {1} {2}", van, total, total == 1 ? "documento" : "documentos");

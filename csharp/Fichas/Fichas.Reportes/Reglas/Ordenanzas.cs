@@ -34,6 +34,7 @@ public static class Ordenanzas
     /// Las casillas del formulario son marcas de tilde y el reconocimiento no las lee solo: sin
     /// este numero, una tabla corta se lee como «casi nadie va a nada».
     /// </remarks>
+    /// <param name="persona">La persona con sus seis casillas <c>Ord*</c>; una nula cuenta como no marcada.</param>
     public static bool SinNingunaMarcada(Persona persona)
         => LasSeis.All(casilla => casilla.Leer(persona) != true);
 
@@ -43,6 +44,8 @@ public static class Ordenanzas
     /// mismo numero de personas tienen que salir siempre en el mismo sitio, o dos informes del
     /// mismo periodo pareceran distintos.
     /// </remarks>
+    /// <param name="personas">Las personas que se cuentan; se recorre una vez por casilla.</param>
+    /// <returns>Rótulo y cuántas por cada ordenanza con alguien; vacía si nadie tiene ninguna marcada.</returns>
     public static IReadOnlyList<(string Rotulo, int Personas)> Contar(IEnumerable<Persona> personas)
     {
         var lista = personas as IReadOnlyList<Persona> ?? personas.ToList();

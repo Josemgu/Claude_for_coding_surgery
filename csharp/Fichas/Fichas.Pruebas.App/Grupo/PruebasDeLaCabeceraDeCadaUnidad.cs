@@ -28,8 +28,11 @@ namespace Fichas.Pruebas.App.Grupo;
 [TestClass]
 public sealed class PruebasDeLaCabeceraDeCadaUnidad
 {
+    /// <summary>El día del ejemplo que dictó el dueño el 2026-09-09.</summary>
     private const string ElDoceDeSeptiembre = "2026-09-12";
+    /// <summary>El número de la primera unidad de su ejemplo, la de diez personas.</summary>
     private const string RamaSanJuan = "325535";
+    /// <summary>El número de la segunda unidad de su ejemplo, la de cinco.</summary>
     private const string BarrioMarito = "656351";
 
     /// <summary>El dia del ejemplo del dueno, con sus dos unidades.</summary>
@@ -37,7 +40,7 @@ public sealed class PruebasDeLaCabeceraDeCadaUnidad
         => DateOnly.Parse(ElDoceDeSeptiembre, System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>Monta el 12 de septiembre con las dos unidades que el nombro.</summary>
-    /// <param name="servicios">Donde se monta; se devuelve para poder seguir tocandolo.</param>
+    /// <returns>Los servicios donde se montó; se devuelven para poder seguir tocándolos.</returns>
     private static ServiciosFalsos MontarElDoceDeSeptiembre()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
@@ -50,6 +53,8 @@ public sealed class PruebasDeLaCabeceraDeCadaUnidad
     }
 
     /// <summary>La cabecera de esa unidad dentro del dia.</summary>
+    /// <param name="servicios">Donde está montado el día.</param>
+    /// <param name="unidadNumero">El número de la unidad cuya cabecera se busca; si no está, la prueba falla aquí.</param>
     private static RenglonDelGrupo CabeceraDe(ServiciosFalsos servicios, string unidadNumero)
         => BaseDeInicio.LectorDeGruposDe(servicios).DelDia(ElDia).EnUnaSolaLista()
                .FirstOrDefault(r => r.EsCabecera && r.Titulo.Contains(unidadNumero, StringComparison.Ordinal))

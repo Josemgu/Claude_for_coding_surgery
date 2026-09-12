@@ -14,11 +14,18 @@ namespace Fichas.Pruebas.Lectura;
 [TestClass]
 public class PruebaDeAnclasYBandas
 {
+    /// <summary>Una línea del OCR con confianza 1,0 y la caja que se le diga, en fracciones de página.</summary>
+    /// <param name="texto">Lo que «leyó» el OCR.</param>
+    /// <param name="x0">Borde izquierdo.</param>
+    /// <param name="y0">Borde superior.</param>
+    /// <param name="x1">Borde derecho.</param>
+    /// <param name="y1">Borde inferior.</param>
     private static LineaDeOcr Linea(string texto, double x0, double y0, double x1, double y1)
         => new(texto, 1.0, new BandaDeLaPagina(x0, y0, x1, y1));
 
     // --- Parecido ----------------------------------------------------------------
 
+    /// <summary>Vigila que el parecido dé 1,0 exacto entre la misma etiqueta con y sin tildes, y con y sin mayúsculas.</summary>
     [TestMethod]
     public void ElParecidoNoDistingueMayusculasNiTildes()
     {
@@ -39,7 +46,8 @@ public class PruebaDeAnclasYBandas
         {
             foreach (var otro in Etiquetas.CamposDelFormulario)
             {
-                double cruce = Bandas.Parecido(Etiquetas.FormaInglesaDe(campo), Etiquetas.FormaEspanolaDe(otro));
+                // FormasDe devuelve [inglesa, espanola]: la primera es la forma inglesa.
+                double cruce = Bandas.Parecido(Etiquetas.FormasDe(campo)[0], Etiquetas.FormaEspanolaDe(otro));
                 if (cruce > mayor) mayor = cruce;
             }
         }
@@ -49,6 +57,7 @@ public class PruebaDeAnclasYBandas
 
     // --- Localizar el ancla ------------------------------------------------------
 
+    /// <summary>Vigila que la etiqueta de la fecha de viaje se localice tanto con su forma inglesa como con la española.</summary>
     [TestMethod]
     public void ElAnclaSeEncuentraEnInglesYEnEspanol()
     {
@@ -72,6 +81,7 @@ public class PruebaDeAnclasYBandas
         Assert.IsNull(Bandas.LocalizarAncla(lineas, Etiquetas.CampoDeLaFechaDeViaje));
     }
 
+    /// <summary>Vigila que una línea de otra etiqueta («Associated Costs») no se tome por el ancla de la fecha de viaje.</summary>
     [TestMethod]
     public void UnaLineaQueNoSeParecceANadaNoEsAncla()
     {
@@ -97,6 +107,7 @@ public class PruebaDeAnclasYBandas
         Assert.IsLessThan(ancla.X0, banda.X0, "y un poco a la izquierda");
     }
 
+    /// <summary>Vigila que una línea a la misma altura pero en la columna derecha no cuente como dentro de la banda.</summary>
     [TestMethod]
     public void UnValorDeLaColumnaDeAlLadoNoEntraEnLaBanda()
     {
@@ -108,6 +119,7 @@ public class PruebaDeAnclasYBandas
             "el formulario tiene dos columnas: la misma altura no basta");
     }
 
+    /// <summary>Vigila que las líneas de una banda vuelvan ordenadas por su borde izquierdo, no por el orden en que llegaron.</summary>
     [TestMethod]
     public void LasLineasDeLaBandaSalenDeIzquierdaADerecha()
     {

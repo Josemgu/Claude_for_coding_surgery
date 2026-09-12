@@ -258,12 +258,18 @@ public sealed class PruebasDelMarcoDeLaVentana
 
     // ---- de donde sale lo leido ---------------------------------------------
 
+    /// <summary>Si el nodo es un título de grupo del menú (<c>NavigationViewItemHeader</c>).</summary>
+    /// <param name="e">El nodo del XAML.</param>
     private static bool EsUnGrupo(XElement e)
         => e.Name.LocalName == "NavigationViewItemHeader";
 
+    /// <summary>Si el nodo es una entrada del menú (<c>NavigationViewItem</c>).</summary>
+    /// <param name="e">El nodo del XAML.</param>
     private static bool EsUnaEntrada(XElement e)
         => e.Name.LocalName == "NavigationViewItem";
 
+    /// <summary>El <c>Tag</c> de una entrada, que es el nombre de su pantalla; «(sin Tag)» si no lo tiene.</summary>
+    /// <param name="entrada">La entrada del menú.</param>
     private static string Etiqueta(XElement entrada)
         => entrada.Attribute("Tag")?.Value ?? "(sin Tag)";
 
@@ -281,6 +287,7 @@ public sealed class PruebasDelMarcoDeLaVentana
         return menu;
     }
 
+    /// <summary><c>VentanaPrincipal.xaml</c> cargado del árbol de código.</summary>
     private static XDocument ElXamlDeLaVentana()
         => XDocument.Load(Path.Combine(LaCarpetaDeLaApp(), "Cascara", "VentanaPrincipal.xaml"));
 

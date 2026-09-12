@@ -61,6 +61,9 @@ public sealed record AnotacionDelPdf(
 /// <param name="Confianza">De 0,0 a 1,0; nula si no aplica.</param>
 /// <param name="Banda">Donde estaba en la pagina, para poder iluminarlo; nula si no se sabe.</param>
 /// <param name="FilaFormulario">Si es de una persona, en que fila del formulario venia.</param>
+/// <param name="ValorOcr">Lo que se leyó TAL CUAL, aunque <paramref name="Valor"/> no lo haya podido aceptar; va a <c>procedencia_campo.valor_ocr</c>.</param>
+/// <param name="AnuladoPorTachon">El papel lo tachó: el valor no vale y nadie debe resucitarlo solo.</param>
+/// <param name="NecesitaRevision">No encaja con lo esperado: se guarda igual y se señala junto al campo.</param>
 public sealed record CampoPropuesto(
     TablaDeProcedencia Tabla,
     string Campo,
@@ -76,13 +79,10 @@ public sealed record CampoPropuesto(
     // Van al final y con valor por defecto: quien ya construia un CampoPropuesto sigue
     // compilando igual.
 
-    /// <summary>Lo que se leyo TAL CUAL, aunque `Valor` no lo haya podido aceptar.</summary>
     string? ValorOcr = null,
 
-    /// <summary>El papel lo tachó: el valor no vale y nadie debe resucitarlo solo.</summary>
     bool AnuladoPorTachon = false,
 
-    /// <summary>No encaja con lo esperado: se guarda igual y se señala junto al campo.</summary>
     bool NecesitaRevision = false);
 
 /// <summary>Lo que devuelve una extraccion: lo propuesto y lo que hay que decir en la franja.</summary>
@@ -93,6 +93,8 @@ public sealed record ResultadoDeExtraccion(
     IReadOnlyList<Aviso> Avisos)
 {
     /// <summary>Una extraccion que no propuso nada, con su motivo en una linea.</summary>
+    /// <param name="avisos">Por qué no se propuso nada; puede ir vacío, pero una hoja sin campos casi siempre merece decirlo.</param>
+    /// <returns>Un resultado con la lista de campos vacía y esos avisos.</returns>
     public static ResultadoDeExtraccion Nada(params Aviso[] avisos)
         => new(Array.Empty<CampoPropuesto>(), avisos);
 }
@@ -112,6 +114,8 @@ public sealed record ResultadoDeExtraccion(
 /// <param name="PasoListoParaElTemplo">Paso 6, tal como lo devolvio.</param>
 /// <param name="LlamoAlLider">Si llamo al lider; no es un septimo paso.</param>
 /// <param name="FilaExcel">De que fila del Excel salio, base 1, para poder ir a mirarla.</param>
+/// <param name="CasoId">El id del caso que traía la clave <c>CASO:MRN:ID</c> del Excel, o nulo si la hoja es vieja y no lo traía.</param>
+/// <param name="Motivo">Por qué dijo el compañero que no se completó; <see cref="MotivoDeNoCompletar.SinMotivo"/> si no dijo nada. Va a <c>casos.motivo_del_companero</c>, nunca al motivo vigente de Miguel.</param>
 public sealed record MarcaDelCompanero(
     string? NumeroCaso,
     string? Mrn,
@@ -137,7 +141,6 @@ public sealed record MarcaDelCompanero(
     // Va al final y con valor por defecto: quien ya construia una marca sigue
     // compilando, y una hoja vieja sin id sigue llegando con este campo nulo.
 
-    /// <summary>El id del caso que traia la clave del Excel, o nulo si la hoja es vieja.</summary>
     long? CasoId = null,
 
     // Lo pidio el terreno de Paquetes el 2026-09-05 y lo anade el supervisor, que es el
@@ -153,7 +156,6 @@ public sealed record MarcaDelCompanero(
     // ⚠️ Es lo que dice EL COMPANERO, y va a `casos.motivo_del_companero`. El motivo
     // vigente —`casos.motivo_no_completa`— es de Miguel y esta hoja no lo escribe nunca.
 
-    /// <summary>Por que dijo el companero que no se completo; sin motivo si no dijo nada.</summary>
     MotivoDeNoCompletar Motivo = MotivoDeNoCompletar.SinMotivo);
 
 /// <summary>Lo que devuelve leer el Excel de vuelta: lo que casa, lo que no, y lo que hay que decir.</summary>

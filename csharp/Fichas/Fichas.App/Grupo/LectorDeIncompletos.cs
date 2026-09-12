@@ -113,6 +113,7 @@ public sealed record RenglonDeLoIncompleto(
     bool EsVencido)
 {
     /// <summary>La cabecera de un grupo de fecha.</summary>
+    /// <param name="grupo">El grupo de fecha del que es cabecera; no puede ser nulo.</param>
     public static RenglonDeLoIncompleto Cabecera(GrupoDeIncompletos grupo)
     {
         ArgumentNullException.ThrowIfNull(grupo);
@@ -121,6 +122,7 @@ public sealed record RenglonDeLoIncompleto(
     }
 
     /// <summary>El renglon de un documento sin completar.</summary>
+    /// <param name="caso">El renglón del documento, tal como lo arma el lector; no puede ser nulo.</param>
     public static RenglonDeLoIncompleto DeUnDocumento(RenglonDeCaso caso)
     {
         ArgumentNullException.ThrowIfNull(caso);
@@ -161,13 +163,25 @@ public sealed record RenglonDeLoIncompleto(
 /// archive, debe salir del sistema visible pero se queda como histórico para los
 /// reportes»</i>. Siguen enteros en la base y siguen en el calendario, marcados.</para>
 /// </remarks>
+/// <remarks>
+/// ⚠️ La frase de arriba sobre el calendario es de antes del 2026-09-06, cuando el dueño
+/// pidió que un archivado no apareciera «en ningún lado», y del 2026-09-07 (§5), cuando
+/// pidió verlo en el calendario «marcado en verde» y sin etiqueta. Esta ventana no pinta el
+/// calendario: lo suyo es que un archivado <b>no entra aquí</b>, y eso sigue siendo así.
+/// </remarks>
 public sealed class LectorDeIncompletos
 {
+    /// <summary>De dónde se leen los documentos vivos y se cuentan todos.</summary>
     private readonly ICasos _casos;
+    /// <summary>De dónde se leen las personas, en una sola consulta.</summary>
     private readonly IPersonas _personas;
+    /// <summary>De dónde salen los nombres de quienes llevan cada documento.</summary>
     private readonly ICompaneros _companeros;
+    /// <summary>De dónde se lee quién lleva cada documento.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>De dónde sale «hoy», para contar los días hasta el viaje.</summary>
     private readonly IReloj _reloj;
+    /// <summary>De dónde salió cada campo; se lee en bloque una vez por ventana.</summary>
     private readonly IProcedencia _procedencia;
 
     /// <summary>Se ata a los seis puertos que hacen falta.</summary>
@@ -270,6 +284,8 @@ public sealed class LectorDeIncompletos
     /// agosto encima de septiembre, que es lo contrario de «la prioridad son los que
     /// viajarán pronto».
     /// </remarks>
+    /// <param name="incompletos">Cada documento incompleto con su fecha leída, o nula si no la tiene.</param>
+    /// <param name="hoy">El día de hoy, para saber qué ya viajó.</param>
     private static IReadOnlyList<GrupoDeIncompletos> Agrupar(
         List<(DateOnly? Fecha, RenglonDeCaso Renglon)> incompletos,
         DateOnly hoy)
@@ -284,6 +300,8 @@ public sealed class LectorDeIncompletos
             .ThenBy(g => g.YaViajo ? -g.DiasHastaElViaje : g.DiasHastaElViaje)];
 
     /// <summary>Las personas de los documentos vivos, en UNA sola consulta.</summary>
+    /// <param name="deTrabajo">Los documentos vivos cuyas personas se quieren.</param>
+    /// <returns>Las personas de cada documento por su número interno; un documento sin personas no aparece.</returns>
     private Dictionary<long, List<Persona>> AgruparLasPersonas(IReadOnlyList<Caso> deTrabajo)
     {
         var queremos = deTrabajo.Select(c => c.Id).ToHashSet();

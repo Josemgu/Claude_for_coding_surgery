@@ -71,6 +71,7 @@ public sealed record LoQueSeLeeDeUnaPersona(LoQueSeLee Lo, string Detalle)
     /// Se enumeran TODOS y no solo el primero: el dueno llama al lider una vez y le dice todo
     /// lo que falta. Como mucho son seis, asi que la linea no se dispara.
     /// </remarks>
+    /// <param name="nombres">Los pasos en los que se quedó, en orden; al menos uno.</param>
     private static string Enumerar(IReadOnlyList<string> nombres)
     {
         if (nombres.Count == 1) return nombres[0];

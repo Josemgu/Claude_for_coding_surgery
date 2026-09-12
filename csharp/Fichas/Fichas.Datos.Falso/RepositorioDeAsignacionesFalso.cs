@@ -7,18 +7,24 @@ namespace Fichas.Datos.Falso;
 /// <summary>Las asignaciones inventadas. Cumple <see cref="IAsignaciones"/> sin tocar ningun archivo.</summary>
 public sealed class RepositorioDeAsignacionesFalso : IAsignaciones
 {
+    /// <summary>El almacén en memoria que comparten todos los repositorios falsos; aquí no hay otra fuente.</summary>
     private readonly AlmacenFalso _almacen;
 
     /// <summary>Se ata al almacen que comparten los seis repositorios falsos.</summary>
+    /// <param name="almacen">El almacén compartido; el mismo para todos los repositorios de una base.</param>
     public RepositorioDeAsignacionesFalso(AlmacenFalso almacen) => _almacen = almacen;
 
     /// <summary>Devuelve un trozo de la lista de asignaciones que cumplen el filtro, con el total detras.</summary>
+    /// <param name="filtro">Qué asignaciones entran; ver <see cref="Filtrar"/>.</param>
+    /// <param name="trozo">Qué página se pide.</param>
     public PaginaDe<Asignacion> Listar(FiltroDeAsignaciones filtro, Pagina trozo) => Trozos.Cortar(Filtrar(filtro), trozo);
 
     /// <summary>Cuenta cuantas asignaciones cumplen el filtro, sin traerlas.</summary>
+    /// <param name="filtro">Qué asignaciones entran.</param>
     public int Contar(FiltroDeAsignaciones filtro) => Filtrar(filtro).Count;
 
     /// <summary>Devuelve las asignaciones vivas de un caso; hoy pueden ser mas de una (P-11 abierta).</summary>
+    /// <param name="casoId">El caso.</param>
     public IReadOnlyList<Asignacion> VivasDeCaso(long casoId)
         => Filtrar(new FiltroDeAsignaciones(CasoId: casoId, SoloActivas: true));
 
@@ -26,6 +32,14 @@ public sealed class RepositorioDeAsignacionesFalso : IAsignaciones
     /// Asigna un caso a un companero activo. La unica puerta de asignar que existe:
     /// la tarjeta, la correccion y la lista llaman aqui y a ningun otro sitio (requisito 2).
     /// </summary>
+    /// <remarks>
+    /// Igual que el de verdad en las cuatro salidas: sin fecha no se escribe, un caso o un
+    /// compañero que no existe no se escribe, un desactivado es PROBLEMA y no advertencia, y
+    /// la misma pareja viva no se duplica. Un segundo compañero sobre el mismo caso entra y avisa.
+    /// </remarks>
+    /// <param name="casoId">El caso; tiene que existir.</param>
+    /// <param name="companeroId">A quién; tiene que existir y estar activo.</param>
+    /// <param name="asignadoEn">Cuándo, en ISO; en blanco no se escribe.</param>
     public ResultadoDeEscritura Asignar(long casoId, long companeroId, string asignadoEn)
     {
         // Sin fecha no se asigna, igual que en `RepositorioDeAsignaciones`: sin ella no se
@@ -89,6 +103,8 @@ public sealed class RepositorioDeAsignacionesFalso : IAsignaciones
     }
 
     /// <summary>Retira una asignacion desactivandola con su fecha; nunca la borra.</summary>
+    /// <param name="asignacionId">La asignación; si no existe, no se escribe y se dice.</param>
+    /// <param name="desactivadaEn">Cuándo, en ISO; en blanco no se escribe.</param>
     public ResultadoDeEscritura Retirar(long asignacionId, string desactivadaEn)
     {
         // Sin fecha no se retira, igual que en `RepositorioDeAsignaciones`: el esquema ata
@@ -111,6 +127,8 @@ public sealed class RepositorioDeAsignacionesFalso : IAsignaciones
     }
 
     /// <summary>Aplica los filtros simples y devuelve la lista ordenada por fecha de asignacion.</summary>
+    /// <param name="filtro">Los campos del filtro: solo activas, un caso, un compañero, o sin devolver.</param>
+    /// <returns>De la más reciente a la más vieja y luego por id.</returns>
     private List<Asignacion> Filtrar(FiltroDeAsignaciones filtro)
     {
         IEnumerable<Asignacion> asignaciones = _almacen.Asignaciones.Values;

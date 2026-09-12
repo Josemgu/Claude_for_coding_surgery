@@ -30,8 +30,11 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public sealed class PruebasDeLaClaveEstropeada
 {
+    /// <summary>La base en memoria de esta prueba, montada en <see cref="Preparar"/>.</summary>
     private BaseInventada _base = null!;
+    /// <summary>La carpeta temporal donde se escribe el <c>.xlsx</c>; se borra en <see cref="Recoger"/>.</summary>
     private string _carpeta = null!;
+    /// <summary>El número interno del compañero de prueba al que se le genera el paquete.</summary>
     private long _sandy;
 
     /// <summary>Monta la base en memoria y la carpeta temporal de esta prueba.</summary>
@@ -173,9 +176,12 @@ public sealed class PruebasDeLaClaveEstropeada
 
     // ---- el montaje ---------------------------------------------------------
 
+    /// <summary>La ruta del único <c>.xlsx</c> de la prueba, en su carpeta temporal.</summary>
     private string Ruta() => Path.Combine(_carpeta, "por_verificar.xlsx");
 
     /// <summary>Contesta las siete casillas de una fila, como haría el agente.</summary>
+    /// <param name="filaExcel">La fila de Excel, base 1; la primera persona va en la 7.</param>
+    /// <param name="respuesta">Lo que se escribe en las siete celdas.</param>
     private void Contestar(int filaExcel, string respuesta)
     {
         using var libro = new XLWorkbook(Ruta());
@@ -187,6 +193,9 @@ public sealed class PruebasDeLaClaveEstropeada
     }
 
     /// <summary>Escribe —o vacía, con nulo— una celda cualquiera de una fila.</summary>
+    /// <param name="filaExcel">La fila de Excel, base 1.</param>
+    /// <param name="nombreDeColumna">El nombre de la columna en la base, no su título.</param>
+    /// <param name="valor">El texto, o nulo para vaciar la celda.</param>
     private void Escribir(int filaExcel, string nombreDeColumna, string? valor)
     {
         using var libro = new XLWorkbook(Ruta());
@@ -197,6 +206,8 @@ public sealed class PruebasDeLaClaveEstropeada
     }
 
     /// <summary>Estropea la celda de la clave de una fila: vacía con nulo, rota con texto.</summary>
+    /// <param name="filaExcel">La fila de Excel, base 1.</param>
+    /// <param name="valor">Nulo para borrar la clave; cualquier texto sin la forma para romperla.</param>
     private void EscribirEnLaClave(int filaExcel, string? valor)
         => Escribir(filaExcel, Columnas.ColumnaDeLaClave, valor);
 

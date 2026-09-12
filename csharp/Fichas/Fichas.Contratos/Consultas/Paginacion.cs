@@ -10,9 +10,12 @@ namespace Fichas.Contratos.Consultas;
 public readonly record struct Pagina(int Desde, int Tamano)
 {
     /// <summary>El primer trozo, del tamano que se diga.</summary>
+    /// <param name="tamano">Cuántos elementos caben en el trozo; no se valida aquí, lo sanea quien lee (la base real convierte 0 o negativo en 50 y no pasa de 5 000).</param>
+    /// <returns>Un trozo que empieza en 0.</returns>
     public static Pagina Primera(int tamano) => new(0, tamano);
 
     /// <summary>El trozo siguiente a este, del mismo tamano.</summary>
+    /// <returns>Un trozo que empieza donde acaba este; no sabe si detrás queda algo, eso lo dice <see cref="PaginaDe{T}.HayMas"/>.</returns>
     public Pagina Siguiente() => new(Desde + Tamano, Tamano);
 }
 
@@ -27,6 +30,8 @@ public sealed record PaginaDe<T>(
     int TotalDisponible)
 {
     /// <summary>Un trozo vacio, que es lo que se devuelve cuando no se puede leer nada.</summary>
+    /// <param name="trozo">El trozo que se pidió, para que quien lo reciba sepa a qué petición contesta.</param>
+    /// <returns>Sin elementos y con total 0; <see cref="HayMas"/> da falso.</returns>
     public static PaginaDe<T> Vacia(Pagina trozo) => new(Array.Empty<T>(), trozo, 0);
 
     /// <summary>Si detras de este trozo queda algo mas.</summary>

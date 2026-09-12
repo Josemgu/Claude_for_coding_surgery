@@ -73,9 +73,11 @@ public static class DosEstados
     public static IReadOnlyList<string> LasDos { get; } = [Resuelto, MeFalta];
 
     /// <summary>La palabra de una lectura.</summary>
+    /// <param name="lo">La lectura que se traduce a una de las dos palabras.</param>
     public static string Palabra(LoQueSeLee lo) => lo == LoQueSeLee.Resuelto ? Resuelto : MeFalta;
 
     /// <summary>La misma, para una cabecera.</summary>
+    /// <param name="lo">La lectura que se traduce a una de las dos palabras.</param>
     public static string PalabraEnCabecera(LoQueSeLee lo)
         => lo == LoQueSeLee.Resuelto ? ResueltoEnCabecera : MeFaltaEnCabecera;
 

@@ -81,15 +81,12 @@
                     <!--  Los tres atajos del programa viejo, y las dos fechas a mano para el resto.  -->
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <Button
-                            x:Name="_botonEsteMes"
                             Click="AlPulsarEsteMes"
                             Content="Este mes" />
                         <Button
-                            x:Name="_botonMesAnterior"
                             Click="AlPulsarMesAnterior"
                             Content="Mes anterior" />
                         <Button
-                            x:Name="_botonNoventaDias"
                             Click="AlPulsarNoventaDias"
                             Content="Últimos 90 días" />
                     </StackPanel>

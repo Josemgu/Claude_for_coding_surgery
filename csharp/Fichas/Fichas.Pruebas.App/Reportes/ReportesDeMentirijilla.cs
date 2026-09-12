@@ -15,11 +15,15 @@ namespace Fichas.Pruebas.App.Reportes;
 /// </remarks>
 internal sealed class ReportesDeMentirijilla : IReportes
 {
+    /// <summary>Los bytes que se escriben cuando escribe de verdad.</summary>
     private readonly byte[] _contenido;
+    /// <summary>Si toca el disco o solo dice que lo tocó.</summary>
     private readonly bool _escribeDeVerdad;
+    /// <summary>Lo que lanza en cuanto le piden algo, o nulo si no se rompe.</summary>
     private readonly Exception? _seRompeCon;
 
     /// <summary>Escribe esos bytes en la ruta que le pidan.</summary>
+    /// <param name="contenido">Los bytes que se escriben.</param>
     internal ReportesDeMentirijilla(byte[] contenido)
     {
         _contenido = contenido;
@@ -34,14 +38,12 @@ internal sealed class ReportesDeMentirijilla : IReportes
     }
 
     /// <summary>Se rompe con esa excepcion en cuanto le pidan algo.</summary>
+    /// <param name="seRompeCon">La excepción que lanza.</param>
     internal ReportesDeMentirijilla(Exception seRompeCon)
     {
         _contenido = [];
         _seRompeCon = seRompeCon;
     }
-
-    /// <summary>La ultima ruta que le pidieron, para poder comprobar el nombre propuesto.</summary>
-    internal string? UltimaRuta { get; private set; }
 
     /// <summary>El ultimo periodo que le pidieron, en las dos fechas tal como llegaron.</summary>
     internal (string Desde, string Hasta)? UltimoPeriodo { get; private set; }
@@ -63,11 +65,13 @@ internal sealed class ReportesDeMentirijilla : IReportes
     /// <inheritdoc />
     public ResultadoDeEscritura GenerarHistorico(string rutaDestino) => Escribir(rutaDestino, "Histórico completo");
 
+    /// <summary>Lo que hacen los tres: romperse si toca, escribir si toca, y contestar «escrito».</summary>
+    /// <param name="rutaDestino">Dónde escribir.</param>
+    /// <param name="queEs">Cómo se llama el informe en el aviso.</param>
     private ResultadoDeEscritura Escribir(string rutaDestino, string queEs)
     {
         if (_seRompeCon is not null) throw _seRompeCon;
 
-        UltimaRuta = rutaDestino;
         if (_escribeDeVerdad) File.WriteAllBytes(rutaDestino, _contenido);
 
         return ResultadoDeEscritura.BienCon(0, Aviso.Informa($"{queEs} escrito.", string.Empty, "Lo dice la prueba."));

@@ -33,9 +33,11 @@ public class PruebaDelTachonEnLasPersonas
 {
     // --- La página de prueba, con las coordenadas medidas en los siete reales ---------
 
+    /// <summary>La cabecera «Full Name(s)» donde la mide el OCR en los siete escaneos (x 0,197–0,270).</summary>
     private static LineaDeOcr AnclaDeLosNombres()
         => new("Full Name(s)", 1.0, new BandaDeLaPagina(0.1967, 0.2229, 0.2695, 0.2394));
 
+    /// <summary>La cabecera «Membership Record Number» donde la mide el OCR (x 0,494–0,654); su borde derecho cierra la columna.</summary>
     private static LineaDeOcr AnclaDeLasCedulas()
         => new("Membership Record Number", 1.0, new BandaDeLaPagina(0.4935, 0.2223, 0.6536, 0.2383));
 
@@ -56,8 +58,10 @@ public class PruebaDelTachonEnLasPersonas
         => new(Anotaciones.SubtipoDeTrazo, null, new BandaDeLaPagina(x0, 0.2910, x1, 0.3020),
             0.8902, 0.0941, 0.1765, Anotaciones.GrosorDelTachon);
 
+    /// <summary>El trazo rojo cruzando la columna de la cédula, de x 0,520 a 0,630.</summary>
     private static AnotacionDelPdf TachonSobreLaCedula() => TrazoRojo(0.5200, 0.6300);
 
+    /// <summary>El trazo rojo cruzando justo el rectángulo del nombre.</summary>
     private static AnotacionDelPdf TachonSobreElNombre() => TrazoRojo(0.1980, 0.2730);
 
     /// <summary>Un trazo sobre las casillas de ordenanza, que están a la derecha de la cédula.</summary>
@@ -68,15 +72,23 @@ public class PruebaDelTachonEnLasPersonas
         => new(Anotaciones.SubtipoDeTexto, texto, new BandaDeLaPagina(0.5300, 0.2895, 0.6300, 0.3035),
             null, null, null, null);
 
+    /// <summary>La página mínima: las dos cabeceras, el nombre, el cierre y, si se pide, la cédula leída.</summary>
+    /// <param name="conCedula">Falso para simular que el OCR no leyó la cédula de esa fila.</param>
     private static IReadOnlyList<LineaDeOcr> LaHoja(bool conCedula = true)
         => conCedula
             ? [AnclaDeLosNombres(), AnclaDeLasCedulas(), LineaDelNombre(), LineaDeLaCedula(), CierreDelBloque()]
             : [AnclaDeLosNombres(), AnclaDeLasCedulas(), LineaDelNombre(), CierreDelBloque()];
 
+    /// <summary>Extrae las personas con la relación de aspecto de una carta, que es la de los siete.</summary>
+    /// <param name="lineas">Las líneas del OCR de la página.</param>
+    /// <param name="anotaciones">Los trazos y las notas de la página.</param>
     private static ResultadoDeExtraccion Extraer(
         IReadOnlyList<LineaDeOcr> lineas, IReadOnlyList<AnotacionDelPdf> anotaciones)
         => new Extraccion(612.0 / 792.0).ProponerCamposDePersonas(lineas, anotaciones);
 
+    /// <summary>El único campo propuesto con ese nombre; falla la prueba si no está o hay varios.</summary>
+    /// <param name="resultado">Lo que devolvió la extracción.</param>
+    /// <param name="campo">El nombre de columna: nombre o cédula.</param>
     private static CampoPropuesto CampoDe(ResultadoDeExtraccion resultado, string campo)
     {
         var propuesto = resultado.Campos.SingleOrDefault(c => c.Campo == campo);

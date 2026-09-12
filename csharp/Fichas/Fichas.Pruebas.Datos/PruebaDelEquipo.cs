@@ -25,6 +25,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDelEquipo
 {
+    /// <summary>Vigila que guardar un compañero nuevo lo deja activo y en la lista de activos.</summary>
     [TestMethod]
     public void UnCompaneroNuevoSeAnadeAManoYSaleActivo()
     {
@@ -41,6 +42,7 @@ public sealed class PruebaDelEquipo
         Assert.IsNull(leido.DesactivadoEn, "Un companero activo no puede tener fecha de baja.");
     }
 
+    /// <summary>Vigila que un nombre en blanco no escribe nada y devuelve un aviso, no una excepción.</summary>
     [TestMethod]
     public void UnCompaneroSinNombreNoEntraYLoDiceSinLanzar()
     {
@@ -54,6 +56,7 @@ public sealed class PruebaDelEquipo
         Assert.AreEqual(0, baseDePrueba.ContarFilasDe("companeros"), "Se escribio algo igualmente.");
     }
 
+    /// <summary>Vigila que desactivar lo saca de los activos, deja la fecha de baja y conserva la asignación que ya llevaba.</summary>
     [TestMethod]
     public void DesactivarLeQuitaElTrabajoNuevoYLeDejaSuNombreEnLoQueYaHizo()
     {
@@ -82,6 +85,7 @@ public sealed class PruebaDelEquipo
             "Desactivar se llevo por delante la asignacion que ya tenia.");
     }
 
+    /// <summary>Vigila que reactivar pone <c>activo = 1</c> y deja <c>desactivado_en</c> en NULL.</summary>
     [TestMethod]
     public void ReactivarLoDevuelveAlEquipoYLeQuitaLaFechaDeBaja()
     {
@@ -103,6 +107,7 @@ public sealed class PruebaDelEquipo
             "No vuelve a salir entre los que pueden recibir trabajo.");
     }
 
+    /// <summary>Vigila que un compañero sin firmas ni asignaciones se borra de la tabla, con copia previa.</summary>
     [TestMethod]
     public void UnCompaneroQueNoLlevaNadaSeBorraDeVerdad()
     {
@@ -130,6 +135,7 @@ public sealed class PruebaDelEquipo
         SiembraParaBorrar.NoQuedaNadaColgando(baseDePrueba);
     }
 
+    /// <summary>Vigila que la carga cuenta asignación, firmas y contacto, que el plan no da permiso y el aviso dice qué lleva.</summary>
     [TestMethod]
     public void UnCompaneroConTrabajoASuNombreNoSeBorraYSeDiceCuantoLleva()
     {
@@ -166,6 +172,7 @@ public sealed class PruebaDelEquipo
         Assert.IsNotNull(companeros.Obtener(sandy.Id), "Sandy desaparecio de la base.");
     }
 
+    /// <summary>Vigila que un id inexistente da carga sin nombre y un plan sin permiso, con aviso y sin copia.</summary>
     [TestMethod]
     public void BorrarUnCompaneroQueNoEstaNoRompeNada()
     {
@@ -181,6 +188,7 @@ public sealed class PruebaDelEquipo
         Assert.IsNull(plan.RutaDeLaCopia, "Copio la base para borrar a quien no existe.");
     }
 
+    /// <summary>La comprobación cruzada: «todo en limpio» vacía documentos y deja el equipo entero.</summary>
     [TestMethod]
     public void ElBorradoDeDocumentosNoSeLlevaALosCompaneros()
     {

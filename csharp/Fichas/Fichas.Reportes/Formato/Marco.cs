@@ -15,25 +15,41 @@ namespace Fichas.Reportes.Formato;
 /// </remarks>
 internal static class Marco
 {
+    /// <summary>El fondo de la cinta de arriba. Es el color de portada del informe viejo.</summary>
     internal const string Negro = "#151515";
+    /// <summary>El color del texto corriente: títulos, filas, notas.</summary>
     internal const string Tinta = "#16161A";
+    /// <summary>«Esto salió mal»: la cifra de los que viajaron sin verificar y la celda de la columna «Sin verificar».</summary>
     internal const string Rojo = "#D0342C";
+    /// <summary>«Esto salió bien»: la cifra de los que viajaron verificados.</summary>
     internal const string Verde = "#1F8A5F";
+    /// <summary>El color de los rótulos pequeños debajo de las cifras y de los subtítulos.</summary>
     internal const string Gris = "#6F6F76";
+    /// <summary>El color más claro, para el pie y las notas que no compiten con el contenido.</summary>
     internal const string Tenue = "#A0A0A8";
+    /// <summary>El color de la raya del pie y de las líneas que separan bloques.</summary>
     internal const string LineaFina = "#E6E6E6";
 
+    /// <summary>El texto blanco sobre la cinta negra: el rótulo «Preparación para el templo».</summary>
     private const string BlancoDeLaCinta = "#FFFFFF";
+    /// <summary>El subtítulo de la cinta, en gris claro para que no pelee con el rótulo.</summary>
     private const string GrisDeLaCinta = "#B9B9BE";
 
+    /// <summary>Cuántos puntos ocupa la cinta negra desde el borde de arriba; de aquí sale <see cref="Maqueta.TopeSuperior"/>.</summary>
     internal const int AltoDeLaCinta = 42;
+    /// <summary>A qué altura desde abajo va la raya del pie; por debajo de ella no se escribe contenido.</summary>
     internal const int AlturaDeLaRayaDelPie = 34;
 
+    /// <summary>Cuántos puntos por encima del borde inferior de la cinta va la línea base de su texto.</summary>
     private const int AlturaDelTextoDeLaCinta = 16;
+    /// <summary>A qué altura desde abajo va la línea base del texto del pie, debajo de la raya.</summary>
     private const int AlturaDelTextoDelPie = 22;
+    /// <summary>El tamaño en puntos del rótulo de la cinta.</summary>
     private const int TamanoDeLaCinta = 11;
+    /// <summary>El tamaño en puntos del subtítulo de la cinta y de todo el pie.</summary>
     private const int TamanoDelPie = 7;
 
+    /// <summary>Lo que dice la cinta en todas las páginas de todos los informes.</summary>
     private const string RotuloDeLaCinta = "Preparación para el templo";
 
     // El pie vuelve a la frase del viejo. Estuvo diciendo «La preparación es la que consta...»
@@ -43,6 +59,7 @@ internal static class Marco
     // que impide que la confusion vuelva a colarse en silencio es la nota de
     // SeccionesDeDireccion, que dice DENTRO del informe que aqui son los seis pasos y no la
     // firma de Miguel.
+    /// <summary>La frase del pie, la del informe viejo; ver el comentario de arriba para por qué volvió.</summary>
     private const string NotaDelPie =
         "Lo verificado es lo que consta en el sistema del líder, no en el formulario.";
 
@@ -52,6 +69,9 @@ internal static class Marco
     /// lo tenia el viejo y se anade aqui: un informe que se imprime y se reparte tiene que decir
     /// si esta entero, y una pagina 3 suelta sin el total no dice si faltan dos.
     /// </remarks>
+    /// <param name="subtitulo">Lo que va a la derecha de la cinta: el periodo o el compañero.</param>
+    /// <param name="margen">El margen izquierdo y derecho en puntos, el mismo de la maqueta.</param>
+    /// <returns>La función que, dados el número de página y el total, devuelve los dos adornos y las cuatro líneas del marco.</returns>
     internal static MarcoDePagina DeLaPagina(string subtitulo, int margen)
     {
         return (numero, total) =>
@@ -89,6 +109,10 @@ internal static class Marco
     /// con el que se reparten las columnas. Basta para el pie —si sobra o falta un punto no se
     /// nota— y evita incrustar las metricas de la fuente solo para colocar un numero de pagina.
     /// </remarks>
+    /// <param name="texto">Lo que se va a escribir.</param>
+    /// <param name="tamano">Su tamaño en puntos.</param>
+    /// <param name="margen">El margen derecho que tiene que respetar.</param>
+    /// <returns>La x de arranque; nunca menor que el margen izquierdo aunque el texto no quepa.</returns>
     private static int ADerecha(string texto, int tamano, int margen)
     {
         var ancho = texto.Length * tamano * Maqueta.ProporcionDelAnchoDeCaracter;

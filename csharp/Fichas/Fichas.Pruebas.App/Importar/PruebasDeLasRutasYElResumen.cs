@@ -6,6 +6,7 @@ namespace Fichas.Pruebas.App.Importar;
 [TestClass]
 public sealed class PruebasDeLasRutasYElResumen
 {
+    /// <summary>La carpeta temporal con el árbol de la prueba; se borra al recoger.</summary>
     private string _carpeta = string.Empty;
 
     /// <summary>Monta un arbol de carpetas con PDF y con cosas que no lo son.</summary>

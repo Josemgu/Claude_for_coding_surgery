@@ -118,6 +118,13 @@ public sealed class CampoEnPantalla
         : Etiqueta;
 
     /// <summary>Compone la clave de un campo; una sola forma para que nadie invente otra.</summary>
+    /// <remarks>
+    /// Es la misma terna que la clave de <c>procedencia_campo</c> —(tabla, registro_id, campo)—,
+    /// asi que un campo tiene la misma clave en la pantalla y en la base.
+    /// </remarks>
+    /// <param name="tabla">Si es del caso o de una persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna.</param>
     public static string ClaveDe(TablaDeProcedencia tabla, long registroId, string campo)
         => $"{tabla}:{registroId}:{campo}";
 
@@ -126,6 +133,7 @@ public sealed class CampoEnPantalla
     /// Las cuatro van juntas o ninguna: media banda no se puede iluminar, y una banda de
     /// area cero se trata como si no la hubiera (<c>interfaz/encuadre.py</c>).
     /// </remarks>
+    /// <param name="procedencia">La fila de procedencia del campo; nula devuelve nulo sin lanzar.</param>
     public static BandaDeLaPagina? BandaDe(ProcedenciaDeCampo? procedencia)
     {
         if (procedencia is null) return null;

@@ -21,6 +21,7 @@ namespace Fichas.Reportes.Armado;
 /// </remarks>
 public static class ArmadoDelDocumento
 {
+    /// <summary>Las nueve columnas de la parte 1. El MRN, el número de caso y el de unidad van como texto para que el Excel no se coma sus ceros.</summary>
     private static readonly Columna[] ColumnasDeQuienViajo =
     [
         new("N.º de caso", ClaseDeColumna.Texto, 12),
@@ -37,6 +38,7 @@ public static class ArmadoDelDocumento
         new("¿Recomendación completa?", ClaseDeColumna.Crudo, 22),
     ];
 
+    /// <summary>Las ocho columnas de la parte 2: las mismas seis de identidad que la parte 1, más el motivo y si se vio a tiempo.</summary>
     private static readonly Columna[] ColumnasDeQuienNoViajo =
     [
         new("N.º de caso", ClaseDeColumna.Texto, 12),
@@ -52,6 +54,7 @@ public static class ArmadoDelDocumento
         new("¿Se detectó antes del viaje?", ClaseDeColumna.Crudo, 24),
     ];
 
+    /// <summary>Las tres columnas de la tabla de métricas; la tercera dice con qué columna de fecha se contó cada una.</summary>
     private static readonly Columna[] ColumnasDeLasMetricas =
     [
         new("Métrica", ClaseDeColumna.Crudo, 40),
@@ -65,6 +68,10 @@ public static class ArmadoDelDocumento
     /// que mira el reloj por dentro no se puede probar, y de que dia se considera «ya viajó»
     /// depende la cifra de la portada.
     /// </remarks>
+    /// <param name="lectura">Todo lo leído de los puertos, sin filtrar; aquí se recorta al periodo.</param>
+    /// <param name="periodo">El periodo que se reporta, ya validado.</param>
+    /// <param name="generadoEn">La marca «AAAA-MM-DD HH:mm:ss» con la que se genera; de sus diez primeros caracteres sale el «hoy».</param>
+    /// <returns>El documento con portada, avisos y las nueve secciones como mucho.</returns>
     public static Documento DelPeriodo(LecturaParaReportes lectura, Periodo periodo, string generadoEn)
     {
         var personas = lectura.PersonasDelPeriodo(periodo);
@@ -97,6 +104,16 @@ public static class ArmadoDelDocumento
     /// ceros ocupa el sitio de lo que si dice algo. «El equipo» sale siempre, y eso es a
     /// proposito: que nadie tenga nada asignado es justamente lo que la direccion tiene que ver.
     /// </remarks>
+    /// <param name="lectura">La lectura entera, de la que se toman los compañeros por caso.</param>
+    /// <param name="periodo">El periodo que se reporta.</param>
+    /// <param name="personas">Todas las personas del periodo.</param>
+    /// <param name="viajaron">Las que no constan como que no pudieron viajar.</param>
+    /// <param name="noViajaron">Las anotadas como que no pudieron viajar.</param>
+    /// <param name="casos">Todos los casos con su verificación, sin filtrar por periodo.</param>
+    /// <param name="deteccion">La métrica 3, ya calculada.</param>
+    /// <param name="diaDeHoy">El «hoy» en «AAAA-MM-DD».</param>
+    /// <param name="recuento">Las cuatro cifras de la portada, ya contadas.</param>
+    /// <returns>Entre siete y nueve secciones, según haya pasos trabados y unidades con pendientes.</returns>
     private static List<Seccion> Secciones(
         LecturaParaReportes lectura,
         Periodo periodo,
@@ -138,6 +155,7 @@ public static class ArmadoDelDocumento
     }
 
     /// <summary>Parte 1: las personas cuyo caso viajaba en el periodo, y como quedo.</summary>
+    /// <param name="personas">Las del periodo que no constan como que no pudieron viajar; una por fila.</param>
     private static Seccion DeQuienViajo(IReadOnlyList<PersonaConSuCaso> personas)
     {
         var constanComoQueViajaron = personas.Count(f => f.Persona.PudoViajar == true);
@@ -173,6 +191,8 @@ public static class ArmadoDelDocumento
     }
 
     /// <summary>Parte 2: quien no pudo viajar, con su motivo tal como lo escribio Miguel.</summary>
+    /// <param name="personas">Las anotadas como que no pudieron viajar; una por fila.</param>
+    /// <param name="casosPorId">La verificación de cada caso, por id, para fechar cuándo se vio el problema.</param>
     private static Seccion DeQuienNoViajo(
         IReadOnlyList<PersonaConSuCaso> personas,
         IReadOnlyDictionary<long, CasoConSuVerificacion> casosPorId)
@@ -201,6 +221,9 @@ public static class ArmadoDelDocumento
             + " en este período");
 
     /// <summary>Si el problema de ese caso estaba visto antes del dia del viaje.</summary>
+    /// <param name="caso">El caso con su última firma; nulo o sin firma da «no se verificó ningún campo».</param>
+    /// <param name="fechaViaje">La fecha «AAAA-MM-DD» del viaje contra la que se compara el día de la firma.</param>
+    /// <returns>«sí, el DÍA» si la firma es anterior al viaje; «no, se vio el DÍA» si es el mismo día o después.</returns>
     private static string TextoDeLaDeteccion(CasoConSuVerificacion? caso, string? fechaViaje)
     {
         if (caso?.VerificadoEn is null || caso.VerificadoEn.Length < 10) return "no se verificó ningún campo";
@@ -210,6 +233,10 @@ public static class ArmadoDelDocumento
     }
 
     /// <summary>Las metricas de trabajo del equipo, con sus denominadores a la vista.</summary>
+    /// <param name="verificados">Métrica 1: los casos verificados en el periodo.</param>
+    /// <param name="demora">Métrica 2: la demora de importar a verificar.</param>
+    /// <param name="deteccion">Métrica 3: la detección antes del viaje.</param>
+    /// <returns>Una sección de tres filas fijas y sin resumen.</returns>
     private static Seccion DeLasMetricas(
         IReadOnlyList<CasoConSuVerificacion> verificados, Demora demora, Deteccion deteccion)
         => new(
@@ -250,6 +277,8 @@ public static class ArmadoDelDocumento
             null);
 
     /// <summary>Las horas con un decimal y su equivalente en dias, en espanol.</summary>
+    /// <param name="horas">La medida; nula da <see cref="Vocabulario.NoSePuedeSaber"/>.</param>
+    /// <returns>Por ejemplo «36,5 h (1,5 días)», con coma decimal aunque la máquina esté en inglés.</returns>
     private static string EnHoras(double? horas)
     {
         if (horas is null) return Vocabulario.NoSePuedeSaber;
@@ -264,6 +293,7 @@ public static class ArmadoDelDocumento
     /// Se saca de la marca y no del reloj: una funcion que mira el reloj por dentro no se puede
     /// probar, y de que dia se considera «ya viajó» depende la cifra de la portada.
     /// </remarks>
+    /// <param name="generadoEn">La marca completa; si es más corta que una fecha, se devuelve tal cual.</param>
     private static string DiaDe(string generadoEn)
         => generadoEn.Length >= 10 ? generadoEn[..10] : generadoEn;
 }

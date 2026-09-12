@@ -52,6 +52,7 @@ public static class ElAdministrador
     /// atajo, y <see cref="PorQueNoSePuede"/> dice por que.
     /// </remarks>
     /// <param name="activos">Los companeros activos; los desactivados no entran aqui.</param>
+    /// <exception cref="ArgumentNullException">Si la lista es nula.</exception>
     public static Companero? De(IReadOnlyList<Companero> activos)
     {
         ArgumentNullException.ThrowIfNull(activos);
@@ -79,6 +80,9 @@ public static class ElAdministrador
     /// justo el paso previo a firmar con el.
     /// </para>
     /// </remarks>
+    /// <param name="activos">Los companeros activos, los mismos que se le pasan a <see cref="De"/>.</param>
+    /// <returns>Un problema con su linea y su detalle; nunca nulo, aunque si hubiera atajo.</returns>
+    /// <exception cref="ArgumentNullException">Si la lista es nula.</exception>
     public static Aviso PorQueNoSePuede(IReadOnlyList<Companero> activos)
     {
         ArgumentNullException.ThrowIfNull(activos);

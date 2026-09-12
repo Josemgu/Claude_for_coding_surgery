@@ -14,8 +14,12 @@ namespace Fichas.Pruebas.Datos;
 /// </remarks>
 public sealed class BaseDePrueba : IDisposable
 {
+    /// <summary>La carpeta temporal que contiene el <c>fichas.db</c>; se borra entera en <see cref="Dispose"/>.</summary>
     private readonly string _carpeta;
 
+    /// <summary>Privado: solo las tres fábricas de arriba saben qué carpeta y qué conexión van juntas.</summary>
+    /// <param name="carpeta">La carpeta temporal recién creada.</param>
+    /// <param name="conexion">La conexión ya abierta sobre el archivo de esa carpeta.</param>
     private BaseDePrueba(string carpeta, SqliteConnection conexion)
     {
         _carpeta = carpeta;
@@ -101,6 +105,8 @@ public sealed class BaseDePrueba : IDisposable
         }
     }
 
+    /// <summary>Una carpeta nueva bajo la temporal del sistema, con un GUID en el nombre para que dos pruebas en paralelo no choquen.</summary>
+    /// <returns>La ruta de la carpeta, ya creada.</returns>
     private static string CrearCarpetaTemporal()
     {
         var carpeta = Path.Combine(Path.GetTempPath(), "fichas-pruebas-" + Guid.NewGuid().ToString("N"));

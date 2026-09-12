@@ -30,6 +30,7 @@ namespace Fichas.Pruebas.App.Importar;
 [TestClass]
 public sealed class PruebasDeLasCarpetasQueNoSeDejanLeer
 {
+    /// <summary>La carpeta de trabajo de esta prueba; se borra al recoger.</summary>
     private string _carpeta = string.Empty;
 
     /// <summary>Una carpeta de trabajo nueva por prueba.</summary>
@@ -52,6 +53,7 @@ public sealed class PruebasDeLasCarpetasQueNoSeDejanLeer
         catch (UnauthorizedAccessException) { }
     }
 
+    /// <summary>Las carpetas a las que se les quitó el permiso, para devolvérselo antes de borrar.</summary>
     private readonly List<string> _denegadas = [];
 
     // ── El criterio ────────────────────────────────────────────────────────────────
@@ -234,6 +236,8 @@ public sealed class PruebasDeLasCarpetasQueNoSeDejanLeer
     // ── Andamio ────────────────────────────────────────────────────────────────────
 
     /// <summary>Escribe un archivo con ese nombre y devuelve su ruta entera.</summary>
+    /// <param name="carpeta">La carpeta; se crea si no existe.</param>
+    /// <param name="nombre">El nombre del archivo, con su extensión.</param>
     private static string PdfEn(string carpeta, string nombre)
     {
         Directory.CreateDirectory(carpeta);
@@ -250,6 +254,9 @@ public sealed class PruebasDeLasCarpetasQueNoSeDejanLeer
     /// dueño de la carpeta recien creada. Es lo mismo que Windows tiene puesto en las
     /// uniones heredadas de la carpeta del perfil.
     /// </remarks>
+    /// <param name="carpeta">La carpeta que se deniega.</param>
+    /// <param name="pdfDentro">El nombre del PDF que se deja dentro antes de denegarla.</param>
+    /// <returns>La ruta completa de la carpeta denegada.</returns>
     private string DenegarLaCarpeta(string carpeta, string pdfDentro)
     {
         PdfEn(carpeta, pdfDentro);
@@ -271,6 +278,7 @@ public sealed class PruebasDeLasCarpetasQueNoSeDejanLeer
     }
 
     /// <summary>Quita la denegacion para que la limpieza pueda borrar la carpeta.</summary>
+    /// <param name="carpeta">La carpeta denegada; si ya no está o no se puede, no pasa nada.</param>
     private static void DevolverElPermiso(string carpeta)
     {
         try
@@ -295,6 +303,8 @@ public sealed class PruebasDeLasCarpetasQueNoSeDejanLeer
     }
 
     /// <summary>Crea una union de directorio con <c>mklink /J</c>; falso si no se pudo.</summary>
+    /// <param name="donde">La ruta de la unión que se crea.</param>
+    /// <param name="aQue">La carpeta a la que apunta.</param>
     private static bool CrearUnion(string donde, string aQue)
     {
         var proceso = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo

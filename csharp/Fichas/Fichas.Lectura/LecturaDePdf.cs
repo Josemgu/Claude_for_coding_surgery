@@ -40,15 +40,28 @@ namespace Fichas.Lectura;
 /// </remarks>
 public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
 {
-    /// <summary>Los nombres de los cuatro archivos, tal como los reparte el paquete.</summary>
+    /// <summary>
+    /// El detector de cajas de texto (PP-OCRv5, móvil), el mismo para todos los idiomas.
+    /// Este nombre y los tres siguientes son los que reparte el paquete RapidOcrNet, tal cual.
+    /// </summary>
     private const string ModeloDeDeteccion = "ch_PP-OCRv5_mobile_det.onnx";
+    /// <summary>El clasificador de orientación de renglón, que endereza los renglones al revés antes de leerlos.</summary>
     private const string ModeloDeOrientacion = "ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx";
+    /// <summary>El reconocedor del grupo LATINO: el que sabe leer la ñ y las tildes.</summary>
     private const string ModeloDeReconocimiento = "latin_PP-OCRv5_rec_mobile_infer.onnx";
+    /// <summary>Los 502 caracteres que el reconocedor puede devolver, uno por línea.</summary>
     private const string DiccionarioLatino = "ppocrv5_latin_dict.txt";
 
+    /// <summary>Dónde viven los cuatro archivos; fijada en el constructor y no se vuelve a resolver.</summary>
     private readonly string _carpetaDeModelos;
+
+    /// <summary>Protege la carga del motor: dos hojas en paralelo no pueden cargar los modelos dos veces.</summary>
     private readonly Lock _cerrojo = new();
+
+    /// <summary>El motor de OCR, nulo hasta la primera lectura o hasta <see cref="PrepararMotor"/>.</summary>
     private RapidOcr? _motor;
+
+    /// <summary>Cierto después de <see cref="Dispose"/>: pedir el motor entonces lanza, no lo recrea.</summary>
     private bool _desechado;
 
     /// <summary>Crea el lector. Los modelos se cargan la primera vez que se lee, no ahora.</summary>
@@ -84,6 +97,13 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
         return rutas;
     }
 
+    /// <summary>
+    /// El motor, cargándolo la primera vez. Comprobación doble bajo cerrojo: la lectura
+    /// rápida sin cerrojo evita pagarlo en cada hoja, y la segunda dentro evita que dos
+    /// hilos carguen los modelos a la vez.
+    /// </summary>
+    /// <exception cref="ObjectDisposedException">Ya se llamó a <see cref="Dispose"/>.</exception>
+    /// <exception cref="FileNotFoundException">Falta alguno de los cuatro archivos (ver <see cref="RutasDeLosModelos"/>).</exception>
     private RapidOcr Motor()
     {
         ObjectDisposedException.ThrowIf(_desechado, this);
@@ -132,6 +152,8 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     /// Hace falta fuera para dos cosas: calcular la escala del rasterizado y saber la
     /// relacion de aspecto que las bandas necesitan.
     /// </remarks>
+    /// <param name="rutaPdf">Ruta del archivo en disco.</param>
+    /// <param name="pagina">Número de hoja, base 1; fuera de rango devuelve nulo, no lanza.</param>
     public (double AnchoPuntos, double AltoPuntos)? TamanoDeLaPagina(string rutaPdf, int pagina)
     {
         try
@@ -252,6 +274,11 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     /// espacios y sus mayusculas. Darle forma es cosa de <see cref="Normalizacion"/>, igual
     /// que a lo que lee el OCR.</para>
     /// </remarks>
+    /// <param name="documento">El PDF abierto; sin <c>AcroForm</c> devuelve la lista vacía.</param>
+    /// <param name="pagina">Número de hoja, base 1: solo salen los campos cuyo widget cae en ella.</param>
+    /// <param name="anchoPuntos">Ancho de la hoja, para pasar los rectángulos a fracciones.</param>
+    /// <param name="altoPuntos">Alto de la hoja, para lo mismo.</param>
+    /// <returns>Una anotación de subtipo <see cref="Anotaciones.SubtipoDeCampoDeTexto"/> por campo, sin color ni grosor.</returns>
     private static IEnumerable<AnotacionDelPdf> CamposDeTextoDelFormulario(
         PdfDocument documento, int pagina, double anchoPuntos, double altoPuntos)
     {
@@ -275,10 +302,13 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     }
 
     /// <summary>El campo y, si tiene hijos, todos sus descendientes.</summary>
+    /// <param name="campo">Un nodo del árbol del <c>AcroForm</c>; los no terminales no se devuelven, solo sus hojas.</param>
     private static IEnumerable<AcroFieldBase> AplanarCampo(AcroFieldBase campo)
         => campo is AcroNonTerminalField padre ? padre.Children.SelectMany(AplanarCampo) : [campo];
 
     /// <summary>El <c>/C</c> de la anotacion en RGB; nulo en los tres si no lo declara.</summary>
+    /// <remarks>Un <c>/C</c> que no tenga exactamente tres números (gris o CMYK) también vuelve nulo: no se convierte, y así el trazo queda como desconocido.</remarks>
+    /// <param name="diccionario">El diccionario de la anotación tal como lo da PdfPig.</param>
     private static (double? Rojo, double? Verde, double? Azul) ColorDe(DictionaryToken diccionario)
     {
         if (!diccionario.TryGet(NameToken.Create("C"), out ArrayToken? color) || color is null) return (null, null, null);
@@ -288,6 +318,7 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     }
 
     /// <summary>El <c>/BS /W</c> de la anotacion, o nulo si no declara estilo de borde.</summary>
+    /// <param name="diccionario">El diccionario de la anotación tal como lo da PdfPig.</param>
     private static double? GrosorDe(DictionaryToken diccionario)
     {
         if (!diccionario.TryGet(NameToken.Create("BS"), out DictionaryToken? estilo) || estilo is null) return null;
@@ -345,6 +376,7 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
 
     /// <summary>La confianza media de la linea, o nula si el motor no la dio.</summary>
     /// <remarks>No se inventa un 1,0 cuando falta: nulo significa «el motor no lo dijo».</remarks>
+    /// <param name="bloque">Una línea detectada por el motor, con la puntuación de cada carácter.</param>
     private static double? ConfianzaDe(TextBlock bloque)
         => bloque.CharScores is null || bloque.CharScores.Length == 0 ? null : bloque.CharScores.Average();
 

@@ -1,7 +1,6 @@
 using Fichas.App.Vocabulario;
 using Fichas.App.Correccion;
 using Fichas.App.Grupo;
-using Fichas.App.Inicio;
 
 namespace Fichas.Pruebas.App.Inicio;
 
@@ -28,38 +27,24 @@ namespace Fichas.Pruebas.App.Inicio;
 public sealed class PruebasDeLasDosPreguntas
 {
     /// <summary>
-    /// C17-1. Donde pone «listo para asignar» sigue poniendo eso, y ademas dice QUE SIGNIFICA.
+    /// C17-1. El renglon dice una de las dos palabras del dueno, y no el veredicto viejo.
     /// </summary>
     /// <remarks>
-    /// ⛔ Lo primero que comprueba esta prueba es que la frase NO SE HA QUITADO. El dueno la
-    /// pidio expresamente el 2026-09-05 y quitarla le devolveria las miles de pulsaciones que
-    /// este programa le quita.
+    /// ⛔ 2026-09-07: el RENGLÓN ya no dice «listo para asignar» —dice una de las dos
+    /// palabras—. La frase larga «listo para asignar · el sistema llenó todos los campos» se
+    /// retiro del programa ese dia, y en la limpieza de codigo muerto del 2026-09-11 se quito
+    /// tambien la constante que la componia, que ya no leia ninguna pantalla.
     /// </remarks>
     [TestMethod]
-    public void LaFraseDeListoParaAsignarSigueViviendoEnUnSoloSitio()
+    public void ElRenglonDiceUnaDeLasDosPalabrasYNoElVeredictoViejo()
     {
-        // Se comprueba contra lo que el modelo COMPONE y no contra la constante consigo
-        // misma: comparar una constante con su propio texto no prueba nada, y el analizador
-        // de pruebas lo rechaza con razón.
         var servicios = BaseDeInicio.MontarServicios(0);
         BaseDeInicio.MeterCaso(servicios, "SIGN2609", "2026-09-30");
         var renglon = BaseDeInicio.LeerInicio(servicios).Listos[0];
 
-        // ⛔ 2026-09-07: el RENGLÓN ya no dice «listo para asignar» —dice una de las dos
-        // palabras—, así que aquí ya no se compara con él. Lo que esta prueba defendía sigue
-        // defendido: que la frase larga viva en UN solo sitio y no en dos redacciones. Que el
-        // renglón no la diga se comprueba justo debajo.
-        Assert.AreNotEqual(LasDosPreguntas.ListoParaAsignar, renglon.PalabraDelEstado,
+        Assert.AreNotEqual("listo para asignar", renglon.PalabraDelEstado,
             "El renglón dice una de las dos palabras del dueño, no el veredicto viejo.");
         CollectionAssert.Contains(DosEstados.LasDos.ToList(), renglon.PalabraDelEstado);
-
-        StringAssert.Contains(
-            LasDosPreguntas.ListoParaAsignarConSuSignificado, "listo para asignar", StringComparison.Ordinal);
-        StringAssert.Contains(
-            LasDosPreguntas.ListoParaAsignarConSuSignificado,
-            "el sistema llenó todos los campos",
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("\n", LasDosPreguntas.ListoParaAsignarConSuSignificado, "Ni un párrafo: una línea.");
     }
 
     /// <summary>
@@ -104,13 +89,9 @@ public sealed class PruebasDeLasDosPreguntas
     {
         string[] todas =
         [
-            LasDosPreguntas.ListoParaAsignar,
-            LasDosPreguntas.ListoParaAsignarEnCabecera,
-            LasDosPreguntas.ListoParaAsignarConSuSignificado,
-            LasDosPreguntas.ListoParaAsignarEnCabeceraConSuSignificado,
-            LasDosPreguntas.Decir(true),
-            LasDosPreguntas.Decir(false),
-            LasDosPreguntas.Decir(null),
+            LasDosPreguntas.LoQueLeFaltaAlDocumento(0, sinNingunaPersonaLeida: false),
+            LasDosPreguntas.LoQueLeFaltaAlDocumento(3, sinNingunaPersonaLeida: false),
+            LasDosPreguntas.LoQueLeFaltaAlDocumento(0, sinNingunaPersonaLeida: true),
             LasDosPreguntas.FraseDeUnaPersona(true, []),
             LasDosPreguntas.FraseDeUnaPersona(false, ["Entrevistas"]),
             LasDosPreguntas.FraseDeUnaPersona(null, []),
@@ -128,22 +109,6 @@ public sealed class PruebasDeLasDosPreguntas
     }
 
     /// <summary>
-    /// C17-3. Mientras las seis no esten todas en si, se dice «recomendación sin confirmar».
-    /// </summary>
-    /// <remarks>
-    /// La frase es del dueno, literal: <i>«la recomendación para el templo no está
-    /// confirmada»</i>. Y las tres respuestas son distintas: «sin mirar» tambien lleva la
-    /// recomendacion sin confirmar, porque nadie la ha mirado, pero NO se llama «no lista».
-    /// </remarks>
-    [TestMethod]
-    public void LaRecomendacionSoloSeDiceConfirmadaConLasSeisEnSi()
-    {
-        Assert.AreEqual("recomendación confirmada", LasDosPreguntas.DecirLaRecomendacion(true));
-        Assert.AreEqual("recomendación sin confirmar", LasDosPreguntas.DecirLaRecomendacion(false));
-        Assert.AreEqual("recomendación sin confirmar", LasDosPreguntas.DecirLaRecomendacion(null));
-    }
-
-    /// <summary>
     /// Las dos preguntas no comparten ni una palabra que las pueda confundir.
     /// </summary>
     /// <remarks>
@@ -154,7 +119,7 @@ public sealed class PruebasDeLasDosPreguntas
     [TestMethod]
     public void LasDosFrasesNoSeParecenEnNada()
     {
-        var delPrograma = LasDosPreguntas.ListoParaAsignarConSuSignificado;
+        var delPrograma = LasDosPreguntas.LoQueLeFaltaAlDocumento(3, sinNingunaPersonaLeida: false);
         var deLaPersona = LasDosPreguntas.FraseDeUnaPersona(false, ["Entrevistas"]);
 
         Assert.DoesNotContain("viajar", delPrograma);
@@ -201,6 +166,8 @@ public sealed class PruebasDeLasDosPreguntas
     /// «listo para asignar» y «lista para viajar» pasan; «listo» y «documentos listos» no.
     /// Se mira palabra a palabra para que «listos» dentro de otra palabra no cuente.
     /// </remarks>
+    /// <param name="frase">El texto que se mira.</param>
+    /// <param name="palabra">La palabra que no puede ir sola, sin distinguir mayúsculas.</param>
     private static bool DiceLaPalabraSuelta(string frase, string palabra)
     {
         var palabras = frase.Split([' ', '·', ',', '.', ';', ':'], StringSplitOptions.RemoveEmptyEntries);

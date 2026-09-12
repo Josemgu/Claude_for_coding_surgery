@@ -58,6 +58,8 @@ public sealed record PuestoEnLaCola(int Puesto, RenglonDeCaso Documento)
            + $"{Documento.Lectura.ParaElLector}. Pulse para entrar en la cola por este documento.";
 
     /// <summary>Numera una cola entera, del puesto 1 en adelante.</summary>
+    /// <param name="documentos">Los documentos de la cola, ya en su orden.</param>
+    /// <exception cref="ArgumentNullException">Si la lista es nula.</exception>
     public static IReadOnlyList<PuestoEnLaCola> Numerar(IReadOnlyList<RenglonDeCaso> documentos)
     {
         ArgumentNullException.ThrowIfNull(documentos);

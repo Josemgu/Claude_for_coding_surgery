@@ -24,7 +24,9 @@ namespace Fichas.App.Paquetes;
 /// </remarks>
 public sealed partial class PaginaDePaquetes
 {
+    /// <summary>Quien cuenta y firma; nulo hasta que la pantalla se monta con sus servicios.</summary>
     private FirmaEnBloque? _firma;
+    /// <summary>Lo que trajo la última vuelta, que es lo que el botón cuenta y firma; nulo antes de la primera.</summary>
     private LoQueTrajoElPaquete? _loQueTrajo;
 
     /// <summary>Pinta lo que trajo el paquete y decide si el boton se puede pulsar.</summary>
@@ -33,6 +35,7 @@ public sealed partial class PaginaDePaquetes
     /// pantalla se quedaria ensenando el paquete anterior, y el dueno firmaria mirando lo
     /// que trajo otro.
     /// </remarks>
+    /// <param name="loQueTrajo">Lo que devolvió la vuelta que acaba de terminar.</param>
     private void PintarLoQueTrajo(LoQueTrajoElPaquete loQueTrajo)
     {
         _loQueTrajo = loQueTrajo;
@@ -59,6 +62,7 @@ public sealed partial class PaginaDePaquetes
     /// invitar a firmar en bloque algo que no vino, que es justo el error que el dueno
     /// quiere evitar.
     /// </remarks>
+    /// <param name="loQueTrajo">Lo que devolvió la vuelta; se pintan sus dos listas de fuera.</param>
     private void PintarLoQueQuedaFuera(LoQueTrajoElPaquete loQueTrajo)
     {
         var renglones = loQueTrajo.NoEntraron
@@ -79,6 +83,8 @@ public sealed partial class PaginaDePaquetes
     /// El dueno tiene que poder no seguir, y para eso el numero va antes. Un boton que firma
     /// y luego dice cuantas firmo no ofrece esa salida.
     /// </remarks>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarDarPorBueno(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Dar por buenas las informaciones", Servicios, () =>
         {
@@ -107,6 +113,8 @@ public sealed partial class PaginaDePaquetes
     }
 
     /// <summary>Segundo golpe: firma de verdad, y solo por esto (regla permanente 5).</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarConfirmarLaFirma(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Firmar las informaciones del paquete", Servicios, () =>
         {
@@ -139,6 +147,8 @@ public sealed partial class PaginaDePaquetes
     }
 
     /// <summary>Cancelar: se cierra la franja y NO se escribe nada.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCancelarLaFirma(object quien, RoutedEventArgs cuando) => CerrarLaConfirmacion();
 
     /// <summary>Esconde la franja de confirmar. No toca la base.</summary>
@@ -150,6 +160,8 @@ public sealed partial class PaginaDePaquetes
 
     /// <summary>Pinta una linea si la hay, y esconde el control si no la hay.</summary>
     /// <remarks>Un renglon vacio y visible se lee como un hueco de la pantalla, no como «no aplica».</remarks>
+    /// <param name="donde">El control que se pinta o se esconde.</param>
+    /// <param name="linea">La línea; nula o vacía esconde el control.</param>
     private static void Decir(Microsoft.UI.Xaml.Controls.TextBlock donde, string? linea)
     {
         donde.Text = linea ?? string.Empty;

@@ -2,7 +2,6 @@ using Fichas.App.Vocabulario;
 using Fichas.App.Asignar;
 using Fichas.App.Cascara;
 using Fichas.App.Grupo;
-using Fichas.App.Inicio;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 

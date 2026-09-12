@@ -86,6 +86,8 @@ public sealed class PruebasDeLaUnidadEnDosColumnas
         => Assert.AreEqual(16, Columnas.AnchoDe("unidad_numero"), "«Número de unidad» son 16 caracteres");
 
     /// <summary>Una hoja de una sola fila con esa unidad, escrita por el motor de verdad.</summary>
+    /// <param name="unidadNombre">El nombre del barrio o rama, o nulo.</param>
+    /// <param name="unidadNumero">El número de la unidad, o nulo para ver qué sale sin él.</param>
     private static IXLWorksheet HojaDeUnaFila(string? unidadNombre, string? unidadNumero)
         => LibroDeTrabajo.Construir(
             [

@@ -11,8 +11,17 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDeLasMetricas
 {
+    /// <summary>El periodo de todas las pruebas de esta clase: septiembre de 2026 entero.</summary>
     private static readonly Periodo Septiembre = Periodo.Leer("2026-09-01", "2026-09-30").Periodo!;
 
+    /// <summary>Un caso con su verificación, escrito a mano con lo justo para cada métrica.</summary>
+    /// <param name="id">El id del caso; el número sale de él.</param>
+    /// <param name="campos">Cuántos campos de procedencia tiene.</param>
+    /// <param name="verificados">Cuántos de ellos están firmados.</param>
+    /// <param name="verificadoEn">La marca de la última firma, o nula.</param>
+    /// <param name="creadoEn">La marca de importación.</param>
+    /// <param name="fechaViaje">La fecha de viaje, o nula.</param>
+    /// <param name="estado">El estado de la recomendación, o nulo.</param>
     private static CasoConSuVerificacion Caso(
         long id, int campos, int verificados, string? verificadoEn,
         string creadoEn = "2026-08-01 09:00:00", string? fechaViaje = null, string? estado = null)
@@ -20,6 +29,7 @@ public class PruebaDeLasMetricas
             new Caso { Id = id, NumeroCaso = $"CASP{id:D4}", CreadoEn = creadoEn, FechaViaje = fechaViaje, EstadoRecomendacion = estado },
             Personas: 1, Campos: campos, CamposVerificados: verificados, VerificadoEn: verificadoEn);
 
+    /// <summary>Vigila que un caso con cero campos no cuenta como verificado, y uno con todos firmados sí.</summary>
     [TestMethod]
     public void CeroCamposNoEsTodoVerificado()
     {
@@ -29,6 +39,7 @@ public class PruebaDeLasMetricas
         Assert.IsFalse(Metricas.CasoVerificado(Caso(3, campos: 3, verificados: 2, verificadoEn: "2026-09-10 10:00:00")));
     }
 
+    /// <summary>Vigila que una verificación de la tarde del último día del periodo entra en la métrica 1.</summary>
     [TestMethod]
     public void LaMarcaConHoraDelUltimoDiaDelPeriodoEntra()
     {
@@ -39,6 +50,7 @@ public class PruebaDeLasMetricas
         Assert.HasCount(1, Metricas.CasosVerificadosEnElPeriodo(casos, Septiembre));
     }
 
+    /// <summary>Vigila que una verificación anterior a la importación no entra en el promedio y sí en los descartados.</summary>
     [TestMethod]
     public void UnaDemoraNegativaSeDescartaYSeCuentaAparte()
     {
@@ -55,6 +67,7 @@ public class PruebaDeLasMetricas
         Assert.AreEqual(1, demora.DescartadosPorFechasIncoherentes);
     }
 
+    /// <summary>Vigila que una fecha ilegible deja el promedio nulo en vez de sumar un cero.</summary>
     [TestMethod]
     public void UnaFechaIlegibleNoSeCuentaComoCero()
     {
@@ -67,6 +80,7 @@ public class PruebaDeLasMetricas
         Assert.AreEqual(1, demora.DescartadosPorFechasIncoherentes);
     }
 
+    /// <summary>Vigila que los cinco cubos de la métrica 3 suman exactamente los casos del periodo.</summary>
     [TestMethod]
     public void LosCincoCubosDeLaDeteccionSonExcluyentesYSumanElTotal()
     {
@@ -97,6 +111,7 @@ public class PruebaDeLasMetricas
             "Si los cinco cubos no suman el universo, algo se conto dos veces.");
     }
 
+    /// <summary>Vigila que verificar la mañana del viaje cuenta como tarde, no como a tiempo.</summary>
     [TestMethod]
     public void ATiempoEsElDiaAnteriorOAntes_NoElMismoDia()
     {
@@ -109,6 +124,7 @@ public class PruebaDeLasMetricas
         Assert.AreEqual(1, deteccion.DetectadosDespuesDelViaje);
     }
 
+    /// <summary>Vigila que un caso sin estado escrito va a su propio cubo y no al de problemas.</summary>
     [TestMethod]
     public void UnEstadoVacioNoCuentaComoProblema()
     {

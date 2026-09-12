@@ -56,10 +56,14 @@ public sealed class AccionesDeLasPreguntas
     /// </remarks>
     public const string OrigenDeUnTiron = "las seis marcadas de un tirón en la pantalla";
 
+    /// <summary>El puerto por el que se escriben las seis respuestas de una persona.</summary>
     private readonly IPersonas _personas;
+    /// <summary>El equipo, para saber quién es el único administrador activo que firma.</summary>
     private readonly ICompaneros _companeros;
 
     /// <summary>Ata la acción a las personas y al equipo.</summary>
+    /// <param name="personas">El puerto de personas, donde se escriben las seis.</param>
+    /// <param name="companeros">El puerto del equipo, donde se busca quién firma.</param>
     public AccionesDeLasPreguntas(IPersonas personas, ICompaneros companeros)
     {
         _personas = personas;
@@ -156,6 +160,10 @@ public sealed class AccionesDeLasPreguntas
         => Guardar(personaId, respuesta, OrigenDeUnTiron);
 
     /// <summary>El camino común de los dos: comprobar quién firma y escribir con su origen.</summary>
+    /// <param name="personaId">De quién se escriben las seis.</param>
+    /// <param name="respuesta">Las seis, cada una en sí, no o en blanco.</param>
+    /// <param name="origen">Lo que va a <c>pasos_origen</c>: una a una o de un tirón.</param>
+    /// <returns>Lo que devolvió el puerto, o «no se escribió» con el aviso de por qué no hay quien firme.</returns>
     private ResultadoDeEscritura Guardar(long personaId, RespuestaALosPasos respuesta, string origen)
     {
         var quien = QuienContesta();
@@ -169,6 +177,9 @@ public sealed class AccionesDeLasPreguntas
     /// Nombra a la persona y dice cómo queda: es la frase que él va a leer antes de decidir
     /// si llama al obispo. Y dice quién firmó, porque de eso trata la migración 19.
     /// </remarks>
+    /// <param name="deQuien">El nombre de la persona, con su fila si se sabe.</param>
+    /// <param name="fraseDelEstado">Cómo queda tras guardar, releído de la base.</param>
+    /// <param name="quienFirmo">El nombre del administrador que contestó.</param>
     public static Aviso LoQueSeGuardo(string deQuien, string fraseDelEstado, string quienFirmo)
         => Aviso.Informa(
             $"Guardadas las seis preguntas de {deQuien}: {fraseDelEstado}.",

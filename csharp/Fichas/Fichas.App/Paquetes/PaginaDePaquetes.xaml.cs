@@ -27,14 +27,22 @@ namespace Fichas.App.Paquetes;
 /// </remarks>
 public sealed partial class PaginaDePaquetes : PaginaDeFichas
 {
+    /// <summary>El bloque de resumen del paquete que va.</summary>
     private readonly ZonaDeResumen _resumenDeLaIda;
+    /// <summary>El bloque de resumen del Excel que vuelve.</summary>
     private readonly ZonaDeResumen _resumenDeLaVuelta;
+    /// <summary>El bloque de resumen de la segunda vuelta.</summary>
     private readonly ZonaDeResumen _resumenDeLaSubida;
 
+    /// <summary>La operación de generar el paquete; nula hasta que llegan los servicios.</summary>
     private OperacionDelPaquete? _ida;
+    /// <summary>La operación de aplicar el Excel devuelto, con limpieza; nula hasta que llegan los servicios.</summary>
     private OperacionDeLaVuelta? _vuelta;
+    /// <summary>La operación de la segunda vuelta; nula hasta que llegan los servicios.</summary>
     private OperacionDeLaSegundaVuelta? _subida;
+    /// <summary>La única puerta de asignar y retirar, la misma de Asignar y Revisar; nula hasta que llegan los servicios.</summary>
     private OperacionDeAsignar? _reparto;
+    /// <summary>El último Excel generado, que es lo que abren «Abrir» y «Ver la carpeta»; nulo si todavía no hay ninguno.</summary>
     private string? _ultimoArchivo;
 
     /// <summary>Monta la pantalla y ata los dos bloques de resumen a sus controles.</summary>
@@ -95,6 +103,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     // ---- la segunda vuelta --------------------------------------------------
 
     /// <summary>Al elegir a quien se lo pasa se mira que subiria a su peldano.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlElegirAQuienSube(object quien, SelectionChangedEventArgs cuando)
         => ManejadorSeguro.Correr("Elegir quién recibe la segunda vuelta", Servicios, () =>
         {
@@ -124,6 +134,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     }
 
     /// <summary>Pide donde guardar y escribe el Excel de la segunda vuelta con su reporte.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerarLaSegundaVuelta(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar la segunda vuelta…", Servicios, GenerarLaSegundaVueltaAsync);
 
@@ -156,14 +168,20 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     }
 
     /// <summary>Abre o cierra el detalle de la segunda vuelta.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVerLaSubida(object quien, RoutedEventArgs cuando) => _resumenDeLaSubida.AlternarElDetalle();
 
     /// <summary>Cierra el resumen de la segunda vuelta.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCerrarLaSubida(object quien, RoutedEventArgs cuando) => _resumenDeLaSubida.Cerrar();
 
     // ---- la ida -------------------------------------------------------------
 
     /// <summary>Al elegir companero se lee lo que lleva y se enciende el boton.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlElegirAQuien(object quien, SelectionChangedEventArgs cuando)
         => ManejadorSeguro.Correr("Elegir compañero", Servicios, () =>
         {
@@ -199,6 +217,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     // ---- quitarle todos los casos -------------------------------------------
 
     /// <summary>Enseña cuantos se le van a quitar y espera; todavia no toca la base.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarQuitarleTodo(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Quitarle todos los casos", Servicios, () =>
         {
@@ -215,6 +235,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
         });
 
     /// <summary>Se echa atras: se cierra la franja y en la base no se ha escrito nada.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarNoQuitarNada(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("No quitar nada", Servicios, () =>
         {
@@ -224,6 +246,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
         });
 
     /// <summary>Ahora si: se le quitan todos, se dice cuantos y se vuelve a pintar lo que lleva.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarConfirmarElQuitar(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Quitárselos ahora", Servicios, () =>
         {
@@ -248,6 +272,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     }
 
     /// <summary>Pide donde guardar el Excel del companero elegido y lo genera.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarGenerar(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Generar el paquete…", Servicios, GenerarAsync);
 
@@ -284,10 +310,14 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     // ---- la vuelta ----------------------------------------------------------
 
     /// <summary>Al elegir de quien viene el Excel se enciende el boton de elegir archivo.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlElegirDeQuienViene(object quien, SelectionChangedEventArgs cuando)
         => _botonDeLaVuelta.IsEnabled = _deQuienViene.SelectedItem is Companero;
 
     /// <summary>Pide el Excel devuelto, lo lee, aplica sus marcas y lo dice en una linea.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarElegirElExcel(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Elegir el Excel devuelto…", Servicios, AplicarLaVueltaAsync);
 
@@ -331,6 +361,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     // ---- abrir --------------------------------------------------------------
 
     /// <summary>Abre el ultimo Excel generado con el programa que Windows tenga puesto.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarAbrir(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Abrir el Excel", Servicios, () =>
         {
@@ -339,6 +371,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
         });
 
     /// <summary>Abre en el Explorador la carpeta donde quedo el ultimo Excel.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarAbrirLaCarpeta(object quien, RoutedEventArgs cuando)
         => ManejadorSeguro.Correr("Ver la carpeta", Servicios, () =>
         {
@@ -349,15 +383,23 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     // ---- los dos resumenes --------------------------------------------------
 
     /// <summary>Abre o cierra el detalle de la ida.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVerLaIda(object quien, RoutedEventArgs cuando) => _resumenDeLaIda.AlternarElDetalle();
 
     /// <summary>Cierra el resumen de la ida.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCerrarLaIda(object quien, RoutedEventArgs cuando) => _resumenDeLaIda.Cerrar();
 
     /// <summary>Abre o cierra el detalle de la vuelta.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarVerLaVuelta(object quien, RoutedEventArgs cuando) => _resumenDeLaVuelta.AlternarElDetalle();
 
     /// <summary>Cierra el resumen de la vuelta.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarCerrarLaVuelta(object quien, RoutedEventArgs cuando) => _resumenDeLaVuelta.Cerrar();
 
     // ---- lo comun -----------------------------------------------------------
@@ -370,6 +412,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     /// que se midio en esta maquina el 2026-09-04, esta escrito en
     /// <see cref="SelectorDeArchivos"/>.
     /// </remarks>
+    /// <param name="nombrePropuesto">El nombre de archivo que el cuadro trae puesto.</param>
+    /// <returns>La ruta elegida, o nulo si se cerró sin elegir.</returns>
     private string? ElegirDondeGuardar(string nombrePropuesto)
         => PedirUnArchivo(
             "SELECTOR  se abre el de guardar el paquete",
@@ -378,6 +422,7 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
                 Servicios?.Argumentos.CarpetaDeDatos));
 
     /// <summary>El cuadro de «abrir» para el Excel que devolvio el companero.</summary>
+    /// <returns>La ruta elegida, o nulo si se cerró sin elegir.</returns>
     private string? ElegirElExcelDevuelto()
         => PedirUnArchivo(
             "SELECTOR  se abre el de elegir el Excel devuelto",
@@ -393,6 +438,9 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     /// encontro muertos los botones de Importar. Sin ellas, «no pasa nada al pulsar» y «se
     /// abrio y lo cerre sin querer» se leen igual desde fuera.
     /// </remarks>
+    /// <param name="queSeAbre">La línea que se anota en el cuaderno antes de abrir el cuadro.</param>
+    /// <param name="abrirElCuadro">Quien abre el cuadro sobre el asa de la ventana y devuelve lo elegido.</param>
+    /// <returns>Lo elegido; nulo si se cerró sin elegir o si no hay ventana principal.</returns>
     private string? PedirUnArchivo(string queSeAbre, Func<nint, string?> abrirElCuadro)
     {
         if (App.Ventana is null) return null;
@@ -406,6 +454,7 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     }
 
     /// <summary>Enciende «Abrir» y «Ver la carpeta» solo si de verdad hay archivo.</summary>
+    /// <param name="resumen">El resumen de la operación; su <c>Ruta</c> es nula cuando no se escribió nada.</param>
     private void GuardarQueArchivoSePuedeAbrir(ResumenEnPantalla resumen)
     {
         _ultimoArchivo = resumen.Ruta;
@@ -414,6 +463,8 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     }
 
     /// <summary>Dice la linea en el pie y la anota en el cuaderno; NO abre ningun cuadro.</summary>
+    /// <param name="linea">Lo que se dice.</param>
+    /// <param name="queFue">El rótulo del cuaderno: «PAQUETE», «VUELTA», «QUITAR»…</param>
     private void Acusar(string linea, string queFue)
     {
         (App.Ventana as VentanaPrincipal)?.AcuseDelPie.Decir(linea);
@@ -421,6 +472,7 @@ public sealed partial class PaginaDePaquetes : PaginaDeFichas
     }
 
     /// <summary>Deja el aviso en la franja si lo hay; si no lo hay, no molesta.</summary>
+    /// <param name="aviso">El aviso, o nulo cuando la acción salió bien.</param>
     private void DejarSiHayAviso(Aviso? aviso)
     {
         if (aviso is not null) Servicios?.Avisos.Dejar(aviso);

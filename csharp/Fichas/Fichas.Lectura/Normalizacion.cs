@@ -18,6 +18,10 @@ public static partial class Normalizacion
 {
     // --- Los patrones ------------------------------------------------------------
 
+    /// <summary>
+    /// Cuatro letras MAYÚSCULAS y cuatro dígitos, como palabra entera. Solo mayúsculas a
+    /// propósito: ver <see cref="NormalizarNumeroDeCaso"/>.
+    /// </summary>
     [GeneratedRegex(@"\b([A-Z]{4}[0-9]{4})\b")]
     private static partial Regex PatronNumeroDeCaso();
 
@@ -29,15 +33,25 @@ public static partial class Normalizacion
     [GeneratedRegex(@"\b([0-9]{3})-([0-9]{4})-([0-9]{3}[0-9A-Za-z])\b")]
     private static partial Regex PatronCedula();
 
+    /// <summary>
+    /// Seis dígitos O MÁS seguidos. El «o más» no es descuido: captura la cifra entera para
+    /// que <see cref="LargosDeUnidad"/> la rechace si es de 8, en vez de recortarla a 7.
+    /// </summary>
     [GeneratedRegex(@"\b([0-9]{6,})\b")]
     private static partial Regex PatronUnidad();
 
+    /// <summary>Uno o más blancos seguidos, para dejarlos en un solo espacio.</summary>
     [GeneratedRegex(@"\s+")]
     private static partial Regex EspaciosSeguidos();
 
+    /// <summary>Año-mes-día con cuatro cifras de año delante, separado por guion, barra o punto: «2026-09-08».</summary>
     [GeneratedRegex(@"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b")]
     private static partial Regex FechaIso();
 
+    /// <summary>
+    /// Dos números de una o dos cifras y un año de cuatro: «08-09-2026». Cuál es el día y
+    /// cuál el mes lo decide <see cref="DiaYMesSinAdivinar"/>, no el patrón.
+    /// </summary>
     [GeneratedRegex(@"\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})\b")]
     private static partial Regex FechaEnNumeros();
 
@@ -62,6 +76,8 @@ public static partial class Normalizacion
     /// haber leido mal tambien las cifras, y forzarlo a `CASP` esconderia el problema en
     /// vez de mandarlo a revision.
     /// </remarks>
+    /// <param name="texto">Lo leído o lo escrito; puede traer más cosas alrededor, se busca dentro.</param>
+    /// <returns>El primer número de caso con forma que aparezca, o nulo.</returns>
     public static string? NormalizarNumeroDeCaso(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto)) return null;
@@ -90,6 +106,8 @@ public static partial class Normalizacion
     /// un dato (regla permanente 1), y una cedula inventada manda a una persona al templo
     /// con la recomendacion equivocada.</para>
     /// </remarks>
+    /// <param name="texto">Lo leído o lo escrito; puede traer el nombre u otras cosas alrededor.</param>
+    /// <returns>La primera cédula con forma, reconstruida con sus dos guiones, o nulo.</returns>
     public static string? NormalizarCedula(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto)) return null;
@@ -122,6 +140,8 @@ public static partial class Normalizacion
     /// <c>Extraccion.NormalizadorDe</c>. Un nombre escrito a mano no trae una cedula dentro,
     /// y quitarle algo a lo que una persona escribio seria otra cosa.</para>
     /// </remarks>
+    /// <param name="texto">El renglón entero de la persona tal como lo leyó el OCR.</param>
+    /// <returns>El texto sin ninguna cédula con forma y sin los separadores que quedan en los bordes, o nulo si no queda nada.</returns>
     public static string? NombreSinLaCedula(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto)) return null;
@@ -140,6 +160,8 @@ public static partial class Normalizacion
     /// Una cifra de otro largo NO se recorta ni se rellena: vuelve nula y el texto crudo
     /// viaja aparte para que se vea que habia algo.
     /// </remarks>
+    /// <param name="texto">La banda de la unidad entera: nombre y número vienen pegados en una línea.</param>
+    /// <returns>El número si tiene 6 o 7 dígitos, y el resto del texto como nombre; sin cifra, todo el texto es el nombre.</returns>
     public static (string? Numero, string? Nombre) NormalizarUnidad(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto)) return (null, null);
@@ -165,9 +187,11 @@ public static partial class Normalizacion
     /// formularios reales: hay anotaciones que reescriben el nombre y dejan el numero
     /// como estaba.
     /// </remarks>
+    /// <param name="texto">La banda de la unidad, o solo una cifra escrita a mano.</param>
     public static string? NormalizarNumeroDeUnidad(string? texto) => NormalizarUnidad(texto).Numero;
 
     /// <summary>Solo el nombre de la unidad, sin su numero, o nulo.</summary>
+    /// <param name="texto">La banda de la unidad, o solo un nombre escrito a mano.</param>
     public static string? NormalizarNombreDeUnidad(string? texto) => NormalizarUnidad(texto).Nombre;
 
     // --- Templo ------------------------------------------------------------------
@@ -181,6 +205,8 @@ public static partial class Normalizacion
     /// decision del dueno que todavia no ha tomado, y hasta entonces un templo mal leido
     /// tiene que verse mal leido y no convertido en otro que si esta en la lista.
     /// </remarks>
+    /// <param name="texto">Lo leído en la banda del templo o lo escrito a mano.</param>
+    /// <returns>El mismo texto recortado y con un solo espacio entre palabras, o nulo si estaba en blanco.</returns>
     public static string? NormalizarNombreDelTemplo(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto)) return null;
@@ -190,6 +216,11 @@ public static partial class Normalizacion
 
     // --- Fecha -------------------------------------------------------------------
 
+    /// <summary>
+    /// Cada nombre o abreviatura de mes, en español y en inglés, con su número. Sin
+    /// distinguir mayúsculas. «may» y «mar» sirven a los dos idiomas; «setiembre» está
+    /// porque se escribe así en parte de América.
+    /// </summary>
     private static readonly Dictionary<string, int> Meses = new(StringComparer.OrdinalIgnoreCase)
     {
         ["enero"] = 1, ["ene"] = 1, ["january"] = 1, ["jan"] = 1,
@@ -206,8 +237,14 @@ public static partial class Normalizacion
         ["diciembre"] = 12, ["dic"] = 12, ["december"] = 12, ["dec"] = 12,
     };
 
+    /// <summary>El sufijo ordinal inglés que puede seguir al día («2nd», «8th»), opcional. Se casa y se tira.</summary>
     private const string SufijoOrdinal = "(?:st|nd|rd|th)?";
 
+    /// <summary>
+    /// Las claves de <see cref="Meses"/> como alternativa de expresión regular, las más
+    /// largas primero: si «sep» fuera antes que «september», el motor se quedaría con las
+    /// tres letras y el resto de la palabra rompería el patrón.
+    /// </summary>
     private static readonly string NombresDeMes =
         string.Join("|", Meses.Keys.OrderByDescending(nombre => nombre.Length));
 
@@ -231,6 +268,10 @@ public static partial class Normalizacion
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>La fecha en ISO-8601, o nula si el dia no existe en ese mes.</summary>
+    /// <param name="anio">De 1 a 9999; fuera de eso, nulo.</param>
+    /// <param name="mes">De 1 a 12; fuera de eso, nulo.</param>
+    /// <param name="dia">Se comprueba contra los días reales de ese mes y año, bisiestos incluidos.</param>
+    /// <returns>«aaaa-MM-dd» en cultura invariante, o nulo. Nunca lanza por una fecha imposible.</returns>
     private static string? FechaIso8601(int anio, int mes, int dia)
     {
         if (mes < 1 || mes > 12 || anio < 1 || anio > 9999) return null;
@@ -249,6 +290,9 @@ public static partial class Normalizacion
     /// acertaria la mayoria de las veces; las que fallara mueven una fecha de viaje
     /// varios meses, y es la fecha que decide si un caso sale avisado a tiempo.
     /// </remarks>
+    /// <param name="primero">El número que va antes del primer separador.</param>
+    /// <param name="segundo">El número que va después.</param>
+    /// <returns>El par (día, mes) cuando uno de los dos no puede ser mes; nulo cuando los dos podrían serlo.</returns>
     private static (int Dia, int Mes)? DiaYMesSinAdivinar(int primero, int segundo)
     {
         if (primero > 12 && segundo <= 12) return (primero, segundo);
@@ -262,7 +306,10 @@ public static partial class Normalizacion
     /// <remarks>
     /// Se juntan todas las que aparezcan y solo vale si todas dicen lo mismo: dos fechas
     /// distintas en la misma banda son un rango, y un rango no dice cuando se viaja.
+    /// <para>Una sola fecha ambigua en cifras («05-10-2027») anula el resultado entero,
+    /// aunque al lado hubiera una en ISO clara: no se puede afirmar que las dos digan lo mismo.</para>
     /// </remarks>
+    /// <param name="texto">La banda entera; no nulo, quien llama ya lo comprobó.</param>
     private static string? FechaEnCifras(string texto)
     {
         var encontradas = new HashSet<string>(StringComparer.Ordinal);
@@ -290,6 +337,8 @@ public static partial class Normalizacion
     /// de rangos casa con «14-03-2027» —dos numeros de dos cifras con un guion en medio—
     /// y sin esto se comeria todas las fechas del formulario espanol dandolas por rangos.
     /// </remarks>
+    /// <param name="texto">La banda de la fecha o lo escrito a mano; puede traer texto alrededor.</param>
+    /// <returns>«aaaa-MM-dd», o nulo si no hay fecha, hay un rango, la fecha es ambigua o el día no existe.</returns>
     public static string? NormalizarFecha(string? texto)
     {
         if (string.IsNullOrWhiteSpace(texto)) return null;

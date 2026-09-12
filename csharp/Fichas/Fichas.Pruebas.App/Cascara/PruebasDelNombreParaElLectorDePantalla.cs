@@ -115,9 +115,13 @@ public sealed class PruebasDelNombreParaElLectorDePantalla
     private static bool EsUnGlifoYNoUnaPalabra(string contenido)
         => contenido.Length > 0 && !contenido.Any(char.IsLetter);
 
+    /// <summary>Si el nodo es uno de los controles con los que se interactúa y que por eso necesitan nombre.</summary>
+    /// <param name="elemento">El nodo del XAML.</param>
     private static bool EsUnControlQueSeUsa(XElement elemento)
         => ControlesQueNecesitanNombre.Contains(elemento.Name.LocalName, StringComparer.Ordinal);
 
+    /// <summary>Si el nodo es un botón de cualquier clase (<c>Button</c>, <c>ToggleButton</c>…), sin contar las propiedades adjuntas con punto.</summary>
+    /// <param name="elemento">El nodo del XAML.</param>
     private static bool EsUnBoton(XElement elemento)
         => !elemento.Name.LocalName.Contains('.', StringComparison.Ordinal)
            && elemento.Name.LocalName.EndsWith("Button", StringComparison.Ordinal);
@@ -127,6 +131,8 @@ public sealed class PruebasDelNombreParaElLectorDePantalla
         => !string.IsNullOrWhiteSpace(control.Attribute("AutomationProperties.Name")?.Value)
            || !string.IsNullOrWhiteSpace(control.Attribute("Header")?.Value);
 
+    /// <summary>Cómo nombrar el control en el mensaje de fallo: su <c>x:Name</c>, o su clase si no tiene.</summary>
+    /// <param name="control">El nodo del XAML.</param>
     private static string ComoSeLeConoce(XElement control)
     {
         var equis = control.Attribute(

@@ -28,8 +28,11 @@ namespace Fichas.App.Paquetes;
 /// </remarks>
 public sealed class LimpiezaAlVolver
 {
+    /// <summary>Por donde se leen las asignaciones vivas del compañero.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>Por donde se lee qué dijo el compañero de cada caso.</summary>
     private readonly ICasos _casos;
+    /// <summary>La única puerta de retirar, la misma del botón de Asignar.</summary>
     private readonly OperacionDeAsignar _reparto;
 
     /// <summary>Se ata a los dos puertos que hacen falta para leer, y a la puerta de retirar.</summary>
@@ -38,6 +41,9 @@ public sealed class LimpiezaAlVolver
     /// alguien al volver el paquete tiene que dejar la base igual que quitarselo a mano desde
     /// Asignar, y dos caminos distintos se separan solos.
     /// </remarks>
+    /// <param name="asignaciones">Repositorio de asignaciones.</param>
+    /// <param name="casos">Repositorio de casos.</param>
+    /// <param name="reparto">La operación de asignar, por la que se retira.</param>
     public LimpiezaAlVolver(IAsignaciones asignaciones, ICasos casos, OperacionDeAsignar reparto)
     {
         _asignaciones = asignaciones;
@@ -57,7 +63,13 @@ public sealed class LimpiezaAlVolver
     ///
     /// <para>Un companero sin nada completo devuelve un resumen de cero y no toca la base: es
     /// el caso normal y no tiene por que escribir nada.</para>
+    /// <para>Es la decisión del dueño del 2026-09-07 («cuando él sube un paquete que completó,
+    /// debe quitarle que ese caso está asignado a él»); la asignación se desactiva con fecha y
+    /// nunca se borra, el mismo gesto que archivar hace desde el 2026-09-11 (DECISIONES.md,
+    /// «ARCHIVAR LE QUITA EL DOCUMENTO AL AGENTE»).</para>
     /// </remarks>
+    /// <param name="companero">El compañero cuyo paquete acaba de volver.</param>
+    /// <returns>Cuántas asignaciones se retiraron y de cuántos casos; cero y cero si no devolvió nada completo.</returns>
     public ResumenDeRetirada QuitarleLoQueDevolvioCompleto(Companero companero)
     {
         ArgumentNullException.ThrowIfNull(companero);

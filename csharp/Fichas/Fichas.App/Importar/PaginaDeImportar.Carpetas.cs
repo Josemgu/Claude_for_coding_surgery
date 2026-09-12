@@ -1,7 +1,6 @@
 using Fichas.App.Cascara;
 using Fichas.App.Revisar;
 using Fichas.Contratos.Modelos;
-using Fichas.Contratos.Puertos;
 using Fichas.Reportes.Reglas;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -26,9 +25,13 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed partial class PaginaDeImportar
 {
+    /// <summary>El resumen de la última tanda importada, de donde salen los casos y las rutas; nulo hasta que acabe una.</summary>
     private ResumenDeLaTanda? _ultimaTanda;
+    /// <summary>El camino único de borrar documentos, el mismo de Revisar y Asignar; se crea al pintar la primera vez.</summary>
     private OperacionDeBorrar? _borrar;
+    /// <summary>El borrado de renglones de PDF ilegibles; nulo mientras no haya base de verdad (con «--falso» se queda apagado).</summary>
     private OperacionDeBorrarLosPdfIlegibles? _borrarLosPdfIlegibles;
+    /// <summary>El cerrojo contra dos cuadros sobre la misma raíz visual, que tumban la ventana.</summary>
     private bool _hayUnCuadroAbierto;
 
     /// <summary>
@@ -38,6 +41,7 @@ public sealed partial class PaginaDeImportar
     /// Se rehacen enteras y no se van tocando: despues de borrar, una lista que conservara
     /// renglones de documentos que ya no estan dejaria pulsar «borrar» sobre un caso muerto.
     /// </remarks>
+    /// <param name="servicios">Los puertos de la ventana, ya montados.</param>
     private void PintarLoDeDespuesDeLaTanda(Cascara.Servicios servicios)
     {
         _borrar ??= new OperacionDeBorrar(servicios.Mantenimiento, servicios.Avisos, servicios.Registro);
@@ -56,6 +60,11 @@ public sealed partial class PaginaDeImportar
     }
 
     /// <summary>Las carpetas que la tanda va a formar en Revisar, con su cifra.</summary>
+    /// <remarks>
+    /// Es la petición 6 del dueño del 2026-09-07: editar en Importar las carpetas que se
+    /// verán en Revisar, «porque a veces el sistema no pone los nombres de manera correcta».
+    /// </remarks>
+    /// <param name="servicios">Por donde se releen los casos de la tanda.</param>
     private void PintarLasCarpetas(Cascara.Servicios servicios)
     {
         var carpetas = CarpetasDeLaTanda.Componer(CasosDeLaTanda(servicios));
@@ -73,6 +82,7 @@ public sealed partial class PaginaDeImportar
     }
 
     /// <summary>Lo que entro sin ninguna persona, en dos listas separadas.</summary>
+    /// <param name="servicios">Por donde se cuentan las personas y se leen los renglones de ilegibles.</param>
     private void PintarLoQueNoTraeNadie(Cascara.Servicios servicios)
     {
         var sinInformacion = LoQueEntroSinInformacion.Ver(
@@ -110,6 +120,7 @@ public sealed partial class PaginaDeImportar
     /// <para>⛔ Y se dice, antes de marcar nada, que el PDF del disco se queda:
     /// <see cref="TextosDeBorrarLosPdfIlegibles.LoQueNoSeBorra"/>.</para>
     /// </remarks>
+    /// <param name="sinInformacion">Las dos listas ya calculadas; aquí solo se usa la de renglones sin caso.</param>
     private void PintarLosPdfQueNoDejaronNada(LoQueNoTraeAnadie sinInformacion)
     {
         _listaDeLosPdfIlegibles.ItemsSource = sinInformacion.RenglonesSinCaso;
@@ -135,6 +146,8 @@ public sealed partial class PaginaDeImportar
     /// dueno ya puede haber corregido una carpeta: la lista tiene que decir lo que hay, no
     /// lo que habia.
     /// </remarks>
+    /// <param name="servicios">Por donde se lee cada caso.</param>
+    /// <returns>Los que siguen en la base; vacía si no hubo tanda o ya se borraron todos.</returns>
     private IReadOnlyList<Caso> CasosDeLaTanda(Cascara.Servicios servicios)
         => [.. (_ultimaTanda?.CasosDeLaTanda ?? [])
                 .Select(servicios.Casos.Obtener)
@@ -142,6 +155,8 @@ public sealed partial class PaginaDeImportar
                 .Select(caso => caso!)];
 
     /// <summary>Llena las tres cajas con lo que la carpeta elegida tiene hoy.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlElegirUnaCarpeta(object quien, SelectionChangedEventArgs cuando)
         => SinTragarseNada("Elegir una carpeta", () =>
         {
@@ -160,10 +175,14 @@ public sealed partial class PaginaDeImportar
         });
 
     /// <summary>Quita la fecha del calendario; la carpeta pasa a la de «sin fecha de viaje».</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlQuitarLaFechaDeLaCarpeta(object quien, RoutedEventArgs cuando)
         => SinTragarseNada("Dejarla sin fecha", () => _fechaDeLaCarpeta.Date = null);
 
     /// <summary>Escribe la fecha y la unidad en todos los documentos de la carpeta elegida.</summary>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCorregirLaCarpeta(object quien, RoutedEventArgs cuando)
         => SinTragarseNada("Guardar el nombre de la carpeta", () =>
         {
@@ -182,6 +201,9 @@ public sealed partial class PaginaDeImportar
         });
 
     /// <summary>Deja en la franja, en el pie y en el cuaderno lo que paso al corregir.</summary>
+    /// <param name="servicios">Por donde se llega a la franja y al cuaderno.</param>
+    /// <param name="resultado">Lo que devolvió <see cref="CarpetasDeLaTanda.Corregir"/>.</param>
+    /// <param name="carpeta">La carpeta que se corrigió, para nombrarla en la línea.</param>
     private static void Decir(
         Cascara.Servicios servicios, ResultadoDeLaCorreccion resultado, CarpetaDeLaTanda carpeta)
     {
@@ -213,6 +235,8 @@ public sealed partial class PaginaDeImportar
     /// El cerrojo no es un adorno: dos pulsaciones seguidas levantan dos cuadros sobre la
     /// misma raiz visual y eso tumba la ventana. Es lo mismo que hace Revisar.
     /// </remarks>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private async void AlBorrarLoQueNoTraeNadie(object quien, RoutedEventArgs cuando)
         => await SinTragarseNadaAsync("Borrar los marcados", async () =>
         {
@@ -249,6 +273,8 @@ public sealed partial class PaginaDeImportar
     /// la misma raíz visual tumban la ventana. Aquí importa más todavía, porque ahora hay
     /// dos botones en la misma zona que pueden abrir uno.
     /// </remarks>
+    /// <param name="quien">El control que disparó el evento; no se usa.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
     private async void AlBorrarLosPdfIlegibles(object quien, RoutedEventArgs cuando)
         => await SinTragarseNadaAsync("Borrar los PDF que no se pudieron leer", async () =>
         {

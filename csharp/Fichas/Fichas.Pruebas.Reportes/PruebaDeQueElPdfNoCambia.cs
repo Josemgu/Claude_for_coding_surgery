@@ -61,10 +61,14 @@ public class PruebaDeQueElPdfNoCambia
     // son los tres valores de abajo, en el MISMO commit que mueve el informe.
     // ─────────────────────────────────────────────────────────────────────────────────────
 
+    /// <summary>La SHA-256 del PDF del periodo, medida el 2026-09-08 tras partir la unidad en dos columnas.</summary>
     private const string HuellaDelPeriodo = "a8cb023f44da1ab7bc7b6a2cb7804cf77cfdb72612c35f9cd06f5315e50a8b8c";
+    /// <summary>La SHA-256 del PDF del histórico, medida el mismo día.</summary>
     private const string HuellaDelHistorico = "9508588f9afc32b6653222b58ad036a9f0838176e93ba3812d2e1724b2adc122";
+    /// <summary>La SHA-256 del PDF del informe de agente, medida el mismo día y ya con lo retirado dentro.</summary>
     private const string HuellaDelInformeDeAgente = "c515723aa2d13a082a94cf441cb677035a0cb57b8563e37f81bb5d4ed5106bb3";
 
+    /// <summary>Vigila que el PDF del periodo da la misma huella SHA-256 que la medida.</summary>
     [TestMethod]
     public void ElPdfDelPeriodoSigueSiendoElMismoByteAByte()
     {
@@ -75,6 +79,7 @@ public class PruebaDeQueElPdfNoCambia
             HuellaDelPeriodo);
     }
 
+    /// <summary>Vigila que el PDF del histórico da la misma huella SHA-256 que la medida.</summary>
     [TestMethod]
     public void ElPdfDelHistoricoSigueSiendoElMismoByteAByte()
     {
@@ -82,6 +87,7 @@ public class PruebaDeQueElPdfNoCambia
         ComprobarLaHuella(ruta => reportes.GenerarHistorico(ruta), "historico", HuellaDelHistorico);
     }
 
+    /// <summary>Vigila que el PDF del informe de agente da la misma huella SHA-256 que la medida.</summary>
     [TestMethod]
     public void ElPdfDelInformeDeAgenteSigueSiendoElMismoByteAByte()
     {
@@ -95,6 +101,8 @@ public class PruebaDeQueElPdfNoCambia
 
     // ---- el andamio ---------------------------------------------------------
 
+    /// <summary>El motor sobre la base falsa de 300 casos con reloj fijo.</summary>
+    /// <param name="servicios">Los servicios falsos, por si la prueba necesita mirar dentro.</param>
     private static ReportesEnPdf Montar(out ServiciosFalsos servicios)
     {
         servicios = BaseDePrueba.Montar(CuantosCasos);
@@ -104,12 +112,17 @@ public class PruebaDeQueElPdfNoCambia
     }
 
     /// <summary>El companero de numero interno mas bajo; con la misma semilla, siempre el mismo.</summary>
+    /// <param name="servicios">Los servicios falsos montados.</param>
     private static long PrimerCompanero(ServiciosFalsos servicios)
         => servicios.Companeros
             .Listar(new FiltroDeCompaneros(SoloActivos: false), new Pagina(0, int.MaxValue))
             .Elementos.OrderBy(c => c.Id).First().Id;
 
     /// <summary>Genera el PDF, saca su SHA-256 y lo compara con el que estaba medido.</summary>
+    /// <remarks>El archivo se borra siempre, pase o no; el mensaje de fallo trae la huella nueva para copiarla si el cambio es a propósito.</remarks>
+    /// <param name="generar">Cómo se genera el PDF en una ruta dada.</param>
+    /// <param name="nombre">Cómo se llama en el mensaje y en el archivo temporal.</param>
+    /// <param name="huellaEsperada">La SHA-256 medida, en hexadecimal minúsculo.</param>
     private static void ComprobarLaHuella(
         Func<string, Fichas.Contratos.Consultas.ResultadoDeEscritura> generar, string nombre, string huellaEsperada)
     {

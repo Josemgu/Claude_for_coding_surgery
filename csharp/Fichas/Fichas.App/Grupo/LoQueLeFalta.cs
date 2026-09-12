@@ -172,12 +172,21 @@ public static class LoQueLeFalta
     /// Existe para no arrastrar tres argumentos iguales por cada campo: la procedencia, la
     /// tabla y el id no cambian dentro de un mismo registro.
     /// </remarks>
+    /// <param name="Procedencias">La pasada de procedencia a la que se pregunta.</param>
+    /// <param name="Tabla">Si la fila es del caso o de una persona.</param>
+    /// <param name="Id">El número interno de la fila.</param>
     private readonly record struct Registro(
         ProcedenciasDeUnaPasada Procedencias, TablaDeProcedencia Tabla, long Id);
 
     /// <summary>
     /// Anade el rotulo si a ese campo hay que mirarlo, preguntandolo donde lo pregunta Correccion.
     /// </summary>
+    /// <param name="falta">La lista donde se añade el rótulo si hay que mirarlo.</param>
+    /// <param name="registro">La fila a la que pertenece el campo.</param>
+    /// <param name="rotulo">Cómo se llama el campo en la pantalla.</param>
+    /// <param name="columna">Cómo se llama en la base.</param>
+    /// <param name="valor">Lo que hay guardado.</param>
+    /// <param name="motivo">La regla de forma: devuelve nulo si el valor cumple, o por qué no.</param>
     private static void Mirar(
         List<string> falta,
         Registro registro,
@@ -192,9 +201,11 @@ public static class LoQueLeFalta
     }
 
     /// <summary>Los campos que no tienen forma obligatoria: cualquier texto no vacio vale.</summary>
+    /// <param name="valor">Se ignora: no hay forma que comprobar.</param>
     private static string? SiempreVale(string? valor) => null;
 
     /// <summary>Como se nombra a una persona en la lista de lo que falta, sin inventar nada.</summary>
+    /// <param name="persona">La persona de la que se habla.</param>
     private static string DeQuien(Persona persona)
         => string.IsNullOrWhiteSpace(persona.Nombre)
             ? $"la fila {persona.FilaFormulario ?? 0}"

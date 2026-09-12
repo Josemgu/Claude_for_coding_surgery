@@ -63,15 +63,25 @@ public sealed record Deteccion(
 /// </remarks>
 public static class Metricas
 {
+    /// <summary>
+    /// La forma exacta con la que la base guarda <c>creado_en</c> y <c>verificado_en</c>. Una
+    /// marca que no encaje con ella no se lee: se descarta y se cuenta aparte.
+    /// </summary>
     private const string FormatoDeMarcaDeTiempo = "yyyy-MM-dd HH:mm:ss";
+    /// <summary>Cuántos caracteres ocupa el «AAAA-MM-DD» al principio de una marca de tiempo.</summary>
     private const int LargoDeLaFecha = 10;
 
     /// <summary>Dice si a ese caso no le queda ni un campo por verificar.</summary>
+    /// <remarks>Un caso sin ningún campo no cuenta como verificado: cero de cero no es «todo hecho».</remarks>
+    /// <param name="caso">El caso con su recuento de campos y de campos verificados.</param>
     public static bool CasoVerificado(CasoConSuVerificacion caso)
         => caso.Campos > 0 && caso.CamposVerificados == caso.Campos;
 
     /// <summary>Metrica 1: los casos que quedaron verificados dentro del periodo.</summary>
     /// <remarks>Se ordenan por el instante en que se terminaron, que es como se lee trabajo hecho.</remarks>
+    /// <param name="casos">Todos los casos leídos, con su verificación; aquí se filtran.</param>
+    /// <param name="periodo">El periodo que se reporta; se compara contra <c>verificado_en</c>.</param>
+    /// <returns>Los verificados dentro del periodo, del primero al último en terminarse; vacía si ninguno.</returns>
     public static IReadOnlyList<CasoConSuVerificacion> CasosVerificadosEnElPeriodo(
         IReadOnlyList<CasoConSuVerificacion> casos, Periodo periodo)
         => casos
@@ -89,6 +99,9 @@ public static class Metricas
     /// un reloj que se movio, y meterla en la media bajaria el promedio de todos los demas sin
     /// que nadie sepa por que.
     /// </remarks>
+    /// <param name="casos">Todos los casos leídos, con su verificación.</param>
+    /// <param name="periodo">El periodo que se reporta; se compara contra <c>verificado_en</c>.</param>
+    /// <returns>La demora medida; con cero casos medidos y los tres tiempos nulos si no se pudo medir ninguno.</returns>
     public static Demora DemoraDeImportarAVerificar(
         IReadOnlyList<CasoConSuVerificacion> casos, Periodo periodo)
     {
@@ -124,6 +137,9 @@ public static class Metricas
     /// cercano a «cuando alguien miro esto» que la base guarda hoy. Un caso sin ningun campo
     /// verificado no tiene fecha de deteccion y sale en su propio numero, no repartido.
     /// </remarks>
+    /// <param name="casos">Todos los casos leídos, con su verificación.</param>
+    /// <param name="periodo">El periodo que se reporta; se compara contra <c>fecha_viaje</c>.</param>
+    /// <returns>Los cinco cubos excluyentes, que suman los casos del periodo.</returns>
     public static Deteccion DeteccionAntesDelViaje(
         IReadOnlyList<CasoConSuVerificacion> casos, Periodo periodo)
     {
@@ -152,6 +168,8 @@ public static class Metricas
     }
 
     /// <summary>En cual de los cinco cubos cae un caso del periodo. Uno y solo uno.</summary>
+    /// <param name="caso">Un caso cuya fecha de viaje ya se sabe que cae en el periodo.</param>
+    /// <returns>La clave del cubo: <c>sin_estado</c>, <c>resuelta</c>, <c>sin_fecha_de_deteccion</c>, <c>a_tiempo</c> o <c>tarde</c>.</returns>
     private static string Clasificar(CasoConSuVerificacion caso)
     {
         if (Estados.SinEstadoEscrito(caso.Caso.EstadoRecomendacion)) return "sin_estado";
@@ -169,6 +187,9 @@ public static class Metricas
     /// como si el caso se hubiera verificado al instante, que es una cifra inventada. Sin fecha
     /// legible el caso se descarta y se cuenta aparte.
     /// </remarks>
+    /// <param name="creadoEn">La marca de importación, con hora.</param>
+    /// <param name="verificadoEn">La marca en que se terminó de verificar, con hora.</param>
+    /// <returns>Las horas de la primera a la segunda; negativas si el reloj se movió, nulo si alguna no se lee.</returns>
     private static double? HorasEntre(string? creadoEn, string? verificadoEn)
     {
         if (!DateTime.TryParseExact(creadoEn, FormatoDeMarcaDeTiempo, CultureInfo.InvariantCulture,
@@ -185,6 +206,8 @@ public static class Metricas
     }
 
     /// <summary>El dia de una marca de tiempo, para compararlo con una fecha de viaje.</summary>
+    /// <param name="marca">Una marca «AAAA-MM-DD HH:mm:ss», o nula.</param>
+    /// <returns>Los diez primeros caracteres, o nulo si la marca es nula o más corta que una fecha.</returns>
     private static string? DiaDe(string? marca)
         => marca is null || marca.Length < LargoDeLaFecha ? null : marca[..LargoDeLaFecha];
 }

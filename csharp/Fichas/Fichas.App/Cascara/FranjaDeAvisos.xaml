@@ -60,6 +60,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <TextBlock
@@ -78,15 +79,31 @@
                     TextTrimming="CharacterEllipsis"
                     TextWrapping="NoWrap" />
 
+                <!--
+                    EL BOTON DEL AVISO. Solo lo trae un aviso que se dejo con una accion
+                    (BuzonDeAvisos.Dejar(aviso, accion)); hoy, unicamente «Hay una version
+                    nueva: v12» con «Actualizar ahora» (2026-09-11). El rotulo lo pone el
+                    aviso; aqui no hay texto escrito. Es el boton principal de la franja porque
+                    es el unico que hace algo mas que ensenar o cerrar.
+                -->
+                <Button
+                    x:Name="_botonDeAccion"
+                    Grid.Column="2"
+                    AutomationProperties.AutomationId="botonDeAccionDelAviso"
+                    AutomationProperties.Name="Acción del aviso"
+                    Click="AlPulsarLaAccion"
+                    Style="{ThemeResource AccentButtonStyle}"
+                    Visibility="Collapsed" />
+
                 <Button
                     x:Name="_botonDeVer"
-                    Grid.Column="2"
+                    Grid.Column="3"
                     Click="AlPulsarVer"
                     Content="ver" />
 
                 <Button
                     x:Name="_botonDeCerrarTodo"
-                    Grid.Column="3"
+                    Grid.Column="4"
                     Click="AlPulsarCerrarTodo"
                     Content="cerrar todo"
                     Visibility="Collapsed" />
@@ -98,7 +115,7 @@
                     solo existe cuando hay un aviso puesto, que es el estado que nadie mira.
                 -->
                 <Button
-                    Grid.Column="4"
+                    Grid.Column="5"
                     AutomationProperties.Name="Cerrar este aviso"
                     Click="AlPulsarCerrar"
                     Content="&#xE711;"

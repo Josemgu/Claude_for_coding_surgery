@@ -1,5 +1,4 @@
 using Fichas.App.Importar;
-using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 using Fichas.Datos.Mantenimiento;
 
@@ -214,6 +213,9 @@ public sealed class PruebasDeLoQueEntroSinInformacion : BaseDeImportacion
     // ==================================================================
 
     /// <summary>Un caso con tantas personas como se le diga; cero es un dato, no un descuido.</summary>
+    /// <param name="numeroCaso">El número de caso; también nombra su PDF de mentira y a sus personas.</param>
+    /// <param name="cuantasPersonas">Cuántas personas se le cuelgan.</param>
+    /// <returns>El id del caso; falla la prueba si algo no entró.</returns>
     private long SembrarCasoConPersonas(string numeroCaso, int cuantasPersonas)
     {
         var caso = Datos.Casos.Guardar(new Caso
@@ -243,6 +245,9 @@ public sealed class PruebasDeLoQueEntroSinInformacion : BaseDeImportacion
     }
 
     /// <summary>Un renglón de lo que no se pudo leer, con o sin caso detrás.</summary>
+    /// <param name="rutaPdf">El PDF del renglón.</param>
+    /// <param name="casoId">El caso al que apunta, o nulo para un PDF que no dejó documento.</param>
+    /// <returns>El id del renglón; falla la prueba si no entró.</returns>
     private long SembrarRenglon(string rutaPdf, long? casoId)
     {
         var escrito = Datos.Ilegibles.Registrar(new RenglonIlegible

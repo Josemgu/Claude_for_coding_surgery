@@ -126,6 +126,7 @@ public sealed class PruebasSinCuadrosEnReportesYPaquetes
     /// No pretende ser un analizador de C#: no hace falta. Lo unico que tiene que conseguir es
     /// que una palabra que solo aparece EXPLICADA no cuente como una palabra USADA.
     /// </remarks>
+    /// <param name="texto">El archivo entero, C# o XAML.</param>
     private static string SinComentarios(string texto)
     {
         var sinBloques = System.Text.RegularExpressions.Regex.Replace(

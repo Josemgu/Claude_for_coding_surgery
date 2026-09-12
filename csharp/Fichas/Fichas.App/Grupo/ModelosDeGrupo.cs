@@ -23,6 +23,8 @@ public static class PalabrasDelEstado
     /// Las tres frases son las del dueno, literales: «no completado», «no se pudo
     /// comunicar con el líder», «el líder no lo hizo» (criterio C13-4).
     /// </remarks>
+    /// <param name="estado">Lo que dice <c>casos.estado_recomendacion</c>.</param>
+    /// <param name="motivo">Por qué no está completa; solo cuenta con «no completa».</param>
     public static string Decir(EstadoDeRecomendacion estado, MotivoDeNoCompletar motivo)
     {
         if (estado == EstadoDeRecomendacion.Completa) return "completa";
@@ -38,6 +40,7 @@ public static class PalabrasDelEstado
     }
 
     /// <summary>El motivo suelto, para el resumen de un grupo entero.</summary>
+    /// <param name="motivo">El motivo que se dice.</param>
     public static string DecirElMotivo(MotivoDeNoCompletar motivo) => motivo switch
     {
         MotivoDeNoCompletar.NoSePudoComunicar => "no se pudo comunicar con el líder",
@@ -148,24 +151,6 @@ public sealed record PersonaDelGrupo(
     /// </remarks>
     public bool SinNingunaPersonaLeida => PersonaId == 0;
 
-    /// <summary>Lo que se lee del DOCUMENTO de esta persona; no es el estado de ella.</summary>
-    /// <remarks>
-    /// ⛔ Es la OTRA pregunta —la que contesta el programa mirando nuestros campos y lo que
-    /// dijo el companero— y no se mezcla con <see cref="Lectura"/>, que es la de la persona.
-    /// Se compone en un solo sitio: compuesta en dos, acaba diciendo dos cosas del mismo
-    /// documento.
-    /// </remarks>
-    public LoQueSeLeeDeUnDocumento LecturaDelDocumento => LoQueSeLeeDeUnDocumento.De(
-        EstadoDelDocumento,
-        archivado: false,
-        CuantoLeFalta,
-        SinNingunaPersonaLeida,
-        quienLoLleva: Dueno,
-        firma: string.Empty,
-        motivo: Motivo == MotivoDeNoCompletar.SinMotivo
-            ? string.Empty
-            : PalabrasDelEstado.DecirElMotivo(Motivo));
-
     /// <summary>
     /// Que le falta al DOCUMENTO y a quien le toca, ya en palabras.
     /// </summary>
@@ -183,8 +168,8 @@ public sealed record PersonaDelGrupo(
     /// entra cuando ya ha preguntado —eligio un dia y un grupo—, y es donde marca el telefono.
     /// El clic que ahorra el detalle es el de Revisar, donde hay 3 000 tarjetas compitiendo.</para>
     ///
-    /// <para>⚠️ Sale de <see cref="LasDosPreguntas.LoQueLeFaltaAlDocumento"/> y NO de
-    /// <see cref="LecturaDelDocumento"/>, aunque las dos digan casi lo mismo: por ese metodo
+    /// <para>⚠️ Sale de <see cref="LasDosPreguntas.LoQueLeFaltaAlDocumento"/> y NO se compone
+    /// aqui con <c>LoQueSeLeeDeUnDocumento.De</c> aparte: por ese metodo
     /// pasan tambien <c>LoQueLeFaltaACadaDocumento</c> y el pie de Correccion, y componerlo
     /// aqui aparte es exactamente lo que hacia que el mismo documento se leyera distinto en dos
     /// pantallas. Lo vigila
@@ -376,6 +361,7 @@ public sealed record GrupoDelDia(
     MotivoDeNoCompletar Motivo)
 {
     /// <summary>Un dia sin ningun documento; se ensena vacio y no revienta.</summary>
+    /// <param name="fecha">El día que no trae nada.</param>
     public static GrupoDelDia Vacio(DateOnly fecha)
         => new(fecha, [], 0, 0, 0, MotivoDeNoCompletar.SinMotivo);
 
@@ -543,6 +529,7 @@ public sealed record RenglonDelGrupo(
     /// que el dueno dicto el 2026-09-07: <i>«5 personas viajarán el 12 de septiembre, falta
     /// verificar recomendaciones»</i>.
     /// </remarks>
+    /// <param name="unidad">La unidad de la que es cabecera; no puede ser nulo.</param>
     public static RenglonDelGrupo Cabecera(UnidadDelGrupo unidad)
     {
         ArgumentNullException.ThrowIfNull(unidad);
@@ -561,6 +548,7 @@ public sealed record RenglonDelGrupo(
     /// faltan tres campos se leian exactamente igual. Es la queja del dueno «cuando guardo
     /// información ya corregida no cambia de estado, sigue igual».
     /// </remarks>
+    /// <param name="persona">La persona del renglón; no puede ser nulo.</param>
     public static RenglonDelGrupo DeUnaPersona(PersonaDelGrupo persona)
     {
         ArgumentNullException.ThrowIfNull(persona);

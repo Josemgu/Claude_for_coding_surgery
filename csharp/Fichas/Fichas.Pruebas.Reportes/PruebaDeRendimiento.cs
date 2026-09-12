@@ -15,9 +15,12 @@ namespace Fichas.Pruebas.Reportes;
 [TestClass]
 public class PruebaDeRendimiento
 {
+    /// <summary>Los casos del requisito 5 del dueño: rápido con 3 000, no con 2.</summary>
     private const int TresMil = 3_000;
+    /// <summary>El tope holgado que guarda contra una regresión de orden de magnitud; la medida real es la que se imprime.</summary>
     private const int TopeEnSegundos = 10;
 
+    /// <summary>Vigila que el reporte del mes con 3 000 casos se escribe en menos de 10 s, e imprime el tiempo medido.</summary>
     [TestMethod]
     public void ConTresMilCasosElReporteDelMesSeGeneraYSeMideElTiempo()
     {
@@ -45,6 +48,7 @@ public class PruebaDeRendimiento
         File.Delete(ruta);
     }
 
+    /// <summary>Vigila que el histórico con 3 000 casos se escribe en menos de 10 s, e imprime el tiempo medido.</summary>
     [TestMethod]
     public void ConTresMilCasosElHistoricoSeGeneraYSeMideElTiempo()
     {
@@ -68,6 +72,7 @@ public class PruebaDeRendimiento
         File.Delete(ruta);
     }
 
+    /// <summary>Imprime cuánto tarda leer, armar y escribir por separado; solo exige que salgan bytes.</summary>
     [TestMethod]
     public void ConTresMilCasosSeMideEnQueSeVaElTiempo()
     {
@@ -103,6 +108,7 @@ public class PruebaDeRendimiento
         Assert.IsGreaterThan(0, bytes.Length);
     }
 
+    /// <summary>Vigila que cuadruplicar las filas no multiplica el reparto por más de ocho; con la máquina cargada cae una de cada cinco.</summary>
     [TestMethod]
     public void ElRepartoEnPaginasNoEsCuadraticoConElNumeroDeFilas()
     {
@@ -119,6 +125,8 @@ public class PruebaDeRendimiento
             $"2 000 filas: {pequeno:F1} ms; 8 000 filas: {grande:F1} ms. Huele a n².");
     }
 
+    /// <summary>Cuántos milisegundos tarda solo el reparto en páginas de una tabla de esas filas; las líneas se hacen fuera del cronómetro.</summary>
+    /// <param name="filas">Cuántas filas de una columna lleva la tabla.</param>
     private static double MedirElReparto(int filas)
     {
         var seccion = new Fichas.Reportes.Modelo.Seccion(

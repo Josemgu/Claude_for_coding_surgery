@@ -37,8 +37,11 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeListoParaAsignar
 {
+    /// <summary>El id fijo del caso que monta cada prueba.</summary>
     private const long CasoDePrueba = 300;
+    /// <summary>La unica persona del caso; sus dos campos cuentan en los siete.</summary>
     private const long PersonaDePrueba = 301;
+    /// <summary>El companero con el que Miguel firma el hueco en la prueba que lo cierra.</summary>
     private const long CompaneroDePrueba = 1;
 
     /// <summary>Cuantos campos dibuja la pantalla de este caso: cinco del caso y dos de la persona.</summary>
@@ -135,6 +138,9 @@ public sealed class PruebasDeListoParaAsignar
         return (procedencia, Cargar(servicios, procedencia));
     }
 
+    /// <summary>Monta el modelo con ESE almacen de procedencia —el que se comporta como SQLite— y abre el caso.</summary>
+    /// <param name="servicios">La base inventada de la prueba.</param>
+    /// <param name="procedencia">El almacen de procedencia que se comporta como el de verdad.</param>
     private static ModeloDeCorreccion Cargar(ServiciosFalsos servicios, ProcedenciaComoLaDeVerdad procedencia)
     {
         var modelo = new ModeloDeCorreccion(
@@ -144,6 +150,14 @@ public sealed class PruebasDeListoParaAsignar
         return modelo;
     }
 
+    /// <summary>Deja una fila de procedencia con el origen y la confianza que se le pidan, sin firmar.</summary>
+    /// <param name="procedencia">Donde se anota.</param>
+    /// <param name="tabla">Si es del caso o de la persona.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    /// <param name="campo">El nombre de la columna.</param>
+    /// <param name="origen">De donde salio el valor.</param>
+    /// <param name="confianza">La confianza del OCR; nula si no la hubo.</param>
+    /// <param name="tachado">Si el papel llevaba un tachon sin correccion encima.</param>
     private static void Anotar(
         ProcedenciaComoLaDeVerdad procedencia, TablaDeProcedencia tabla, long registroId,
         string campo, OrigenDeCampo origen, double? confianza, bool tachado = false)

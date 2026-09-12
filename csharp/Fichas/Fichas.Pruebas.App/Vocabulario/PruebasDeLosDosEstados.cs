@@ -34,6 +34,7 @@ public sealed class PruebasDeLosDosEstados
 
     // ────────────────────────── las dos palabras y ninguna mas ──────────────────────────
 
+    /// <summary>Vigila que de las lecturas salgan exactamente dos palabras: «resuelto» y «me falta».</summary>
     [TestMethod]
     public void SoloHayDosPalabrasDeEstado()
     {
@@ -44,6 +45,7 @@ public sealed class PruebasDeLosDosEstados
         CollectionAssert.Contains(todas, "me falta");
     }
 
+    /// <summary>Vigila que ninguna de las palabras retiradas el 2026-09-07 vuelva a salir de este vocabulario.</summary>
     [TestMethod]
     public void NingunaDeLasPalabrasViejasSaleDeEsteVocabulario()
     {
@@ -131,6 +133,8 @@ public sealed class PruebasDeLosDosEstados
 
     // ────────────────────────── un documento: cuando falta ──────────────────────────
 
+    /// <summary>Vigila que un documento sin marcar y uno «no completa», ninguno archivado, se lean los dos «me falta».</summary>
+    /// <param name="estado">El estado de la base con el que se prueba.</param>
     [TestMethod]
     [DataRow(EstadoDeRecomendacion.SinMarcar)]
     [DataRow(EstadoDeRecomendacion.NoCompleta)]
@@ -206,6 +210,7 @@ public sealed class PruebasDeLosDosEstados
 
     // ────────────────────────── una persona ──────────────────────────
 
+    /// <summary>Vigila que una persona con las seis en «sí» se lea «resuelto».</summary>
     [TestMethod]
     public void UnaPersonaConLasSeisEnSiSeLeeResuelto()
     {
@@ -214,6 +219,7 @@ public sealed class PruebasDeLosDosEstados
         Assert.AreEqual(DosEstados.Resuelto, lectura.Palabra);
     }
 
+    /// <summary>Vigila que una persona con un paso en «no» se lea «me falta» y el detalle nombre ese paso.</summary>
     [TestMethod]
     public void UnaPersonaConAlgunPasoEnNoSeLeeMeFaltaYDiceDondeSeQuedo()
     {
@@ -254,10 +260,12 @@ public sealed class PruebasDeLosDosEstados
 
     // ────────────────────────── la cuenta de un grupo ──────────────────────────
 
+    /// <summary>Vigila que siete de siete se diga «resuelto», sin cifra detrás.</summary>
     [TestMethod]
     public void UnGrupoConTodoResueltoDiceResueltoASecas()
         => Assert.AreEqual(DosEstados.Resuelto, DosEstados.Cuenta(7, 7));
 
+    /// <summary>Vigila que cuatro de diez empiece por «me falta» y diga «6 de 10».</summary>
     [TestMethod]
     public void UnGrupoAMediasDiceCuantoLeFaltaConLaCifraDelante()
     {

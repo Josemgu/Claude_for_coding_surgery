@@ -87,6 +87,7 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
     }
 
     /// <summary>Una lectura resuelta con su detalle ya compuesto.</summary>
+    /// <param name="detalle">Quién lo cerró o lo dio por bueno, y cuándo.</param>
     private static LoQueSeLeeDeUnDocumento Resuelto(string detalle)
         => new(LoQueSeLee.Resuelto, detalle);
 
@@ -97,6 +98,8 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
     /// se abre cuando el lo pide. Y lleva la firma detras cuando la hay: un archivado que
     /// ademas marco un companero conserva las dos cosas dichas.
     /// </remarks>
+    /// <param name="fechaDeArchivado">Cuándo se archivó; vacío si la base no lo guardó.</param>
+    /// <param name="firma">«Completada por Sandy · 2026-08-30» si además lo marcó un compañero; vacío si no.</param>
     private static string DetalleDeLoArchivado(string fechaDeArchivado, string firma)
     {
         var cerrado = string.IsNullOrWhiteSpace(fechaDeArchivado)
@@ -112,6 +115,7 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
     /// Excel de un companero», que sigue siendo cierto y ya no nombra a nadie: es lo que pasa
     /// cuando la fila de ese companero ya no esta.
     /// </remarks>
+    /// <param name="firma">La firma del compañero tal como la compone la tarjeta; vacío si su fila ya no está.</param>
     private static string DetalleDeLoCompletado(string firma)
         => string.IsNullOrWhiteSpace(firma) ? "lo dio por completo el Excel de un compañero" : firma;
 
@@ -126,6 +130,12 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
     /// propia: con los cinco campos del caso perfectos la cuenta es 0, y «le faltan 0 datos»
     /// de un documento parado son dos cifras de la misma pantalla que no encajan.</para>
     /// </remarks>
+    /// <param name="estado">Lo que dice <c>casos.estado_recomendacion</c>.</param>
+    /// <param name="cuantoLeFalta">Cuántos campos del papel le faltan.</param>
+    /// <param name="sinNingunaPersonaLeida">Si el lector no sacó a nadie del documento.</param>
+    /// <param name="quienLoLleva">El compañero que lo tiene vivo, o vacío.</param>
+    /// <param name="motivo">Por qué dijo el compañero que no estaba completa; vacío si no lo dijo.</param>
+    /// <returns>Los trozos separados por « · », con a quién le toca siempre al final.</returns>
     private static string DetalleDeLoQueFalta(
         EstadoDeRecomendacion estado,
         int cuantoLeFalta,
@@ -160,6 +170,11 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
     /// pegado al nombre de la pantalla donde se hace: sin eso, saber que te toca no dice por
     /// donde empezar.
     /// </remarks>
+    /// <param name="estado">Lo que dice <c>casos.estado_recomendacion</c>.</param>
+    /// <param name="cuantoLeFalta">Cuántos campos del papel le faltan.</param>
+    /// <param name="sinNingunaPersonaLeida">Si el lector no sacó a nadie del documento.</param>
+    /// <param name="quienLoLleva">El compañero que lo tiene vivo, o vacío.</param>
+    /// <returns>Una frase que empieza por «te toca a ti» o por «le toca a …»; nunca vacía.</returns>
     private static string AQuienLeToca(
         EstadoDeRecomendacion estado, int cuantoLeFalta, bool sinNingunaPersonaLeida, string quienLoLleva)
     {

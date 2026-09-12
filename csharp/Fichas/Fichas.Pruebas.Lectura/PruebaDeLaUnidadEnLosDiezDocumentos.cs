@@ -34,6 +34,7 @@ namespace Fichas.Pruebas.Lectura;
 [TestClass]
 public class PruebaDeLaUnidadEnLosDiezDocumentos
 {
+    /// <summary>Dónde están los escaneos reales en esta máquina. Fuera del repositorio: son datos personales.</summary>
     private const string CarpetaDeLosDocumentos =
         @"C:\Users\josem\.claude\uploads\e38428f3-e062-41e5-92f2-566aacd26e92";
 
@@ -52,8 +53,10 @@ public class PruebaDeLaUnidadEnLosDiezDocumentos
     /// </remarks>
     private static readonly string[] PatronesDeLosEscaneos = ["*CASP2609*.pdf", "*PARB2609*.pdf", "*SURB2609*.pdf"];
 
+    /// <summary>Las veinte hojas leídas una vez para toda la clase; vacía si no estaban los diez documentos.</summary>
     private static IReadOnlyList<HojaLeida> _hojas = [];
 
+    /// <summary>Las rutas de los escaneos que casan con los tres patrones, ordenadas; vacía si la carpeta no existe.</summary>
     private static string[] Documentos()
         => Directory.Exists(CarpetaDeLosDocumentos)
             ? PatronesDeLosEscaneos.SelectMany(patron => Directory.GetFiles(CarpetaDeLosDocumentos, patron)).Order().ToArray()
@@ -72,6 +75,7 @@ public class PruebaDeLaUnidadEnLosDiezDocumentos
         _hojas = rutas.SelectMany(lector.LeerDocumento).ToArray();
     }
 
+    /// <summary>Las hojas leídas, o la prueba se declara no concluyente si no hubo material. Nunca falla por eso.</summary>
     private static IReadOnlyList<HojaLeida> Hojas()
     {
         if (_hojas.Count == 0)
@@ -83,6 +87,9 @@ public class PruebaDeLaUnidadEnLosDiezDocumentos
         return _hojas;
     }
 
+    /// <summary>El valor propuesto del primer campo con ese nombre en la hoja, o nulo si no lo hay.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campo">El nombre de columna, uno de los <c>Extraccion.Campo…</c>.</param>
     private static string? ValorDe(HojaLeida hoja, string campo)
         => hoja.Campos.FirstOrDefault(c => c.Campo == campo)?.Valor;
 
@@ -170,6 +177,9 @@ public class PruebaDeLaUnidadEnLosDiezDocumentos
         return new string(salida);
     }
 
+    /// <summary>Los campos de <c>personas</c> con ese nombre, ordenados por fila del formulario.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campo">El nombre de columna: nombre o cédula.</param>
     private static IReadOnlyList<CampoPropuesto> DeLaTablaDePersonas(HojaLeida hoja, string campo)
         => hoja.Campos.Where(c => c.Tabla == TablaDeProcedencia.Personas && c.Campo == campo)
                       .OrderBy(c => c.FilaFormulario)

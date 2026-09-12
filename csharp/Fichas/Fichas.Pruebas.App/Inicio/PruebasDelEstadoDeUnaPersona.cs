@@ -287,6 +287,8 @@ public sealed class PruebasDelEstadoDeUnaPersona
     }
 
     /// <summary>Cuantos documentos hay con cada estado de recomendacion, ahora mismo.</summary>
+    /// <param name="servicios">Los servicios falsos.</param>
+    /// <returns>Por texto de estado («completa», «no_completa» o «sin marcar»), cuántos.</returns>
     private static Dictionary<string, int> RepartoDeEstados(Fichas.Datos.Falso.ServiciosFalsos servicios)
     {
         var filtro = FiltroDeCasos.Todo with { IncluirArchivados = true };

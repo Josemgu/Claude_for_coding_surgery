@@ -19,6 +19,7 @@ public class PruebaDeCasillasDeOrdenanza
     // —la lectura esta apagada, el umbral no se ha inventado— y esta prueba existe para
     // que cambiarlas rompa algo en vez de pasar desapercibido en una revision.
 #pragma warning disable MSTEST0032
+    /// <summary>Vigila que la lectura siga apagada, el umbral siga nulo y los dos contadores del criterio sigan en 0 y 3.</summary>
     [TestMethod]
     public void LaLecturaDeCasillasSigueApagadaYElUmbralSigueSinInventarse()
     {
@@ -31,6 +32,7 @@ public class PruebaDeCasillasDeOrdenanza
     }
 #pragma warning restore MSTEST0032
 
+    /// <summary>Vigila que los seis nombres y su orden sean los de las columnas <c>ord_*</c> de la tabla <c>personas</c>.</summary>
     [TestMethod]
     public void SonSeisCasillasYEnElOrdenDeLasColumnasDeLaTabla()
     {

@@ -28,11 +28,15 @@ namespace Fichas.App.Importar;
 /// </remarks>
 internal sealed class RecorridoDeLoElegido
 {
+    /// <summary>Los PDF encontrados, con ruta completa y sin repetidos aunque se elijan dos veces.</summary>
     private readonly HashSet<string> _pdf = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Los destinos RESUELTOS por los que ya se pasó; es lo que corta los bucles de uniones de directorio.</summary>
     private readonly HashSet<string> _carpetasYaRecorridas = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Lo que el sistema no dejó abrir, con su motivo, en el orden en que se encontró.</summary>
     private readonly List<CarpetaQueNoSeDejoLeer> _noSeDejaronLeer = [];
 
     /// <summary>Suma un origen suelto: un archivo, o una carpeta con todo su arbol.</summary>
+    /// <param name="origen">Ruta de archivo o de carpeta; nula, vacía, inexistente o que no sea PDF no suma nada.</param>
     public void Agregar(string? origen)
     {
         if (string.IsNullOrWhiteSpace(origen)) return;
@@ -62,6 +66,7 @@ internal sealed class RecorridoDeLoElegido
     /// Con pila y no con recursion: un arbol muy hondo desbordaria la del hilo, y un
     /// desbordamiento de pila no se puede atrapar ni contar —se lleva el proceso entero—.
     /// </remarks>
+    /// <param name="carpetaDeArranque">La carpeta elegida; se recorre ella y todo lo de dentro.</param>
     private void RecorrerElArbol(string carpetaDeArranque)
     {
         var porRecorrer = new Stack<string>();
@@ -77,6 +82,7 @@ internal sealed class RecorridoDeLoElegido
     }
 
     /// <summary>Los PDF de esta carpeta, sin bajar. Falso si no se dejo leer.</summary>
+    /// <param name="carpeta">La carpeta con su ruta completa.</param>
     private bool RecogerLosPdfDe(string carpeta)
     {
         try
@@ -101,6 +107,8 @@ internal sealed class RecorridoDeLoElegido
     /// separado; quien no se deje se apunta UNA sola vez, que es lo que hace el
     /// <c>return</c> de arriba cuando ya fallo al leer los archivos.
     /// </remarks>
+    /// <param name="carpeta">La carpeta cuyas subcarpetas se apilan.</param>
+    /// <param name="porRecorrer">La pila del recorrido.</param>
     private void ApilarLasDeDentro(string carpeta, Stack<string> porRecorrer)
     {
         try
@@ -120,6 +128,8 @@ internal sealed class RecorridoDeLoElegido
     /// La que ya se recorrio NO se apunta como perdida: sus archivos entraron por el otro
     /// camino, y nombrarla haria pensar que falta algo cuando no falta nada.
     /// </remarks>
+    /// <param name="carpeta">La carpeta tal como la devolvió el sistema.</param>
+    /// <param name="porRecorrer">La pila del recorrido.</param>
     private void Apilar(string carpeta, Stack<string> porRecorrer)
     {
         string completa, aQueApunta;
@@ -141,6 +151,8 @@ internal sealed class RecorridoDeLoElegido
     /// <summary>
     /// La carpeta a la que se llega de verdad: si es una union o un enlace, su destino final.
     /// </summary>
+    /// <param name="laCarpeta">La carpeta, ya abierta como <see cref="DirectoryInfo"/>.</param>
+    /// <returns>La ruta completa del destino, sin barra final; la propia carpeta si no es enlace.</returns>
     private static string ADondeLleva(DirectoryInfo laCarpeta)
     {
         var destino = laCarpeta.ResolveLinkTarget(returnFinalTarget: true);
@@ -153,6 +165,7 @@ internal sealed class RecorridoDeLoElegido
     /// Es una lista cerrada a proposito. Atrapar <c>Exception</c> aqui convertiria un defecto
     /// del programa en «una carpeta que no se dejo leer», y ese defecto no volveria a verse.
     /// </remarks>
+    /// <param name="fallo">Lo que levantó el sistema de archivos.</param>
     private static bool EsUnFalloDeDisco(Exception fallo)
         => fallo is UnauthorizedAccessException
                  or IOException
@@ -167,6 +180,7 @@ internal sealed class RecorridoDeLoElegido
     /// el tipo de fallo significa, que ademas es mas util: al dueño le sirve saber que es un
     /// permiso, no la frase literal del sistema.
     /// </remarks>
+    /// <param name="fallo">Uno de los que <see cref="EsUnFalloDeDisco"/> admite.</param>
     private static string MotivoDe(Exception fallo) => fallo switch
     {
         UnauthorizedAccessException or System.Security.SecurityException

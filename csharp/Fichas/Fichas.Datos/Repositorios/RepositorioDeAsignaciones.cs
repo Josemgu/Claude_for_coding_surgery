@@ -21,10 +21,13 @@ namespace Fichas.Datos.Repositorios;
 /// </remarks>
 public sealed class RepositorioDeAsignaciones : RepositorioBase, IAsignaciones
 {
+    /// <summary>Las seis columnas de <c>asignaciones</c> que se leen, en el orden exacto en que <c>Leer</c> las espera por posición.</summary>
+    /// <remarks>Si se añade una columna aquí, hay que añadirla al final y darle su índice en <c>Leer</c>: la lectura es por posición, no por nombre.</remarks>
     private const string Columnas =
         "id, caso_id, companero_id, asignado_en, activa, desactivada_en";
 
     /// <summary>Trabaja sobre una conexion ya abierta con el esquema aplicado.</summary>
+    /// <param name="conexion">La conexión abierta; no puede ser nula.</param>
     public RepositorioDeAsignaciones(SqliteConnection conexion) : base(conexion)
     {
     }
@@ -143,6 +146,8 @@ public sealed class RepositorioDeAsignaciones : RepositorioBase, IAsignaciones
     }
 
     /// <summary>Si ese companero existe y sigue activo.</summary>
+    /// <param name="companeroId">El id del compañero.</param>
+    /// <returns>Falso también si no existe.</returns>
     private bool EstaActivo(long companeroId)
     {
         using var orden = Conexion.CreateCommand();
@@ -152,6 +157,9 @@ public sealed class RepositorioDeAsignaciones : RepositorioBase, IAsignaciones
             orden.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) > 0;
     }
 
+    /// <summary>Compone el WHERE del filtro con marcadores <c>$nombre</c>; el texto del usuario nunca entra aquí, solo en <c>PonerLosParametrosDelFiltro</c>.</summary>
+    /// <param name="filtro">Lo que la pantalla pide.</param>
+    /// <returns>Una cláusula <c>WHERE …</c>, o vacío si el filtro no dice nada.</returns>
     private static string ComponerElFiltro(FiltroDeAsignaciones filtro)
     {
         var condiciones = new List<string>();
@@ -187,6 +195,9 @@ public sealed class RepositorioDeAsignaciones : RepositorioBase, IAsignaciones
         return condiciones.Count == 0 ? string.Empty : "WHERE " + string.Join(" AND ", condiciones);
     }
 
+    /// <summary>Rellena los marcadores que <c>ComponerElFiltro</c> dejó, y solo esos: un parámetro sin marcador es un error del motor.</summary>
+    /// <param name="orden">La orden en la que se añaden los parámetros.</param>
+    /// <param name="filtro">El mismo filtro con el que se compuso el WHERE.</param>
     private static void PonerLosParametrosDelFiltro(SqliteCommand orden, FiltroDeAsignaciones filtro)
     {
         if (filtro.CasoId is not null)
@@ -200,6 +211,8 @@ public sealed class RepositorioDeAsignaciones : RepositorioBase, IAsignaciones
         }
     }
 
+    /// <summary>Convierte una fila en una asignación, columna por columna y en el orden de <c>Columnas</c>.</summary>
+    /// <param name="lector">El lector posicionado en la fila.</param>
     private static Asignacion Leer(SqliteDataReader lector) => new()
     {
         Id = lector.GetInt64(0),

@@ -1,4 +1,3 @@
-using Fichas.App.Vocabulario;
 using Fichas.App.Asignar;
 using Fichas.App.Cascara;
 using Fichas.App.Inicio;
@@ -7,7 +6,6 @@ using Fichas.Pruebas.App.Revisar;
 using Fichas.Contratos.Consultas;
 using Fichas.Datos.Falso;
 using Fichas.Reportes.Armado;
-using Fichas.Reportes.Reglas;
 
 namespace Fichas.Pruebas.App.Reportes;
 
@@ -44,6 +42,7 @@ namespace Fichas.Pruebas.App.Reportes;
 [TestClass]
 public sealed class PruebasDeLaFraseDelArchivadoContraLaApp
 {
+    /// <summary>El día en que se para el reloj de estas pruebas; el calendario enseña su mes.</summary>
     private const string Hoy = "2026-09-20";
 
     /// <summary>Asignar no ofrece un archivado, que es lo que dice la frase.</summary>
@@ -162,10 +161,13 @@ public sealed class PruebasDeLaFraseDelArchivadoContraLaApp
     }
 
     /// <summary>Cuantos documentos pinta el calendario del mes, sumando sus pastillas.</summary>
+    /// <param name="resumen">Lo que Inicio compuso para el mes.</param>
     private static int DocumentosEnElCalendario(ResumenDeInicio resumen)
         => resumen.Mes.Dias.SelectMany(dia => dia.Pastillas).Sum(pastilla => pastilla.CuantosDocumentos);
 
     /// <summary>Un caso abierto cuya fecha de viaje cae en el mes que el calendario ensena.</summary>
+    /// <param name="mundo">El escenario, de donde se leen los casos.</param>
+    /// <param name="resumen">Lo que Inicio compuso; de ahí salen los días del mes.</param>
     private static long UnCasoDelCalendario(Mundo mundo, ResumenDeInicio resumen)
     {
         var delMes = resumen.Mes.Dias.Select(dia => dia.Fecha).ToHashSet();
@@ -225,13 +227,20 @@ public sealed class PruebasDeLaFraseDelArchivadoContraLaApp
 
     // ---- el escenario -------------------------------------------------------
 
+    /// <summary>El escenario de estas pruebas: los servicios inventados y las cuentas con las que se montaron.</summary>
+    /// <param name="Servicios">Los servicios falsos ya montados.</param>
+    /// <param name="EnLaBase">Cuántos casos hay en total.</param>
+    /// <param name="SinArchivar">Cuántos de ellos no están archivados.</param>
+    /// <param name="Archivados">Los ids de los que se archivaron.</param>
     private sealed record Mundo(
         ServiciosFalsos Servicios, int EnLaBase, int SinArchivar, IReadOnlyList<long> Archivados)
     {
+        /// <summary>El repositorio de casos, para no escribir la cadena entera cada vez.</summary>
         internal Contratos.Puertos.ICasos Casos => Servicios.Casos;
     }
 
     /// <summary>El tablero de Revisar tal como lo monta su pantalla.</summary>
+    /// <param name="mundo">El escenario, del que salen los cuatro puertos.</param>
     private static TableroDeRevisar Tablero(Mundo mundo)
         => new(
             mundo.Servicios.Casos, mundo.Servicios.Asignaciones,

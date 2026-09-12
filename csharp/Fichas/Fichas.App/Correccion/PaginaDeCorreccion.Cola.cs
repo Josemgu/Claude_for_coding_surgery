@@ -28,14 +28,11 @@ namespace Fichas.App.Correccion;
 /// </remarks>
 public sealed partial class PaginaDeCorreccion
 {
+    /// <summary>La cola que se esta recorriendo; nula cuando se entro por la pestana, y entonces nada de este archivo hace nada.</summary>
     private ColaDeCompletar? _cola;
+
+    /// <summary>Cuantos documentos salieron de la cola desde que se entro; es la cifra que se dice al vaciarse.</summary>
     private int _resueltosEnEstaVuelta;
-
-    /// <summary>La cola que se esta recorriendo, o nula si se entro a un documento suelto.</summary>
-    public ColaDeCompletar? ColaEnLaMano => _cola;
-
-    /// <summary>Cuantos documentos han salido de la cola en esta vuelta.</summary>
-    public int ResueltosEnEstaVuelta => _resueltosEnEstaVuelta;
 
     /// <summary>
     /// Entra en el modo cola: se recorre esa cola y se empieza por ese documento.
@@ -119,6 +116,7 @@ public sealed partial class PaginaDeCorreccion
     /// por siete campos seria pagar la pantalla de Inicio en cada paso de la cola.
     /// </para>
     /// </remarks>
+    /// <param name="casoId">El candidato a abrir; si ya no esta en la base, no le falta nada y se salta.</param>
     private bool TodaviaLeFalta(long casoId)
     {
         if (Servicios is null) return false;

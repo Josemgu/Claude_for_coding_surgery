@@ -1,5 +1,4 @@
 using Fichas.Contratos.Modelos;
-using Fichas.Contratos.Puertos;
 using Fichas.Datos.Conexion;
 using Fichas.Datos.Mantenimiento;
 using Fichas.Datos.Repositorios;
@@ -27,6 +26,7 @@ public sealed class PruebaDelBorrado
     // Punto 1 del pase: un documento suelto, sin dejar nada colgando.
     // ==================================================================
 
+    /// <summary>Vigila que borrar un documento completo se lleva todo lo que cuelga de él, deja el de al lado y <c>foreign_key_check</c> queda limpio.</summary>
     [TestMethod]
     public void BorrarUnDocumentoSeLlevaSuGenteYNoDejaNadaColgando()
     {
@@ -73,6 +73,7 @@ public sealed class PruebaDelBorrado
         SiembraParaBorrar.NoQuedaNadaColgando(baseDePrueba);
     }
 
+    /// <summary>Vigila que un caso al que otro apunta con <c>duplicado_de</c> se puede borrar y el otro queda sin el «repite a».</summary>
     [TestMethod]
     public void UnDocumentoQueOtroSenalaComoDuplicadoSePuedeBorrar()
     {
@@ -107,6 +108,7 @@ public sealed class PruebaDelBorrado
     // Punto 2 del pase: varios de golpe, la misma seleccion de «archivar».
     // ==================================================================
 
+    /// <summary>Vigila que un plan con varios ids borra esos y ninguno más.</summary>
     [TestMethod]
     public void BorrarVariosDeGolpeSeLlevaSoloLosMarcados()
     {
@@ -136,6 +138,7 @@ public sealed class PruebaDelBorrado
     // Punto 3 del pase: «dejar todo en limpio», con los companeros dentro.
     // ==================================================================
 
+    /// <summary>Vigila que «todo en limpio» vacía documentos, personas y restos del Excel y conserva el equipo.</summary>
     [TestMethod]
     public void EmpezarDeCeroVaciaLosDocumentosYDejaLosCompaneros()
     {
@@ -178,6 +181,7 @@ public sealed class PruebaDelBorrado
     // Punto 4 del pase: la copia previa, y que se pueda volver a abrir.
     // ==================================================================
 
+    /// <summary>Vigila que planear deja al lado una copia con marca de fecha que se abre y trae las filas de antes.</summary>
     [TestMethod]
     public void AntesDeBorrarQuedaUnaCopiaConLaFechaEnElNombreQueSeVuelveAAbrir()
     {
@@ -219,6 +223,7 @@ public sealed class PruebaDelBorrado
             "La copia no traia las personas del documento que se borro.");
     }
 
+    /// <summary>Vigila que el título, el botón y la pregunta del plan llevan «2 documentos», «7 personas» y la ruta de la copia: el número delante, no un «¿seguro?».</summary>
     [TestMethod]
     public void LaPreguntaDiceCuantosDocumentosCuantasPersonasYDondeQuedoLaCopia()
     {
@@ -241,6 +246,7 @@ public sealed class PruebaDelBorrado
             plan.Pregunta, plan.RutaDeLaCopia!, "La pregunta no dice donde quedo la copia.");
     }
 
+    /// <summary>Vigila que planear sin llamar a <c>Borrar</c> deja la base intacta.</summary>
     [TestMethod]
     public void SiElDuenoDiceQueNoNoSeBorraNada()
     {
@@ -259,6 +265,7 @@ public sealed class PruebaDelBorrado
         Assert.AreEqual(2, baseDePrueba.ContarFilasDe("personas"), "Planear ya se llevo las personas.");
     }
 
+    /// <summary>Vigila que un plan con <c>SePuedeBorrar = false</c> no borra y lo dice.</summary>
     [TestMethod]
     public void UnPlanSinPermisoNoBorraNada()
     {
@@ -277,6 +284,7 @@ public sealed class PruebaDelBorrado
         Assert.IsNotEmpty(resultado.Avisos, "No dijo por que no borro.");
     }
 
+    /// <summary>Vigila la regla que no se negocia: un plan con permiso pero sin ruta de copia no borra.</summary>
     [TestMethod]
     public void UnPlanSinCopiaNoBorraNunca()
     {
@@ -300,6 +308,7 @@ public sealed class PruebaDelBorrado
     // Punto 5 del pase: despues de borrar, una linea con su numero.
     // ==================================================================
 
+    /// <summary>Vigila que el acuse dice «1 documento» y «3 personas», y la línea del registro lleva BORRADO, las cifras por tabla y la ruta de la copia.</summary>
     [TestMethod]
     public void DespuesDeBorrarLaLineaLlevaSuNumeroYElRegistroTambien()
     {
@@ -322,6 +331,7 @@ public sealed class PruebaDelBorrado
             "El registro no dice donde quedo la copia.");
     }
 
+    /// <summary>Vigila que planear con la lista vacía no copia, no da permiso y no toca nada.</summary>
     [TestMethod]
     public void BorrarNadaNoPideNadaYNoTocaLaBase()
     {
@@ -335,9 +345,14 @@ public sealed class PruebaDelBorrado
         Assert.IsNull(plan.RutaDeLaCopia, "Copio la base para no borrar nada.");
     }
 
+    /// <summary>Los avisos en una línea para el mensaje de fallo, o «(sin motivo)».</summary>
+    /// <param name="avisos">Los avisos del plan o del resultado.</param>
     private static string Motivos(IReadOnlyList<Aviso> avisos)
         => avisos.Count == 0 ? "(sin motivo)" : string.Join(" | ", avisos.Select(a => a.Linea));
 
+    /// <summary>Una fila de <c>filas_descartadas</c> por SQL directo: solo cae en «todo en limpio».</summary>
+    /// <param name="baseDePrueba">La base sobre la que se siembra.</param>
+    /// <param name="companeroId">El compañero al que apunta.</param>
     private static void SembrarUnaFilaDescartada(BaseDePrueba baseDePrueba, long companeroId)
     {
         using var orden = baseDePrueba.Conexion.CreateCommand();
@@ -352,6 +367,8 @@ public sealed class PruebaDelBorrado
         orden.ExecuteNonQuery();
     }
 
+    /// <summary>Un renglón de ilegible sin documento detrás, que el borrado de documentos no alcanza.</summary>
+    /// <param name="baseDePrueba">La base sobre la que se siembra.</param>
     private static void SembrarUnIlegibleSinCaso(BaseDePrueba baseDePrueba)
     {
         using var orden = baseDePrueba.Conexion.CreateCommand();

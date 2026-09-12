@@ -42,9 +42,11 @@ public static class TextosDeBorrarLosPdfIlegibles
     /// Del pase del dueño: «una confirmación con el número delante». Un «¿seguro?» se
     /// contesta que sí sin leerlo; «Borrar 3 renglones de PDF que no se pudieron leer», no.
     /// </remarks>
+    /// <param name="plan">El plan ya hecho, de donde sale la cifra.</param>
     public static string Titulo(PlanDeBorrado plan) => "Borrar " + Cuenta(plan);
 
     /// <summary>Lo que va en el botón que borra; también con la cifra delante.</summary>
+    /// <param name="plan">El plan ya hecho, de donde sale la cifra.</param>
     public static string TextoDelBoton(PlanDeBorrado plan) => "Borrar " + Cuenta(plan);
 
     /// <summary>
@@ -56,6 +58,7 @@ public static class TextosDeBorrarLosPdfIlegibles
     /// borrado del programa, y repetirlas aquí sería un segundo sitio donde alguien puede
     /// olvidarse de nombrar la copia—. Esta clase solo añade la cuarta.
     /// </remarks>
+    /// <param name="plan">El plan ya hecho, con su pregunta y la ruta de la copia.</param>
     public static string Pregunta(PlanDeBorrado plan)
     {
         ArgumentNullException.ThrowIfNull(plan);
@@ -68,6 +71,8 @@ public static class TextosDeBorrarLosPdfIlegibles
     }
 
     /// <summary>«3 renglones de PDF que no se pudieron leer», tal como los contó el plan.</summary>
+    /// <param name="plan">El plan ya hecho.</param>
+    /// <returns>El conteo de la tabla de renglones dicho en palabras; «0 renglones…» si el plan no la trae.</returns>
     private static string Cuenta(PlanDeBorrado plan)
     {
         ArgumentNullException.ThrowIfNull(plan);

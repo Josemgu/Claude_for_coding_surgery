@@ -22,8 +22,11 @@ namespace Fichas.Pruebas.App.Correccion;
 [TestClass]
 public sealed class PruebasDeLosNombresDeLosControles
 {
+    /// <summary>El id fijo del caso con dos personas.</summary>
     private const long CasoDePrueba = 300;
+    /// <summary>La persona CON nombre leido.</summary>
     private const long PrimeraPersona = 301;
+    /// <summary>La persona SIN nombre leido, que es el caso que importa.</summary>
     private const long SegundaPersona = 302;
 
     /// <summary>Un caso con dos personas: una con nombre leido y otra sin el.</summary>

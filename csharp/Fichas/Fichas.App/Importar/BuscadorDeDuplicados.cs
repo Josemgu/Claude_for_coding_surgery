@@ -29,7 +29,9 @@ namespace Fichas.App.Importar;
 /// </remarks>
 public sealed class BuscadorDeDuplicados
 {
+    /// <summary>Por donde se listan los casos guardados.</summary>
     private readonly ICasos _casos;
+    /// <summary>Por donde se leen las personas de un caso, para comparar cédulas.</summary>
     private readonly IPersonas _personas;
 
     // El indice de (ruta, pagina) -> caso se construye PEREZOSAMENTE y una sola vez por
@@ -37,9 +39,12 @@ public sealed class BuscadorDeDuplicados
     // PDF, asi que la unica forma es recorrerlos; hacerlo por documento serian 500
     // recorridos de 3 000 casos. Perezoso, ademas, casi nunca se construye: solo hace
     // falta cuando una hoja no trajo NI UN MRN legible.
+    /// <summary>El índice (ruta|página) → id del caso más antiguo que salió de esa hoja; nulo hasta que haga falta.</summary>
     private Dictionary<string, long>? _porHoja;
 
     /// <summary>Se ata a los dos repositorios que necesita para preguntar.</summary>
+    /// <param name="casos">Repositorio de casos.</param>
+    /// <param name="personas">Repositorio de personas.</param>
     public BuscadorDeDuplicados(ICasos casos, IPersonas personas)
     {
         _casos = casos;
@@ -47,6 +52,10 @@ public sealed class BuscadorDeDuplicados
     }
 
     /// <summary>El id del caso que esta hoja repite, o nulo si no repite a ninguno.</summary>
+    /// <param name="numeroCaso">El número de caso leído en la hoja, o nulo.</param>
+    /// <param name="mrnDeLaHoja">Las cédulas legibles de la hoja; vacía salta la primera vía.</param>
+    /// <param name="rutaPdf">El archivo del que salió la hoja.</param>
+    /// <param name="paginaPdf">La página del PDF, base 1.</param>
     public long? CasoDelQueEsDuplicado(string? numeroCaso, IReadOnlyList<string> mrnDeLaHoja, string rutaPdf, int paginaPdf)
     {
         ArgumentNullException.ThrowIfNull(mrnDeLaHoja);
@@ -63,6 +72,8 @@ public sealed class BuscadorDeDuplicados
     public void Olvidar() => _porHoja = null;
 
     /// <summary>El caso mas antiguo con ese numero que comparta alguna cedula, o nulo.</summary>
+    /// <param name="numeroCaso">El número de caso leído; nulo devuelve nulo.</param>
+    /// <param name="mrnDeLaHoja">Las cédulas de la hoja; vacía devuelve nulo.</param>
     private long? CasoQueComparteMrn(string? numeroCaso, IReadOnlyList<string> mrnDeLaHoja)
     {
         if (numeroCaso is null || mrnDeLaHoja.Count == 0) return null;
@@ -88,6 +99,7 @@ public sealed class BuscadorDeDuplicados
     /// afina aqui comparando la columna. Traer de mas y filtrar es correcto; armar el SQL
     /// a mano seria mas rapido y esta prohibido (<c>pruebas/auditoria_sql.py</c>).
     /// </remarks>
+    /// <param name="numeroCaso">El número exacto; la comparación es ordinal.</param>
     private IEnumerable<Caso> CasosConEseNumero(string numeroCaso)
         => _casos
             .Listar(new FiltroDeCasos(Texto: numeroCaso, IncluirArchivados: true), Pagina.Primera(500))
@@ -96,6 +108,8 @@ public sealed class BuscadorDeDuplicados
             .OrderBy(caso => caso.Id);
 
     /// <summary>El caso que ya salio de ESTA hoja de ESTE archivo, o nulo.</summary>
+    /// <param name="rutaPdf">El archivo; vacío devuelve nulo sin construir el índice.</param>
+    /// <param name="paginaPdf">La página del PDF, base 1.</param>
     private long? CasoDeLaMismaHoja(string rutaPdf, int paginaPdf)
     {
         if (string.IsNullOrWhiteSpace(rutaPdf)) return null;
@@ -124,5 +138,8 @@ public sealed class BuscadorDeDuplicados
         }
     }
 
+    /// <summary>La clave del índice por hoja: ruta y página separadas por una barra vertical.</summary>
+    /// <param name="rutaPdf">El archivo.</param>
+    /// <param name="paginaPdf">La página del PDF, base 1.</param>
     private static string Clave(string rutaPdf, int paginaPdf) => $"{rutaPdf}|{paginaPdf}";
 }

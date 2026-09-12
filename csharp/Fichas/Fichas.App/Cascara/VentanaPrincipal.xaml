@@ -56,7 +56,6 @@
             elemento. Transparente deja pasar el de _raiz, que si lo sigue.
         -->
         <TitleBar
-            x:Name="_barraDeTitulo"
             Grid.Row="0"
             Title="Fichas"
             Background="Transparent">
@@ -114,6 +113,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -175,6 +175,31 @@
                         ToolTipService.ToolTip="Versión del programa" />
 
                     <!--
+                        BUSCAR ACTUALIZACION, pegado a la version porque es de lo mismo: el
+                        numero que se ve al lado es el que se compara con el ultimo Release.
+                        Lo pidio el dueno el 2026-09-11 («que cuando llegue una nueva version
+                        se actualice todo»). Al arrancar el programa pregunta solo, en segundo
+                        plano; este boton repite la pregunta a mano y contesta siempre, aunque
+                        sea «Tienes la ultima version, v11». Lo que hace esta en
+                        Cascara/VentanaPrincipal.Actualizacion.cs.
+
+                        Es un glifo (sincronizar) y no una palabra para que la cabecera no
+                        crezca; por eso lleva AutomationProperties.Name escrito, que es lo que
+                        lee quien no ve la pantalla, y el ToolTip para quien si la ve.
+                    -->
+                    <Button
+                        x:Name="_botonDeBuscarActualizacion"
+                        Grid.Column="3"
+                        Padding="8,6"
+                        VerticalAlignment="Center"
+                        AutomationProperties.AutomationId="buscarActualizacion"
+                        AutomationProperties.Name="Buscar actualización"
+                        Click="AlPulsarBuscarActualizacion"
+                        ToolTipService.ToolTip="Buscar actualización: pregunta si hay una versión nueva del programa">
+                        <FontIcon FontSize="14" Glyph="&#xE895;" />
+                    </Button>
+
+                    <!--
                         EL BUSCADOR. Que hace y por que hace eso y no lo del mockup esta
                         explicado en Cascara/BusquedaDeLaCabecera.cs, con sus mediciones.
                         En corto: busca de verdad por numero de caso, nombre o MRN; ensena
@@ -183,7 +208,7 @@
                     -->
                     <AutoSuggestBox
                         x:Name="_buscador"
-                        Grid.Column="3"
+                        Grid.Column="4"
                         Width="320"
                         VerticalAlignment="Center"
                         AutomationProperties.Name="Buscar un documento por caso, nombre o MRN"
@@ -473,7 +498,7 @@
                     ToolTipService.ToolTip="Tema de la ventana: claro, oscuro o el de Windows">
                     <StackPanel Orientation="Horizontal" Spacing="14">
                         <FontIcon FontSize="16" Glyph="&#xE706;" />
-                        <TextBlock x:Name="_temaEnElBoton" Text="Tema" />
+                        <TextBlock Text="Tema" />
                     </StackPanel>
 
                     <Button.Flyout>

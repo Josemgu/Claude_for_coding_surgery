@@ -24,11 +24,17 @@ namespace Fichas.App.Asignar;
 /// </remarks>
 public sealed class OperacionDeAsignar
 {
+    /// <summary>El motor de asignaciones; es quien de verdad escribe y quien decide si un caso ya lo lleva otro.</summary>
     private readonly IAsignaciones _asignaciones;
+    /// <summary>Con qué instante se fecha cada asignación y cada retirada.</summary>
     private readonly IReloj _reloj;
+    /// <summary>La franja de la cáscara: aquí se dejan los avisos del motor para que las tres pantallas no los repitan.</summary>
     private readonly BuzonDeAvisos _avisos;
 
     /// <summary>Ata la operacion al motor de asignaciones, al reloj y al buzon de la franja.</summary>
+    /// <param name="asignaciones">El motor de asignaciones.</param>
+    /// <param name="reloj">El reloj del programa.</param>
+    /// <param name="avisos">El buzón de la franja.</param>
     public OperacionDeAsignar(IAsignaciones asignaciones, IReloj reloj, BuzonDeAvisos avisos)
     {
         _asignaciones = asignaciones;
@@ -37,6 +43,9 @@ public sealed class OperacionDeAsignar
     }
 
     /// <summary>Asigna un caso a un companero. Sin filtro de estado: cualquier caso vale (requisito 8).</summary>
+    /// <param name="casoId">El documento.</param>
+    /// <param name="companeroId">A quién se le da.</param>
+    /// <returns>Lo que dijo el motor; sus avisos ya quedaron en la franja.</returns>
     public ResultadoDeEscritura Asignar(long casoId, long companeroId)
     {
         var resultado = _asignaciones.Asignar(casoId, companeroId, _reloj.Ahora());
@@ -45,6 +54,9 @@ public sealed class OperacionDeAsignar
     }
 
     /// <summary>Asigna varios casos de una vez y devuelve la cuenta de lo que entro y lo que no.</summary>
+    /// <param name="casoIds">Los documentos.</param>
+    /// <param name="companeroId">A quién se le dan.</param>
+    /// <param name="nombreDelCompanero">Su nombre, para la línea del acuse.</param>
     public ResumenDeAsignacion AsignarVarios(IReadOnlyCollection<long> casoIds, long companeroId, string nombreDelCompanero)
     {
         var entraron = 0;
@@ -98,6 +110,8 @@ public sealed class OperacionDeAsignar
     /// <para>Se cuenta con <c>Contar</c> y no trayendo la lista: para pintar la pregunta hace
     /// falta el numero, no las filas.</para>
     /// </remarks>
+    /// <param name="companeroId">A quién se le quitaría.</param>
+    /// <param name="nombreDelCompanero">Su nombre, para la pregunta.</param>
     public LoQueSeLeQuitaria MirarLoQueSeLeQuitaria(long companeroId, string nombreDelCompanero)
         => new(
             _asignaciones.Contar(new FiltroDeAsignaciones(CompaneroId: companeroId, SoloActivas: true)),
@@ -119,6 +133,8 @@ public sealed class OperacionDeAsignar
     /// <see cref="RetirarDelCaso"/>: asi el lote no tiene reglas propias que se puedan separar
     /// de las de una asignacion suelta.</para>
     /// </remarks>
+    /// <param name="companeroId">A quién se le quita todo.</param>
+    /// <param name="nombreDelCompanero">Su nombre, para la línea del acuse.</param>
     public ResumenDeRetirada QuitarleTodo(long companeroId, string nombreDelCompanero)
     {
         var suyas = _asignaciones
@@ -158,6 +174,9 @@ public sealed class OperacionDeAsignar
     /// fila se desactiva con su fecha y nunca se borra, asi que quien llevo que caso se
     /// conserva.</para>
     /// </remarks>
+    /// <param name="companeroId">A quién se le retiran; las asignaciones de otros sobre los mismos casos no se tocan.</param>
+    /// <param name="casoIds">Los documentos que devolvió completos.</param>
+    /// <param name="nombreDelCompanero">Su nombre, para la línea del acuse.</param>
     public ResumenDeRetirada RetirarleEstosCasos(
         long companeroId, IReadOnlyCollection<long> casoIds, string nombreDelCompanero)
     {
@@ -180,6 +199,8 @@ public sealed class OperacionDeAsignar
     }
 
     /// <summary>Retira todas las asignaciones vivas de un caso; las desactiva, nunca las borra (C5-3).</summary>
+    /// <param name="casoId">El documento.</param>
+    /// <returns>El resultado de la última retirada; «no se escribió» con aviso si nadie lo llevaba.</returns>
     public ResultadoDeEscritura RetirarDelCaso(long casoId)
     {
         var vivas = _asignaciones.VivasDeCaso(casoId);

@@ -10,6 +10,7 @@ namespace Fichas.Pruebas.Datos;
 [TestClass]
 public sealed class PruebaDeLosRepositorios
 {
+    /// <summary>Vigila que un caso con todas sus columnas rellenas se guarda y se relee igual (la tabla tiene hoy 22; el nombre quedó viejo y se apunta en la entrega).</summary>
     [TestMethod]
     public void UnCasoSeGuardaYSeReleeConSusVeinteColumnas()
     {
@@ -52,6 +53,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.AreEqual(EstadoDeRecomendacion.Completa, leido.Estado);
     }
 
+    /// <summary>Vigila que <c>7000011</c> entra sin aviso y una unidad de cinco dígitos entra avisando.</summary>
     [TestMethod]
     public void LaUnidadDeSieteDigitosEntraYLaDeCincoAvisa()
     {
@@ -70,6 +72,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.IsTrue(cinco.HayAvisos, "La unidad de 5 digitos no aviso de nada.");
     }
 
+    /// <summary>Vigila que dos casos con el mismo número se guardan los dos (versión 12).</summary>
     [TestMethod]
     public void DosCasosPuedenCompartirElMismoNumero()
     {
@@ -88,6 +91,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.AreNotEqual(primero.Id, segundo.Id, "Los dos casos son el mismo.");
     }
 
+    /// <summary>Vigila que el primer trozo trae 10 de 25 con «hay más», y el último trae los 5 que quedan sin «hay más».</summary>
     [TestMethod]
     public void LaListaDeCasosSePaginaYDiceCuantosHayDetras()
     {
@@ -114,6 +118,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.IsFalse(ultima.HayMas, "Detras del ultimo trozo no deberia quedar nada.");
     }
 
+    /// <summary>Vigila que un trozo de tamaño 0 y «desde» negativo se corrige y la consulta sigue viendo el caso.</summary>
     [TestMethod]
     public void UnTrozoDePedidoAbsurdoNoTumbaLaConsulta()
     {
@@ -128,6 +133,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.AreEqual(1, pagina.TotalDisponible, "La consulta con un trozo absurdo se perdio el caso.");
     }
 
+    /// <summary>Vigila que el diccionario trae un cero para un caso sin personas, no una clave ausente.</summary>
     [TestMethod]
     public void ContarPersonasDeDevuelveCeroParaUnCasoSinPersonas()
     {
@@ -151,6 +157,7 @@ public sealed class PruebaDeLosRepositorios
             "distingue «no tiene» de «no vino».");
     }
 
+    /// <summary>Vigila que archivar sin fecha no escribe, y desarchivar deja <c>fecha_archivado</c> en NULL.</summary>
     [TestMethod]
     public void ArchivarExigeFechaYDesarchivarLaQuita()
     {
@@ -177,6 +184,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.IsNull(desarchivado.FechaArchivado, "Desarchivar tiene que quitar la fecha.");
     }
 
+    /// <summary>Vigila que el filtro por defecto excluye archivados y <c>IncluirArchivados</c> los trae.</summary>
     [TestMethod]
     public void UnCasoArchivadoNoSaleEnLaListaSalvoQueSePida()
     {
@@ -192,6 +200,7 @@ public sealed class PruebaDeLosRepositorios
             "El archivado no salio ni pidiendolo.");
     }
 
+    /// <summary>Vigila que sí, no y nulo vuelven distintos en las seis <c>ord_*</c> y los seis <c>paso_*</c>.</summary>
     [TestMethod]
     public void LasSeisCasillasYLosSeisPasosGuardanSusTresEstados()
     {
@@ -227,6 +236,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.IsTrue(leida.LlamoAlLider, "Se perdio que llamo al lider.");
     }
 
+    /// <summary>Vigila que <c>DeCaso</c> ordena por <c>fila_formulario</c> y no por id.</summary>
     [TestMethod]
     public void LasPersonasDeUnCasoVienenEnElOrdenDelFormulario()
     {
@@ -247,6 +257,7 @@ public sealed class PruebaDeLosRepositorios
             "Las personas no vienen en el orden en que estaban en el papel.");
     }
 
+    /// <summary>Vigila que desactivar deja la fila con <c>activo = 0</c> y su fecha.</summary>
     [TestMethod]
     public void UnCompaneroSeDesactivaYNuncaSeBorra()
     {
@@ -267,6 +278,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.AreEqual("2026-09-04 12:00:00", leida.DesactivadoEn);
     }
 
+    /// <summary>Vigila que asignar a un desactivado no escribe y devuelve un aviso.</summary>
     [TestMethod]
     public void NoSeAsignaUnCasoAUnCompaneroDesactivado()
     {
@@ -285,6 +297,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.IsTrue(intento.HayAvisos, "No dijo por que no se pudo asignar.");
     }
 
+    /// <summary>Vigila que retirar deja la fila con <c>activa = 0</c> y su fecha, y ya no sale entre las vivas.</summary>
     [TestMethod]
     public void UnaAsignacionSeRetiraDesactivandolaYNoBorrandola()
     {
@@ -308,6 +321,7 @@ public sealed class PruebaDeLosRepositorios
             "La asignacion se borro, y se conserva para saber quien llevo que.");
     }
 
+    /// <summary>Vigila que un renglón registrado sale en la lista con su cero de líneas leídas y se cuenta por motivo.</summary>
     [TestMethod]
     public void UnRenglonIlegibleSeGuardaYSePuedeConsultarDespues()
     {
@@ -334,6 +348,7 @@ public sealed class PruebaDeLosRepositorios
         Assert.AreEqual(0, ilegibles.Contar(new FiltroDeIlegibles(Motivo: "otro_motivo")));
     }
 
+    /// <summary>Vigila que una fila con número y cédula mal formados entra y se relee tal cual, con su fila del Excel.</summary>
     [TestMethod]
     public void UnaFilaDescartadaGuardaLoQueVeniaEscritoSinValidarlo()
     {

@@ -17,9 +17,11 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 public sealed class Registro
 {
+    /// <summary>La ruta de <c>fichas.log</c>, o nula si la carpeta no se pudo crear: entonces no se anota nada.</summary>
     private readonly string? _ruta;
+
+    /// <summary>Una línea cada vez: dos hilos anotando a la vez se pisarían dentro del archivo.</summary>
     private readonly Lock _candado = new();
-    private readonly Stopwatch _desdeElProceso = Stopwatch.StartNew();
 
     /// <summary>Abre el cuaderno en la carpeta de datos; si no se puede, se queda callado.</summary>
     public Registro(string carpetaDeDatos)
@@ -39,9 +41,6 @@ public sealed class Registro
 
     /// <summary>Donde quedo el cuaderno, o nulo si no se pudo abrir.</summary>
     public string? Ruta => _ruta;
-
-    /// <summary>Cuantos milisegundos han pasado desde que arranco el proceso.</summary>
-    public double MilisegundosDesdeElArranque => _desdeElProceso.Elapsed.TotalMilliseconds;
 
     /// <summary>Anota una linea con su marca de tiempo.</summary>
     public void Anotar(string linea)

@@ -25,14 +25,17 @@ namespace Fichas.Datos.Repositorios;
 /// </remarks>
 public sealed partial class RepositorioDeIlegibles : RepositorioBase, IIlegibles
 {
+    /// <summary>Las ocho columnas de <c>documentos_ilegibles</c>, en el orden exacto en que <see cref="LeerRenglon"/> las espera por posición.</summary>
     private const string ColumnasDeIlegibles =
         "id, ruta_pdf, pagina_pdf, motivo, detalle, lineas_leidas, caso_id, registrado_en";
 
+    /// <summary>Las nueve columnas de <c>filas_descartadas</c>, en el orden exacto en que <see cref="LeerDescartada"/> las espera por posición.</summary>
     private const string ColumnasDeDescartadas =
         "id, companero_id, ruta_excel, fila_excel, numero_caso, mrn, nombre, motivo, " +
         "registrado_en";
 
     /// <summary>Trabaja sobre una conexion ya abierta con el esquema aplicado.</summary>
+    /// <param name="conexion">La conexión abierta; no puede ser nula.</param>
     public RepositorioDeIlegibles(SqliteConnection conexion) : base(conexion)
     {
     }
@@ -157,6 +160,10 @@ public sealed partial class RepositorioDeIlegibles : RepositorioBase, IIlegibles
             []);
     }
 
+    /// <summary>Compone el WHERE del filtro con marcadores <c>$nombre</c>; el texto del usuario nunca entra aquí, solo en <c>PonerLosParametrosDelFiltro</c>.</summary>
+    /// <param name="filtro">Lo que la pantalla pide.</param>
+    /// <returns>Una cláusula <c>WHERE …</c>, o vacío si el filtro no dice nada.</returns>
+    /// <remarks>Ruta y motivo se comparan con <c>=</c> y no con LIKE: son valores exactos que la pantalla ya conoce, no texto tecleado.</remarks>
     private static string ComponerElFiltro(FiltroDeIlegibles filtro)
     {
         var condiciones = new List<string>();
@@ -174,6 +181,9 @@ public sealed partial class RepositorioDeIlegibles : RepositorioBase, IIlegibles
         return condiciones.Count == 0 ? string.Empty : "WHERE " + string.Join(" AND ", condiciones);
     }
 
+    /// <summary>Rellena los marcadores que <c>ComponerElFiltro</c> dejó, y solo esos: un parámetro sin marcador es un error del motor.</summary>
+    /// <param name="orden">La orden en la que se añaden los parámetros.</param>
+    /// <param name="filtro">El mismo filtro con el que se compuso el WHERE.</param>
     private static void PonerLosParametrosDelFiltro(SqliteCommand orden, FiltroDeIlegibles filtro)
     {
         if (!string.IsNullOrWhiteSpace(filtro.RutaPdf))
@@ -187,6 +197,8 @@ public sealed partial class RepositorioDeIlegibles : RepositorioBase, IIlegibles
         }
     }
 
+    /// <summary>Convierte una fila en un renglón de ilegible, columna por columna y en el orden de <c>Columnas</c>.</summary>
+    /// <param name="lector">El lector posicionado en la fila.</param>
     private static RenglonIlegible LeerRenglon(SqliteDataReader lector) => new()
     {
         Id = lector.GetInt64(0),
@@ -199,6 +211,8 @@ public sealed partial class RepositorioDeIlegibles : RepositorioBase, IIlegibles
         RegistradoEn = TextoONulo(lector, 7) ?? string.Empty,
     };
 
+    /// <summary>Convierte una fila en una fila descartada del Excel, columna por columna y en el orden de <c>Columnas</c>.</summary>
+    /// <param name="lector">El lector posicionado en la fila.</param>
     private static FilaDescartada LeerDescartada(SqliteDataReader lector) => new()
     {
         Id = lector.GetInt64(0),

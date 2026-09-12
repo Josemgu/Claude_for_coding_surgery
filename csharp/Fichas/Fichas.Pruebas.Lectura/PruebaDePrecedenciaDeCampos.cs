@@ -15,17 +15,22 @@ namespace Fichas.Pruebas.Lectura;
 [TestClass]
 public class PruebaDePrecedenciaDeCampos
 {
+    /// <summary>La fila de valor donde caen todas las líneas del OCR de esta clase.</summary>
     private static readonly BandaDeLaPagina Fila = new(0.05, 0.42, 0.30, 0.44);
 
+    /// <summary>Una línea del OCR dentro de <see cref="Fila"/>.</summary>
+    /// <param name="texto">Lo leído.</param>
+    /// <param name="confianza">La que dio el motor; 0,97 por defecto, para que se vea que se conserva.</param>
     private static LineaDeOcr LineaOcr(string texto, double confianza = 0.97)
         => new(texto, confianza, Fila);
 
+    /// <summary>Una nota escrita a mano (<c>/FreeText</c>) dentro de la fila, de 0,06 de ancho.</summary>
+    /// <param name="texto">Lo escrito.</param>
+    /// <param name="x0">Dónde empieza; para poner dos y ver cuál gana.</param>
     private static AnotacionDelPdf Correccion(string texto, double x0 = 0.06)
         => new("FreeText", texto, new BandaDeLaPagina(x0, 0.425, x0 + 0.06, 0.438), null, null, null, null);
 
-    private static AnotacionDelPdf Tachon()
-        => new("Ink", null, Fila, 0.8902, 0.0941, 0.1765, 1.65);
-
+    /// <summary>Vigila el tercer punto de la precedencia: sin tachón ni corrección manda el OCR, con su confianza tal cual.</summary>
     [TestMethod]
     public void SinTachonNiCorreccionValeLoQueLeyoElOcr()
     {
@@ -36,6 +41,7 @@ public class PruebaDePrecedenciaDeCampos
         Assert.AreEqual(0.97, campo.Confianza!.Value, 1e-9);
     }
 
+    /// <summary>Vigila el segundo punto: la corrección escrita gana incluso con tachón, con origen anotación y confianza 1,0.</summary>
     [TestMethod]
     public void UnaCorreccionEscritaGanaAlOcrYValeUnoComaCero()
     {
@@ -99,6 +105,7 @@ public class PruebaDePrecedenciaDeCampos
         Assert.IsTrue(campo.NecesitaRevision);
     }
 
+    /// <summary>Vigila que sin líneas ni anotaciones el campo salga vacío de todo, sin inventar un texto leído.</summary>
     [TestMethod]
     public void CuandoElOcrNoLeyoNadaElCampoQuedaVacioSinValorLeido()
     {

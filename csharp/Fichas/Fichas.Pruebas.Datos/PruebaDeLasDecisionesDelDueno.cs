@@ -48,6 +48,7 @@ public sealed class PruebaDeLasDecisionesDelDueno
         "123-4567-890a",   // en minuscula: se guarda tal cual, NO se sube a mayuscula
     ];
 
+    /// <summary>Vigila que cada número raro de la lista se guarda, avisa y se relee letra por letra (requisito 9).</summary>
     [TestMethod]
     public void UnNumeroDeCasoRaroEntraEnLaBaseYSaleAvisado()
     {
@@ -80,6 +81,7 @@ public sealed class PruebaDeLasDecisionesDelDueno
         }
     }
 
+    /// <summary>El control positivo: un número bien formado entra sin ningún aviso.</summary>
     [TestMethod]
     public void UnNumeroDeCasoBienFormadoEntraSinAvisoNinguno()
     {
@@ -100,6 +102,7 @@ public sealed class PruebaDeLasDecisionesDelDueno
             string.Join(" | ", resultado.Avisos.Select(a => a.Linea)));
     }
 
+    /// <summary>Vigila que las cédulas con letra final entran sin aviso y vuelven sin subir la minúscula a mayúscula.</summary>
     [TestMethod]
     public void UnaCedulaTerminadaEnLetraEntraYSeReleeTalCual()
     {
@@ -137,6 +140,7 @@ public sealed class PruebaDeLasDecisionesDelDueno
         }
     }
 
+    /// <summary>Vigila que admitir la letra no rompió la forma de solo dígitos.</summary>
     [TestMethod]
     public void UnaCedulaSoloDeDigitosSigueEntrando()
     {
@@ -157,6 +161,7 @@ public sealed class PruebaDeLasDecisionesDelDueno
         Assert.IsFalse(resultado.HayAvisos, "La cedula de solo digitos aviso de algo.");
     }
 
+    /// <summary>Vigila que una cédula mal formada se guarda y el aviso nombra el campo <c>mrn</c>.</summary>
     [TestMethod]
     public void UnaCedulaConLaFormaEquivocadaSeGuardaAvisadaYNoSePierde()
     {
@@ -183,6 +188,7 @@ public sealed class PruebaDeLasDecisionesDelDueno
             "que casilla poner en rojo.");
     }
 
+    /// <summary>Vigila que un caso lleno de valores imposibles devuelve avisos y no una excepción.</summary>
     [TestMethod]
     public void GuardarNoLanzaNuncaPorUnValorRaro()
     {

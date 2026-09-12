@@ -113,6 +113,7 @@ public static class Vocabulario
     /// sale dentro del nombre, porque corregirlo aqui seria cambiar un dato leido (regla
     /// permanente 1).
     /// </remarks>
+    /// <param name="nombre">Lo que guarda la base; nulo o en blanco da «unidad sin nombre».</param>
     public static string NombreDeUnidad(string? nombre)
         => string.IsNullOrWhiteSpace(nombre) ? "unidad sin nombre" : nombre;
 
@@ -124,6 +125,7 @@ public static class Vocabulario
     /// decide <c>LibroDelInforme.EsUnRecuentoQueSeDejaSumar</c>, cuyo tope son 9 digitos— y
     /// dejaria de poder compararse con el del papel.
     /// </remarks>
+    /// <param name="numero">Lo que guarda la base; nulo o en blanco da «sin número».</param>
     public static string NumeroDeUnidad(string? numero)
         => string.IsNullOrWhiteSpace(numero) ? "sin número" : numero;
 
@@ -133,10 +135,13 @@ public static class Vocabulario
     /// perdio por el camino, y lo que pasa es que el reconocimiento no leyo ese nombre y nadie
     /// lo ha corregido todavia.
     /// </remarks>
+    /// <param name="nombre">Lo que leyó el reconocimiento; nulo o en blanco da «nombre sin leer».</param>
     public static string PersonaOSinNombre(string? nombre)
         => string.IsNullOrWhiteSpace(nombre) ? "nombre sin leer" : nombre;
 
     /// <summary>El estado tal como esta guardado, o la palabra que dice que no hay ninguno.</summary>
+    /// <remarks>Solo cambia los guiones bajos por espacios: «no_completa» sale «no completa». No traduce ni corrige.</remarks>
+    /// <param name="estadoRecomendacion">El texto crudo de la columna; nulo o vacío da <see cref="SinDato"/>.</param>
     public static string TextoDelEstado(string? estadoRecomendacion)
         => string.IsNullOrEmpty(estadoRecomendacion) ? SinDato : estadoRecomendacion.Replace("_", " ");
 }

@@ -61,19 +61,27 @@ namespace Fichas.Pruebas.Lectura;
 [DoNotParallelize]
 public class PruebaDeLosFormulariosRellenadosAMaquina
 {
+    /// <summary>Dónde están los formularios reales en esta máquina. Fuera del repositorio: son datos personales.</summary>
     private const string CarpetaDeLosDocumentos =
         @"C:\Users\josem\.claude\uploads\e38428f3-e062-41e5-92f2-566aacd26e92";
 
     /// <summary>El archivo del pase, por el prefijo que le puso la carpeta de subidas.</summary>
     private const string PrefijoDelArchivoDelPase = "b376e041-";
 
+    /// <summary>El nombre del campo <c>/Tx</c> de la primera fila de nombres, tal como lo llama el formulario.</summary>
     private const string CampoDelNombreEnElFormulario = "Full NamesRow1";
+    /// <summary>El nombre del campo <c>/Tx</c> de la primera fila de cédulas.</summary>
     private const string CampoDeLaCedulaEnElFormulario = "Membership Record NumberRow1";
+    /// <summary>El nombre del campo <c>/Tx</c> del templo.</summary>
     private const string CampoDelTemploEnElFormulario = "Temple Name";
+    /// <summary>El nombre del campo <c>/Tx</c> de la fecha de viaje.</summary>
     private const string CampoDeLaFechaDeViajeEnElFormulario = "Date traveling to the temple";
 
+    /// <summary>Las hojas de los formularios distintos, leídas una vez para toda la clase; vacía si no había material.</summary>
     private static IReadOnlyList<HojaLeida> _hojas = [];
+    /// <summary>La hoja del archivo del pase, sobre el que se mide el criterio; nula si no está.</summary>
     private static HojaLeida? _hojaDelPase;
+    /// <summary>Las anotaciones de la hoja del pase leídas aparte, para contar los campos tecleados sin pasar por la extracción.</summary>
     private static IReadOnlyList<AnotacionDelPdf> _anotacionesDelPase = [];
 
     /// <summary>Los formularios distintos de la carpeta: una copia byte a byte no se lee dos veces.</summary>
@@ -90,6 +98,8 @@ public class PruebaDeLosFormulariosRellenadosAMaquina
             .ToArray();
     }
 
+    /// <summary>Lee todos los formularios distintos y guarda aparte la hoja del pase con sus anotaciones. Es OCR de verdad, por eso una sola vez.</summary>
+    /// <param name="contexto">Lo exige MSTest; no se usa.</param>
     [ClassInitialize]
     public static void LeerLosFormulariosUnaSolaVez(TestContext contexto)
     {
@@ -105,6 +115,7 @@ public class PruebaDeLosFormulariosRellenadosAMaquina
         if (_hojaDelPase is not null) _anotacionesDelPase = lectura.LeerAnotaciones(_hojaDelPase.RutaPdf, 1);
     }
 
+    /// <summary>Las hojas leídas, o la prueba se declara no concluyente si no hubo material. Nunca falla por eso.</summary>
     private static IReadOnlyList<HojaLeida> Hojas()
     {
         if (_hojas.Count == 0)
@@ -116,6 +127,7 @@ public class PruebaDeLosFormulariosRellenadosAMaquina
         return _hojas;
     }
 
+    /// <summary>La hoja del archivo del pase, o la prueba se declara no concluyente si ese archivo no está.</summary>
     private static HojaLeida LaHojaDelPase()
     {
         _ = Hojas();
@@ -127,6 +139,7 @@ public class PruebaDeLosFormulariosRellenadosAMaquina
     }
 
     /// <summary>Lo tecleado en un campo del archivo del pase, leído con PdfPig directamente: el oráculo.</summary>
+    /// <param name="nombreDelCampo">El nombre parcial del campo en el <c>AcroForm</c>, uno de los <c>CampoDe…EnElFormulario</c>.</param>
     private static string? ValorTecleadoEn(string nombreDelCampo)
     {
         using var documento = PdfDocument.Open(LaHojaDelPase().RutaPdf);
@@ -141,12 +154,20 @@ public class PruebaDeLosFormulariosRellenadosAMaquina
             .Value;
     }
 
+    /// <summary>El nombre del archivo con la parte que lleva el nombre de la persona tapada, para poder imprimirlo.</summary>
+    /// <param name="hoja">La hoja leída.</param>
     private static string Archivo(HojaLeida hoja)
         => Regex.Replace(Path.GetFileName(hoja.RutaPdf), @"_.*\.pdf$", "_<enmascarado>.pdf");
 
+    /// <summary>Tapa los dígitos con «#» y todas las letras menos la primera de cada palabra con «·»: son datos de personas reales.</summary>
+    /// <param name="texto">Lo que se va a imprimir; nulo sale como «∅».</param>
     private static string Enmascarar(string? texto)
         => texto is null ? "∅" : Regex.Replace(Regex.Replace(texto, @"\d", "#"), @"(?<=\p{L})\p{L}", "·");
 
+    /// <summary>El único campo propuesto de esa tabla con ese nombre; falla la prueba si hay cero o varios.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="tabla">Casos o personas.</param>
+    /// <param name="campo">El nombre de columna.</param>
     private static CampoPropuesto Unico(HojaLeida hoja, TablaDeProcedencia tabla, string campo)
     {
         var propuestos = hoja.Campos.Where(c => c.Tabla == tabla && c.Campo == campo).ToArray();
@@ -154,8 +175,14 @@ public class PruebaDeLosFormulariosRellenadosAMaquina
         return propuestos[0];
     }
 
+    /// <summary>El único campo propuesto de <c>casos</c> con ese nombre.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campo">El nombre de columna.</param>
     private static CampoPropuesto CampoDelCaso(HojaLeida hoja, string campo) => Unico(hoja, TablaDeProcedencia.Casos, campo);
 
+    /// <summary>El único campo propuesto de <c>personas</c> con ese nombre: estos formularios traen una sola persona.</summary>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="campo">El nombre de columna.</param>
     private static CampoPropuesto CampoDeLaPersona(HojaLeida hoja, string campo) => Unico(hoja, TablaDeProcedencia.Personas, campo);
 
     // --- El criterio del pase, sobre SU archivo --------------------------------------------

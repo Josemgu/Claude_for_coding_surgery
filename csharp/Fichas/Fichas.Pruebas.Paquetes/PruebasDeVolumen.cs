@@ -28,8 +28,11 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDeVolumen
 {
+    /// <summary>Cuántos casos se dan de alta: más de los que este programa verá en una ronda.</summary>
     private const int Casos = 1_000;
+    /// <summary>Cuántas personas lleva cada caso: una familia media.</summary>
     private const int PersonasPorCaso = 3;
+    /// <summary>Las 3 000 filas que tienen que salir en la hoja, una por persona.</summary>
     private const int FilasEsperadas = Casos * PersonasPorCaso;
 
     /// <summary>Tope de escritura, en segundos. Ver la nota de la clase sobre por que es generoso.</summary>
@@ -41,6 +44,7 @@ public class PruebasDeVolumen
     /// <summary>Tope de aplicacion, en segundos.</summary>
     private const int TopeDeAplicar = 60;
 
+    /// <summary>Vigila que la ida, la vuelta y la aplicación de 3 000 filas quepan cada una en su tope, y deja los segundos escritos.</summary>
     [TestMethod]
     public void TresMilFilasSeGeneranSeLeenYSeAplicanEnUnTiempoQueSeMide()
     {

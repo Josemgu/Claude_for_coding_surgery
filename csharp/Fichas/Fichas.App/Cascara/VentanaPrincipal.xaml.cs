@@ -29,9 +29,11 @@ namespace Fichas.App.Cascara;
 /// </remarks>
 public sealed partial class VentanaPrincipal : Window
 {
+    /// <summary>Los servicios de toda la app, los mismos que reciben las pantallas al navegar.</summary>
     private readonly Servicios _servicios;
 
     /// <summary>Monta la ventana, la pone del tamano pedido y abre por Inicio.</summary>
+    /// <param name="servicios">Los servicios ya montados por <c>App.OnLaunched</c>.</param>
     public VentanaPrincipal(Servicios servicios)
     {
         _servicios = servicios;
@@ -66,6 +68,11 @@ public sealed partial class VentanaPrincipal : Window
         // La primera entrada, que ya no es MenuItems[0]: el [0] es ahora el titulo del grupo
         // «El trabajo», y seleccionar un titulo de grupo no navega a ninguna parte.
         _navegacion.SelectedItem = _navegacion.MenuItems.OfType<NavigationViewItem>().First();
+
+        // La pregunta a GitHub de si hay version nueva, en segundo plano y DESPUES de que
+        // la ventana tenga todo puesto: no bloquea nada y, si no hay red, no se nota. Con
+        // --falso o --sin-actualizacion no pregunta. Vive en VentanaPrincipal.Actualizacion.cs.
+        BuscarActualizacionAlArrancar();
     }
 
     /// <summary>
@@ -77,6 +84,7 @@ public sealed partial class VentanaPrincipal : Window
     /// pie —que es donde el acuse ya vive— y ademas en la franja, que es donde Miguel mira
     /// los avisos.
     /// </remarks>
+    /// <param name="servicios">Los servicios, para saber si los datos son inventados y con qué carpeta.</param>
     private void DecirSiLosDatosSonInventados(Servicios servicios)
     {
         if (!servicios.SonDatosInventados) return;
@@ -113,6 +121,8 @@ public sealed partial class VentanaPrincipal : Window
     public Acuse AcuseDelPie => _acuse;
 
     /// <summary>Navega a la pantalla de la entrada elegida y anota cuanto tardo.</summary>
+    /// <param name="quien">La navegación; no se usa.</param>
+    /// <param name="cuando">Trae la entrada elegida; si no es una entrada (es un título de grupo), no se navega.</param>
     private void AlElegirUnaEntrada(NavigationView quien, NavigationViewSelectionChangedEventArgs cuando)
     {
         if (cuando.SelectedItem is not NavigationViewItem entrada) return;
@@ -130,6 +140,7 @@ public sealed partial class VentanaPrincipal : Window
     }
 
     /// <summary>Traduce el nombre de la entrada a la clase de su pantalla.</summary>
+    /// <param name="nombre">El <c>Tag</c> de la entrada del menú; cualquier otro va a Inicio.</param>
     private static Type PantallaDe(string nombre) => nombre switch
     {
         "Importar" => typeof(Importar.PaginaDeImportar),

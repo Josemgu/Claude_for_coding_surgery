@@ -12,6 +12,7 @@ public sealed class RelojDelSistema : IReloj
     public string Ahora() => DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>La fecha de dentro de N dias en ISO-8601.</summary>
+    /// <param name="dias">Cuántos días; negativo va hacia atrás.</param>
     public string HoyMasDias(int dias)
         => DateTime.Now.AddDays(dias).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }
@@ -23,9 +24,11 @@ public sealed class RelojDelSistema : IReloj
 /// </remarks>
 public sealed class RelojFijo : IReloj
 {
+    /// <summary>El día en el que está parado, a medianoche; <see cref="Ahora"/> le pone las 12:00.</summary>
     private readonly DateTime _dia;
 
     /// <summary>Para el reloj en el dia que se le diga, en ISO-8601.</summary>
+    /// <param name="diaIso">El día, exactamente <c>AAAA-MM-DD</c>; otra forma lanza <see cref="FormatException"/>.</param>
     public RelojFijo(string diaIso)
         => _dia = DateTime.ParseExact(diaIso, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 
@@ -36,6 +39,7 @@ public sealed class RelojFijo : IReloj
     public string Ahora() => _dia.ToString("yyyy-MM-dd 12:00:00", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>La fecha de dentro de N dias contada desde el dia en el que esta parado.</summary>
+    /// <param name="dias">Cuántos días; negativo va hacia atrás.</param>
     public string HoyMasDias(int dias)
         => _dia.AddDays(dias).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }

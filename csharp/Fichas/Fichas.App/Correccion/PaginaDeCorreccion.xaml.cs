@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Fichas.App.Cascara;
 using Fichas.Contratos.Consultas;
-using Fichas.Contratos.Modelos;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -32,15 +31,26 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     /// <remarks>
     /// ⚠️ Provisional y dicho en la entrega: el programa todavia no sabe quien esta sentado
     /// delante. Se toma el primer companero activo, y la firma queda con SU nombre. Cuando
-    /// exista la sesion, esta constante desaparece; hasta entonces la regla permanente 5 se
+    /// exista la sesion, este campo desaparece; hasta entonces la regla permanente 5 se
     /// cumple en lo que importa —la firma la pulsa una persona— pero el nombre puede no ser
-    /// el suyo.
+    /// el suyo. Vale 0 si no hay ningun companero activo, y entonces el almacen se niega a firmar.
     /// </remarks>
     private long _quienFirma;
 
+    /// <summary>El modelo de la pantalla; nulo hasta que llegan los servicios.</summary>
     private ModeloDeCorreccion? _modelo;
+
+    /// <summary>Las fichas que el repetidor ya creo y a las que se ataron los sucesos, para no atarlos dos veces.</summary>
     private readonly List<FichaDeCampo> _fichas = [];
+
+    /// <summary>El id del caso que se tiene delante; 0 mientras no se abrio ninguno.</summary>
+    /// <remarks>
+    /// Es lo que se compara al volver de leer las bandas en otro hilo: si cambio, lo leido es
+    /// de otro papel y se tira.
+    /// </remarks>
     private long _casoAbierto;
+
+    /// <summary>Guarda para que cambiar el segundo desplegable desde el codigo no dispare <see cref="AlElegirUnCaso"/>.</summary>
     private bool _cambiandoDeCaso;
 
     /// <summary>Monta la pantalla.</summary>
@@ -48,9 +58,6 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
 
     /// <summary>Lo que costo abrir el ultimo caso, en milisegundos; lo lee la medicion.</summary>
     public double MilisegundosDelUltimoCaso { get; private set; }
-
-    /// <summary>El visor, para que la medicion pueda pedirle sus cifras.</summary>
-    public VisorDelDocumento Visor => _visor;
 
     /// <summary>Monta el modelo, llena el desplegable y abre el primer caso.</summary>
     protected override void AlLlegar()
@@ -82,6 +89,13 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     /// <summary>
     /// Abre un caso y anota cuanto costo. Un caso que no se pueda abrir avisa y no tumba nada.
     /// </summary>
+    /// <remarks>
+    /// Es publica porque a esta pantalla se llega desde fuera con un documento concreto: la
+    /// pantalla del grupo, la ventana de incompletos y la cola la llaman justo despues de
+    /// navegar. Pinta todo en el hilo de la ventana y deja para otro hilo solo la lectura del
+    /// escaneo, que es lo que congelaba la ventana 6,6 s.
+    /// </remarks>
+    /// <param name="casoId">El numero interno del caso; si ya no esta, la cabecera lo dice y no se lanza nada.</param>
     public void AbrirElCaso(long casoId)
     {
         if (_modelo is null || Servicios is null) return;
@@ -136,6 +150,8 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     /// regla que dejo el defecto que QA midio en Importar.
     /// </para>
     /// </remarks>
+    /// <param name="casoId">El caso para el que se leen; si al volver ya no es el abierto, lo leido se tira.</param>
+    /// <param name="peticion">Que archivo y que campos, tal como lo planeo el modelo.</param>
     private async Task BuscarLasBandas(long casoId, PeticionDeBandas peticion)
     {
         try
@@ -320,6 +336,7 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     /// seria la lista de los fallos que se me ocurrieron.
     /// </para>
     /// </remarks>
+    /// <param name="hoja">Que hoja del PDF se pide, base 1; el visor la acota antes de pedirla.</param>
     private void MostrarLaHoja(int hoja)
     {
         if (Servicios is null || _modelo?.Caso is null) return;
@@ -347,6 +364,8 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     }
 
     /// <summary>Dice una linea en el pie. Un fallo que no se ve es un fallo que no existe.</summary>
+    /// <remarks>Sin ventana principal —en una prueba— no dice nada y no lanza.</remarks>
+    /// <param name="linea">Lo que se lee en el acuse del pie; se apaga solo a los pocos segundos.</param>
     private static void Decir(string linea)
     {
         if (App.Ventana is VentanaPrincipal ventana) ventana.AcuseDelPie.Decir(linea);
@@ -547,19 +566,21 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     }
 
     /// <summary>Cuantos de esa lista siguen estando entre los dudosos.</summary>
+    /// <param name="lista">El <c>ItemsSource</c> de uno de los dos repetidores; otra cosa cuenta cero.</param>
+    /// <param name="dudosos">Los dudosos de AHORA, con lo tecleado incluido.</param>
     private static int ContarPendientes(object? lista, IReadOnlyList<CampoEnPantalla> dudosos)
         => lista is IReadOnlyList<CampoEnPantalla> campos ? campos.Count(dudosos.Contains) : 0;
 
     /// <summary>«campo» o «campos», que un «1 campos» delata que nadie leyo la pantalla.</summary>
+    /// <param name="cuantos">La cifra que va delante.</param>
     private static string Campos(int cuantos) => cuantos == 1 ? "campo" : "campos";
 
-    /// <summary>«Queda» o «Quedan», por lo mismo.</summary>
-    private static string Quedan(int cuantos) => cuantos == 1 ? "Queda" : "Quedan";
-
     /// <summary>«dado» o «dados», por lo mismo.</summary>
+    /// <param name="cuantos">La cifra que va delante.</param>
     private static string Dados(int cuantos) => cuantos == 1 ? "dado" : "dados";
 
     /// <summary>«bueno» o «buenos», por lo mismo.</summary>
+    /// <param name="cuantos">La cifra que va delante.</param>
     private static string Buenos(int cuantos) => cuantos == 1 ? "bueno" : "buenos";
 
 }

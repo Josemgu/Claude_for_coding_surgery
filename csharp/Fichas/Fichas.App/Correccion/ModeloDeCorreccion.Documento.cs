@@ -32,6 +32,15 @@ public sealed record PlanDeBandas(PeticionDeBandas? Peticion, IReadOnlyList<Avis
 public sealed record BandasLeidas(
     IReadOnlyDictionary<string, BandaDeLaPagina> PorClave, IReadOnlyList<Aviso> Avisos);
 
+/// <summary>
+/// La parte del modelo que pregunta al escaneo DONDE estaba cada campo, para que el visor
+/// pueda iluminarlo. De aqui sale la banda y nada mas: ni un valor ni una confianza.
+/// </summary>
+/// <remarks>
+/// Va en tres pasos —planear, leer, aplicar— porque el del medio es el caro y es el unico
+/// que puede correr fuera del hilo de la ventana; el motivo medido esta en
+/// <see cref="CompletarBandasDesdeElDocumento"/>.
+/// </remarks>
 public sealed partial class ModeloDeCorreccion
 {
     /// <summary>Ancho al que se rasteriza para preguntar por las bandas; no se pinta con ella.</summary>
@@ -105,6 +114,9 @@ public sealed partial class ModeloDeCorreccion
     /// otra lectura seria decir que se leyo algo que no se leyo—.
     /// </para>
     /// </remarks>
+    /// <param name="peticion">Que archivo abrir y que campos buscar, tal como lo dejo <see cref="PlanearLasBandas"/>.</param>
+    /// <returns>Las bandas encontradas por clave, y un aviso por cada hoja que no se pudo abrir.</returns>
+    /// <exception cref="ArgumentNullException">Si la peticion es nula.</exception>
     public BandasLeidas LeerLasBandas(PeticionDeBandas peticion)
     {
         ArgumentNullException.ThrowIfNull(peticion);
@@ -139,6 +151,9 @@ public sealed partial class ModeloDeCorreccion
     /// acaba de mirar. Y un campo que ya no esta —porque se cambio de caso mientras se leia—
     /// simplemente no se encuentra y no pasa nada.
     /// </remarks>
+    /// <param name="leidas">Lo que devolvio <see cref="LeerLasBandas"/>.</param>
+    /// <returns>Los avisos que venian en la lectura, tal cual, para que la pantalla los enseñe.</returns>
+    /// <exception cref="ArgumentNullException">Si lo leido es nulo.</exception>
     public IReadOnlyList<Aviso> AplicarLasBandas(BandasLeidas leidas)
     {
         ArgumentNullException.ThrowIfNull(leidas);
@@ -150,6 +165,15 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Sitúa en una hoja los campos que la peticion pidió de esa hoja.</summary>
+    /// <remarks>
+    /// Corre el OCR y la extraccion enteros sobre la hoja —lo mismo que hace la importacion—
+    /// y de lo propuesto se queda solo con la banda del campo que casa por tabla, columna y
+    /// fila. Es lo caro del segundo paso.
+    /// </remarks>
+    /// <param name="peticion">La peticion entera; de ella se toman la ruta y los campos de esta hoja.</param>
+    /// <param name="hoja">Que hoja se esta mirando, base 1.</param>
+    /// <param name="imagen">La hoja ya rasterizada.</param>
+    /// <param name="encontradas">Donde se van apuntando las bandas, por clave de campo.</param>
     private void SituarLosCamposDeUnaHoja(
         PeticionDeBandas peticion,
         int hoja,
@@ -168,6 +192,16 @@ public sealed partial class ModeloDeCorreccion
     }
 
     /// <summary>Apunta la banda de un campo propuesto en la clave que le toca, si sigue libre.</summary>
+    /// <remarks>
+    /// Un propuesto sin banda no apunta nada, y una clave ya apuntada no se pisa: la primera
+    /// propuesta que casa es la que vale, para que dos lineas de OCR sobre la misma columna
+    /// no se roben la banda.
+    /// </remarks>
+    /// <param name="candidatos">Los campos sin banda de esta hoja.</param>
+    /// <param name="tabla">Si lo propuesto es del caso o de una persona.</param>
+    /// <param name="propuesto">Lo que la extraccion propuso; solo se usa su columna, su fila y su banda.</param>
+    /// <param name="filaQueCasa">La fila del formulario que tiene que casar; nula para los campos del caso.</param>
+    /// <param name="encontradas">Donde se apunta la banda, por clave de campo.</param>
     private static void AnotarLaBanda(
         List<CampoSinBanda> candidatos,
         TablaDeProcedencia tabla,

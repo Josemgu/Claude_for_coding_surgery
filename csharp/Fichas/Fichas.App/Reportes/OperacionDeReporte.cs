@@ -24,7 +24,9 @@ namespace Fichas.App.Reportes;
 /// </remarks>
 public sealed class OperacionDeReporte
 {
+    /// <summary>El motor de los informes en PDF.</summary>
     private readonly IReportes _reportes;
+    /// <summary>El mismo motor visto como escritor de Excel; nulo cuando no lo cumple (con «--falso»).</summary>
     private readonly Fichas.Reportes.IReportesEnExcel? _enExcel;
 
     /// <summary>Se ata al puerto de los reportes, y al del Excel si ese motor lo cumple.</summary>
@@ -36,6 +38,7 @@ public sealed class OperacionDeReporte
     /// <c>--falso</c> no cumple el del Excel, y ahi esta bien que no: alli no hay archivo que
     /// escribir y la pantalla lo dice, en vez de fingirlo.
     /// </remarks>
+    /// <param name="reportes">El motor de informes de este arranque.</param>
     public OperacionDeReporte(IReportes reportes)
     {
         _reportes = reportes;
@@ -46,6 +49,8 @@ public sealed class OperacionDeReporte
     public bool SabeEscribirEnExcel => _enExcel is not null;
 
     /// <summary>Genera el informe del periodo en esa ruta.</summary>
+    /// <param name="periodo">Las dos fechas ISO tal como están en la pantalla; si no valen, lo dice el motor.</param>
+    /// <param name="ruta">Dónde queda el PDF.</param>
     public ResumenEnPantalla DelPeriodo(PeriodoDeLaPantalla periodo, string ruta)
         => Contar(
             _reportes.GenerarReporteDelPeriodo(periodo.Desde, periodo.Hasta, ruta),
@@ -53,6 +58,7 @@ public sealed class OperacionDeReporte
             $"Reporte {periodo.EnTexto()}");
 
     /// <summary>Genera el historico completo en esa ruta.</summary>
+    /// <param name="ruta">Dónde queda el PDF.</param>
     public ResumenEnPantalla Historico(string ruta)
         => Contar(_reportes.GenerarHistorico(ruta), ruta, "Histórico completo");
 
@@ -70,6 +76,9 @@ public sealed class OperacionDeReporte
     /// seccion «Lo que hizo», con el mes y la semana— se le anadio dentro, en
     /// <c>Fichas.Reportes</c>. Desde aqui no cambia nada: es el mismo puerto.</para>
     /// </remarks>
+    /// <param name="quien">El compañero del que se informa.</param>
+    /// <param name="periodo">Las dos fechas ISO de la pantalla.</param>
+    /// <param name="ruta">Dónde queda el PDF.</param>
     public ResumenEnPantalla DeUnAgente(Companero quien, PeriodoDeLaPantalla periodo, string ruta)
     {
         ArgumentNullException.ThrowIfNull(quien);
@@ -88,6 +97,9 @@ public sealed class OperacionDeReporte
     /// Excel»</i>. Es el MISMO informe del PDF y llama al mismo motor; lo que cambia es la
     /// forma, que en una hoja de calculo se puede filtrar, ordenar y sumar.
     /// </remarks>
+    /// <param name="periodo">Las dos fechas ISO de la pantalla.</param>
+    /// <param name="ruta">Dónde queda el Excel.</param>
+    /// <returns>Sin motor de Excel, una advertencia que lo dice y nada escrito.</returns>
     public ResumenEnPantalla DelPeriodoEnExcel(PeriodoDeLaPantalla periodo, string ruta)
         => _enExcel is null
             ? AquiNoHayExcel(ruta)
@@ -97,12 +109,18 @@ public sealed class OperacionDeReporte
                 $"Reporte {periodo.EnTexto()} en Excel");
 
     /// <summary>Genera el historico completo en Excel en esa ruta.</summary>
+    /// <param name="ruta">Dónde queda el Excel.</param>
+    /// <returns>Sin motor de Excel, una advertencia que lo dice y nada escrito.</returns>
     public ResumenEnPantalla HistoricoEnExcel(string ruta)
         => _enExcel is null
             ? AquiNoHayExcel(ruta)
             : Contar(_enExcel.GenerarHistoricoEnExcel(ruta), ruta, "Histórico completo en Excel");
 
     /// <summary>Genera el informe de un agente en Excel en esa ruta.</summary>
+    /// <param name="quien">El compañero del que se informa.</param>
+    /// <param name="periodo">Las dos fechas ISO de la pantalla.</param>
+    /// <param name="ruta">Dónde queda el Excel.</param>
+    /// <returns>Sin motor de Excel, una advertencia que lo dice y nada escrito.</returns>
     public ResumenEnPantalla DeUnAgenteEnExcel(Companero quien, PeriodoDeLaPantalla periodo, string ruta)
     {
         ArgumentNullException.ThrowIfNull(quien);
@@ -121,6 +139,7 @@ public sealed class OperacionDeReporte
     /// «escrito» sobre un archivo que nadie va a encontrar: es la misma decision del reporte de
     /// la segunda vuelta y la del mantenimiento.
     /// </remarks>
+    /// <param name="ruta">Dónde iba a quedar, para nombrarla en el aviso.</param>
     private static ResumenEnPantalla AquiNoHayExcel(string ruta)
     {
         var aviso = Aviso.Advierte(
@@ -134,6 +153,10 @@ public sealed class OperacionDeReporte
     }
 
     /// <summary>Escribe la linea con el archivo ya mirado y recoge lo que hay que avisar.</summary>
+    /// <param name="resultado">Lo que contestó el motor.</param>
+    /// <param name="ruta">Dónde tenía que quedar el archivo; se mira de verdad.</param>
+    /// <param name="deQue">Cómo se llama el informe en la línea: «Reporte del … al …», «Histórico completo»…</param>
+    /// <returns>Con <c>SalioBien</c> falso y sin ruta si el motor dijo que no o si el archivo no está.</returns>
     private static ResumenEnPantalla Contar(ResultadoDeEscritura resultado, string ruta, string deQue)
     {
         var avisos = new List<Aviso>(resultado.Avisos);

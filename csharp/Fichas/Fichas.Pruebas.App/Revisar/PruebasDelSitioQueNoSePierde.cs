@@ -208,6 +208,7 @@ public sealed class PruebasDelSitioQueNoSePierde
     }
 
     /// <summary>Todas las claves de un árbol, en el orden en que se pintan.</summary>
+    /// <param name="carpetas">El árbol agrupado, mes por mes.</param>
     private static List<string> ClavesDe(IReadOnlyList<GrupoDeMes> carpetas)
     {
         var claves = new List<string>();

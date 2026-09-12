@@ -63,6 +63,9 @@ public static class PdfDelPaquete
     /// leer, y una hoja de aviso en su sitio exacto cuando no. Es lo que mantiene que la hoja N
     /// del PDF sea la fila N del Excel, que es todo lo que hace util al PDF.
     /// </remarks>
+    /// <param name="hojas">Las hojas en el orden de los renglones del Excel; una lista vacía no escribe nada.</param>
+    /// <param name="rutaDestino">Ruta del <c>.pdf</c> a escribir; se sobrescribe si ya existe.</param>
+    /// <returns>Cuántas hojas salieron, cuáles llevan hoja de aviso y, si el archivo no se pudo escribir, por qué.</returns>
     public static ResultadoDeLaUnion Unir(IReadOnlyList<HojaDelPaquete> hojas, string rutaDestino)
     {
         ArgumentNullException.ThrowIfNull(hojas);
@@ -108,6 +111,8 @@ public static class PdfDelPaquete
     /// igual. Si no se pudo leer ninguna no hay de donde copiar, y entonces se usa A4, que es
     /// el tamano de los formularios del dueno.
     /// </remarks>
+    /// <param name="enOrden">Las hojas pedidas con su motivo de falta, nulo en las que sí entran.</param>
+    /// <param name="tamanos">El tamaño de la primera página de cada archivo que se pudo abrir, por ruta.</param>
     private static TamanoDeHoja TamanoDeLasDemas(
         IReadOnlyList<(HojaDelPaquete Hoja, HojaQueFalta? Falta)> enOrden,
         Dictionary<string, TamanoDeHoja> tamanos)
@@ -123,6 +128,11 @@ public static class PdfDelPaquete
     /// Se comprueba ANTES de unir y no dentro: si el archivo roto se descubriera a mitad de la
     /// union, lo ya juntado se perderia y el companero se quedaria sin paquete por una hoja.
     /// </remarks>
+    /// <param name="hoja">La hoja pedida.</param>
+    /// <param name="contenidos">Los archivos ya leídos por ruta (nulo el que falló); aquí se cargan los que faltan.</param>
+    /// <param name="paginas">Cuántas páginas tiene cada archivo leído.</param>
+    /// <param name="tamanos">El tamaño de la primera página de cada archivo leído.</param>
+    /// <returns>Sin ruta, archivo ilegible o página fuera de rango: la falta con su motivo; si no, nulo.</returns>
     private static HojaQueFalta? PorQueNoEntra(
         HojaDelPaquete hoja,
         Dictionary<string, byte[]?> contenidos,
@@ -169,6 +179,10 @@ public static class PdfDelPaquete
     /// hojas al paquete —un formulario de grupo ocupa seis paginas— y releerlo una vez por hoja
     /// multiplicaria por seis el trabajo del disco sin cambiar el resultado.
     /// </remarks>
+    /// <param name="ruta">El archivo escaneado.</param>
+    /// <param name="contenidos">Donde se deja el contenido, o nulo si no se pudo leer o abrir.</param>
+    /// <param name="paginas">Donde se deja cuántas páginas tiene; 0 si falló.</param>
+    /// <param name="tamanos">Donde se deja el tamaño de su primera página; no se toca si falló o no tiene páginas.</param>
     private static void Cargar(
         string ruta,
         Dictionary<string, byte[]?> contenidos,
@@ -205,6 +219,10 @@ public static class PdfDelPaquete
     /// saldrian juntos aunque en el Excel estuvieran separados. El orden del Excel es el unico
     /// que el companero puede seguir.
     /// </remarks>
+    /// <param name="enOrden">Las hojas con su motivo de falta; las que faltan entran como hoja de aviso.</param>
+    /// <param name="contenidos">Los archivos ya leídos por ruta.</param>
+    /// <param name="tamano">El tamaño con el que se dibujan las hojas de aviso.</param>
+    /// <param name="rutaDestino">Ruta del <c>.pdf</c> a escribir.</param>
     private static void Escribir(
         IReadOnlyList<(HojaDelPaquete Hoja, HojaQueFalta? Falta)> enOrden,
         Dictionary<string, byte[]?> contenidos,

@@ -48,11 +48,22 @@ public sealed record ResultadoDelEspejo(string Ruta, bool Escrito, IReadOnlyList
 /// </remarks>
 public static class Espejo
 {
+    /// <summary>El formato de número de Excel que fuerza texto: es lo que salva el cero de delante de un MRN.</summary>
     private const string FormatoDeTexto = "@";
+
+    /// <summary>Cómo pinta Excel una fecha sola; en su sintaxis, con <c>mm</c> en minúscula.</summary>
     private const string FormatoDeFechaEnExcel = "yyyy-mm-dd";
+
+    /// <summary>Cómo pinta Excel una marca de tiempo; en su sintaxis, no en la de .NET.</summary>
     private const string FormatoDeMarcaDeTiempoEnExcel = "yyyy-mm-dd hh:mm:ss";
+
+    /// <summary>Cómo viene una fecha de la base (ISO-8601), en la sintaxis de <c>DateTime.TryParseExact</c>.</summary>
     private const string FormatoDeFecha = "yyyy-MM-dd";
+
+    /// <summary>Cómo viene una marca de tiempo de la base, en la sintaxis de <c>DateTime.TryParseExact</c>.</summary>
     private const string FormatoDeMarcaDeTiempo = "yyyy-MM-dd HH:mm:ss";
+
+    /// <summary>La fila 1 es la cabecera; los datos empiezan en la 2, en todas las hojas.</summary>
     private const int PrimeraFilaDeDatos = 2;
 
     /// <summary>Las columnas de <c>casos</c>, en el orden del esquema.</summary>
@@ -220,6 +231,14 @@ public static class Espejo
     /// <b>NO lo he medido con un Excel de verdad teniendo el archivo abierto</b>: eso es de QA.
     /// </para>
     /// </remarks>
+    /// <param name="rutaDelEspejo">Ruta del <c>.xlsx</c> definitivo; su carpeta se crea si no existe.</param>
+    /// <param name="casos">Las filas de <c>casos</c>.</param>
+    /// <param name="personas">Las filas de <c>personas</c>.</param>
+    /// <param name="firmasDeLosPasos">Quién contestó las seis preguntas de cada persona, por su número interno.</param>
+    /// <param name="asignaciones">Las filas de <c>asignaciones</c>.</param>
+    /// <param name="ilegibles">Las filas de <c>documentos_ilegibles</c>.</param>
+    /// <param name="descartadas">Las filas de <c>filas_descartadas</c>.</param>
+    /// <returns>Escrito y sin avisos, o no escrito con un solo aviso de problema que dice que la base sí quedó guardada.</returns>
     public static ResultadoDelEspejo Regenerar(
         string rutaDelEspejo,
         IReadOnlyList<Caso> casos,
@@ -257,6 +276,16 @@ public static class Espejo
         return new ResultadoDelEspejo(rutaDelEspejo, true, []);
     }
 
+    /// <summary>
+    /// Añade al libro una pestaña con su cabecera en la fila 1, una fila por elemento, la
+    /// fila 1 congelada y el autofiltro sobre la tabla. Sin filas, el autofiltro cubre solo la cabecera.
+    /// </summary>
+    /// <typeparam name="T">El modelo de la tabla (<see cref="Caso"/>, <see cref="Persona"/>…).</typeparam>
+    /// <param name="libro">El libro al que se añade la pestaña.</param>
+    /// <param name="nombre">El nombre de la pestaña: el de la tabla, tal cual.</param>
+    /// <param name="columnas">Las columnas en el orden del esquema.</param>
+    /// <param name="filas">Los elementos a volcar, uno por fila.</param>
+    /// <param name="valorDe">Dado un elemento y el nombre de una columna, el valor que va en la celda.</param>
     private static void EscribirHoja<T>(
         XLWorkbook libro,
         string nombre,
@@ -287,6 +316,9 @@ public static class Espejo
     /// nombre leido por OCR que empiece por «=» no es una formula, y una celda que se calcula
     /// sola deja de ser un espejo.
     /// </remarks>
+    /// <param name="celda">La celda de destino.</param>
+    /// <param name="valor">Nulo (la celda se deja vacía), <c>bool</c>, <c>long</c>, <c>int</c> o <c>string</c>; ningún otro tipo llega aquí desde los modelos.</param>
+    /// <param name="clase">Solo cambia algo para un <c>string</c>: texto forzado, o fecha si se puede leer como tal.</param>
     private static void EscribirCelda(IXLCell celda, object? valor, ClaseDeColumna clase)
     {
         switch (valor)
@@ -328,6 +360,8 @@ public static class Espejo
     /// El orden importa: se prueba primero la fecha sola. Si se probara antes la marca de
     /// tiempo, «2026-09-08» fallaria y caeria al camino de «no se pudo», cuando si se puede.
     /// </remarks>
+    /// <param name="texto">El valor de una columna temporal tal como está en la base.</param>
+    /// <returns>La fecha y el formato de Excel con el que se pinta, o nulo si no es ISO-8601 exacto.</returns>
     private static (DateTime, string)? ComoFecha(string texto)
     {
         if (DateTime.TryParseExact(texto, FormatoDeFecha, CultureInfo.InvariantCulture, DateTimeStyles.None, out var soloFecha))
@@ -337,6 +371,10 @@ public static class Espejo
         return null;
     }
 
+    /// <summary>El valor de una columna de <c>casos</c>, sacado de la propiedad del mismo nombre.</summary>
+    /// <param name="caso">La fila.</param>
+    /// <param name="columna">El nombre de la columna en la base.</param>
+    /// <exception cref="KeyNotFoundException">La columna no está en <see cref="ColumnasDeCasos"/>: el esquema y este mapa se separaron.</exception>
     private static object? ValorDeCaso(Caso caso, string columna) => columna switch
     {
         "id" => caso.Id,
@@ -372,6 +410,10 @@ public static class Espejo
     /// <c>Fichas.Contratos/Modelos</c> esta congelado. Sin firma se devuelve nulo en las
     /// tres, y un nulo deja la celda vacia: es lo que dice la base de quien no ha contestado.
     /// </remarks>
+    /// <param name="persona">La fila.</param>
+    /// <param name="columna">El nombre de la columna en la base.</param>
+    /// <param name="firma">Quién contestó los pasos de esta persona, o <see cref="FirmaDeLosPasos.SinFirmar"/>.</param>
+    /// <exception cref="KeyNotFoundException">La columna no está en <see cref="ColumnasDePersonas"/>.</exception>
     private static object? ValorDePersona(Persona persona, string columna, FirmaDeLosPasos firma) => columna switch
     {
         "id" => persona.Id,
@@ -406,9 +448,15 @@ public static class Espejo
     };
 
     /// <summary>La firma de esa persona, o la de quien no ha contestado.</summary>
+    /// <param name="firmas">Las firmas por número interno de persona.</param>
+    /// <param name="personaId">El número interno de la persona.</param>
     private static FirmaDeLosPasos FirmaDe(IReadOnlyDictionary<long, FirmaDeLosPasos> firmas, long personaId)
         => firmas.TryGetValue(personaId, out var firma) ? firma : FirmaDeLosPasos.SinFirmar;
 
+    /// <summary>El valor de una columna de <c>asignaciones</c>, sacado de la propiedad del mismo nombre.</summary>
+    /// <param name="asignacion">La fila.</param>
+    /// <param name="columna">El nombre de la columna en la base.</param>
+    /// <exception cref="KeyNotFoundException">La columna no está en <see cref="ColumnasDeAsignaciones"/>.</exception>
     private static object? ValorDeAsignacion(Asignacion asignacion, string columna) => columna switch
     {
         "id" => asignacion.Id,
@@ -420,6 +468,10 @@ public static class Espejo
         _ => throw new KeyNotFoundException($"La hoja «asignaciones» del espejo no conoce la columna «{columna}»."),
     };
 
+    /// <summary>El valor de una columna de <c>documentos_ilegibles</c>, sacado de la propiedad del mismo nombre.</summary>
+    /// <param name="renglon">La fila.</param>
+    /// <param name="columna">El nombre de la columna en la base.</param>
+    /// <exception cref="KeyNotFoundException">La columna no está en <see cref="ColumnasDeIlegibles"/>.</exception>
     private static object? ValorDeIlegible(RenglonIlegible renglon, string columna) => columna switch
     {
         "id" => renglon.Id,
@@ -433,6 +485,10 @@ public static class Espejo
         _ => throw new KeyNotFoundException($"La hoja «documentos_ilegibles» del espejo no conoce la columna «{columna}»."),
     };
 
+    /// <summary>El valor de una columna de <c>filas_descartadas</c>, sacado de la propiedad del mismo nombre.</summary>
+    /// <param name="fila">La fila.</param>
+    /// <param name="columna">El nombre de la columna en la base.</param>
+    /// <exception cref="KeyNotFoundException">La columna no está en <see cref="ColumnasDeDescartadas"/>.</exception>
     private static object? ValorDeDescartada(FilaDescartada fila, string columna) => columna switch
     {
         "id" => fila.Id,
