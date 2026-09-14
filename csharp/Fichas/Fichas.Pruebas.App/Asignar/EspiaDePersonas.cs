@@ -91,4 +91,8 @@ internal sealed class EspiaDePersonas : IPersonas
     /// <inheritdoc />
     public IReadOnlyDictionary<long, FirmaDeLosPasos> FirmasDeLosPasosDelCaso(long casoId)
         => _deVerdad.FirmasDeLosPasosDelCaso(casoId);
+
+    /// <inheritdoc />
+    /// <remarks>Reenvío sin contar ni espiar: entró el 2026-09-14 con <c>IPersonas.Borrar</c>, solo para que este doble siga compilando.</remarks>
+    public ResultadoDeBorrado Borrar(long personaId) => _deVerdad.Borrar(personaId);
 }

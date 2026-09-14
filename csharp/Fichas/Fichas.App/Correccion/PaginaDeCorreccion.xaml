@@ -260,11 +260,18 @@
                         ⛔ Y no firma nada (regla permanente 5): escribir un dato y darlo por
                         bueno siguen siendo dos actos distintos.
 
-                        Solo se ve cuando el documento no trae NI UNA persona, que es el
-                        atasco que él enseñó.
+                        Hasta el 2026-09-14 solo se veía cuando el documento no traía NI UNA
+                        persona. Desde entonces se ofrece SIEMPRE —el dueño, 2026-09-10:
+                        «agregar personas que quizás el escáner no contempló»— pero de dos
+                        formas: sin nadie dentro, la banda roja del atasco y el cuadro
+                        abierto; con gente dentro, un desplegable cerrado que dice «Añadir
+                        una persona que el escáner no leyó». El título lo decide el modelo.
                     -->
                     <StackPanel x:Name="_marcoDeLaPersonaAMano" Visibility="Collapsed">
-                        <Border Padding="12,8" Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}">
+                        <Border
+                            x:Name="_bandaDeLaPersonaAMano"
+                            Padding="12,8"
+                            Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}">
                             <StackPanel Spacing="2">
                                 <TextBlock x:Name="_tituloDeLaPersonaAMano" FontWeight="SemiBold" TextWrapping="Wrap" />
                                 <TextBlock
@@ -274,27 +281,36 @@
                                     TextWrapping="Wrap" />
                             </StackPanel>
                         </Border>
-                        <StackPanel Padding="10,8" Spacing="6">
-                            <TextBlock
-                                x:Name="_deDondeSacarElNombre"
-                                FontSize="11"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                TextWrapping="Wrap" />
-                            <TextBox x:Name="_nombreAMano" Header="Nombre" PlaceholderText="escríbalo mirando el papel" />
-                            <TextBox x:Name="_cedulaAMano" Header="Cédula" PlaceholderText="055-1111-3853, o déjelo en blanco" />
-                            <!--
-                                El nombre para quien no ve la pantalla va aquí además de en el
-                                código, por lo mismo que en el botón de volver: lo tiene desde
-                                el primer momento. El texto de las dos cosas vive en
-                                TextoDeLaPersonaAMano.cs, que es donde se puede leer en una
-                                prueba sin abrir una ventana.
-                            -->
-                            <Button
-                                x:Name="_botonDeAnadirPersona"
-                                HorizontalAlignment="Right"
-                                AutomationProperties.Name="Añadir a mano una persona a este documento con el nombre y la cédula escritos"
-                                Click="AlPulsarAnadirUnaPersona" />
-                        </StackPanel>
+                        <Expander
+                            x:Name="_desplegableDeLaPersonaAMano"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Stretch"
+                            IsExpanded="False">
+                            <Expander.Header>
+                                <TextBlock x:Name="_tituloDeAnadirOtra" Text="Añadir una persona que el escáner no leyó" />
+                            </Expander.Header>
+                            <StackPanel Padding="10,8" Spacing="6">
+                                <TextBlock
+                                    x:Name="_deDondeSacarElNombre"
+                                    FontSize="11"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                    TextWrapping="Wrap" />
+                                <TextBox x:Name="_nombreAMano" Header="Nombre" PlaceholderText="escríbalo mirando el papel" />
+                                <TextBox x:Name="_cedulaAMano" Header="Cédula" PlaceholderText="055-1111-3853, o déjelo en blanco" />
+                                <!--
+                                    El nombre para quien no ve la pantalla va aquí además de en el
+                                    código, por lo mismo que en el botón de volver: lo tiene desde
+                                    el primer momento. El texto de las dos cosas vive en
+                                    TextoDeLaPersonaAMano.cs, que es donde se puede leer en una
+                                    prueba sin abrir una ventana.
+                                -->
+                                <Button
+                                    x:Name="_botonDeAnadirPersona"
+                                    HorizontalAlignment="Right"
+                                    AutomationProperties.Name="Añadir a mano una persona a este documento con el nombre y la cédula escritos"
+                                    Click="AlPulsarAnadirUnaPersona" />
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
 
                     <!--
@@ -537,6 +553,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock
                     x:Name="_cuenta"
@@ -545,6 +562,31 @@
                     Text=""
                     TextTrimming="CharacterEllipsis"
                     TextWrapping="NoWrap" />
+                <!--
+                    ELIMINAR. Palabras del dueño el 2026-09-14: «Agrega un botón en la
+                    Corrección de eliminar información también. No lo tengo y es importante
+                    tenerlo». Medido antes de tocar nada: en toda esta carpeta no había ni un
+                    botón de borrar.
+
+                    Abre un menú con una opción por persona del documento —«Eliminar a Ana»—
+                    y la del documento entero. Las dos PREGUNTAN antes, con el nombre o el
+                    número delante, y dicen que no hay vuelta atrás: borrar es la excepción
+                    declarada a «avisar, nunca impedir». El documento entero va por la misma
+                    puerta que Revisar, con su copia previa. El menú se arma en el código al
+                    abrirse, con las personas de ese momento; los textos viven en
+                    TextoDeEliminar.cs, donde una prueba los lee.
+
+                    ⛔ NO lleva el estilo del botón principal: el principal es Guardar.
+                -->
+                <DropDownButton
+                    x:Name="_botonDeEliminar"
+                    Grid.Column="1"
+                    AutomationProperties.Name="Eliminar una persona de este documento o el documento entero; pregunta antes"
+                    Content="Eliminar">
+                    <DropDownButton.Flyout>
+                        <MenuFlyout x:Name="_menuDeEliminar" Opening="AlAbrirElMenuDeEliminar" />
+                    </DropDownButton.Flyout>
+                </DropDownButton>
                 <!--
                     El atajo del dueno, con sus palabras: «Yo puedo completarlos también, los
                     paquetes, desde el sistema sin pasar la verificación».
@@ -563,7 +605,7 @@
                 -->
                 <TextBlock
                     x:Name="_porQueNoHayAtajo"
-                    Grid.Column="1"
+                    Grid.Column="2"
                     MaxWidth="420"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
@@ -573,13 +615,13 @@
                     Visibility="Collapsed" />
                 <Button
                     x:Name="_botonDelAdministrador"
-                    Grid.Column="1"
+                    Grid.Column="2"
                     AutomationProperties.Name="Dar este documento por completo como administrador, sin verificar campo por campo"
                     Click="AlPulsarDarPorCompleto"
                     Content="Dar por completo"
                     Visibility="Collapsed" />
                 <Button
-                    Grid.Column="2"
+                    Grid.Column="3"
                     Click="AlPulsarGuardar"
                     Content="Guardar"
                     Style="{ThemeResource AccentButtonStyle}" />

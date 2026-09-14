@@ -175,6 +175,51 @@ public sealed class RepositorioDePersonasFalso : IPersonas
                 ? firma
                 : FirmaDeLosPasos.SinFirmar);
 
+    /// <summary>
+    /// Borra una persona con su firma de las seis y sus renglones de procedencia; el documento
+    /// y las demás personas se quedan.
+    /// </summary>
+    /// <remarks>
+    /// Es lo mismo que hace el de verdad, tabla por tabla, y lo comprueba
+    /// <c>PruebaDeBorrarUnaPersona.ElFalsoBorraLoMismoQueElDeVerdad</c> corriendo la misma
+    /// operación contra los dos. Lo único distinto es la copia: aquí no hay archivo que copiar,
+    /// y por eso <see cref="ResultadoDeBorrado.RutaDeLaCopia"/> vuelve nulo en vez de inventar
+    /// una ruta.
+    /// </remarks>
+    /// <param name="personaId">A quién; un id que no está no borra nada y lo dice.</param>
+    /// <returns>Borrado con las cifras por tabla, o no borrado con su motivo.</returns>
+    public ResultadoDeBorrado Borrar(long personaId)
+    {
+        if (!_almacen.Personas.Remove(personaId))
+        {
+            return ResultadoDeBorrado.NoSeBorro(
+                null,
+                Aviso.Problema(
+                    "Esa persona ya no está en la base: no se borró nada.",
+                    "persona_id",
+                    $"Ninguna persona con el número interno {personaId}."));
+        }
+
+        _almacen.FirmasDeLosPasos.Remove(personaId);
+
+        var huerfanos = _almacen.Procedencias
+            .Where(par => par.Value.Tabla == TablaDeProcedencia.Personas && par.Value.RegistroId == personaId)
+            .Select(par => par.Key)
+            .ToList();
+        foreach (var id in huerfanos) _almacen.Procedencias.Remove(id);
+
+        return new ResultadoDeBorrado
+        {
+            SeBorro = true,
+            Borradas =
+            [
+                new ConteoDeTabla("personas", 1, "persona", "personas"),
+                new ConteoDeTabla("procedencia_campo", huerfanos.Count, "renglón de procedencia", "renglones de procedencia"),
+            ],
+            RutaDeLaCopia = null,
+        };
+    }
+
     /// <summary>Mira la persona y devuelve lo que hay que senalar; NUNCA impide guardar (requisito 9).</summary>
     /// <param name="persona">La persona que se va a guardar.</param>
     private static List<Aviso> RevisarSinImpedir(Persona persona)

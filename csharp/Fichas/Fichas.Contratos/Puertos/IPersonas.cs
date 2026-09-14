@@ -188,4 +188,34 @@ public interface IPersonas
     /// <param name="casoId">El caso; uno sin personas o que no existe da el diccionario vacío.</param>
     /// <returns>Una entrada por persona del caso, con su firma o <see cref="FirmaDeLosPasos.SinFirmar"/>; nunca nulo.</returns>
     IReadOnlyDictionary<long, FirmaDeLosPasos> FirmasDeLosPasosDelCaso(long casoId);
+
+    /// <summary>
+    /// Borra UNA persona de la base con lo que cuelga de ella, y deja el documento con las
+    /// demás. No pregunta: quien llama tiene que haber preguntado antes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Palabras del dueño: <i>«Si quiero eliminar un nombre puedo hacerlo»</i> (2026-09-07) y
+    /// <i>«dentro quiero que me permita eliminar personas»</i> (2026-09-10). Hasta el 2026-09-14
+    /// este puerto no tenía ningún método que borrase.
+    /// </para>
+    /// <para>
+    /// <b>Qué cae</b>, medido en el esquema: la fila de <c>personas</c> —con sus seis
+    /// respuestas y su firma, que son columnas de esa fila— y los renglones de
+    /// <c>procedencia_campo</c> con <c>tabla = 'personas'</c> y su <c>registro_id</c>, que no
+    /// llevan clave foránea y por eso no caerían solos. Ninguna otra tabla apunta a
+    /// <c>personas</c>. El documento y las otras personas no se tocan. Todo o nada.
+    /// </para>
+    /// <para>
+    /// ⛔ <b>Sin copia previa no se borra</b>, la misma regla que <see cref="IMantenimiento"/>:
+    /// la base real copia antes el archivo entero y, si no puede, vuelve sin borrar con el
+    /// motivo. La copia se hace aquí y no antes de preguntar —al revés que en los planes de
+    /// <see cref="IMantenimiento"/>— porque este puerto no tiene fase de plan; lo que sigue
+    /// intacto es que nunca se borra sin red. El doble en memoria no tiene archivo que copiar y
+    /// devuelve <see cref="ResultadoDeBorrado.RutaDeLaCopia"/> nulo.
+    /// </para>
+    /// </remarks>
+    /// <param name="personaId">A quién; un id que no está no borra nada, no copia nada, y lo dice en un aviso.</param>
+    /// <returns>Borrado con las cifras por tabla y dónde quedó la copia, o no borrado con su motivo. Nunca lanza por un id ausente.</returns>
+    ResultadoDeBorrado Borrar(long personaId);
 }

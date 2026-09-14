@@ -61,20 +61,24 @@ public sealed partial class PaginaDeCorreccion
     }
 
     /// <summary>
-    /// Ensena el cuadro de escribir a mano quien va, y solo cuando no hay nadie dentro.
+    /// Ensena el cuadro de escribir a mano quien va: abierto y con la banda del atasco cuando
+    /// no hay nadie dentro, y cerrado como «una mas» cuando ya hay gente.
     /// </summary>
     /// <remarks>
-    /// Solo en ese caso a proposito: es el atasco que el dueno enseño —un documento sin
-    /// ninguna persona no se puede confirmar nunca—. Un documento al que le falta UNA de sus
-    /// cinco personas es otra cosa y no esta cubierto; va nombrado en la entrega.
+    /// Hasta el 2026-09-14 solo se ensenaba sin nadie dentro —el atasco que el dueno enseño—.
+    /// Desde entonces se ofrece siempre, que es lo que pidio el 2026-09-10: <i>«agregar
+    /// personas que quizas el escaner no contemplo»</i>, o sea un documento con gente al que
+    /// le falta una. El titulo lo decide el modelo; aqui solo se pinta.
     /// </remarks>
     private void MostrarElCuadroDeLaPersonaAMano()
     {
         if (_modelo is null) return;
 
         var haceFalta = _modelo.SinNingunaPersonaLeida;
-        _marcoDeLaPersonaAMano.Visibility = haceFalta ? Visibility.Visible : Visibility.Collapsed;
-        if (!haceFalta) return;
+        _marcoDeLaPersonaAMano.Visibility = _modelo.Caso is null ? Visibility.Collapsed : Visibility.Visible;
+        _bandaDeLaPersonaAMano.Visibility = haceFalta ? Visibility.Visible : Visibility.Collapsed;
+        _desplegableDeLaPersonaAMano.IsExpanded = haceFalta;
+        _tituloDeAnadirOtra.Text = _modelo.TituloDelCuadroDeLaPersonaAMano;
 
         _tituloDeLaPersonaAMano.Text = TextoDeLaPersonaAMano.Titulo;
         _deQueVaLaPersonaAMano.Text = TextoDeLaPersonaAMano.DeQueVa;

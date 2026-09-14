@@ -164,7 +164,7 @@ public sealed partial class PaginaDeGrupo : Page
     /// Es la decisión del dueño del 2026-09-07 (§9, «Asignar por grupo»): <i>«en asignar debe
     /// poder asignarlo por grupo. Cargar todos los documentos en un solo lugar no me conviene
     /// para nada»</i>. El lote sale de <see cref="GrupoDelDia.LosQueSePuedenAsignar"/>, que
-    /// desde el 2026-09-06 no trae ningún archivado.
+    /// deja fuera los archivados aunque desde el 2026-09-14 se vean en la lista.
     /// </remarks>
     private void AlPedirAsignarElGrupo(object quien, RoutedEventArgs cuando)
     {
@@ -209,10 +209,12 @@ public sealed partial class PaginaDeGrupo : Page
         if (casoIds.Count == 0)
         {
             // Se DICE por qué, en vez de dejar un botón que no hace nada: un botón silencioso
-            // es un botón roto. Antes del 2026-09-06 esto pasaba cuando lo que quedaba en el
-            // grupo estaba archivado; ahora un archivado ni llega al grupo, así que si no hay
-            // nada que asignar es que el día está vacío.
-            _loQuePaso.Text = "No hay ningún documento que asignar en este grupo.";
+            // es un botón roto. Pasa cuando el día está vacío o cuando todo lo que trae está
+            // archivado: desde el 2026-09-14 los archivados entran al grupo (en verde) y
+            // `LosQueSePuedenAsignar` los deja fuera, que es lo que este mensaje cuenta.
+            _loQuePaso.Text = _grupo is { CuantosDocumentos: > 0 }
+                ? "No hay ningún documento que asignar en este grupo: lo archivado no se asigna."
+                : "No hay ningún documento que asignar en este grupo.";
             return;
         }
 
@@ -225,12 +227,17 @@ public sealed partial class PaginaDeGrupo : Page
     }
 
     /// <summary>Pulsar una persona abre su documento en Correccion, que es donde se verifica.</summary>
+    /// <remarks>
+    /// Un archivado no llega aqui porque su boton esta apagado
+    /// (<see cref="RenglonDelGrupo.SePuedeVerificar"/>); se vuelve a mirar igual, para que si
+    /// algun dia la plantilla lo enciende por descuido, este sea el segundo sitio que lo para.
+    /// </remarks>
     /// <param name="quien">El botón del renglón que se pulsó.</param>
     /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlPulsarUnaPersona(object quien, RoutedEventArgs cuando)
     {
         if (QueSePulso(quien) is not RenglonDelGrupo renglon) return;
-        if (renglon.EsCabecera || renglon.CasoId == 0) return;
+        if (!renglon.SePuedeVerificar || renglon.CasoId == 0) return;
 
         Verificar(renglon.CasoId);
     }

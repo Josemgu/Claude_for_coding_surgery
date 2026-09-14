@@ -337,6 +337,39 @@ public sealed record TarjetaDeDocumento
     public string MarcaDeDuplicado { get; init; } = string.Empty;
 
     /// <summary>
+    /// Si el documento del que este es duplicado sigue en la base; decide cuál de los dos
+    /// botones se ofrece.
+    /// </summary>
+    /// <remarks>
+    /// Va aparte de <see cref="MarcaDeDuplicado"/> porque una frase no es un dato: la marca dice
+    /// «de un documento que ya no está» para quien lee, y esto lo dice para quien decide.
+    /// </remarks>
+    public bool TieneOriginal { get; init; }
+
+    /// <summary>La palabra que lleva la tarjeta roja: «DUPLICADO».</summary>
+    /// <remarks>
+    /// <para>Del dueño, 2026-09-14: <i>«ponlo en rojo completo, que diga duplicado»</i>. En
+    /// mayúsculas y como constante porque es lo que distingue esta tarjeta roja de «me falta»,
+    /// que también es de aviso: el color nunca va solo (mockup v2), y aquí la palabra manda.</para>
+    /// </remarks>
+    public const string LaPalabraDeDuplicado = "DUPLICADO";
+
+    /// <summary>La misma palabra, como propiedad, que es lo que <c>x:Bind</c> sabe leer de una tarjeta.</summary>
+    public string PalabraDeDuplicado => LaPalabraDeDuplicado;
+
+    /// <summary>Si se ofrece «Unificar con el original»: es duplicado y su original está.</summary>
+    public bool SePuedeUnificar => EsDuplicado && TieneOriginal;
+
+    /// <summary>Si se ofrece «Quitar la marca de duplicado»: es duplicado y su original ya no está.</summary>
+    public bool SePuedeQuitarLaMarca => EsDuplicado && !TieneOriginal;
+
+    /// <summary>Cómo se llama, para quien no ve la pantalla, el botón de unificar; nombra su documento.</summary>
+    public string NombreDelBotonDeUnificar => $"Unificar {Archivo} con el original";
+
+    /// <summary>Cómo se llama, para quien no ve la pantalla, el botón de quitar la marca; nombra su documento.</summary>
+    public string NombreDelBotonDeQuitarLaMarca => $"Quitar la marca de duplicado de {Archivo}";
+
+    /// <summary>
     /// Cuantos documentos a la vista llevan este mismo numero de caso, contandose a si mismo.
     /// </summary>
     /// <remarks>

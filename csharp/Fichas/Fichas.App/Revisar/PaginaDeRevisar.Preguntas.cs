@@ -50,8 +50,14 @@ public sealed partial class PaginaDeRevisar
         _ventanasDePreguntas[casoId] = ventana;
 
         // Al cerrarse se olvida, o el segundo intento de abrirla activaria una ventana que
-        // ya no existe y el programa se caeria con el documento delante.
-        ventana.Closed += (_, _) => _ventanasDePreguntas.Remove(casoId);
+        // ya no existe y el programa se caeria con el documento delante. Y se repinta
+        // Revisar: desde el 2026-09-14 esa ventana puede dejar el documento completado, y
+        // la tarjeta tiene que cambiar de tablero sin que el tenga que tocar nada mas.
+        // Si ya no estaba apuntada es que la cerro OnNavigatedFrom, y ahi no se repinta.
+        ventana.Closed += (_, _) =>
+        {
+            if (_ventanasDePreguntas.Remove(casoId)) Repintar();
+        };
 
         ventana.Activate();
     }
@@ -64,8 +70,10 @@ public sealed partial class PaginaDeRevisar
     /// <param name="cuando">Los datos de la navegación, que se pasan a la base.</param>
     protected override void OnNavigatedFrom(NavigationEventArgs cuando)
     {
-        foreach (var ventana in _ventanasDePreguntas.Values.ToList()) ventana.Close();
+        // Se olvidan ANTES de cerrarlas: asi su Closed no repinta una pagina que se va.
+        var abiertas = _ventanasDePreguntas.Values.ToList();
         _ventanasDePreguntas.Clear();
+        foreach (var ventana in abiertas) ventana.Close();
         base.OnNavigatedFrom(cuando);
     }
 }

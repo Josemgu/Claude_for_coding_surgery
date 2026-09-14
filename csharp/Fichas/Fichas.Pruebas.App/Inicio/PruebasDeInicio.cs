@@ -305,6 +305,8 @@ public sealed class PruebasDeInicio
     /// <i>«Debe salir de todos lados excepto del calendario […] se mueve para abrir espacio a
     /// otros PDF que necesitan ser procesados»</i>. Si esta prueba se pusiera roja, el
     /// archivado habría vuelto a competir por su atención, que es lo que él quitó el 06.
+    /// <para>⚠️ 2026-09-14: en el grupo de la fecha SÍ se ve —en verde, para cuadrar con el
+    /// calendario— y ahí lo que se vigila es que no ofrezca trabajo: ni se asigna.</para>
     /// </remarks>
     [TestMethod]
     public void ElArchivadoDelCalendarioNoVuelveANingunaLista()
@@ -318,9 +320,9 @@ public sealed class PruebasDeInicio
         Assert.IsEmpty(resumen.Asignados, "Ni en lo que llevan los compañeros.");
         Assert.AreEqual(0, resumen.Contadores.ListoParaAsignar);
         Assert.AreEqual(0, resumen.Denominadores.CasosNoArchivados);
-        Assert.IsEmpty(
-            BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 10)).Unidades,
-            "Ni en el grupo del día, que es la pantalla de trabajo.");
+        var grupo = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 10));
+        Assert.HasCount(1, grupo.Unidades, "En el grupo del día se ve (2026-09-14)…");
+        Assert.IsEmpty(grupo.LosQueSePuedenAsignar, "…pero de ahí no sale trabajo para nadie.");
     }
 
     /// <summary>
@@ -384,7 +386,9 @@ public sealed class PruebasDeInicio
             "Archivado: se queda en el calendario.");
         Assert.AreEqual(DosEstados.Resuelto, archivado.Mes.Dias.SelectMany(d => d.Pastillas).Single().Etiqueta);
         Assert.IsNull(archivado.ElSistemaDelObispo.ProximoGrupo, "Archivado: no hay grupo que venga.");
-        Assert.IsEmpty(BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8)).Unidades);
+        var grupoArchivado = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8));
+        Assert.HasCount(1, grupoArchivado.Unidades, "Archivado: se ve en el grupo de su día (2026-09-14)…");
+        Assert.IsFalse(grupoArchivado.Unidades[0].SePuedeAsignar, "…sin botón de asignar.");
 
         acciones.DesarchivarEnLote([casoId]);
         var devuelto = BaseDeInicio.LeerInicio(servicios);
@@ -394,8 +398,9 @@ public sealed class PruebasDeInicio
             "Y deja de leerse resuelto: vuelve a ser trabajo.");
         Assert.IsNotNull(devuelto.ElSistemaDelObispo.ProximoGrupo, "Desarchivado: vuelve a ser el grupo que viene.");
         Assert.AreEqual(1, devuelto.Denominadores.CasosNoArchivados);
-        Assert.HasCount(1, BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8)).Unidades,
-            "Desarchivado: vuelve al grupo de su día.");
+        var grupoDevuelto = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8));
+        Assert.HasCount(1, grupoDevuelto.Unidades, "Desarchivado: sigue en el grupo de su día…");
+        Assert.IsTrue(grupoDevuelto.Unidades[0].SePuedeAsignar, "…y vuelve a ser trabajo: se puede asignar.");
     }
 
     // ---------------------------------------------- el calendario

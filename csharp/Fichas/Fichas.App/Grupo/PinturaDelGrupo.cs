@@ -58,6 +58,61 @@ public static class PinturaDelGrupo
     /// <param name="hayQueMirarlo">Si el detalle avisa de algo: entonces va en rojo.</param>
     public static Brush TintaDelDetalle(bool hayQueMirarlo) => PinturaDeInicio.TintaDelDetalle(hayQueMirarlo);
 
+    // ---- el verde y el rojo de cada renglon, los mismos del calendario (2026-09-14) ----------
+
+    /// <summary>
+    /// El fondo del renglon de una persona: el de la pastilla verde si esta resuelta, el de la
+    /// roja si le falta algo.
+    /// </summary>
+    /// <remarks>
+    /// <para>Palabras del dueno, 2026-09-14: <i>«lo que este completo se marque en verde y lo que
+    /// no en rojo, como se muestra en el calendario afuera»</i>. Son <c>VerdeFondo</c> y
+    /// <c>RojoFondo</c> de <see cref="PinturaDeInicio"/>, los mismos dos pinceles con los que
+    /// se pinta la pastilla del dia, en los dos temas; aqui no nace ningun color.</para>
+    /// <para>La DECISION del color no esta aqui: viene ya tomada en
+    /// <see cref="RenglonDelGrupo.Color"/>, que se puede probar sin ventana. Esta funcion solo
+    /// traduce un valor a un pincel.</para>
+    /// </remarks>
+    /// <param name="color">El color que el modelo ya decidio para el renglon.</param>
+    public static Brush FondoDelRenglon(ColorDeLaPastilla color) => color switch
+    {
+        ColorDeLaPastilla.Verde => PinturaDeInicio.VerdeFondo,
+        ColorDeLaPastilla.Rojo => PinturaDeInicio.RojoFondo,
+        _ => Papel,
+    };
+
+    /// <summary>
+    /// La franja de la izquierda del renglon o de la cabecera, que es lo que se ve de lejos:
+    /// verde, rojo, o gris en la cabecera de una unidad sin nadie leido.
+    /// </summary>
+    /// <remarks>
+    /// Es la misma raya que lleva la pastilla en el calendario (<c>BordeDeLaPastilla</c>), con
+    /// los mismos tres pinceles y en el mismo sitio, para que dentro de la fecha se lea igual
+    /// que fuera.
+    /// </remarks>
+    /// <param name="color">El color que el modelo ya decidio.</param>
+    public static Brush FranjaDelRenglon(ColorDeLaPastilla color) => color switch
+    {
+        ColorDeLaPastilla.Verde => PinturaDeInicio.VerdeMarca,
+        ColorDeLaPastilla.Rojo => PinturaDeInicio.RojoMarca,
+        _ => GrisMarca,
+    };
+
+    /// <summary>
+    /// El detalle del renglon de una persona, ya con su color: rojo si hay que mirarlo —el PDF
+    /// que no esta—, y si no, la tinta del estado del renglon.
+    /// </summary>
+    /// <remarks>
+    /// El aviso del PDF (C13-6) manda sobre el color del estado: un renglon resuelto cuyo PDF no
+    /// esta en su ruta sigue llevando su fondo verde, y la linea que lo dice va en rojo para que
+    /// no pase inadvertida. El color del estado va ademas en la franja y en el fondo, asi que
+    /// no se pierde.
+    /// </remarks>
+    /// <param name="hayQueMirarlo">Si el detalle avisa de algo: entonces va en rojo, sea cual sea el estado.</param>
+    /// <param name="color">El color que el modelo ya decidio para el renglon.</param>
+    public static Brush TintaDelDetalle(bool hayQueMirarlo, ColorDeLaPastilla color)
+        => hayQueMirarlo ? PinturaDeInicio.RojoMarca : FranjaDelRenglon(color);
+
     /// <summary>Traduce un si/no a que se vea o no; el motivo esta en <see cref="PinturaDeInicio.SeVe"/>.</summary>
     /// <param name="si">Si el elemento tiene que verse.</param>
     public static Visibility SeVe(bool si) => PinturaDeInicio.SeVe(si);

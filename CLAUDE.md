@@ -52,6 +52,12 @@ mandan estas.
    comprobación de formato; lo que falte, lo dudoso y lo que no pase la
    comprobación va a la cola para que él lo complete a mano. No hay «completo por
    defecto».
+   *Precisado por el dueño el 2026-09-14 (`DECISIONES.md`, «LAS SEIS EN «SÍ» MARCAN
+   COMPLETADO»):* las seis preguntas las marca él, una a una o de un tirón, con su
+   firma y su origen; el estado «completa» del documento **se deriva** de esas
+   marcas, solo cuando todas sus personas tienen las seis en «sí» y no le falta
+   ningún campo; se firma con el administrador (uno activo; con ninguno o dos no se
+   marca), y deshacerla es a mano: un «sí» que vuelve a «no» no desmarca solo.
 6. **Cada fase termina en commit.** Rama por fase, merge cuando pase el criterio
    de aceptación.
 

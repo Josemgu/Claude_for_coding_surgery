@@ -38,8 +38,10 @@ public sealed class VentanaDeLasPreguntas : Window
 {
     /// <summary>Los servicios del programa: de aquí se lee el documento y sus personas cada vez que se repinta.</summary>
     private readonly Servicios _servicios;
-    /// <summary>Lo único que escribe desde esta ventana: las seis de una persona, con quién las contestó.</summary>
+    /// <summary>Lo que escribe desde esta ventana: las seis de una persona, con quién las contestó.</summary>
     private readonly AccionesDeLasPreguntas _acciones;
+    /// <summary>Lo otro que escribe, y solo como consecuencia: el completado que se deriva de las seis (dueño, 2026-09-14).</summary>
+    private readonly CompletadoAlContestarLasSeis _completado;
     /// <summary>El documento de esta ventana; una ventana es de un documento y no cambia.</summary>
     private readonly long _casoId;
     /// <summary>El tema con el que se abrió, copiado de la ventana principal para que las dos se vean igual.</summary>
@@ -82,6 +84,8 @@ public sealed class VentanaDeLasPreguntas : Window
         _casoId = casoId;
         _tema = tema;
         _acciones = new AccionesDeLasPreguntas(servicios.Personas, servicios.Companeros);
+        _completado = new CompletadoAlContestarLasSeis(
+            servicios.Casos, servicios.Personas, servicios.Procedencia, servicios.Companeros);
 
         Content = Montar();
         PonerElIcono();
@@ -338,11 +342,20 @@ public sealed class VentanaDeLasPreguntas : Window
         return desplegable;
     }
 
-    /// <summary>Guarda las seis de ESA persona y vuelve a leer la base.</summary>
+    /// <summary>Guarda las seis de ESA persona, deriva el completado si toca, y vuelve a leer la base.</summary>
     /// <remarks>
+    /// <para>
     /// ⛔ El origen que se escribe depende de si esas seis vinieron del atajo y NO se tocaron
     /// después: es lo único que separa en la base «las miré una a una» de «las marqué en
     /// bloque», porque las seis columnas quedan idénticas por los dos caminos.
+    /// </para>
+    /// <para>
+    /// <b>Y en el mismo gesto, el completado</b> (dueño, 2026-09-14: <i>«cuando se marcan las 6
+    /// preguntas que sí, de manera automática debe marcarse como completado»</i>). Solo si las
+    /// seis de ESTA persona quedaron en «sí»; la regla entera —todas las personas, ningún campo
+    /// que falte, un administrador que firme— es de <see cref="CompletadoAlContestarLasSeis"/>
+    /// y se prueba sin ventana. Si no se puede, los «sí» quedan igual y el acuse dice qué falta.
+    /// </para>
     /// </remarks>
     /// <param name="ticket">La persona cuyas seis se guardan.</param>
     /// <param name="desplegables">Sus seis desplegables, de donde se leen las respuestas elegidas.</param>
@@ -370,11 +383,16 @@ public sealed class VentanaDeLasPreguntas : Window
         // Escrito ya, el sello ha cumplido: si él vuelve a tocar estas seis, será a mano.
         _marcadasDeUnTiron.Remove(ticket.PersonaId);
 
+        // El completado se deriva ANTES de repintar, para que lo que se pinte ya lo lleve.
+        var recien = _servicios.Personas.Obtener(ticket.PersonaId);
+        var completado = recien is not null && CompletadoAlContestarLasSeis.TocaIntentarlo(recien)
+            ? _completado.SiCorresponde(_casoId).Avisos
+            : [];
+
         // Se relee la base ANTES de decir cómo quedó: la frase que se enseña sale de lo
         // escrito y no de lo que esta ventana creía estar escribiendo.
         Repintar();
 
-        var recien = _servicios.Personas.Obtener(ticket.PersonaId);
         var frase = recien is null
             ? "guardado"
             : Grupo.LasDosPreguntas.FraseDeUnaPersona(
@@ -384,6 +402,7 @@ public sealed class VentanaDeLasPreguntas : Window
             AccionesDeLasPreguntas.LoQueSeGuardo(
                 ticket.DeQuien, frase, _acciones.QuienContesta()?.Nombre ?? "usted"),
             .. resultado.Avisos,
+            .. completado,
         ]);
     }
 

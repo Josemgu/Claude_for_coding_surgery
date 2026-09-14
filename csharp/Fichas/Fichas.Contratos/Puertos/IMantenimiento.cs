@@ -134,6 +134,329 @@ public interface IMantenimiento
     /// <param name="companeroId">A quién.</param>
     /// <returns>El id del compañero, o no escrito si no está en la base.</returns>
     ResultadoDeEscritura Reactivar(long companeroId);
+
+    /// <summary>
+    /// Prepara unificar un duplicado con su original: qué pasaría al original, copia la base y da permiso.
+    /// </summary>
+    /// <remarks>
+    /// <para>Del dueño, 2026-09-14: <i>«agrega la función de unificar el caso duplicado con el
+    /// caso original, para que se elimine el duplicado»</i>. Hasta ese día un duplicado solo se
+    /// avisaba (2026-09-03, «nada se fusiona solo»); esto sigue sin fusionar solo: se planea, se
+    /// pregunta con lo que va a pasar delante, y solo con el «sí» se ejecuta.</para>
+    ///
+    /// <para><b>Lo que decide, y por qué así.</b> Pasan al original las personas del duplicado
+    /// que el original no tiene —misma cédula es la misma persona; sin cédula, mismo nombre
+    /// exacto— y, de los cinco campos del caso (<see cref="PlanDeUnificacion.LosCincoCampos"/>),
+    /// los que el original tiene vacíos y el duplicado trae. <b>Nunca se pisa lo que el original
+    /// ya tiene</b>: es la regla del 2026-09-03 («el caso que ya estaba, con sus correcciones a
+    /// mano y sus firmas, no se toca»). El estado y el motivo NO pasan: son la firma de un
+    /// compañero sobre ese papel y la regla permanente 5 dice que nada se marca solo.</para>
+    ///
+    /// <para>El orden es cuenta → copia → plan, como en <see cref="PlanearDocumentos"/>: sin nada
+    /// que unificar no se copia; sin copia, no hay permiso.</para>
+    /// </remarks>
+    /// <param name="duplicadoId">El documento marcado como duplicado.</param>
+    /// <param name="hoy">La fecha de hoy en ISO-8601; con ella se retiran las asignaciones vivas.</param>
+    /// <returns>Un plan con permiso y copia; o sin permiso, con el motivo en sus avisos: no está, no es duplicado, su original ya no está, o la copia no se pudo hacer.</returns>
+    PlanDeUnificacion PlanearUnificacion(long duplicadoId, string hoy);
+
+    /// <summary>
+    /// Ejecuta un plan de unificación que el dueño ya contestó que sí. Todo o nada, en una transacción.
+    /// </summary>
+    /// <remarks>
+    /// <para>Vuelve a leer los dos documentos antes de tocar nada: entre la pregunta y el «sí»
+    /// pudo cambiar algo, y lo que se pasa se decide sobre lo que hay ahora, no sobre lo que se
+    /// dijo. En este orden: las personas que pasan cambian de caso (sus filas de procedencia y su
+    /// hoja viajan con ellas porque cuelgan de su id); los campos vacíos del original se rellenan y
+    /// la fila de procedencia de ese campo pasa del duplicado al original (la del original, si la
+    /// había, se retira: era la del vacío); las asignaciones del duplicado pasan al original y las
+    /// vivas se desactivan con la fecha del plan, como al archivar; los contactos pasan; los
+    /// documentos que señalaban al duplicado pasan a señalar al original; y el duplicado se borra
+    /// por el camino de siempre, hijos antes que padres.</para>
+    ///
+    /// <para>Se niega, sin tocar nada, con un plan sin permiso, sin copia, o si alguno de los dos
+    /// documentos ya no está o el duplicado ya no señala a ese original.</para>
+    /// </remarks>
+    /// <param name="plan">El que devolvió <see cref="PlanearUnificacion"/>, tal cual.</param>
+    /// <returns>Unificado con las cifras de lo que pasó y de lo que cayó, o no unificado con su motivo.</returns>
+    ResultadoDeUnificacion Unificar(PlanDeUnificacion plan);
+
+    /// <summary>
+    /// Le quita a un documento la marca de duplicado: pasa a ser un documento normal.
+    /// </summary>
+    /// <remarks>
+    /// Es para el duplicado cuyo original ya no está en la base —la marca dice «duplicado de un
+    /// documento que ya no está»— y con el que no hay nada con lo que unificar. Escribe
+    /// <c>duplicado_de = NULL</c> y nada más: no borra, no mueve, no firma.
+    /// </remarks>
+    /// <param name="casoId">El documento.</param>
+    /// <returns>El id del documento, o no escrito si no está en la base.</returns>
+    ResultadoDeEscritura QuitarLaMarcaDeDuplicado(long casoId);
+}
+
+/// <summary>Uno de los cinco campos del caso que pueden pasar de un duplicado a su original.</summary>
+/// <param name="Columna">La columna, tal como está en <c>casos</c>.</param>
+/// <param name="Rotulo">Cómo se le dice al dueño en la pregunta.</param>
+public sealed record CampoUnificable(string Columna, string Rotulo);
+
+/// <summary>Un campo que va a pasar al original, con el valor que se va a escribir.</summary>
+/// <param name="Columna">La columna, tal como está en <c>casos</c>.</param>
+/// <param name="Rotulo">Cómo se le dice al dueño.</param>
+/// <param name="Valor">Lo que trae el duplicado y se va a escribir en el original.</param>
+public sealed record CampoQuePasaAlOriginal(string Columna, string Rotulo, string Valor)
+{
+    /// <summary>«fecha de viaje: 2026-10-08».</summary>
+    public string Dicho => $"{Rotulo}: {Valor}";
+}
+
+/// <summary>Una persona del duplicado que el original no tiene y va a pasar a él.</summary>
+/// <param name="Id">Su número interno; es la fila que cambia de caso.</param>
+/// <param name="Nombre">Su nombre, o vacío si no se leyó.</param>
+/// <param name="Mrn">Su cédula, o nula si no se leyó.</param>
+/// <param name="Hoja">La hoja del PDF de la que salió, o nula; viaja con ella.</param>
+public sealed record PersonaQuePasaAlOriginal(long Id, string Nombre, string? Mrn, int? Hoja)
+{
+    /// <summary>«Carla Prueba (1234567890003)», o lo que haya de las dos cosas.</summary>
+    public string Dicho => (Nombre.Length, Mrn) switch
+    {
+        (0, null) => "una persona sin nombre ni cédula",
+        (0, _) => $"cédula {Mrn}",
+        (_, null) => Nombre,
+        _ => $"{Nombre} ({Mrn})",
+    };
+}
+
+/// <summary>
+/// Lo que va a pasar al unificar, ya decidido y con la copia previa hecha. Todavía no se tocó nada.
+/// </summary>
+/// <remarks>
+/// Como <see cref="PlanDeBorrado"/>: aquí está lo que hace falta para PREGUNTAR bien —qué pasa
+/// al original, qué se retira, dónde quedó la copia— y ningún método que escriba. Escribir es
+/// <see cref="IMantenimiento.Unificar"/>.
+/// </remarks>
+public sealed record PlanDeUnificacion
+{
+    /// <summary>Los cinco campos del caso que pueden pasar, en el orden en que se dicen.</summary>
+    /// <remarks>
+    /// Son las cinco columnas que Corrección dibuja y que «listo para asignar» mira. No entran el
+    /// estado ni el motivo (firmas), ni la ruta y la hoja del PDF (identidad del documento), ni
+    /// captura manual ni archivado ni fechas del programa.
+    /// </remarks>
+    public static IReadOnlyList<CampoUnificable> LosCincoCampos { get; } =
+    [
+        new("numero_caso", "número de caso"),
+        new("unidad_numero", "número de unidad"),
+        new("unidad_nombre", "unidad"),
+        new("fecha_viaje", "fecha de viaje"),
+        new("templo_nombre", "templo"),
+    ];
+
+    /// <summary>Lo que va en el botón que NO unifica.</summary>
+    public const string TextoDelBotonQueNoUnifica = "No unificar";
+
+    /// <summary>El documento marcado como duplicado, que es el que se va a borrar.</summary>
+    public long DuplicadoId { get; init; }
+
+    /// <summary>El original, que es el que se queda.</summary>
+    public long OriginalId { get; init; }
+
+    /// <summary>«CASP2609_Ana_Prueba.pdf hoja 2»: cómo se nombra el duplicado.</summary>
+    public string DuplicadoDicho { get; init; } = string.Empty;
+
+    /// <summary>«CASP2609_Ana_Prueba.pdf hoja 1»: cómo se nombra el original.</summary>
+    public string OriginalDicho { get; init; } = string.Empty;
+
+    /// <summary>Si el original está archivado; entonces lo que pase quedará archivado con él.</summary>
+    public bool OriginalArchivado { get; init; }
+
+    /// <summary>Las personas del duplicado que el original no tiene.</summary>
+    public IReadOnlyList<PersonaQuePasaAlOriginal> PersonasQuePasan { get; init; } = Array.Empty<PersonaQuePasaAlOriginal>();
+
+    /// <summary>Cuántas personas del duplicado ya estaban en el original y se van con él.</summary>
+    public int PersonasQueYaEstaban { get; init; }
+
+    /// <summary>Los campos vacíos en el original que el duplicado trae.</summary>
+    public IReadOnlyList<CampoQuePasaAlOriginal> CamposQuePasan { get; init; } = Array.Empty<CampoQuePasaAlOriginal>();
+
+    /// <summary>Cuántas asignaciones vivas tiene el duplicado; se retiran con fecha.</summary>
+    public int AsignacionesVivasQueSeRetiran { get; init; }
+
+    /// <summary>La fecha con la que se retiran, ISO-8601.</summary>
+    public string Hoy { get; init; } = string.Empty;
+
+    /// <summary>Dónde quedó la copia de la base, o nulo si no se llegó a hacer.</summary>
+    public string? RutaDeLaCopia { get; init; }
+
+    /// <summary>Si se puede seguir adelante; falso deja el motivo en <see cref="Avisos"/>.</summary>
+    public bool SePuedeUnificar { get; init; }
+
+    /// <summary>Lo que hay que decir en la franja cuando el plan no sale adelante.</summary>
+    public IReadOnlyList<Aviso> Avisos { get; init; } = Array.Empty<Aviso>();
+
+    /// <summary>Si no hay nada que pasar al original: entonces unificar solo borra el duplicado.</summary>
+    public bool NoHayNadaQuePasar => PersonasQuePasan.Count == 0 && CamposQuePasan.Count == 0;
+
+    /// <summary>El título del cuadro: la acción con el original delante, nunca un «¿seguro?».</summary>
+    public string Titulo => $"Unificar con {OriginalDicho}";
+
+    /// <summary>Lo que va en el botón que unifica; dice también que borra.</summary>
+    public string TextoDelBoton => "Unificar y borrar el duplicado";
+
+    /// <summary>
+    /// El cuerpo de la pregunta: qué pasa al original, qué se retira, dónde quedó la copia y que
+    /// el duplicado no vuelve.
+    /// </summary>
+    public string Pregunta
+    {
+        get
+        {
+            var lineas = new List<string>
+            {
+                $"El duplicado {DuplicadoDicho} se va a unificar con el original {OriginalDicho}.",
+                string.Empty,
+            };
+
+            if (NoHayNadaQuePasar)
+            {
+                lineas.Add("No hay nada que pasar al original: ya tiene todo lo que trae el duplicado.");
+            }
+            else
+            {
+                lineas.Add("Pasa al original lo que le falta:");
+                if (PersonasQuePasan.Count > 0)
+                {
+                    lineas.Add($"    {Cuenta(PersonasQuePasan.Count, "persona", "personas")}: "
+                               + string.Join(", ", PersonasQuePasan.Select(p => p.Dicho)));
+                }
+
+                foreach (var campo in CamposQuePasan) lineas.Add("    " + campo.Dicho);
+            }
+
+            if (PersonasQueYaEstaban > 0)
+            {
+                lineas.Add($"{Cuenta(PersonasQueYaEstaban, "persona", "personas")} del duplicado ya "
+                           + (PersonasQueYaEstaban == 1 ? "estaba" : "estaban")
+                           + " en el original y se van con él.");
+            }
+
+            if (AsignacionesVivasQueSeRetiran > 0)
+            {
+                lineas.Add($"Se retira {Cuenta(AsignacionesVivasQueSeRetiran, "asignación viva", "asignaciones vivas")} "
+                           + "del duplicado; quien lo llevaba conserva el rastro en su informe.");
+            }
+
+            if (OriginalArchivado)
+            {
+                lineas.Add("El original está archivado: lo que pase quedará archivado con él.");
+            }
+
+            lineas.Add(string.Empty);
+            lineas.Add(RutaDeLaCopia is null
+                ? "NO se pudo hacer copia previa de la base."
+                : "Antes de unificar se hizo una copia de la base en:"
+                  + Environment.NewLine + "    " + RutaDeLaCopia);
+            lineas.Add(string.Empty);
+            lineas.Add("El duplicado se borra de la base y no vuelve. Desde el programa esto no se puede deshacer.");
+
+            return string.Join(Environment.NewLine, lineas);
+        }
+    }
+
+    /// <summary>Un plan que no sale adelante, con el motivo ya escrito.</summary>
+    /// <param name="duplicadoId">El documento que se quería unificar.</param>
+    /// <param name="rutaDeLaCopia">Dónde quedó la copia si llegó a hacerse, o nulo.</param>
+    /// <param name="avisos">Por qué no se puede; es lo que va a la franja.</param>
+    /// <returns>Sin permiso y sin nada que listar.</returns>
+    public static PlanDeUnificacion NoSePuede(long duplicadoId, string? rutaDeLaCopia, params Aviso[] avisos)
+        => new() { DuplicadoId = duplicadoId, RutaDeLaCopia = rutaDeLaCopia, SePuedeUnificar = false, Avisos = avisos };
+
+    /// <summary>«1 persona», «3 personas»: una cifra con su palabra.</summary>
+    /// <param name="cuantas">La cifra.</param>
+    /// <param name="singular">La palabra para una.</param>
+    /// <param name="plural">La palabra para varias.</param>
+    internal static string Cuenta(int cuantas, string singular, string plural)
+        => cuantas.ToString(CultureInfo.InvariantCulture) + " " + (cuantas == 1 ? singular : plural);
+}
+
+/// <summary>Lo que quedó después de unificar, para decirlo en una línea y anotarlo.</summary>
+public sealed record ResultadoDeUnificacion
+{
+    /// <summary>Si de verdad se unificó.</summary>
+    public bool SeUnifico { get; init; }
+
+    /// <summary>El original, que es el que queda.</summary>
+    public long OriginalId { get; init; }
+
+    /// <summary>El duplicado, que ya no está.</summary>
+    public long DuplicadoId { get; init; }
+
+    /// <summary>Cómo se nombra el original.</summary>
+    public string OriginalDicho { get; init; } = string.Empty;
+
+    /// <summary>Cómo se nombraba el duplicado; es el rastro que queda de qué PDF y hoja venía.</summary>
+    public string DuplicadoDicho { get; init; } = string.Empty;
+
+    /// <summary>Cuántas personas pasaron al original.</summary>
+    public int PersonasQuePasaron { get; init; }
+
+    /// <summary>Cuántos campos del caso se rellenaron en el original.</summary>
+    public int CamposQuePasaron { get; init; }
+
+    /// <summary>Cuántas asignaciones vivas se retiraron.</summary>
+    public int AsignacionesRetiradas { get; init; }
+
+    /// <summary>Qué cayó con el duplicado, tabla por tabla, con las cifras del motor.</summary>
+    public IReadOnlyList<ConteoDeTabla> Borradas { get; init; } = Array.Empty<ConteoDeTabla>();
+
+    /// <summary>Dónde quedó la copia previa.</summary>
+    public string? RutaDeLaCopia { get; init; }
+
+    /// <summary>Lo que hay que decir en la franja; vacío si todo fue bien.</summary>
+    public IReadOnlyList<Aviso> Avisos { get; init; } = Array.Empty<Aviso>();
+
+    /// <summary>
+    /// La línea del acuse: «Unificado con CASP2609_… hoja 1: 1 persona y 2 campos pasaron al
+    /// original; el duplicado se borró (copia en …).»
+    /// </summary>
+    public string Linea
+    {
+        get
+        {
+            if (!SeUnifico) return "No se unificó nada.";
+
+            var paso = PersonasQuePasaron == 0 && CamposQuePasaron == 0
+                ? "nada tenía que pasar al original"
+                : $"{PlanDeUnificacion.Cuenta(PersonasQuePasaron, "persona", "personas")} y "
+                  + $"{PlanDeUnificacion.Cuenta(CamposQuePasaron, "campo", "campos")} pasaron al original";
+            var copia = RutaDeLaCopia is null ? string.Empty : $" (copia en {RutaDeLaCopia})";
+            return $"Unificado con {OriginalDicho}: {paso}; el duplicado se borró{copia}.";
+        }
+    }
+
+    /// <summary>La línea que va a <c>fichas.log</c>: ids y cifras, sin nombres ni cédulas.</summary>
+    public string LineaDelRegistro
+    {
+        get
+        {
+            var borrado = string.Join(
+                ", ",
+                Borradas.Select(c => c.Tabla + "=" + c.Filas.ToString(CultureInfo.InvariantCulture)));
+            var copia = RutaDeLaCopia is null ? "sin copia" : $"copia previa en «{RutaDeLaCopia}»";
+            return (SeUnifico ? "UNIFICADO  " : "UNIFICACION NO EJECUTADA  ")
+                   + $"caso {DuplicadoId.ToString(CultureInfo.InvariantCulture)} -> caso {OriginalId.ToString(CultureInfo.InvariantCulture)}  "
+                   + $"personas={PersonasQuePasaron.ToString(CultureInfo.InvariantCulture)} "
+                   + $"campos={CamposQuePasaron.ToString(CultureInfo.InvariantCulture)} "
+                   + $"asignaciones_retiradas={AsignacionesRetiradas.ToString(CultureInfo.InvariantCulture)}  "
+                   + $"borrado: {borrado}  {copia}";
+        }
+    }
+
+    /// <summary>El resultado de un plan que no salió adelante, con su motivo.</summary>
+    /// <param name="rutaDeLaCopia">La copia del plan, si la había.</param>
+    /// <param name="avisos">Por qué no se unificó; es lo que va a la franja.</param>
+    /// <returns><see cref="SeUnifico"/> en falso y sin cifras.</returns>
+    public static ResultadoDeUnificacion NoSeUnifico(string? rutaDeLaCopia, params Aviso[] avisos)
+        => new() { SeUnifico = false, RutaDeLaCopia = rutaDeLaCopia, Avisos = avisos };
 }
 
 /// <summary>Que se va a borrar: unos documentos, todos, o un companero.</summary>

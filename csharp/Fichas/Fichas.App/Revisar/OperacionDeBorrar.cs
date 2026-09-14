@@ -101,21 +101,38 @@ public sealed class OperacionDeBorrar
         return resultado.Linea;
     }
 
-    /// <summary>
-    /// El cuadro con el numero delante. Lo unico que detiene el trabajo en este programa.
-    /// </summary>
-    /// <remarks>
-    /// El boton por defecto es el que NO borra: si alguien pulsa Intro sin leer, no pasa
-    /// nada. Y el texto se puede seleccionar para poder copiar la ruta de la copia.
-    /// </remarks>
+    /// <summary>El cuadro de borrar, con el numero delante.</summary>
     /// <param name="plan">El plan ya armado, con su pregunta y dónde quedó la copia.</param>
     /// <param name="raiz">La raíz visual sobre la que se levanta el cuadro.</param>
     /// <returns>Cierto solo si pulsó el botón que borra.</returns>
-    private static async Task<bool> LoConfirma(PlanDeBorrado plan, XamlRoot raiz)
+    private static Task<bool> LoConfirma(PlanDeBorrado plan, XamlRoot raiz)
+        => PreguntarAntesDeBorrar(plan.Titulo, plan.Pregunta, plan.TextoDelBoton, PlanDeBorrado.TextoDelBotonQueNoBorra, raiz);
+
+    /// <summary>
+    /// El cuadro con la accion delante. Lo unico que detiene el trabajo en este programa.
+    /// </summary>
+    /// <remarks>
+    /// <para>El boton por defecto es el que NO borra: si alguien pulsa Intro sin leer, no pasa
+    /// nada. Y el texto se puede seleccionar para poder copiar la ruta de la copia.</para>
+    ///
+    /// <para>Es público y lo usa también <see cref="OperacionDeUnificar"/>, porque unificar
+    /// borra el duplicado y es el mismo borrado con otra pregunta delante. El cuadro vive SOLO
+    /// en este archivo a propósito: <c>PruebasSinCuadros</c> vigila que ningún otro archivo de
+    /// Asignar ni de Revisar abra uno, y una segunda copia sería una segunda puerta que nadie
+    /// vigila.</para>
+    /// </remarks>
+    /// <param name="titulo">La acción con su número o su objeto delante, nunca un «¿seguro?».</param>
+    /// <param name="pregunta">El cuerpo: qué cae, dónde quedó la copia, que no hay vuelta atrás.</param>
+    /// <param name="textoDelBotonQueBorra">Lo que dice el botón que sí borra.</param>
+    /// <param name="textoDelBotonQueNo">Lo que dice el botón que no borra nada.</param>
+    /// <param name="raiz">La raíz visual sobre la que se levanta el cuadro.</param>
+    /// <returns>Cierto solo si pulsó el botón que borra.</returns>
+    public static async Task<bool> PreguntarAntesDeBorrar(
+        string titulo, string pregunta, string textoDelBotonQueBorra, string textoDelBotonQueNo, XamlRoot raiz)
     {
         var cuerpo = new TextBlock
         {
-            Text = plan.Pregunta,
+            Text = pregunta,
             TextWrapping = TextWrapping.Wrap,
             IsTextSelectionEnabled = true,
         };
@@ -123,10 +140,15 @@ public sealed class OperacionDeBorrar
         var cuadro = new ContentDialog
         {
             XamlRoot = raiz,
-            Title = plan.Titulo,
-            Content = new ScrollViewer { Content = cuerpo, MaxHeight = 320 },
-            PrimaryButtonText = plan.TextoDelBoton,
-            CloseButtonText = PlanDeBorrado.TextoDelBotonQueNoBorra,
+            // El cuadro se levanta en la capa de ventanas emergentes y NO hereda el tema de la
+            // pagina: medido el 2026-09-14 sobre el paquete, con la pantalla en claro el cuadro
+            // salia oscuro. Se le pide el tema que tiene la pantalla de debajo.
+            RequestedTheme = raiz.Content is FrameworkElement pantalla ? pantalla.ActualTheme : ElementTheme.Default,
+            Title = titulo,
+            // 360 y no 320 desde el 2026-09-14: la pregunta de unificar lista personas y campos.
+            Content = new ScrollViewer { Content = cuerpo, MaxHeight = 360 },
+            PrimaryButtonText = textoDelBotonQueBorra,
+            CloseButtonText = textoDelBotonQueNo,
             DefaultButton = ContentDialogButton.Close,
         };
 

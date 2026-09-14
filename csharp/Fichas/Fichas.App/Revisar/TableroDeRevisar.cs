@@ -346,6 +346,9 @@ public sealed class TableroDeRevisar
             MarcaDeDuplicado = caso.DuplicadoDe is long deQuien
                 ? TarjetaDeDocumento.ComponerMarcaDeDuplicado(originales.GetValueOrDefault(deQuien))
                 : string.Empty,
+            // El mismo diccionario que compone la marca: si el original no se pudo leer ni en la
+            // tanda ni preguntando por su id, no hay con qué unificar y se ofrece quitar la marca.
+            TieneOriginal = caso.DuplicadoDe is long original && originales.ContainsKey(original),
             SinAsignar = lleva is null,
             AsignadoA = lleva ?? RenglonParaAsignar.SinAsignar,
             Firma = TarjetaDeDocumento.ComponerFirma(caso, nombres),

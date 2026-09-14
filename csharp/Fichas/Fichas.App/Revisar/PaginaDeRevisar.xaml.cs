@@ -90,6 +90,8 @@ public sealed partial class PaginaDeRevisar : PaginaDeFichas
         // pantalla no puede saludar con un problema que nadie ha provocado todavia.
         _botonDeEmpezarDeCero.IsEnabled = _borrar.SePuedeBorrarAqui;
 
+        MontarLoDeLosDuplicados();
+        MontarElAnchoDelPanel();
         Repintar();
         AvisarDeLasFechasPasadas();
     }

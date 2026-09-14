@@ -45,15 +45,25 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!--  ···· la cabecera de una unidad ····  -->
+                <!--
+                    ···· la cabecera de una unidad ····
+
+                    Lleva a la izquierda la MISMA raya de color que su pastilla en el
+                    calendario de fuera —verde, rojo, o gris si no se leyó a nadie—, para
+                    que dentro de la fecha se lea igual que fuera (dueño, 2026-09-14). La
+                    regla del color vive en UnidadDelGrupo.Color y no aquí.
+                -->
                 <Border
                     Grid.Row="0"
                     Margin="0,8,0,2"
+                    BorderBrush="{x:Bind grupo:PinturaDelGrupo.FranjaDelRenglon(Color), Mode=OneTime}"
+                    BorderThickness="4,0,0,0"
+                    Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(EsCabecera), Mode=OneTime}">
+                <Border
                     Padding="10,6"
                     Background="{x:Bind grupo:PinturaDelGrupo.PanelHondo, Mode=OneTime}"
                     BorderBrush="{x:Bind grupo:PinturaDelGrupo.Linea, Mode=OneTime}"
-                    BorderThickness="0,0,0,1"
-                    Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(EsCabecera), Mode=OneTime}">
+                    BorderThickness="0,0,0,1">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -94,14 +104,41 @@
                             IsEnabled="{x:Bind SePuedeAsignarLaUnidad, Mode=OneTime}" />
                     </Grid>
                 </Border>
+                </Border>
 
-                <!--  ···· una persona del grupo ····  -->
+                <!--
+                    ···· una persona del grupo ····
+
+                    VERDE si está resuelta, ROJO si le falta algo: fondo, franja de la
+                    izquierda y la tinta del detalle, con los mismos pinceles de la
+                    pastilla del calendario. Palabras del dueño, 2026-09-14: «cuando des
+                    clic y entres a la fecha, lo que esté completo se marque en verde y lo
+                    que no en rojo, como se muestra en el calendario afuera».
+
+                    Medido antes de tocar nada: este renglón solo usaba Tinta, TintaSuave y
+                    PanelHondo; la palabra «resuelto» / «me falta» ya iba en el detalle y el
+                    color no. El color sale de ESA misma palabra (RenglonDelGrupo.Color), así
+                    que no puede decir una cosa y la palabra otra.
+
+                    ⛔ Un ARCHIVADO (desde el 2026-09-14 entra a esta lista, en verde) no se
+                    pulsa: el botón se apaga con SePuedeVerificar, porque Corrección no lo
+                    recibe y abrirlo desde aquí lo mandaría a una pantalla que no lo tiene. El
+                    motivo se lee en su tercera columna y en voz alta (ParaElLector). El fondo
+                    verde lo pone el Border de dentro y no el botón, así que apagado se sigue
+                    viendo verde.
+                -->
                 <Button
                     Grid.Row="1"
                     AutomationProperties.Name="{x:Bind ParaElLector, Mode=OneTime}"
                     Click="AlPulsarUnaPersona"
+                    IsEnabled="{x:Bind SePuedeVerificar, Mode=OneTime}"
                     Style="{StaticResource LoQueSePulsa}"
                     Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(EsUnaPersona), Mode=OneTime}">
+                <Border
+                    Margin="0,1"
+                    Background="{x:Bind grupo:PinturaDelGrupo.FondoDelRenglon(Color), Mode=OneTime}"
+                    BorderBrush="{x:Bind grupo:PinturaDelGrupo.FranjaDelRenglon(Color), Mode=OneTime}"
+                    BorderThickness="4,0,0,0">
                 <Grid Padding="10,5" ColumnSpacing="10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -118,7 +155,8 @@
                             TextTrimming="CharacterEllipsis" />
                         <TextBlock
                             FontSize="11.5"
-                            Foreground="{x:Bind grupo:PinturaDelGrupo.TintaDelDetalle(ElPdfNoSePuedeAbrir), Mode=OneTime}"
+                            FontWeight="SemiBold"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.TintaDelDetalle(ElPdfNoSePuedeAbrir, Color), Mode=OneTime}"
                             Text="{x:Bind Detalle, Mode=OneTime}"
                             TextTrimming="CharacterEllipsis" />
                     </StackPanel>
@@ -155,7 +193,11 @@
                         rótulo (criterio C17-1) y recortando se perdería justo el significado.
 
                         Aquí iba antes la palabra ARCHIVADO del renglón, que el dueño pidió el
-                        2026-09-03 y quitó el 2026-09-06: al grupo ya no llega ni un archivado.
+                        2026-09-03 y quitó el 2026-09-06. Desde el 2026-09-14 el archivado
+                        vuelve a entrar al grupo, y esta columna es la única que cambia de frase
+                        por ello: dice «archivado · se ve y se desarchiva en Revisar», que es el
+                        motivo de su botón apagado. En minúscula y sin destacar: lo que le
+                        estorbaba era la etiqueta en medio del trabajo.
                     -->
                     <TextBlock
                         Grid.Column="2"
@@ -165,6 +207,7 @@
                         Text="{x:Bind LoQueLeFaltaAlDocumento, Mode=OneTime}"
                         TextWrapping="Wrap" />
                 </Grid>
+                </Border>
                 </Button>
             </Grid>
         </DataTemplate>

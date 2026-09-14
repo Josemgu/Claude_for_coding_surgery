@@ -2,6 +2,7 @@ using Fichas.App.Vocabulario;
 using Fichas.App.Asignar;
 using Fichas.App.Cascara;
 using Fichas.App.Grupo;
+using Fichas.App.Inicio;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
 
@@ -250,22 +251,23 @@ public sealed class PruebasDelGrupoQueViaja
     }
 
     /// <summary>
-    /// Un archivado NO sale en el grupo del dia en que viajaba, ni suma en su denominador.
+    /// Un archivado SALE en el grupo del dia en que viajaba, en verde y sin la etiqueta en
+    /// mayusculas, y suma en su denominador igual que suma en la pastilla de fuera.
     /// </summary>
     /// <remarks>
-    /// ⛔ <b>Esto deshace la decision del dueno del 2026-09-03</b>, que pedia lo contrario
-    /// —«lo que archivo debe verse en el calendario, debe decir archivado»—, y con ella se
-    /// va la version anterior de esta prueba, que se llamaba
-    /// <c>LosArchivadosSeVenEnElGrupoMarcadosYSePuedenDejarFuera</c>. Manda lo del
-    /// 2026-09-06, con su motivo escrito: <i>«si se queda en el tablero y dice archivado, lo
-    /// que hace es que me confunda. Debe pasar a archivado y no aparecer más en ningún
-    /// lado»</i>.
-    /// <para>Lo que esta prueba sigue vigilando es lo mismo que la anterior: que el grupo
-    /// del dia cuente EXACTAMENTE lo que hay, sin colar ni perder documentos. Lo unico que
-    /// cambio es de que lado cae el archivado.</para>
+    /// <para>Esta prueba ha cambiado de lado dos veces, y las dos con el dueno delante. El
+    /// 2026-09-03 pedia verlos marcados; el 2026-09-06 dijo <i>«si se queda en el tablero y
+    /// dice archivado, lo que hace es que me confunda. Debe pasar a archivado y no aparecer más
+    /// en ningún lado»</i> y la prueba paso a exigir que no saliera. El 2026-09-14 se midio que
+    /// eso dejaba la fecha en desacuerdo con el calendario —fuera «me falta 4 de 5», dentro «4
+    /// de 4»— y el supervisor decidio (opcion A, escrita en <c>DECISIONES.md</c> para que el
+    /// dueno la cambie si quiere) que entre en verde, con la nota en minuscula.</para>
+    /// <para>Lo que esta prueba sigue vigilando es lo mismo desde el primer dia: que el grupo
+    /// del dia cuente EXACTAMENTE lo que hay, sin colar ni perder documentos, y que la etiqueta
+    /// «ARCHIVADO» que le confundia no vuelva.</para>
     /// </remarks>
     [TestMethod]
-    public void UnArchivadoNoSaleEnElGrupoDelDiaEnQueViajaba()
+    public void UnArchivadoSaleEnElGrupoDelDiaEnQueViajabaEnVerdeYSinEtiqueta()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
         BaseDeInicio.MeterCaso(servicios, "VIVO2609", "2026-09-08");
@@ -273,23 +275,28 @@ public sealed class PruebasDelGrupoQueViaja
 
         var grupo = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8));
 
-        Assert.AreEqual(1, grupo.CuantosDocumentos, "El archivado no se cuenta.");
+        Assert.AreEqual(2, grupo.CuantosDocumentos, "El archivado se cuenta, como fuera.");
         Assert.DoesNotContain("ARCHIVADO", grupo.LineaDelDenominador, StringComparison.Ordinal);
         CollectionAssert.AreEquivalent(
-            new[] { "VIVO2609" },
+            new[] { "VIVO2609", "ARCH2609" },
             grupo.TodasLasPersonas.Select(p => p.NumeroCaso).ToList(),
-            "El archivado no puede aparecer ni como renglón.");
+            "Los dos tienen renglón.");
+        var archivado = grupo.TodasLasPersonas.Single(p => p.Archivado);
+        Assert.AreEqual("ARCH2609", archivado.NumeroCaso);
+        Assert.AreEqual(ColorDeLaPastilla.Verde, archivado.Color);
     }
 
     /// <summary>
-    /// Un dia en el que TODO lo que viajaba esta archivado se ensena vacio, no medio lleno.
+    /// Un dia en el que TODO lo que viajaba esta archivado se ensena resuelto y lleno, no
+    /// vacio: es lo que dice su pastilla de fuera.
     /// </summary>
     /// <remarks>
-    /// Es el borde del cambio del 2026-09-06: si el ultimo documento vivo se archiva, el dia
-    /// no puede quedar con una cabecera que promete un grupo y una lista sin nadie dentro.
+    /// Del 2026-09-06 al 2026-09-14 esta prueba exigia que el dia se abriera vacio, y ese fue
+    /// justo el defecto medido el 14: el calendario pintaba el dia en verde y al entrar no habia
+    /// nadie. Lo que no cambia: de ese dia no sale trabajo para nadie.
     /// </remarks>
     [TestMethod]
-    public void UnDiaConTodoArchivadoSeEnsenaVacio()
+    public void UnDiaConTodoArchivadoSeEnsenaResueltoYNoVacio()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
         BaseDeInicio.MeterCaso(servicios, "ARCH2601", "2026-09-08", archivado: true);
@@ -297,9 +304,11 @@ public sealed class PruebasDelGrupoQueViaja
 
         var grupo = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8));
 
-        Assert.IsTrue(grupo.EstaVacio);
-        Assert.IsEmpty(grupo.Unidades);
-        Assert.AreEqual("no viaja nadie este día", grupo.ComoVa);
+        Assert.IsFalse(grupo.EstaVacio);
+        Assert.HasCount(1, grupo.Unidades);
+        Assert.AreEqual(2, grupo.CuantosDocumentos);
+        Assert.AreEqual(DosEstados.Resuelto, grupo.ComoVanLasPersonas);
+        Assert.IsEmpty(grupo.LosQueSePuedenAsignar, "De un día archivado no sale trabajo para nadie.");
     }
 
     /// <summary>Un dia en el que no viaja nadie se ensena vacio y no revienta.</summary>
@@ -357,9 +366,9 @@ public sealed class PruebasDelGrupoQueViaja
     /// el 8 de septiembre dejo <b>8 filas</b> en <c>asignaciones</c> —siete documentos vivos
     /// y uno archivado—, y el archivado no debia entrar. <b>Ese defecto es lo que esta
     /// prueba vigila y sigue vigilandolo</b>: ni una fila de asignacion sobre algo cerrado.
-    /// <para>⛔ Lo que cambio el 2026-09-06 es que el archivado ya no se VE en el grupo: la
-    /// linea que decia «el archivado se sigue viendo en el grupo» afirmaba la decision del
-    /// 2026-09-03, que el dueno deshizo.</para>
+    /// <para>⛔ El 2026-09-06 el archivado dejo de VERSE en el grupo y el 2026-09-14 volvio a
+    /// verse, en verde, para cuadrar con el calendario. Lo que esta prueba vigila no se movio
+    /// ninguna de las dos veces: se vea o no, no se asigna.</para>
     /// </remarks>
     [TestMethod]
     public void AsignarElGrupoEnteroNoAsignaLosArchivados()
@@ -373,8 +382,8 @@ public sealed class PruebasDelGrupoQueViaja
         var quien = servicios.Companeros.Activos()[0];
         var operacion = new OperacionDeAsignar(servicios.Asignaciones, servicios.Reloj, new BuzonDeAvisos());
 
-        Assert.HasCount(2, grupo.TodosLosCasos, "El archivado ya no se ve en el grupo.");
-        Assert.HasCount(2, grupo.LosQueSePuedenAsignar);
+        Assert.HasCount(3, grupo.TodosLosCasos, "El archivado se ve en el grupo (2026-09-14).");
+        Assert.HasCount(2, grupo.LosQueSePuedenAsignar, "Pero no entra en lo que se asigna.");
 
         var resumen = operacion.AsignarVarios(grupo.LosQueSePuedenAsignar, quien.Id, quien.Nombre);
 
@@ -384,14 +393,14 @@ public sealed class PruebasDelGrupoQueViaja
             "Un documento archivado no puede acabar en manos de un compañero.");
     }
 
-    /// <summary>Una unidad entera archivada no aparece en el grupo, y menos con boton.</summary>
+    /// <summary>Una unidad entera archivada aparece en el grupo, en verde y sin boton de asignar.</summary>
     /// <remarks>
-    /// La version anterior de esta prueba comprobaba que se veia apagada, con su documento
-    /// contado y sin boton de asignar. Lo que vigilaba —que de ahi no salga trabajo para
-    /// nadie— se conserva; lo que cambia es que ahora no llega ni a pintarse.
+    /// Esta prueba vuelve el 2026-09-14 a lo que comprobaba antes del 06: que la unidad se ve,
+    /// con su documento contado y sin boton. Lo que vigilo siempre —que de ahi no salga
+    /// trabajo para nadie— no se movio.
     /// </remarks>
     [TestMethod]
-    public void UnaUnidadEnteraArchivadaNoAparece()
+    public void UnaUnidadEnteraArchivadaApareceEnVerdeYSinBoton()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
         BaseDeInicio.MeterCaso(servicios, "ARCH2601", "2026-09-08", archivado: true, unidadNumero: "990000");
@@ -399,12 +408,15 @@ public sealed class PruebasDelGrupoQueViaja
 
         var grupo = BaseDeInicio.LectorDeGruposDe(servicios).DelDia(new DateOnly(2026, 9, 8));
 
-        Assert.HasCount(1, grupo.Unidades, "La unidad archivada entera no se ensena.");
-        Assert.AreEqual("700001", grupo.Unidades[0].UnidadNumero);
-        Assert.IsTrue(grupo.Unidades[0].SePuedeAsignar);
+        Assert.HasCount(2, grupo.Unidades, "La unidad archivada entera se ensena.");
+        var viva = grupo.Unidades.Single(u => u.UnidadNumero == "700001");
+        var archivada = grupo.Unidades.Single(u => u.UnidadNumero == "990000");
+        Assert.IsTrue(viva.SePuedeAsignar);
+        Assert.IsFalse(archivada.SePuedeAsignar);
+        Assert.AreEqual(ColorDeLaPastilla.Verde, archivada.Color);
 
         var cabeceras = grupo.EnUnaSolaLista().Where(r => r.EsCabecera).ToList();
-        Assert.HasCount(1, cabeceras);
+        Assert.HasCount(2, cabeceras);
         Assert.AreEqual(1, cabeceras.Count(r => r.SePuedeAsignarLaUnidad),
             "Solo la unidad viva ofrece su botón de asignar.");
     }
@@ -497,15 +509,19 @@ public sealed class PruebasDelGrupoQueViaja
         Assert.AreEqual(3, renglones.Count(r => r.EsUnaPersona));
     }
 
-    /// <summary>Las personas de un documento archivado no tienen renglon en la lista.</summary>
+    /// <summary>
+    /// Las personas de un documento archivado tienen renglon en la lista, con la nota en
+    /// minuscula y sin la etiqueta «ARCHIVADO», y su renglon no se pulsa.
+    /// </summary>
     /// <remarks>
-    /// Antes esta prueba se llamaba <c>UnaPersonaDeUnDocumentoArchivadoLlevaLaPalabraArchivado</c>
-    /// y exigia el texto «ARCHIVADO» en el renglon. Lo que vigila sigue siendo lo mismo —que
-    /// la lista aplanada diga del archivado lo que el dueno pidio— y hoy pide que no diga nada
-    /// porque no hay renglon (2026-09-06).
+    /// Esta prueba se llamo <c>UnaPersonaDeUnDocumentoArchivadoLlevaLaPalabraArchivado</c>
+    /// (2026-09-03, exigia «ARCHIVADO») y luego <c>UnDocumentoArchivadoNoPoneNingunRenglonEnLaLista</c>
+    /// (2026-09-06, exigia que no hubiera renglon). Desde el 2026-09-14 el renglon vuelve, y lo
+    /// que vigila sigue siendo lo mismo: que la lista aplanada diga del archivado lo que el
+    /// dueno pidio, que hoy es verlo resuelto sin la etiqueta que le confundia.
     /// </remarks>
     [TestMethod]
-    public void UnDocumentoArchivadoNoPoneNingunRenglonEnLaLista()
+    public void UnDocumentoArchivadoPoneSuRenglonSinLaEtiquetaYSinBoton()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
         BaseDeInicio.MeterCaso(servicios, "VIVO2608", "2026-09-08");
@@ -515,10 +531,13 @@ public sealed class PruebasDelGrupoQueViaja
             .DelDia(new DateOnly(2026, 9, 8)).EnUnaSolaLista();
 
         var personas = renglones.Where(r => r.EsUnaPersona).ToList();
-        Assert.HasCount(1, personas);
-        StringAssert.Contains(personas[0].Detalle, "VIVO2608", StringComparison.Ordinal);
+        Assert.HasCount(2, personas);
+        var archivado = personas.Single(r => r.Archivado);
+        StringAssert.Contains(archivado.Detalle, "ARCH2609", StringComparison.Ordinal);
+        StringAssert.Contains(archivado.Detalle, "resuelto · archivado", StringComparison.Ordinal);
+        Assert.IsFalse(archivado.SePuedeVerificar);
         Assert.IsEmpty(renglones.Where(r => r.ParaElLector.Contains("ARCHIVADO", StringComparison.Ordinal)),
-            "Ni el lector de pantalla dice la palabra.");
+            "Ni el lector de pantalla dice la etiqueta en mayúsculas.");
     }
 
     /// <summary>Cada renglon dice en voz alta lo suficiente para navegarlo sin ver.</summary>

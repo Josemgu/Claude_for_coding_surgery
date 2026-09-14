@@ -25,8 +25,13 @@ namespace Fichas.Datos.Mantenimiento;
 /// dueno, y se borran al reves. Que la lista sea la misma para contar y para borrar es lo
 /// que garantiza que la cifra de la pregunta sea la cifra que cae.
 /// </para>
+/// <para>
+/// Es <c>partial</c> desde el 2026-09-14: unificar un duplicado con su original vive en
+/// <c>RepositorioDeMantenimiento.Unificar.cs</c>, que reutiliza de aquí la tabla temporal y el
+/// borrado paso a paso para que el duplicado caiga por el mismo camino que cualquier documento.
+/// </para>
 /// </remarks>
-public sealed class RepositorioDeMantenimiento : IMantenimiento
+public sealed partial class RepositorioDeMantenimiento : IMantenimiento
 {
     /// <summary>La tabla temporal donde se meten, uno a uno y como parámetros, los ids que se van a borrar. Vive en la conexión y muere con ella.</summary>
     private const string TablaTemporal = "ids_a_borrar";
@@ -265,7 +270,6 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
         PonerLosIdsEnLaTablaTemporal(plan.Ids);
 
         using var trato = _conexion.BeginTransaction();
-        var borradas = new List<ConteoDeTabla>();
 
         // Un caso puede senalar a otro con `duplicado_de`, que tambien es un REFERENCES
         // con RESTRICT. Sin soltar esa punta, borrar el original falla en el motor. El que
@@ -275,6 +279,30 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
                 ? "UPDATE casos SET duplicado_de = NULL WHERE duplicado_de IS NOT NULL"
                 : "UPDATE casos SET duplicado_de = NULL WHERE duplicado_de IN (SELECT id FROM ids_a_borrar)",
             trato);
+
+        var borradas = BorrarLosPasos(trato, todoEnLimpio);
+        trato.Commit();
+
+        return new ResultadoDeBorrado
+        {
+            SeBorro = true,
+            Borradas = borradas,
+            RutaDeLaCopia = plan.RutaDeLaCopia,
+        };
+    }
+
+    /// <summary>Borra, dentro de esa transacción, lo que apunta a la tabla temporal, hijos antes que padres.</summary>
+    /// <remarks>
+    /// Es el tramo común de borrar documentos y de unificar: los dos dejan los ids en la tabla
+    /// temporal y llaman aquí. Quien llama abre y cierra la transacción, y suelta antes las
+    /// puntas de <c>duplicado_de</c> que apunten a lo que cae.
+    /// </remarks>
+    /// <param name="trato">La transacción en curso.</param>
+    /// <param name="todoEnLimpio">Si se vacía la base entera (filtro <c>1 = 1</c>) o solo lo de la tabla temporal.</param>
+    /// <returns>Las filas que cayeron por tabla, en el mismo orden en que <see cref="Pasos"/> las dice.</returns>
+    private List<ConteoDeTabla> BorrarLosPasos(SqliteTransaction trato, bool todoEnLimpio)
+    {
+        var borradas = new List<ConteoDeTabla>();
 
         // Al reves de como se cuentan: los hijos antes que los padres.
         foreach (var paso in Pasos.Reverse())
@@ -286,15 +314,8 @@ public sealed class RepositorioDeMantenimiento : IMantenimiento
             borradas.Add(new ConteoDeTabla(paso.Tabla, cuantas, paso.Singular, paso.Plural));
         }
 
-        trato.Commit();
-
         borradas.Reverse();
-        return new ResultadoDeBorrado
-        {
-            SeBorro = true,
-            Borradas = borradas,
-            RutaDeLaCopia = plan.RutaDeLaCopia,
-        };
+        return borradas;
     }
 
     /// <summary>Borra al companero, volviendo a comprobar que sigue sin llevar nada.</summary>

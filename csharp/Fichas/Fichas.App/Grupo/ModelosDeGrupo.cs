@@ -74,6 +74,13 @@ public static class PalabrasDelEstado
 /// miro. Sale de sus seis preguntas y de nada mas.
 /// </param>
 /// <param name="SeQuedoEn">Los pasos que estan marcados que NO; vacio si no hay ninguno.</param>
+/// <param name="Archivado">
+/// Si el documento del que sale esta archivado. Entro el 2026-09-14 para que el color del
+/// renglon siga la MISMA regla con la que el calendario cuenta «resueltas» —seis en si, o
+/// archivado—, y desde ese mismo dia <see cref="LectorDeGrupos.DelDia"/> los trae: el renglon
+/// sale verde, se lee «resuelto» con la nota «archivado» al lado, y ni se asigna ni se
+/// verifica desde aqui.
+/// </param>
 public sealed record PersonaDelGrupo(
     long PersonaId,
     long CasoId,
@@ -87,10 +94,18 @@ public sealed record PersonaDelGrupo(
     int CuantoLeFalta,
     string Dueno,
     bool? Recomendacion = null,
-    IReadOnlyList<string>? SeQuedoEn = null)
+    IReadOnlyList<string>? SeQuedoEn = null,
+    bool Archivado = false)
 {
     /// <summary>Los pasos donde se quedo, nunca nulo.</summary>
     public IReadOnlyList<string> PasosSinCompletar => SeQuedoEn ?? [];
+
+    /// <summary>Verde si esta resuelta, rojo si le falta algo; la regla esta en <see cref="ColorDelRenglon"/>.</summary>
+    /// <remarks>
+    /// Sale de la MISMA lectura que <see cref="PalabraDelEstado"/>: el color no puede decir
+    /// una cosa y la palabra otra, que es justo lo que el dueno leia el 2026-09-05.
+    /// </remarks>
+    public ColorDeLaPastilla Color => ColorDelRenglon.De(Lectura.Lo, Archivado);
 
     /// <summary>
     /// El estado DEL DOCUMENTO y su motivo, con las palabras del dueno (C13-4).
@@ -107,13 +122,37 @@ public sealed record PersonaDelGrupo(
     /// </remarks>
     public string EstadoDelDocumentoTexto => PalabrasDelEstado.Decir(EstadoDelDocumento, Motivo);
 
+    /// <summary>La nota que lleva al lado de su palabra el renglon de un archivado.</summary>
+    /// <remarks>
+    /// ⛔ <b>No es una tercera palabra de estado.</b> Las dos del 2026-09-07 siguen siendo las
+    /// unicas —<see cref="DosEstados.LasDos"/>—; esto es una nota al lado de «resuelto», y va
+    /// en minuscula y sin destacar porque lo que al dueno le estorbaba el 2026-09-06 era la
+    /// etiqueta «ARCHIVADO» en medio del trabajo, no saber que lo archivo.
+    /// </remarks>
+    public const string NotaDeArchivado = "archivado";
+
+    /// <summary>Donde se ve y se desarchiva lo archivado; es el motivo de cada boton apagado.</summary>
+    public const string DondeSeDesarchiva = "se ve y se desarchiva en Revisar";
+
     /// <summary>Lo que se lee de ESTA persona: una de las dos palabras, y su detalle.</summary>
     /// <remarks>
-    /// ⛔ <b>Es la persona y no el documento.</b> Cinco personas del mismo papel pueden leerse
-    /// distinto, y esa separacion es del 2026-09-05 y no se toca. Lo del documento sigue en
-    /// <see cref="EstadoDelDocumentoTexto"/>, que ya no se pinta en el renglon.
+    /// <para>⛔ <b>Es la persona y no el documento.</b> Cinco personas del mismo papel pueden
+    /// leerse distinto, y esa separacion es del 2026-09-05 y no se toca. Lo del documento sigue
+    /// en <see cref="EstadoDelDocumentoTexto"/>, que ya no se pinta en el renglon.</para>
+    ///
+    /// <para>⚠️ <b>Una persona de un documento archivado se lee «resuelto» aunque sus seis
+    /// preguntas no digan que si</b>, con la misma excepcion con la que el calendario cuenta
+    /// «resueltas» (<c>LectorDeGrupos.ArmarLaPastilla</c>: <c>confirmada || caso.Archivado</c>):
+    /// archivar es el gesto con el que el dueno cierra un documento. Su detalle dice que fue el
+    /// quien lo cerro y donde se deshace, y NO dice que sus seis esten confirmadas: eso seria
+    /// inventarlo, y <see cref="Recomendacion"/> sigue diciendo lo que dicen.</para>
     /// </remarks>
-    public LoQueSeLeeDeUnaPersona Lectura => LoQueSeLeeDeUnaPersona.De(Recomendacion, PasosSinCompletar);
+    public LoQueSeLeeDeUnaPersona Lectura => Archivado
+        ? new LoQueSeLeeDeUnaPersona(LoQueSeLee.Resuelto, "lo archivaste tú · no queda nada que hacer con ella")
+        : LoQueSeLeeDeUnaPersona.De(Recomendacion, PasosSinCompletar);
+
+    /// <summary>Si no le queda nada que hacer con ella: las seis en si, o su documento archivado.</summary>
+    public bool EstaResuelta => Lectura.EsResuelto;
 
     /// <summary>«resuelto» o «me falta»; la unica palabra de estado del renglon.</summary>
     public string PalabraDelEstado => Lectura.Palabra;
@@ -174,9 +213,16 @@ public sealed record PersonaDelGrupo(
     /// aqui aparte es exactamente lo que hacia que el mismo documento se leyera distinto en dos
     /// pantallas. Lo vigila
     /// <c>PruebasDeLoQueLeFaltaACadaDocumento.ContestaLoMismoQueLaPantallaDelGrupoEnTodaLaBase</c>.</para>
+    ///
+    /// <para>⚠️ <b>Un archivado no contesta esta pregunta: dice que esta archivado y donde se
+    /// deshace.</b> Correccion no lo recibe (2026-09-06), asi que decirle «te toca a ti, en
+    /// Correccion» lo mandaria a una pantalla donde no esta. Esta es la unica columna del
+    /// renglon que cambia de frase por estar archivado, y es donde va el motivo de que su
+    /// boton este apagado.</para>
     /// </remarks>
-    public string LoQueFaltaTexto
-        => LasDosPreguntas.LoQueLeFaltaAlDocumento(CuantoLeFalta, SinNingunaPersonaLeida);
+    public string LoQueFaltaTexto => Archivado
+        ? $"{NotaDeArchivado} · {DondeSeDesarchiva}"
+        : LasDosPreguntas.LoQueLeFaltaAlDocumento(CuantoLeFalta, SinNingunaPersonaLeida);
 
     /// <summary>Quien lo lleva, o que no lo lleva nadie; nunca se deja en blanco.</summary>
     public string DuenoTexto => string.IsNullOrWhiteSpace(Dueno) ? "sin asignar" : Dueno;
@@ -194,7 +240,14 @@ public sealed record PersonaDelGrupo(
     /// recomendacion confirmada», tres de las palabras retiradas—. Lo que decia no se pierde:
     /// va en <see cref="DetalleDelEstado"/>, que se lee al pulsar la palabra.
     /// </remarks>
-    public string Detalle => $"{NumeroCaso} · {PalabraDelEstado} · {DuenoTexto} · {PdfTexto}";
+    /// <remarks>
+    /// ⚠️ <b>2026-09-14:</b> un archivado lleva la nota «archivado» pegada a su palabra
+    /// —«resuelto · archivado»—, que es donde el dueno pidio ver el estado. Sigue sin haber
+    /// una tercera palabra: <see cref="PalabraDelEstado"/> es una de las dos.
+    /// </remarks>
+    public string Detalle
+        => $"{NumeroCaso} · {PalabraDelEstado}{(Archivado ? " · " + NotaDeArchivado : string.Empty)}"
+           + $" · {DuenoTexto} · {PdfTexto}";
 }
 
 /// <summary>
@@ -215,7 +268,7 @@ public sealed record PersonaDelGrupo(
 /// la fecha solo en el titulo de la pantalla, ese renglon copiado o leido en voz alta no dice
 /// de que dia habla.
 /// </param>
-/// <param name="CasoIds">Los documentos de esta unidad ese dia; un archivado no llega hasta aqui.</param>
+/// <param name="CasoIds">Los documentos de esta unidad ese dia, archivados incluidos desde el 2026-09-14.</param>
 /// <param name="Personas">Las personas, en el orden en que se ensenan.</param>
 /// <param name="CuantasCompletas">Cuantos de esos documentos estan completos.</param>
 /// <param name="Motivo">El motivo que mas se repite entre los que no estan completos.</param>
@@ -236,16 +289,27 @@ public sealed record UnidadDelGrupo(
     /// </summary>
     /// <remarks>
     /// ⛔ <b>Un documento archivado NO se asigna: esta cerrado.</b> Es la regla del dueno del
-    /// 2026-09-05 —«cuando yo archive, debe salir del sistema visible»—, y desde el
-    /// 2026-09-06 se cumple mas arriba: <see cref="LectorDeGrupos"/> ya no trae ni un
-    /// archivado, asi que aqui son todos.
+    /// 2026-09-05 —«cuando yo archive, debe salir del sistema visible»—. Del 2026-09-06 al
+    /// 2026-09-14 se cumplia mas arriba, porque <see cref="LectorDeGrupos"/> no traia ni un
+    /// archivado; desde el 14 los trae —para que dentro de la fecha cuadre con el calendario— y
+    /// vuelve a cumplirse AQUI: se dejan fuera los que <see cref="Personas"/> dicen archivados.
+    /// Se mira en las personas y no en una lista aparte porque cada documento tiene al menos un
+    /// renglon —el de «sin ninguna persona leida» si no trajo a nadie—, y una segunda lista
+    /// seria una segunda fuente que algun dia diria otra cosa.
     /// <para>Medido el 2026-09-05 sobre el paquete publicado, antes de arreglarlo: «Asignar
     /// el grupo entero» sobre el 8 de septiembre dejo <b>8 filas</b> en <c>asignaciones</c>,
     /// y una era la del documento archivado. Esta propiedad se queda —en vez de que la
     /// pantalla use <see cref="CasoIds"/> a pelo— para que ese defecto tenga un solo sitio
     /// donde volver a mirarse.</para>
     /// </remarks>
-    public IReadOnlyList<long> CasosQueSePuedenAsignar => CasoIds;
+    public IReadOnlyList<long> CasosQueSePuedenAsignar
+    {
+        get
+        {
+            var archivados = Personas.Where(p => p.Archivado).Select(p => p.CasoId).ToHashSet();
+            return [.. CasoIds.Where(id => !archivados.Contains(id))];
+        }
+    }
 
     /// <summary>Si queda algo que asignar en esta unidad.</summary>
     public bool SePuedeAsignar => CasosQueSePuedenAsignar.Count > 0;
@@ -268,8 +332,51 @@ public sealed record UnidadDelGrupo(
     /// </remarks>
     public int CuantasPersonasConfirmadas => Personas.Count(p => p.Recomendacion == true);
 
-    /// <summary>Las que todavia no: las que estan en «no» y las que nadie miro.</summary>
-    public int CuantasPersonasSinConfirmar => Personas.Count - CuantasPersonasConfirmadas;
+    /// <summary>
+    /// De sus personas, cuantas ya no le dejan nada que hacer: las confirmadas MAS las que van
+    /// en un documento archivado.
+    /// </summary>
+    /// <remarks>
+    /// <para>Es la MISMA cuenta que <see cref="PastillaDeDia.CuantasPersonasResueltas"/> hace
+    /// para el calendario de fuera (<c>confirmada || caso.Archivado</c>), y por eso cuadran.
+    /// Las dos cifras van aparte y no se pisan: «confirmada» es una afirmacion sobre las seis
+    /// preguntas y no se toca; «resuelta» dice si al dueno le queda algo que hacer, y ahi
+    /// archivar cuenta (2026-09-07).</para>
+    ///
+    /// <para>⚠️ La fila «sin ninguna persona leida» de un archivado NO se cuenta, igual que fuera:
+    /// la pastilla solo cuenta personas que existen, y esa fila es la ausencia de una.</para>
+    /// </remarks>
+    public int CuantasPersonasResueltas => Personas.Count(p => !p.SinNingunaPersonaLeida && p.EstaResuelta);
+
+    /// <summary>Las que todavia no: las que estan en «no» y las que nadie miro, sin las de un archivado.</summary>
+    /// <remarks>
+    /// Se cuenta lo que NO esta resuelto y no «las que no estan confirmadas»: desde el
+    /// 2026-09-14 una persona de un archivado no esta confirmada y aun asi no queda por
+    /// verificar, porque ese documento lo cerro el dueno. Con la cuenta vieja la cabecera diria
+    /// «resuelto» y debajo «falta verificar 2 recomendaciones» del mismo grupo.
+    /// </remarks>
+    public int CuantasPersonasSinConfirmar => Personas.Count(p => !p.EstaResuelta);
+
+    /// <summary>
+    /// De que color va la cabecera de esta unidad dentro de la fecha: el mismo que su pastilla
+    /// en el calendario de fuera.
+    /// </summary>
+    /// <remarks>
+    /// <para>Es <c>ColoresDeLaPastilla.De</c> y no una regla nueva: verde con todas resueltas,
+    /// rojo con alguna sin resolver, gris sin nadie leido. Se cuenta sobre
+    /// <see cref="CuantasPersonasResueltas"/> —y no sobre las confirmadas— desde el 2026-09-14,
+    /// que es cuando los archivados entraron a esta lista: hasta entonces una unidad con uno
+    /// podia ir verde fuera y rojo dentro, y eso se midio y se dijo.</para>
+    ///
+    /// <para>⚠️ Se cuenta sobre <see cref="CuantasPersonasLeidas"/> y no sobre
+    /// <c>Personas.Count</c>: la fila «sin ninguna persona leida» va en esa lista para que el
+    /// documento no desaparezca, y contarla como persona pintaria en rojo una unidad de la que
+    /// no se leyo a nadie, que es el «0 de 0 en rojo» que el dueno ya vio el 2026-09-07.</para>
+    /// </remarks>
+    public ColorDeLaPastilla Color => ColoresDeLaPastilla.De(CuantasPersonasResueltas, CuantasPersonasLeidas);
+
+    /// <summary>Cuantas personas de verdad se leyeron: sin la fila que dice que no se leyo a nadie.</summary>
+    public int CuantasPersonasLeidas => Personas.Count(p => !p.SinNingunaPersonaLeida);
 
     /// <summary>«10 personas viajan el 12 de septiembre · 2 documentos · me falta 5 de 10».</summary>
     /// <remarks>
@@ -285,12 +392,16 @@ public sealed record UnidadDelGrupo(
     /// septiembre»</i>—, y lo primero que dice de una unidad es cuanta gente viaja y cuando. Los
     /// documentos siguen ahi: son lo que se asigna, y sin esa cifra el boton «Asignar esta
     /// unidad» diria cuanto trabajo mueve solo despues de pulsarlo.</para>
+    ///
+    /// <para>⚠️ <b>2026-09-14: la cuenta es de RESUELTAS y no de confirmadas</b>, que es la de
+    /// la pastilla de fuera. Con los archivados dentro, contar confirmadas diria «me falta 5 de
+    /// 5» de una unidad cuya pastilla dice «me falta 3 de 5» o «resuelto».</para>
     /// </remarks>
     public string Detalle
         => Plural.Con(Personas.Count, "persona", "personas")
            + $" {(Personas.Count == 1 ? "viaja" : "viajan")} el {FechasEnEspanol.DecirElDiaYElMes(Fecha)}"
            + " · " + Plural.Con(CuantosDocumentos, "documento", "documentos")
-           + " · " + DosEstados.Cuenta(CuantasPersonasConfirmadas, Personas.Count);
+           + " · " + DosEstados.Cuenta(CuantasPersonasResueltas, Personas.Count);
 
     /// <summary>Cuantos de sus documentos tienen todavia algun hueco del papel.</summary>
     /// <remarks>
@@ -388,14 +499,30 @@ public sealed record GrupoDelDia(
     /// </remarks>
     public int CuantasPersonasConfirmadas => TodasLasPersonas.Count(p => p.Recomendacion == true);
 
-    /// <summary>Cuantas tienen alguna de las seis preguntas marcada que NO.</summary>
-    public int CuantasPersonasNoListas => TodasLasPersonas.Count(p => p.Recomendacion == false);
+    /// <summary>
+    /// Cuantas ya no le dejan nada que hacer: las confirmadas MAS las de un documento archivado.
+    /// </summary>
+    /// <remarks>
+    /// Es la suma de <see cref="UnidadDelGrupo.CuantasPersonasResueltas"/> de cada unidad, que
+    /// es la cuenta de la pastilla de fuera; asi la cabecera del dia dice lo mismo que el
+    /// calendario (2026-09-14). La fila «sin ninguna persona leida» no cuenta, como fuera.
+    /// </remarks>
+    public int CuantasPersonasResueltas => Unidades.Sum(u => u.CuantasPersonasResueltas);
+
+    /// <summary>Cuantas tienen alguna de las seis preguntas marcada que NO, sin las de un archivado.</summary>
+    /// <remarks>
+    /// Desde el 2026-09-14 las de un archivado no entran aqui ni en
+    /// <see cref="CuantasPersonasSinMirar"/>: ese documento lo cerro el dueno y no queda por
+    /// verificar, aunque sus seis preguntas sigan diciendo lo que dicen.
+    /// </remarks>
+    public int CuantasPersonasNoListas => TodasLasPersonas.Count(p => !p.Archivado && p.Recomendacion == false);
 
     /// <summary>
-    /// Cuantas tienen alguna pregunta en blanco y ninguna en no: nadie las miro.
+    /// Cuantas tienen alguna pregunta en blanco y ninguna en no: nadie las miro. Sin las de un
+    /// archivado.
     /// </summary>
     /// <remarks>Va aparte de las anteriores porque «sin mirar» no es «no» (C18-2).</remarks>
-    public int CuantasPersonasSinMirar => TodasLasPersonas.Count(p => p.Recomendacion is null);
+    public int CuantasPersonasSinMirar => TodasLasPersonas.Count(p => !p.Archivado && p.Recomendacion is null);
 
     /// <summary>Las que le quedan por verificar: las que estan en «no» y las que nadie miro.</summary>
     public int CuantasPersonasSinConfirmar => CuantasPersonasNoListas + CuantasPersonasSinMirar;
@@ -410,9 +537,12 @@ public sealed record GrupoDelDia(
     /// calculan igual, y <c>LoQueSeLeeDeUnaPersona</c> las dice distinto en el detalle de cada
     /// renglon—; lo que se retira es esa distincion de la CABECERA, donde competia con la
     /// cuenta de documentos y hacia que el dueno leyera una creyendo la otra.</para>
+    ///
+    /// <para>⚠️ <b>2026-09-14: se cuenta en RESUELTAS</b>, que es la cuenta del calendario de
+    /// fuera; con los archivados dentro, contar confirmadas diria otra cifra que la pastilla.</para>
     /// </remarks>
     public string ComoVanLasPersonas
-        => EstaVacio ? "no viaja nadie este día" : DosEstados.Cuenta(CuantasPersonasConfirmadas, TodasLasPersonas.Count);
+        => EstaVacio ? "no viaja nadie este día" : DosEstados.Cuenta(CuantasPersonasResueltas, TodasLasPersonas.Count);
 
     /// <summary>
     /// Los que se pueden asignar del dia entero.
@@ -422,8 +552,9 @@ public sealed record GrupoDelDia(
 
     /// <summary>El denominador que el criterio exige decir: N documentos, N personas, N unidades.</summary>
     /// <remarks>
-    /// ⛔ Ya no lleva «N ARCHIVADO» detras: desde el 2026-09-06 un archivado no entra en este
-    /// grupo, asi que decir cuantos hay aqui seria hablar de algo que no esta en la lista.
+    /// ⛔ No lleva «N ARCHIVADO» detras. Se quito el 2026-09-06 porque el archivado no entraba
+    /// en este grupo, y NO vuelve el 2026-09-14 aunque ahora entre: la etiqueta en la cabecera
+    /// es justo lo que al dueno le confundia; la nota va en cada renglon, al lado de su palabra.
     /// Donde se cuentan es en Reportes.
     /// </remarks>
     public string LineaDelDenominador
@@ -506,6 +637,18 @@ public sealed record GrupoDelDia(
 /// Que le falta a la UNIDAD de esta cabecera y donde se arregla. Vacio en el renglon de una
 /// persona: una persona no es una unidad, y lo suyo va en <paramref name="DetalleDelEstado"/>.
 /// </param>
+/// <param name="Color">
+/// De que color va el renglon: verde si esta resuelto, rojo si le falta algo, y gris solo en
+/// la cabecera de una unidad sin nadie leido. Es lo que el dueno pidio el 2026-09-14 —<i>«lo
+/// que este completo se marque en verde y lo que no en rojo, como se muestra en el calendario
+/// afuera»</i>— y la plantilla lo pinta con el mismo par de colores del calendario.
+/// </param>
+/// <param name="Archivado">
+/// Si el documento de esta persona esta archivado. Entro el 2026-09-14, cuando los archivados
+/// empezaron a entrar al grupo de su fecha: el renglon va verde, y su boton de verificar se
+/// apaga (<see cref="SePuedeVerificar"/>). Falso en una cabecera: lo suyo va en
+/// <paramref name="CasosDeLaUnidad"/>, que ya viene sin archivados.
+/// </param>
 public sealed record RenglonDelGrupo(
     bool EsCabecera,
     string Titulo,
@@ -519,7 +662,9 @@ public sealed record RenglonDelGrupo(
     string LoQueLeFaltaAlDocumento = "",
     string PalabraDelEstado = "",
     string DetalleDelEstado = "",
-    string LoQueLeFaltaALaUnidad = "")
+    string LoQueLeFaltaALaUnidad = "",
+    ColorDeLaPastilla Color = ColorDeLaPastilla.Rojo,
+    bool Archivado = false)
 {
     /// <summary>La cabecera de una unidad dentro del dia.</summary>
     /// <remarks>
@@ -537,7 +682,8 @@ public sealed record RenglonDelGrupo(
             true, unidad.Titulo, unidad.Detalle, 0, unidad.CasosQueSePuedenAsignar, string.Empty,
             unidad.CuantasCompletas == unidad.CuantosDocumentos && unidad.CuantosDocumentos > 0,
             false,
-            LoQueLeFaltaALaUnidad: unidad.LoQueLeFaltaALaUnidad);
+            LoQueLeFaltaALaUnidad: unidad.LoQueLeFaltaALaUnidad,
+            Color: unidad.Color);
     }
 
     /// <summary>El renglon de una persona del grupo.</summary>
@@ -559,7 +705,9 @@ public sealed record RenglonDelGrupo(
             persona.Recomendacion,
             persona.LoQueFaltaTexto,
             persona.PalabraDelEstado,
-            persona.DetalleDelEstado);
+            persona.DetalleDelEstado,
+            Color: persona.Color,
+            Archivado: persona.Archivado);
     }
 
     /// <summary>Si este renglon es una persona; lo lee la plantilla para ensenar su mitad.</summary>
@@ -568,14 +716,36 @@ public sealed record RenglonDelGrupo(
     /// <summary>Si el boton de la cabecera tiene algo que asignar.</summary>
     public bool SePuedeAsignarLaUnidad => EsCabecera && CasosDeLaUnidad.Count > 0;
 
+    /// <summary>
+    /// Si pulsar este renglon abre su documento en Correccion: una persona de un documento que
+    /// no esta archivado.
+    /// </summary>
+    /// <remarks>
+    /// <para>⛔ <b>Un archivado no se verifica desde aqui.</b> Correccion no lo recibe
+    /// (2026-09-06, «sale de todos lados»), asi que abrirlo desde este renglon lo mandaria a una
+    /// pantalla que no lo tiene. Lo que se puede hacer con el —verlo y desarchivarlo— esta en
+    /// Revisar, y el renglon lo dice en su columna de lo que le falta y en voz alta.</para>
+    ///
+    /// <para>Medido el 2026-09-14 antes de tocar nada: el renglon de una persona ofrece UN solo
+    /// boton, el renglon entero (<c>AlPulsarUnaPersona</c>), y la cabecera de su unidad otro,
+    /// «Asignar esta unidad», que ya viene sin archivados por <see cref="CasosDeLaUnidad"/>.
+    /// Los dos se apagan para el archivado; no hay un tercero.</para>
+    /// </remarks>
+    public bool SePuedeVerificar => EsUnaPersona && !Archivado;
+
     /// <summary>Lo que lee en voz alta un lector de pantalla.</summary>
     /// <remarks>
-    /// Lo que le falta al documento va tambien aqui: si solo estuviera pintado, quien no ve la
-    /// pantalla no se enteraria de lo unico que cambia al corregir un documento, y la mitad
-    /// del arreglo del 2026-09-07 no existiria para el.
+    /// <para>Lo que le falta al documento va tambien aqui: si solo estuviera pintado, quien no
+    /// ve la pantalla no se enteraria de lo unico que cambia al corregir un documento, y la
+    /// mitad del arreglo del 2026-09-07 no existiria para el.</para>
+    ///
+    /// <para>Y un archivado no dice «pulse para verificar»: su boton esta apagado, y decirlo
+    /// seria prometer algo que no pasa. Dice en su lugar donde se ve y se desarchiva.</para>
     /// </remarks>
     public string ParaElLector => EsCabecera
         ? $"Unidad {Titulo}. {Detalle}. {LoQueLeFaltaALaUnidad}"
         : $"{Titulo}. {Cedula}. {Detalle}. {DetalleDelEstado}. {LoQueLeFaltaAlDocumento}. "
-          + "Pulse para verificar este documento.";
+          + (SePuedeVerificar
+              ? "Pulse para verificar este documento."
+              : "Documento archivado: no se verifica desde aquí.");
 }

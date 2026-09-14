@@ -3408,3 +3408,39 @@ medido** qué pasa hoy al achicar la ventana ni en qué tamaño se rompe: lo pri
 pase será medirlo con la ventana abierta a 1100×700 y a pantalla completa. Terreno:
 `Fichas.App/Revisar/` (`PaginaDeRevisar.xaml`, `ArbolDeRevisar`). Va después de la
 actualización automática y del cierre de la documentación.
+
+*Precisado por el dueño el 2026-09-14:* *«que pueda ser ajustado con el mouse, agrandar o
+reducir, en la ventana de Revisar»*. Es decir, un tirador entre el panel de grupos y el
+resto que se arrastra. Medido por el supervisor: `PaginaDeRevisar.xaml:198` fija la
+columna en 290 px y no hay ningún divisor arrastrable en el programa. En marcha el 14.
+
+## Peticiones del dueño del 2026-09-14, en cola detrás del tirador de Revisar
+
+### Duplicados en rojo entero y «unificar»
+
+Sus palabras: *«cuando un caso esté duplicado, ponlo en rojo completo que diga
+duplicado, y agrega la función de unificar el caso duplicado con el caso original
+para que se elimine el duplicado»*.
+
+Medido por el supervisor el 14: `Caso.DuplicadoDe` existe; `Importar/BuscadorDeDuplicados`
+lo detecta al importar («el primero gana»); en Revisar la tarjeta lleva `EsDuplicado` y
+`MarcaDeDuplicado` (`TableroDeRevisar.cs:345-347`, `TarjetaDeDocumento.cs:321-337`).
+NO existe ninguna operación de unificar: habrá que decidir qué se lleva el original del
+duplicado (personas nuevas, campos que el original no tenía, procedencia) y borrar el
+duplicado por el camino de `IMantenimiento.PlanearDocumentos` con copia de respaldo.
+Terreno: `Fichas.App/Revisar/` y `Grupo/` (tarjeta), más un método nuevo en Datos.
+
+### Las seis en «sí» marcan completado solas
+
+Sus palabras: *«cuando se marcan las 6 preguntas que sí, de manera automática debe
+marcarse como completado»*.
+
+Medido por el supervisor el 14: las seis se contestan en Revisar
+(`AccionesDeLasPreguntas.cs:172` → `IPersonas.ResponderLosPasos`, y
+`MarcarLasSeisDeUnTiron.cs`); el completado es aparte, por caso
+(`AccionesDeRevisar.MarcarAMano`, con firma de `QuienFirmaAMano`). Hoy son dos clics a
+propósito (decisión del 09-07, «marcar y firmar»). El dueño lo cambia: la marca de
+completado sale sola de sus seis «sí». No contradice la regla 5 —las seis las marca él—,
+pero hay que precisarla en DECISIONES.md al hacerlo, y decidir con qué firma se escribe
+(`QuienFirmaAMano` elige «Miguel» o, si no está, el primer activo: defecto abierto).
+Terreno: `Fichas.App/Revisar/`.

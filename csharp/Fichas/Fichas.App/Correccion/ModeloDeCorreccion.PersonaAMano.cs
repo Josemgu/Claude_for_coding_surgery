@@ -53,6 +53,19 @@ public sealed partial class ModeloDeCorreccion
     public string DeDondeSacarElNombre => TextoDeLaPersonaAMano.DeDondeSacarElNombre(_caso?.RutaPdf);
 
     /// <summary>
+    /// El titulo del cuadro de anadir: el del atasco si no hay nadie dentro, y el de «una mas» si
+    /// ya hay gente. Lo decide el modelo para que la pantalla no tenga que decidirlo.
+    /// </summary>
+    /// <remarks>
+    /// Desde el 2026-09-14 el cuadro se ofrece SIEMPRE, y no solo cuando no hay ninguna persona:
+    /// es lo que pidio el dueno el 2026-09-10 —<i>«agregar personas que quizas el escaner no
+    /// contemplo»</i>—, que es un documento con gente al que le falta una.
+    /// </remarks>
+    public string TituloDelCuadroDeLaPersonaAMano => SinNingunaPersonaLeida
+        ? TextoDeLaPersonaAMano.Titulo
+        : TextoDeLaPersonaAMano.TituloConGenteDentro;
+
+    /// <summary>
     /// Anade a este documento una persona con el nombre y la cedula que se tecleen.
     /// </summary>
     /// <remarks>

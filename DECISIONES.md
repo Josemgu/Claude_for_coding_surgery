@@ -4049,6 +4049,147 @@ un programa arrancado sobre otra carpeta volvería sobre la de por defecto. **No
 verificado por nadie:** el camino completo con clave válida y un Release más nuevo
 (hace falta la clave del dueño y una v13); se verá la primera vez que salga la v13.
 
+## 2026-09-14 — CUATRO PETICIONES DEL DUEÑO, HECHAS EL MISMO DÍA
+
+Cada una con sus palabras, lo que se decidió y lo medido. Todas fusionadas en master;
+el supervisor repitió la suite tras cada fusión (App 1 089 → 1 108 → 1 118 → 1 126;
+Datos 189 → 205; Contratos 32) y no repitió las mediciones con la ventana abierta, que
+son de cada programador.
+
+### 1. El panel de carpetas de Revisar se ajusta con el ratón
+
+*«Que pueda ser ajustado con el mouse, agrandar o reducir, en la ventana de Revisar.»*
+
+Un tirador entre el panel y las tarjetas, hecho a mano con eventos de puntero (**sin
+paquete nuevo**: regla 3). Ancho de siempre 290, mínimo 200, techo = marco − 16 − una
+tarjeta entera (330); doble clic vuelve a 290; el ancho se guarda en el mismo
+`preferencias.txt` del tema (`ancho_del_panel_de_carpetas=`). Medido con la ventana
+abierta: 290 → 440 → 290 al arrastrar; reabrir con 490 guardado da 490; a 1100×700 con
+700 guardado se recorta a 453 y el archivo sigue diciendo 700. **Solo con ratón:** el
+mockup v2 no trae gesto de teclado y no se inventó. Antes de tocar nada se midió que
+los nombres largos de carpeta ya se cortaban a 290.
+
+### 2. «Eliminar» en Corrección
+
+*«Agrega un botón en la Corrección de eliminar información también. No lo tengo y es
+importante tenerlo.»* Y del 07 y del 10: eliminar un nombre; eliminar o agregar personas.
+
+Un botón «Eliminar» con una opción por persona y «Eliminar el documento entero», cada
+una con su pregunta. Nuevo `IPersonas.Borrar(personaId)` (Datos y Falso): copia de la
+base antes, transacción procedencia → persona; sin copia no borra. La última persona
+pregunta si borrar el documento; el documento entero va por el mismo camino que
+Revisar (plan, pregunta, copia). Y **añadir una persona a mano se ofrece siempre**,
+aunque el documento ya tenga otras (hasta hoy solo si no tenía ninguna). Medido sobre
+SQLite propia: 3 → 2 personas con 0 huérfanos en procedencia; documento entero fuera
+con sus personas; «No» deja las cuentas iguales. Decisión del programador, devuelta:
+la copia al borrar una persona se hace **después** del «sí» (el puerto no tiene fase
+de plan); la pregunta lo avisa.
+
+### 3. Dentro de la fecha, verde lo resuelto y rojo lo que falta
+
+*«Cuando des clic y entres a la fecha, lo que esté completo se marque en verde y lo
+que no en rojo, como se muestra en el calendario afuera.»*
+
+Cada renglón del grupo lleva fondo y franja con el mismo par exacto del calendario
+(`PinturaDeInicio.VerdeMarca/RojoMarca` y sus fondos), con el mismo veredicto de las
+dos palabras del 07; la cabecera de cada unidad y del día llevan su franja. Medido por
+píxel en claro y oscuro: 9 rojas + 1 verde en un día con «me falta 9 de 10» afuera.
+No se añadió frase nueva: la cabecera ya dice «me falta N de M».
+
+⚠️ **Decisión que queda del dueño (preguntada el 14):** un archivado cuenta en el
+calendario (07: «se queda en verde») pero no entra al grupo de la fecha (06: «sale de
+todos lados»). Medido: un día decía afuera «me falta 4 de 5» y dentro «4 de 4»; un día
+resuelto solo por archivados se abre vacío. Opciones: (A) el archivado entra al grupo
+en verde; (B) el calendario deja de contarlo.
+
+### 4. Duplicado en rojo entero y «Unificar con el original»
+
+*«Cuando un caso esté duplicado, ponlo en rojo completo, que diga duplicado, y agrega
+la función de unificar el caso duplicado con el caso original, para que se elimine el
+duplicado.»*
+
+La tarjeta del duplicado va entera en rojo con la palabra «DUPLICADO» y de quién lo es,
+y un botón «Unificar con el original» que pregunta antes. Nuevo
+`IMantenimiento.PlanearUnificacion` + `Unificar` (solo añadido), en **una transacción**:
+
+- Pasan al original **solo si él los tiene vacíos**: número de caso, unidad (número y
+  nombre), fecha de viaje, templo, y con ellos su procedencia. Nada del original se pisa.
+- **No pasan** estado, motivo ni firmas (son la firma de un compañero sobre ese papel:
+  regla 5), ni ruta/hoja del PDF, ni archivado, ni captura manual.
+- Personas: misma cédula = misma persona (no pasa); sin cédula, nombre exacto; con
+  cédula que el original no tiene, pasa aunque haya un nombre igual sin cédula (ante la
+  duda se duplica, no se pierde).
+- Asignaciones: pasan al original y las vivas se retiran con fecha (como al archivar);
+  el original no hereda agente. Los ilegibles del duplicado caen con él.
+- El duplicado se borra por el camino de siempre, con copia previa de la base.
+- Si el original ya no está, en vez de unificar se ofrece «Quitar la marca de
+  duplicado» (`duplicado_de` a NULL).
+
+Medido sobre SQLite propia: original con 2 personas sin fecha + duplicado con 3 (2
+iguales por cédula + 1 nueva) con fecha → original con 3, fecha puesta, procedencia de
+la nueva apuntando a la hoja del duplicado; `casos` 4 → 3, `personas` 7 → 5; la
+asignación viva del duplicado pasa retirada con fecha; «No» deja todo igual.
+
+**Lo que NO queda en la base y se devuelve al dueño:** el nombre del archivo del
+duplicado cuando era otro PDF (`casos` no tiene sitio para una segunda ruta; ponerlo
+es una migración). Queda en el acuse, en `fichas.log` y en la copia previa.
+Recomendación del programador: dejarlo así hasta que se eche en falta. La tarjeta de
+`Grupo/` **no** se puso en rojo (otro terreno).
+
+## 2026-09-14 — LAS SEIS EN «SÍ» MARCAN COMPLETADO, y la regla 5 se precisa
+
+Sus palabras: *«Cuando se marcan las 6 preguntas que sí, de manera automática debe
+marcarse como completado.»* Deshace los dos clics a propósito del 07 («marcar y firmar»).
+
+**La firma la decidió el supervisor, no el dueño** (contestó «Dale» sin elegir): el
+administrador, por la misma regla que `ElAdministrador` usa en Corrección —uno activo
+firma; con ninguno o dos no se marca solo y el acuse dice por qué—, y nunca «el primero
+activo», que podía firmar como Sandy. Queda escrito para que él lo cambie.
+
+**Lo decidido:** al quedar las seis de una persona en «sí» (una a una o de un tirón),
+si **todas** las personas del documento tienen las seis en «sí» y `LoQueLeFalta` no
+devuelve nada, el documento pasa a `completa` en el mismo gesto, firmado por el
+administrador, con origen «las seis en «sí» desde la pantalla», y el motivo de «no
+completa» se vacía. Si no puede, el acuse dice exactamente qué falta («sin las seis en
+«sí»: Persona 2», «le falta: Fecha de viaje», «dese de alta como administrador») y los
+«sí» se guardan igual. Un «sí» que vuelve a «no» **no** desmarca; una marca de un
+compañero no se pisa.
+
+**Medido por el programador con la ventana abierta y base propia:** 1 persona con todo →
+`completa`, firma Miguel, origen nuevo; 2 personas, las seis de una sola → no, acuse
+nombra a la otra; las de la otra → completa; sin fecha de viaje → no, acuse «le falta:
+Fecha de viaje»; sin administrador activo → el programa ya se niega a guardar las seis
+(criterio C19-10), así que ahí no hay nada que derivar; con un MRN mal formado el acuse
+dice «le falta: Cédula» (el suelo de la regla 5 actúa). Suite App 1 126 → 1 137, medida
+por el supervisor tras fusionar.
+
+**Lo que NO cubre, devuelto al dueño:** las seis contestadas por el Excel de un compañero
+(Paquetes) no disparan esta derivación, solo la ventana de Revisar; Corrección lee el
+origen nuevo como «completa a mano por Miguel» (una línea en `TextoDeLaMarcaDelEstado`,
+otro terreno); un «no» posterior no avisa de que el documento sigue completado.
+
+## 2026-09-14 — EL ARCHIVADO ENTRA AL GRUPO DE SU FECHA, EN VERDE (opción A)
+
+La pregunta del apartado 3 de «CUATRO PETICIONES» se le hizo al dueño y contestó «Dale»
+sin elegir. **Decide el supervisor, y queda escrito para que él lo cambie:** opción A.
+Un archivado con fecha entra al grupo de su fecha, en verde, con la nota «archivado», y
+**sin botones** (no se verifica ni se asigna desde ahí); así la pastilla del calendario y
+la cabecera del grupo dicen la misma cuenta, y un día resuelto solo por archivados ya no
+se abre vacío. Flujo, Corrección y Asignar siguen sin archivados (decisión del 06).
+
+Medido por el programador con `--falso 300`: el 20-09 decía afuera «me falta 4 de 5» y
+dentro «4 de 4»; ahora «4 de 5» en los dos sitios, con el archivado en verde; el 09-09
+(solo un archivado) se abría vacío y ahora dice «1 documento · 1 persona · resuelto»;
+botones del renglón archivado `enabled=False` por UIA; el archivado no aparece en
+Corrección, Flujo ni Asignar. Ocho pruebas de Inicio y Corrección fijaban lo contrario
+(«el archivado no entra a DelDia») y se cambiaron conservando lo que vigilaban. Suite
+App 1 137 → 1 145, medida por el supervisor tras fusionar.
+
+**Lo que NO cubre, devuelto al dueño:** la línea «documentos: me falta N de M» del grupo
+cuenta `Estado == Completa` (lo que escribe el Excel): un archivado sin ese estado se
+lee «resuelto» en personas y «me falta» en documentos. Decidir si el archivado cuenta
+como documento completo es suyo.
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

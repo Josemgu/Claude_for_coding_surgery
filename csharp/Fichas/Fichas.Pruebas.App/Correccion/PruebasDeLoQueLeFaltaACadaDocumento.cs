@@ -85,7 +85,9 @@ public sealed class PruebasDeLoQueLeFaltaACadaDocumento
                      .OfType<DateOnly>()
                      .Distinct())
         {
-            foreach (var renglon in lector.DelDia(fecha).EnUnaSolaLista().Where(r => r.EsUnaPersona))
+            // Los archivados se ven en el grupo desde el 2026-09-14 pero Correccion no los
+            // recibe (2026-09-06): su renglon no contesta esta pregunta, dice donde esta.
+            foreach (var renglon in lector.DelDia(fecha).EnUnaSolaLista().Where(r => r.EsUnaPersona && !r.Archivado))
             {
                 Assert.AreEqual(
                     renglon.LoQueLeFaltaAlDocumento,

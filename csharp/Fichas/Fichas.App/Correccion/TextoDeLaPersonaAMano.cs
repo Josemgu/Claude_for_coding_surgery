@@ -46,6 +46,16 @@ public static class TextoDeLaPersonaAMano
         "Mientras no haya nadie dentro, no hay ninguna recomendación que confirmar y este "
         + "documento no puede avanzar. Escriba quién va en el papel que tiene delante.";
 
+    /// <summary>
+    /// El título del mismo cuadro cuando el documento YA tiene gente dentro: entonces no es un
+    /// atasco, es una persona más que el escáner no contempló.
+    /// </summary>
+    /// <remarks>
+    /// Del dueño, 2026-09-10: <i>«agregar personas que quizás el escáner no contempló»</i>. Hasta
+    /// el 2026-09-14 el cuadro solo se ofrecía cuando no había ninguna persona.
+    /// </remarks>
+    public const string TituloConGenteDentro = "Añadir una persona que el escáner no leyó";
+
     /// <summary>Lo que se lee bajo la referencia del archivo; es la regla permanente 1 en una linea.</summary>
     public const string NiUnDatoSeAdivina =
         "el programa no rellena esto por usted: lo que entre aquí es lo que usted escriba";

@@ -88,4 +88,8 @@ public sealed class PersonasQueSeDejanContar : IPersonas
     /// <inheritdoc />
     public IReadOnlyDictionary<long, FirmaDeLosPasos> FirmasDeLosPasosDelCaso(long casoId)
         => _dedentro.FirmasDeLosPasosDelCaso(casoId);
+
+    /// <inheritdoc />
+    /// <remarks>Reenvío sin contar ni espiar: entró el 2026-09-14 con <c>IPersonas.Borrar</c>, solo para que este doble siga compilando.</remarks>
+    public ResultadoDeBorrado Borrar(long personaId) => _dedentro.Borrar(personaId);
 }

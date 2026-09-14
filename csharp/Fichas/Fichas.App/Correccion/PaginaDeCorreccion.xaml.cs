@@ -14,10 +14,13 @@ namespace Fichas.App.Correccion;
 /// <para>
 /// Todo lo que decide esta pantalla vive en <see cref="ModeloDeCorreccion"/>, que se prueba
 /// sin ventana. Aqui solo se pinta y se atan los sucesos. <b>No hay ni un cuadro modal en
-/// toda la carpeta</b>, y se comprueba con un grep de los cuatro nombres con los que se abre
-/// uno en WinUI: lo que hay que decir sale en la franja de la cascara y en el acuse del pie
-/// (requisito 9 del dueno). El grep tiene que dar cero, asi que esos nombres no se escriben
-/// ni en un comentario.
+/// toda la carpeta salvo uno, declarado</b>: desde el 2026-09-14
+/// <c>OperacionDeEliminarUnaPersona.cs</c> pregunta antes de eliminar a una persona, porque
+/// borrar es la excepcion que el dueno reservo a «avisar, nunca impedir». Lo vigila
+/// <c>PruebasSinCuadrosEnCorreccion</c> con un grep de los cuatro nombres con los que se abre
+/// uno en WinUI: cero en todos los demas archivos, asi que esos nombres no se escriben ni en un
+/// comentario. Todo lo otro que hay que decir sale en la franja de la cascara y en el acuse del
+/// pie (requisito 9 del dueno).
 /// </para>
 /// </remarks>
 public sealed partial class PaginaDeCorreccion : PaginaDeFichas

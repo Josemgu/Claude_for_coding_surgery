@@ -20,8 +20,13 @@ namespace Fichas.Datos.Repositorios;
 /// no dentro de <c>Persona</c>: ese modelo vive en <c>Fichas.Contratos/Modelos</c>, que
 /// esta congelado. Es una desviacion declarada, no un olvido.
 /// </para>
+/// <para>
+/// Es <c>partial</c> desde el 2026-09-14: lo único que BORRA está aparte, en
+/// <c>RepositorioDePersonas.Borrado.cs</c>, por el mismo reparto que
+/// <c>RepositorioDeIlegibles.Borrado.cs</c>.
+/// </para>
 /// </remarks>
-public sealed class RepositorioDePersonas : RepositorioBase, IPersonas
+public sealed partial class RepositorioDePersonas : RepositorioBase, IPersonas
 {
     /// <summary>Las 25 columnas de <c>personas</c> que se leen, en el orden exacto en que <c>Leer</c> las espera por posición.</summary>
     /// <remarks>Si se añade una columna aquí, hay que añadirla al final y darle su índice en <c>Leer</c>: la lectura es por posición, no por nombre.</remarks>

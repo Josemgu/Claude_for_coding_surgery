@@ -10,17 +10,22 @@ namespace Fichas.App.Grupo;
 /// probar sin abrir ventana (ADR-0003 §8.1).
 /// </summary>
 /// <remarks>
-/// <para>⛔ <b>Un documento archivado no entra en ningun grupo</b>, ni en el del dia ni en el
-/// del calendario, desde el 2026-09-06. Sus palabras: <i>«si ya resolví un archivo y lo
-/// archivo, no debe aparecer en notificaciones, debe salir del tablero, no se cuenta ya.
-/// Porque si se queda en el tablero y dice archivado, lo que hace es que me confunda»</i>.
-/// Esto DESHACE lo que el mismo pidio el 2026-09-03 —verlos en el calendario, marcados—, que
-/// es de donde venia el parametro <c>conArchivados</c> que este lector ya no tiene. Verlos y
-/// desarchivarlos se hace en Revisar, con «Ver los archivados», que es el unico sitio a
-/// proposito; y siguen contando en los reportes.</para>
+/// <para>⚠️ <b>Un documento archivado ENTRA en el grupo de su fecha desde el 2026-09-14</b>, en
+/// verde y con su nota de archivado, igual que ya contaba en el calendario desde el 2026-09-07
+/// (<i>«aunque se archive, debe quedarse en el calendario marcado en verde»</i>). Hasta hoy
+/// contaba fuera y no entraba dentro —2026-09-06, <i>«no aparecer más en ningún lado»</i>—, y
+/// eso se midio: un dia decia fuera «me falta 4 de 5» y dentro «me falta 4 de 4», y un dia
+/// resuelto solo por archivados se abria vacio. Se le pregunto al dueno con las dos opciones
+/// —(A) entra en verde, (B) el calendario deja de contarlo— y contesto «Dale» sin elegir; el
+/// supervisor decidio la A y la dejo escrita en <c>DECISIONES.md</c> para que el la cambie si
+/// quiere. <b>Lo que sigue en pie del 06:</b> Flujo, Correccion, Asignar y la ventana de
+/// incompletos siguen sin archivados, y desde el grupo un archivado ni se asigna ni se
+/// verifica (<see cref="UnidadDelGrupo.CasosQueSePuedenAsignar"/>,
+/// <see cref="RenglonDelGrupo.SePuedeVerificar"/>). Verlos y desarchivarlos sigue siendo cosa
+/// de Revisar, con «Ver los archivados».</para>
 ///
 /// <para><b>El grupo es una consulta, no una tabla</b> (ADR-0005 §2.4): son todos los
-/// documentos no archivados que comparten fecha de viaje. Nadie mantiene nada, y el dia
+/// documentos que comparten fecha de viaje. Nadie mantiene nada, y el dia
 /// que el OCR corrija una fecha el documento cambia de grupo solo. Eso arregla ademas un
 /// caso real: uno de los siete escaneos del dueno lleva escrito <c>CASD2609</c> en vez de
 /// <c>CASP2609</c>, y agrupando por fecha aparece con sus hermanos aunque su numero este
@@ -85,7 +90,7 @@ public sealed class LectorDeGrupos
     /// <param name="fecha">El dia del viaje.</param>
     public GrupoDelDia DelDia(DateOnly fecha)
     {
-        var todos = LeerLosCasos();
+        var todos = LeerLosCasosConLosArchivados();
         var delDia = todos.Where(c => FechasEnEspanol.Leer(c.FechaViaje) == fecha).ToList();
         if (delDia.Count == 0) return GrupoDelDia.Vacio(fecha);
 
@@ -129,7 +134,7 @@ public sealed class LectorDeGrupos
     public IReadOnlyDictionary<DateOnly, List<PastillaDeDia>> PorDia(
         IReadOnlyDictionary<long, List<Persona>>? personasYaLeidas = null)
     {
-        var todos = LeerLosCasosDelCalendario();
+        var todos = LeerLosCasosConLosArchivados();
 
         // ⚠️ Antes se pedia solo CUANTAS personas hay (ICasos.ContarPersonasDe). Desde el
         // criterio C20-3 la pastilla dice cuantas de ellas tienen la recomendacion
@@ -227,40 +232,36 @@ public sealed class LectorDeGrupos
             : caso.UnidadNumero.Trim();
 
     /// <summary>
-    /// Trae los casos de la base en UNA sola consulta, como hace Inicio; sin los archivados.
+    /// Trae los casos de la base en UNA sola consulta, archivados incluidos: es la lista de la
+    /// que salen el calendario y el grupo de cada fecha.
     /// </summary>
     /// <remarks>
-    /// <c>FiltroDeCasos.Todo</c> ya deja fuera los archivados —<c>IncluirArchivados</c> nace
-    /// en <c>false</c>—, y se escribe aqui una sola vez para que el dia que alguien quiera
-    /// traerlos tenga que venir a este metodo y leer por que no se traen.
-    /// </remarks>
-    private IReadOnlyList<Caso> LeerLosCasos()
-        => _casos.Listar(FiltroDeCasos.Todo, new Pagina(0, int.MaxValue)).Elementos;
-
-    /// <summary>
-    /// Los casos del CALENDARIO, que si traen los archivados.
-    /// </summary>
-    /// <remarks>
-    /// <para>⚠️ <b>Es la unica lista del programa que los trae, y lo pidio el dueno el
-    /// 2026-09-07 con estas palabras:</b> <i>«Cuando un paquete entra y marca todo completo,
-    /// debe salir de todos lados EXCEPTO del calendario. Aunque se archive, debe quedarse en el
-    /// calendario marcado en verde, porque estan completos, pero se mueve para abrir espacio a
-    /// otros PDF que necesitan ser procesados»</i>.</para>
+    /// <para>⚠️ <b>Es la unica lista del programa que trae archivados, y son dos pantallas: el
+    /// calendario y el grupo de la fecha.</b> Al calendario volvieron el 2026-09-07 con estas
+    /// palabras del dueno: <i>«Cuando un paquete entra y marca todo completo, debe salir de
+    /// todos lados EXCEPTO del calendario. Aunque se archive, debe quedarse en el calendario
+    /// marcado en verde, porque estan completos, pero se mueve para abrir espacio a otros PDF
+    /// que necesitan ser procesados»</i>. Al grupo de la fecha entran desde el 2026-09-14, y
+    /// por una razon medida: la pastilla de fuera y la cabecera de dentro salen de esta MISMA
+    /// lista, y con dos listas distintas decian dos cuentas distintas del mismo dia.</para>
     ///
     /// <para><b>Esto deshace a medias lo del 2026-09-06</b>, y hay que decir cual mitad. Aquel
     /// dia dijo <i>«debe pasar a archivado y no aparecer mas en ningun lado»</i>, y su motivo
     /// era otro: <i>«si se queda en el tablero y DICE ARCHIVADO, lo que hace es que me
     /// confunda»</i>. Lo que le estorbaba era la ETIQUETA en medio del trabajo, no verlo
-    /// resuelto. Asi que vuelve al calendario y <b>la etiqueta no vuelve</b>: la pastilla dice
-    /// una de las dos palabras y nada mas (<see cref="PastillaDeDia.Etiqueta"/>).</para>
+    /// resuelto. Asi que la pastilla dice una de las dos palabras y nada mas
+    /// (<see cref="PastillaDeDia.Etiqueta"/>), y el renglon del grupo dice «resuelto» con la
+    /// nota «archivado» al lado, que no es una etiqueta en medio del trabajo: el dueno ya
+    /// entro a la fecha para ver «cuales fueron completados».</para>
     ///
-    /// <para>⛔ <b>Y solo al calendario.</b> <see cref="DelDia"/>, Inicio, Asignar, Revisar y la
+    /// <para>⛔ <b>Y a ninguna otra pantalla.</b> Inicio, Asignar, Correccion, Revisar y la
     /// ventana de incompletos siguen sin traerlos, que es la otra mitad de su frase: sale de
-    /// todos lados para abrir espacio. Por eso son DOS metodos y no un parametro: un parametro
-    /// se pone en cierto por descuido desde cualquier sitio, y dos metodos con dos nombres
-    /// obligan a venir aqui a leer por que.</para>
+    /// todos lados para abrir espacio. Hasta el 2026-09-14 aqui habia DOS metodos —uno sin
+    /// archivados para el grupo y otro con ellos para el calendario— y se juntan en uno porque
+    /// ya no hay dos listas que distinguir; el nombre lleva la palabra a proposito, para que
+    /// quien lo llame desde otro sitio tenga que leer esto antes.</para>
     /// </remarks>
-    private IReadOnlyList<Caso> LeerLosCasosDelCalendario()
+    private IReadOnlyList<Caso> LeerLosCasosConLosArchivados()
         => _casos.Listar(
             FiltroDeCasos.Todo with { IncluirArchivados = true },
             new Pagina(0, int.MaxValue)).Elementos;
@@ -416,7 +417,8 @@ public sealed class LectorDeGrupos
             leFalta,
             dueno,
             LasDosPreguntas.EstadoDe(persona),
-            LasDosPreguntas.SeQuedoEn(persona));
+            LasDosPreguntas.SeQuedoEn(persona),
+            caso.Archivado);
 
     /// <summary>Compone la pastilla que el calendario ensena para una unidad de ese dia.</summary>
     /// <remarks>
