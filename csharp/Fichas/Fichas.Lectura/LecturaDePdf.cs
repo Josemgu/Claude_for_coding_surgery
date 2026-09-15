@@ -1,5 +1,6 @@
 using Fichas.Contratos.Lectura;
 using Fichas.Contratos.Puertos;
+using Microsoft.ML.OnnxRuntime;
 using PDFtoImage;
 using RapidOcrNet;
 using SkiaSharp;
@@ -58,8 +59,17 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     /// <summary>Protege la carga del motor: dos hojas en paralelo no pueden cargar los modelos dos veces.</summary>
     private readonly Lock _cerrojo = new();
 
-    /// <summary>El motor de OCR, nulo hasta la primera lectura o hasta <see cref="PrepararMotor"/>.</summary>
+    /// <summary>
+    /// Quién está usando el motor: las lecturas lo toman como lectores, todas a la vez, y
+    /// <see cref="SoltarElMotor"/> como escritor, para no desechar un motor con una hoja a medias.
+    /// </summary>
+    private readonly ReaderWriterLockSlim _usoDelMotor = new(LockRecursionPolicy.NoRecursion);
+
+    /// <summary>El motor de OCR, nulo hasta la primera lectura o hasta <see cref="PrepararMotor"/>, y otra vez nulo tras <see cref="SoltarElMotor"/>.</summary>
     private RapidOcr? _motor;
+
+    /// <summary>Ticks del sistema de la última vez que el motor se cargó o leyó; solo significa algo con motor cargado.</summary>
+    private long _ultimoUsoDelMotorEnTicks;
 
     /// <summary>Cierto después de <see cref="Dispose"/>: pedir el motor entonces lanza, no lo recrea.</summary>
     private bool _desechado;
@@ -114,10 +124,48 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
             if (_motor is not null) return _motor;
             var rutas = RutasDeLosModelos();
             var motor = new RapidOcr();
-            motor.InitModels(rutas[0], rutas[1], rutas[2], rutas[3]);
+            using var sesion = OpcionesDeSesionSinArena();
+            motor.InitModels(rutas[0], rutas[1], rutas[2], rutas[3], sesion);
+            AnotarUsoDelMotor();
             _motor = motor;
             return motor;
         }
+    }
+
+    /// <summary>
+    /// Las opciones de sesión de ONNX Runtime con las que se cargan los tres modelos: las
+    /// mismas que el motor monta por su cuenta, menos la arena de memoria de CPU.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Por qué se apaga la arena (2026-09-15).</b> El dueño midió el programa en
+    /// 1 GB de RAM. La sonda de consola sobre la hoja mayor del corpus (2 705×3 500 px)
+    /// lo situó: motor cargado 71 MiB privados, tras el primer OCR 706, tras el segundo
+    /// 1 300 y ahí se queda mientras el motor viva. Es la arena de ONNX Runtime: con
+    /// <c>PythonCompat</c> el detector corre sobre la hoja entera y la arena reserva los
+    /// tensores de esa pasada y no los devuelve nunca. Con la arena apagada el mismo
+    /// recorrido da 175–192 MiB.</para>
+    ///
+    /// <para><b>Por qué esto y no reducir la hoja.</b> Bajar <c>MaxSideLen</c> a 1 024
+    /// también baja la memoria, pero cambia lo que se lee (87 bloques en vez de 94 en esa
+    /// hoja), y eso lo prohíbe la regla de no regresión. Apagar la arena solo cambia
+    /// DÓNDE se reservan los tensores, no lo que el modelo calcula: la huella SHA-256 de
+    /// los dieciséis documentos del corpus es la misma antes y después
+    /// (<c>Fichas.Pruebas.Lectura.PruebaDeLaHuellaDeLaLectura</c>).</para>
+    ///
+    /// <para>Lo demás se deja como lo monta <c>RapidOcr.GetDefaultSessionOptions()</c>,
+    /// medido por reflexión el 2026-09-15: optimización de grafo <c>ORT_ENABLE_EXTENDED</c>,
+    /// ejecución secuencial e hilos a 0 (los que ONNX decida). La sobrecarga de
+    /// <c>InitModels</c> sin opciones, que era la de antes, delega en esta misma con las
+    /// suyas (se ve en la traza de pila del motor), y la huella idéntica es la prueba de
+    /// que el único cambio con efecto es la arena. La sesión se desecha nada más cargar:
+    /// las 26 hojas del corpus se leen igual después de desecharla, así que cada
+    /// <c>InferenceSession</c> se queda con su copia.</para>
+    /// </remarks>
+    private static SessionOptions OpcionesDeSesionSinArena()
+    {
+        var sesion = RapidOcr.GetDefaultSessionOptions();
+        sesion.EnableCpuMemArena = false;
+        return sesion;
     }
 
     /// <summary>Carga los tres modelos ahora, para no pagarlos a mitad de la primera hoja.</summary>
@@ -129,6 +177,64 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     /// </remarks>
     /// <exception cref="FileNotFoundException">Falta alguno de los cuatro archivos.</exception>
     public void PrepararMotor() => Motor();
+
+    /// <summary>Si el motor está cargado ahora mismo; sirve para decidir si vale la pena soltarlo.</summary>
+    public bool TieneElMotorCargado => _motor is not null;
+
+    /// <summary>
+    /// Cuánto lleva el motor cargado sin leer nada, o nulo si no está cargado.
+    /// </summary>
+    /// <remarks>
+    /// Cuenta desde la última hoja que leyó, o desde que se cargó si aún no leyó ninguna.
+    /// Es lo que mira la cáscara para soltar un motor parado (<see cref="SoltarElMotor"/>).
+    /// Se mide con el reloj de ticks del sistema, que no cambia si alguien mueve la hora.
+    /// </remarks>
+    public TimeSpan? TiempoSinLeer
+        => _motor is null ? null : TimeSpan.FromMilliseconds(Environment.TickCount64 - Volatile.Read(ref _ultimoUsoDelMotorEnTicks));
+
+    /// <summary>Anota que el motor acaba de usarse, para <see cref="TiempoSinLeer"/>.</summary>
+    private void AnotarUsoDelMotor() => Volatile.Write(ref _ultimoUsoDelMotorEnTicks, Environment.TickCount64);
+
+    /// <summary>
+    /// Suelta el motor para devolver su memoria; la siguiente lectura lo vuelve a cargar sola.
+    /// </summary>
+    /// <remarks>
+    /// <para>Existe por la memoria (2026-09-15). Aun sin la arena de ONNX, un motor cargado
+    /// que ya leyó retiene lo suyo: los modelos y lo que el montón de C mantiene reservado
+    /// tras las pasadas. Medido con la sonda de consola sobre la hoja mayor: soltarlo baja
+    /// de 195 a 120 MiB privados, y volverlo a cargar cuesta entre 340 y 470 ms. Quien lo
+    /// llama —la cáscara, cuando el motor lleva un rato parado, o cualquier pantalla que
+    /// sepa que acaba de terminar con el OCR— paga esos milisegundos en la siguiente hoja
+    /// a cambio de no tener el motor parado en memoria.</para>
+    ///
+    /// <para>Es distinto de <see cref="Dispose"/>: después de soltar, el lector sigue vivo
+    /// y leyendo. Con una hoja a medias en otro hilo, espera a que termine antes de
+    /// desechar el motor: nunca se le quita el motor a una lectura en marcha. Sin motor
+    /// cargado, o después de <see cref="Dispose"/>, no hace nada.</para>
+    /// </remarks>
+    public void SoltarElMotor()
+    {
+        if (_desechado) return;
+        _usoDelMotor.EnterWriteLock();
+        try
+        {
+            DesecharElMotor();
+        }
+        finally
+        {
+            _usoDelMotor.ExitWriteLock();
+        }
+    }
+
+    /// <summary>Desecha el motor si lo hay y lo deja en nulo. Quien llama ya tiene la exclusiva.</summary>
+    private void DesecharElMotor()
+    {
+        lock (_cerrojo)
+        {
+            _motor?.Dispose();
+            _motor = null;
+        }
+    }
 
     /// <inheritdoc />
     /// <remarks>Devuelve 0 si el archivo no se puede abrir: un PDF roto no lanza, se cuenta como cero.</remarks>
@@ -341,6 +447,24 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
         ArgumentNullException.ThrowIfNull(imagen);
         if (imagen.Png.Length == 0) return [];
 
+        // Como lector: varias hojas pueden leer a la vez, y mientras alguna esté a medias
+        // nadie puede soltar el motor (ver SoltarElMotor).
+        _usoDelMotor.EnterReadLock();
+        try
+        {
+            return LeerConElMotor(imagen);
+        }
+        finally
+        {
+            _usoDelMotor.ExitReadLock();
+        }
+    }
+
+    /// <summary>Pide el motor y pasa el OCR; quien llama ya lo tiene tomado como lector.</summary>
+    /// <param name="imagen">La imagen rasterizada, con PNG no vacío.</param>
+    /// <returns>Las líneas leídas de arriba abajo y de izquierda a derecha; vacía si la hoja no tenía texto.</returns>
+    private IReadOnlyList<LineaDeOcr> LeerConElMotor(ImagenDePagina imagen)
+    {
         // ⛔ El motor se pide FUERA del `try` a proposito. Si faltan los modelos, eso NO
         // puede parecer una hoja en blanco: son averias distintas con arreglos distintos,
         // y confundirlas es lo que hace que un fallo de instalacion se lea como «este
@@ -354,6 +478,7 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
             if (mapa is null) return [];
 
             var resultado = motor.Detect(mapa, RapidOcrOptions.PythonCompat);
+            AnotarUsoDelMotor();
             if (resultado.TextBlocks is null) return [];
 
             return resultado.TextBlocks
@@ -397,7 +522,17 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     {
         if (_desechado) return;
         _desechado = true;
-        _motor?.Dispose();
-        _motor = null;
+
+        // Como SoltarElMotor: si otra hoja está a medias en otro hilo, se la deja terminar.
+        _usoDelMotor.EnterWriteLock();
+        try
+        {
+            DesecharElMotor();
+        }
+        finally
+        {
+            _usoDelMotor.ExitWriteLock();
+        }
+        _usoDelMotor.Dispose();
     }
 }

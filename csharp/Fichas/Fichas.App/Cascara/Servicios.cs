@@ -35,6 +35,15 @@ public sealed class Servicios : IDisposable
     /// <summary>El lector de formularios de punta a punta, perezoso como la lectura de la que depende; nulo con datos inventados.</summary>
     private readonly Lazy<LectorDeFormularios>? _lector;
 
+    /// <summary>Quien suelta el motor de OCR cuando lleva un rato parado; nulo con datos inventados.</summary>
+    private readonly SueltaDelOcrEnReposo? _sueltaDelOcr;
+
+    /// <summary>Cuánto tiene que llevar parado el motor de OCR para soltarlo: más que el hueco entre dos hojas de una tanda, menos que lo que Miguel tarda en corregir un caso.</summary>
+    private static readonly TimeSpan ReposoDelOcr = TimeSpan.FromSeconds(30);
+
+    /// <summary>Cada cuánto se mira si el motor lleva parado el reposo.</summary>
+    private static readonly TimeSpan CadaCuantoSeMiraElOcr = TimeSpan.FromSeconds(10);
+
     /// <summary>Con la base de verdad detras: repositorios sobre SQLite, OCR perezoso, paquetes y reportes reales.</summary>
     /// <param name="argumentos">Lo que se pidió en la línea de órdenes.</param>
     /// <param name="registro">El cuaderno de tiempos ya abierto en la carpeta de datos.</param>
@@ -55,6 +64,11 @@ public sealed class Servicios : IDisposable
         // segundos medidos. Quien solo abre a mirar el calendario no tiene por que pagarlos.
         _lecturaDeVerdad = new Lazy<LecturaDePdf>(() => new LecturaDePdf());
         _lector = new Lazy<LectorDeFormularios>(() => new LectorDeFormularios(_lecturaDeVerdad.Value));
+
+        // Y se suelta solo cuando lleva un rato parado (pase de memoria, 2026-09-15): ver
+        // SueltaDelOcrEnReposo. Con la lectura sin construir no hay motor y no hay nada que soltar.
+        _sueltaDelOcr = new SueltaDelOcrEnReposo(TiempoSinLeerDelOcr, SoltarElOcr, ReposoDelOcr);
+        _sueltaDelOcr.Arrancar(CadaCuantoSeMiraElOcr);
 
         Casos = casos;
         Personas = personas;
@@ -264,12 +278,105 @@ public sealed class Servicios : IDisposable
     /// </remarks>
     public LectorDeFormularios? ObtenerElLector() => _lector?.Value;
 
+    /// <summary>
+    /// Suelta el motor de OCR si está cargado, para devolver su memoria; la siguiente
+    /// lectura lo vuelve a cargar sola (entre 340 y 470 ms medidos).
+    /// </summary>
+    /// <remarks>
+    /// Lo llama el temporizador de reposo, y puede llamarlo cualquier pantalla que sepa que
+    /// acaba de terminar con el OCR —al cerrar una tanda, al salir de Corrección— sin esperar
+    /// al reposo. Con datos inventados, o sin haber leído nada todavía, no hace nada.
+    /// </remarks>
+    public void SoltarElOcr()
+    {
+        if (_lecturaDeVerdad is not { IsValueCreated: true }) return;
+        var lectura = _lecturaDeVerdad.Value;
+        var parado = lectura.TiempoSinLeer;
+        if (parado is null) return;
+
+        lectura.SoltarElMotor();
+        Registro.Anotar($"OCR  motor soltado tras {parado.Value.TotalSeconds:F0} s parado; se recarga solo en la siguiente hoja");
+    }
+
+    /// <summary>Cuánto lleva el motor de OCR sin leer, o nulo si no está cargado (o la lectura ni se construyó).</summary>
+    private TimeSpan? TiempoSinLeerDelOcr()
+        => _lecturaDeVerdad is { IsValueCreated: true } ? _lecturaDeVerdad.Value.TiempoSinLeer : null;
+
     /// <summary>Cierra la base y libera el OCR si llegó a cargarse. El archivo tiene que quedar libre al salir.</summary>
+    /// <remarks>El temporizador de reposo se para ANTES de desechar la lectura, y espera a que termine una comprobación en curso: así ninguna llega a un lector ya desechado.</remarks>
     public void Dispose()
     {
+        _sueltaDelOcr?.Dispose();
         if (_lecturaDeVerdad is { IsValueCreated: true }) _lecturaDeVerdad.Value.Dispose();
         _conexion?.Close();
         _conexion?.Dispose();
+    }
+}
+
+/// <summary>
+/// Suelta el motor de OCR cuando lleva un rato parado, para que no se quede en memoria
+/// entre una tanda y la siguiente.
+/// </summary>
+/// <remarks>
+/// <para>Nace el 2026-09-15, con el pase de memoria. Sin la arena de ONNX el motor ya no
+/// retiene el gigabyte, pero un motor cargado que ya leyó sigue pesando: medido en el
+/// programa publicado, 482 MiB privados tras importar dieciséis documentos, frente a los
+/// 112 del arranque. Soltarlo devuelve parte de eso y volverlo a cargar cuesta entre 340 y
+/// 470 ms, que en una hoja de cinco segundos no se nota.</para>
+///
+/// <para>Se decide por tiempo sin leer y no por pantalla: importar y corregir viven en
+/// otras carpetas, y así ninguna tiene que acordarse de avisar. Durante una tanda la
+/// hoja siguiente llega antes del reposo, de modo que el motor no se suelta a medias; y
+/// <c>SoltarElMotor</c> espera de todos modos a que termine la hoja en curso. La
+/// comprobación corre en un temporizador del sistema, fuera del hilo de la ventana.</para>
+/// </remarks>
+public sealed class SueltaDelOcrEnReposo : IDisposable
+{
+    /// <summary>Cuánto lleva el motor sin leer, o nulo si no está cargado.</summary>
+    private readonly Func<TimeSpan?> _tiempoSinLeer;
+
+    /// <summary>Lo que suelta el motor de verdad.</summary>
+    private readonly Action _soltar;
+
+    /// <summary>A partir de cuánto tiempo parado se suelta.</summary>
+    private readonly TimeSpan _reposo;
+
+    /// <summary>El temporizador que comprueba cada tanto; nulo hasta <see cref="Arrancar"/>.</summary>
+    private Timer? _temporizador;
+
+    /// <summary>Monta la política sin arrancar ningún reloj; con <see cref="Comprobar"/> se decide a mano.</summary>
+    /// <param name="tiempoSinLeer">Cuánto lleva el motor sin leer; nulo cuando no hay motor cargado.</param>
+    /// <param name="soltar">Qué hacer para soltarlo.</param>
+    /// <param name="reposo">A partir de cuánto tiempo parado se suelta.</param>
+    public SueltaDelOcrEnReposo(Func<TimeSpan?> tiempoSinLeer, Action soltar, TimeSpan reposo)
+    {
+        _tiempoSinLeer = tiempoSinLeer;
+        _soltar = soltar;
+        _reposo = reposo;
+    }
+
+    /// <summary>Suelta el motor si lleva parado el reposo o más; dice si lo soltó.</summary>
+    public bool Comprobar()
+    {
+        var parado = _tiempoSinLeer();
+        if (parado is null || parado < _reposo) return false;
+        _soltar();
+        return true;
+    }
+
+    /// <summary>Empieza a comprobar cada <paramref name="cadaCuanto"/> en un hilo del sistema.</summary>
+    /// <param name="cadaCuanto">Cada cuánto se mira; lo que tarde de más el motor en soltarse tras el reposo.</param>
+    public void Arrancar(TimeSpan cadaCuanto)
+        => _temporizador ??= new Timer(_ => Comprobar(), null, cadaCuanto, cadaCuanto);
+
+    /// <summary>Para el temporizador y espera a que termine una comprobación en curso; no suelta nada por su cuenta.</summary>
+    /// <remarks>Se espera a propósito: así quien desecha la lectura después sabe que ninguna comprobación la va a tocar.</remarks>
+    public void Dispose()
+    {
+        if (_temporizador is null) return;
+        using var terminado = new ManualResetEvent(false);
+        if (_temporizador.Dispose(terminado)) terminado.WaitOne();
+        _temporizador = null;
     }
 }
 

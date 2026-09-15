@@ -3444,3 +3444,560 @@ completado sale sola de sus seis «sí». No contradice la regla 5 —las seis l
 pero hay que precisarla en DECISIONES.md al hacerlo, y decidir con qué firma se escribe
 (`QuienFirmaAMano` elige «Miguel» o, si no está, el primer activo: defecto abierto).
 Terreno: `Fichas.App/Revisar/`.
+
+## Defecto del dueño del 2026-09-15 — al escribir en la hoja 2, el visor salta a la hoja 1
+
+Sus palabras: *«Cuando un PDF tiene dos hojas, a veces la primera es solo una factura y la
+segunda es la correcta. Debe permitirme dar clic a la segunda hoja y a la derecha colocar
+la información. El bug es que al pasar a la segunda hoja y comenzar a escribir los datos,
+como el nombre, la cédula y eso, el documento salta de manera automática a la primera
+hoja de la factura y no te deja colocar la información que realmente necesito.»*
+
+Medido por el supervisor en el código, sin ventana: `PaginaDeCorreccion.xaml.cs:287-289`,
+al enfocar un campo se muestra la hoja del campo (`ficha.Campo.PaginaPdf ?? _visor.Hoja`)
+y se enfoca su banda; si el campo se leyó (o se dio por leído) en la hoja 1, escribir en él
+con la hoja 2 delante devuelve el visor a la 1. Lo que hace falta: que la hoja que el dueño
+eligió a mano mande sobre la del campo mientras escribe, y que lo tecleado se anote como
+salido de esa hoja. En cola detrás del pase del PDF pegado (mismo archivo).
+
+## Plan del 2026-09-15 — El cauce del documento: dónde se parte el río y cómo se junta (memoria y rapidez)
+
+Encargo del dueño, con sus palabras: *«que analice el código y luego busque en internet los
+métodos de hacer más eficiente y simple el código, que el flujo del código sea como un río que
+corre a un mismo cauce»*, *«debe ser eficiente y bien optimizado»*, *«Fichas está consumiendo
+1 GB de RAM; para un programa como él no debería consumir tanto»*, *«está lento»*.
+
+Lo escribe el planificador leyendo el código de `master` en `ffa001f` y la documentación
+oficial. **No mide el proceso vivo**: eso lo está haciendo otro programador en paralelo y no se
+duplica. Toda cifra de aquí es (a) contada en el código con su `ruta:línea`, (b) copiada de
+`DECISIONES.md` con su fecha, o (c) leída en una fuente con su URL y su fecha. Lo que no es
+ninguna de las tres dice «no medido».
+
+### 0. La premisa del encargo, verificada
+
+| Premisa del pase | Comprobación | Resultado |
+|---|---|---|
+| 14 proyectos, 1 822 pruebas | `ls csharp/Fichas` → 14 carpetas de proyecto; `find -path "*Pruebas*" -name "*.cs"` → 235 archivos de prueba | 14 proyectos: sí. Las 1 822 pruebas no las conté (ejecutar la suite es de QA) |
+| ~28 000 líneas en la App, 149 archivos | `find . -name "*.cs" \| xargs wc -l` sin pruebas → **55 903 líneas** en los 7 proyectos de producto; App: **170** archivos `.cs` | La App tiene 170 archivos, no 149; el total del producto es mayor porque incluye Datos, Lectura, Paquetes, Reportes y Contratos |
+| 147 MiB quieto con `--falso 40`; 1 GB con la base real tras importar y abrir | No lo remedí (⛔ `Documents\Fichas` no se toca; el proceso lo mide el otro programador) | **Sin verificar aquí.** El plan trata el 1 GB como síntoma y da la sonda que lo parte en causas (§5) |
+| Rama del worktree sin base común con `master` | `git merge-base master HEAD` → vacío (rc=1) | Cierto. Se hizo `git reset --hard master` → `ffa001f`, como pedía el pase |
+
+El pase traía objetivo, formato, fuentes y fronteras: completo (mandamiento VIII, nada que devolver).
+
+### 1. El mapa del cauce hoy
+
+Un documento pasa por siete tramos. Cada tramo con sus archivos y, donde el río se parte, la
+bifurcación numerada **B-n** (el catálogo entero está en §1.8).
+
+#### 1.1 Entrada: elegir y reunir los PDF
+
+`Fichas.App/Importar/PaginaDeImportar.xaml.cs:46-73` (los dos botones, selector Win32 de
+`Cascara/SelectorDeArchivos.cs`) → `RutasDePdf.cs` / `RecorridoDeLoElegido.cs` (recorrido con
+pila y memoria de uniones) → lista de rutas → `PaginaDeImportar.xaml.cs:213` →
+`MotorDeImportacion.ImportarAsync`.
+
+#### 1.2 Lectura de una hoja (lo caro)
+
+`Fichas.App/Importar/MotorDeImportacion.cs:76-91`: por cada PDF, `Task.Run(LeerSinQueTumbeLaTanda)`
+(hilo aparte) y guardado en el hilo que llamó (línea 86). Dentro:
+
+1. `Fichas.Lectura/LectorDeFormularios.cs:73` — `ContarPaginas` → **abre el PDF con PdfPig**
+   (`LecturaDePdf.cs:139`).
+2. Por cada hoja, `LectorDeFormularios.cs:92-142`:
+   - `:96` `RasterizarPagina(ruta, pagina, 3500)` → `LecturaDePdf.cs:188-212`: `TamanoDeLaPagina`
+     (**abre el PDF con PdfPig otra vez**, `:161`), `File.ReadAllBytes` del PDF entero (`:199`),
+     PDFium rasteriza a `SKBitmap` (`:200-203`), **se codifica a PNG** (`:205`) y se devuelve
+     `ImagenDePagina(Png: byte[])` (`:206`; contrato en `Fichas.Contratos/Lectura/Lectura.cs:30`).
+   - `:102` `LeerConOcr(imagen)` → `LecturaDePdf.cs:339-375`: **decodifica el PNG a `SKBitmap`
+     otra vez** (`:353`) y `motor.Detect(mapa, RapidOcrOptions.PythonCompat)` (`:356`).
+   - `:103` `LeerAnotaciones` → **abre el PDF con PdfPig por tercera vez** (`LecturaDePdf.cs:229`).
+   - `:106` `TamanoDeLaPagina` → **cuarta apertura** con PdfPig (`:161`).
+   - `:107-111` `Extraccion.ProponerCamposDelCaso` / `ProponerCamposDePersonas` (reglas del papel).
+3. El motor de OCR nace la primera vez que se lee (`LecturaDePdf.cs:107-121`, doble comprobación
+   bajo cerrojo) y **vive hasta que se cierra el programa** (`Servicios.cs:56-57` lo guarda en un
+   `Lazy` de sesión; `Servicios.Dispose`, `:270`, es lo único que lo suelta).
+
+Cuenta en el código para un PDF de 6 hojas: **1 + 6×3 = 19 aperturas con PdfPig y 6 lecturas
+enteras del archivo** para una sola pasada (B-1). Y por hoja, tres copias de la misma imagen
+vivas o recién vivas: el `SKBitmap` de PDFium, el `byte[]` PNG y el `SKBitmap` decodificado
+(B-2).
+
+Tamaños, calculados de las medidas que ya constan (`ESTADO.md` 2026-09-02: 2705×3500 px;
+`DECISIONES.md` 2026-09-04: el visor rasteriza a 1314×1700):
+
+| Mapa | Píxeles | Bytes a 4 por píxel |
+|---|---|---|
+| Hoja para el OCR (tope 3 500 en el lado largo) | 2705 × 3500 = 9 467 500 | **36,1 MiB**, y son dos (PDFium y el decodificado): 72,2 MiB por hoja mientras se lee |
+| Hoja para el visor (tope 1 700) | 1314 × 1700 = 2 233 800 | **8,5 MiB** decodificada en WinUI, más el PNG |
+
+El PNG intermedio no está medido en bytes. Es un `byte[]` mayor de 85 000 bytes, así que va
+al montón de objetos grandes (LOH) del GC (fuente en §2.4).
+
+#### 1.3 Guardado de la hoja
+
+`MotorDeImportacion.cs:86` → `GuardadoDeHojas.GuardarLasHojasDelDocumento` →
+`GuardadoDeHojas.Filas.cs:139` (`_casos.Guardar`), `:209` (una `_personas.Guardar` por persona),
+`:252` (una `_procedencia.Anotar` por campo con procedencia), `:314` (`_ilegibles.Registrar`).
+Cada una es un `RepositorioBase.Escribir` (`Fichas.Datos/Repositorios/RepositorioBase.cs`) con
+su propia orden y **sin transacción**: `grep -rn BeginTransaction Fichas.Datos` solo devuelve
+`ReconstructorDeTablas.cs:42` y `RepositorioDeMantenimiento*.cs` (migraciones, borrado,
+unificar). Con SQLite en su modo por defecto cada orden es una confirmación con su escritura a
+disco. Contado con los 7 campos que extrae `Extraccion.cs:27-45` (5 del caso, 2 por persona):
+una hoja con **1 persona ≈ 1 + 1 + 7 = 9 confirmaciones**; con **6 personas ≈ 1 + 6 + 17 = 24**
+(B-7). Milisegundos por confirmación en la máquina del dueño: no medidos.
+
+#### 1.4 Los lectores de pantalla: cinco ríos que nacen en el mismo manantial
+
+Cada pantalla tiene su lector, y **cinco de ellos leen la base entera** cada vez que se entra:
+
+| Lector | Dónde lee la base entera | Qué trae |
+|---|---|---|
+| `Inicio/LectorDelInicio.cs` (también lo usa **Flujo**: `Flujo/PaginaDelFlujo.xaml.cs:72,85`) | `:108` todos los casos (`Listar(…, int.MaxValue)`, `:451`); `:115` todas las personas (`:467-471`, `Contar` + `Listar`); `:117` compañeros y asignaciones; `:122` procedencia en bloque | 12 llamadas a los puertos + 2 `Contar` por compañero (`:612-613`) |
+| `Grupo/LectorDeGrupos.cs` `DelDia(fecha)` — **un solo día** | `:93` todos los casos; `:97` todas las personas (`:282-287`); `:102` procedencia en bloque de toda la base | para pintar un día, pasa la base entera |
+| `Grupo/LectorDeIncompletos.cs` | `:222` todos los casos; `:227` procedencia en bloque | |
+| `Correccion/LoQueLeFaltaACadaDocumento.cs` | `:61` todos los casos; `:63` procedencia en bloque | |
+| `Revisar/TableroDeRevisar.cs` `Cargar` | `:156` todos los casos; `:157` `ContarPersonasDe`; `:193` segunda lista entera si hay texto de búsqueda | |
+
+`FiltroDeCasos` no tiene rango de fechas (ya anotado en `DECISIONES.md` 2026-09-04, sección
+Reportes) y `Fichas.Contratos` está congelado: por eso `DelDia` no puede pedir «los del día».
+Cada uno construye su propio modelo de fila del mismo caso (B-11): `RenglonDeCaso`
+(`Inicio/ModelosDeInicio.cs:134`), `RenglonParaAsignar` (`Asignar/RenglonParaAsignar.cs:19`),
+`TarjetaDeDocumento` (`Revisar/TarjetaDeDocumento.cs:22`), `RenglonDelGrupo`
+(`Grupo/ModelosDeGrupo.cs:652`), `RenglonDeLoIncompleto` (`Grupo/LectorDeIncompletos.cs:106`),
+`PuestoEnLaCola` (`Completar/PuestoEnLaCola.cs:20`), `DocumentoConPreguntas`
+(`Revisar/PreguntasDeUnDocumento.cs:44`), `CasoQueSube` (`Paquetes/SegundaVuelta.cs:14`).
+
+Lo que **sí** está bien unido y no se toca: el veredicto «le falta algo» es una sola función,
+`EstadosDeCampo.EsDudoso`, vía `Grupo/ProcedenciasDeUnaPasada.cs` (decisión del 2026-09-06), y
+la procedencia se lee en bloque (`:124-137`: `LasQuePesanEnElVeredicto` + 2 `CamposAnotadosDe`)
+en vez de 10 000 veces.
+
+Coste medido de estos lectores, copiado de `DECISIONES.md` 2026-09-06 con **3 000 documentos
+inventados**: Inicio 126,9 ms, ventana de incompletos 111,8 ms. Con la base real del dueño
+(37 documentos): **no medido**.
+
+#### 1.5 Corrección y el visor
+
+- Al entrar y **en cada guardado, eliminación o «dar por completo»** (`PaginaDeCorreccion.xaml.cs:81,432`,
+  `PaginaDeCorreccion.Grupos.cs:272`, `PaginaDeCorreccion.Salida.cs:93`,
+  `PaginaDeCorreccion.Eliminar.cs:162`) se llama `LlenarLosGrupos`
+  (`PaginaDeCorreccion.Grupos.cs:95-133`), que **lee la base entera dos veces**: `TableroDeRevisar.Cargar`
+  (`:100-102`) y `LoQueLeFaltaACadaDocumento.DeTodaLaBase` (`:105-106`) (B-5).
+- El visor: `PaginaDeCorreccion.xaml.cs:343-367` `MostrarLaHoja` rasteriza **en el hilo de la
+  ventana** (`:356`, tope 1 700 px) y llama `ContarPaginas` (`:357`, otra apertura con PdfPig)
+  **cada vez que se enseña una hoja**. Se enseña una hoja al abrir, al pulsar anterior/siguiente
+  (`:385`) y **cada vez que el foco entra en un campo de otra hoja** (`:284-290`). No hay caché
+  de hojas rasterizadas: `grep -rn "cache\|_hojas" Fichas.App/Correccion` → 0 (B-4). El
+  rasterizado de una hoja real costó **384 a 1 380 ms** (`DECISIONES.md` 2026-09-04, sonda del
+  programador de Corrección): ese es el tiempo que la ventana se queda quieta por cada hoja.
+- `VisorDelDocumento.xaml.cs:231-253`: el PNG se copia a un `InMemoryRandomAccessStream`, se
+  decodifica con `BitmapImage.SetSourceAsync` y **después** se ata a la imagen (`:243-244`).
+  Ese orden apaga el «right-sized decoding» de WinUI (fuente literal en §2.3): la hoja se
+  decodifica a sus 1314×1700 enteros (8,5 MiB) aunque el panel mida 600 px.
+- Las bandas que faltan (`ModeloDeCorreccion.Documento.cs:120-192`) rasterizan **y pasan el OCR
+  entero** a cada hoja con campos sin banda (`:129`, `:183`), fuera del hilo de la ventana
+  (bien) pero con el mismo PNG→decodificación de B-2.
+
+#### 1.6 Paquetes y reportes
+
+- `Fichas.Reportes/Consultas/LecturaParaReportes.cs:280-284`: **una consulta de procedencia por
+  caso y una por persona** (`DeRegistro`). Es la deuda del 2026-09-04 («10 531 llamadas, 79 %
+  del tiempo») y **sigue igual** (B-8).
+- `Fichas.Paquetes/Paquetes.cs:740-770`: al reconciliar el Excel que vuelve sin `casoId`,
+  `CasosConEseNumero` pagina la lista entera con filtro de texto por cada fila (B-9). No medido.
+
+#### 1.7 Arranque y servicios
+
+`Cascara/Servicios.cs:42-80`: seis repositorios sobre **una** conexión (`Pooling=false`,
+`FabricaDeConexiones.cs:74`), OCR perezoso, reportes y paquetes. `VentanaPrincipal.xaml:548`
+un `Frame` con `Navigate` en cada clic (`VentanaPrincipal.xaml.cs:136`); las páginas no se
+guardan (`NavigationCacheMode` → 0 apariciones) y **no se suscriben a objetos de larga vida**
+(`grep` de `+=` sobre `Avisos`, `Servicios`, `App.Ventana`, `Actualizador` → solo
+`FranjaDeAvisos.xaml.cs:42`, que vive en la ventana). Es decir: **no hay indicio en el código de
+que las páginas se queden retenidas** al navegar; lo que sí se queda es el motor de OCR y lo que
+el GC no haya devuelto. El GC va sin configurar: `grep -rn "GC\|ConserveMemory" *.csproj
+Directory.Build.props` → 0 (B-13).
+
+Las listas de la App **ya virtualizan** donde importa: `ItemsRepeater` dentro de un `ScrollView`
+con `MaxHeight` (`Grupo/PaginaDeGrupo.xaml:372-379`, `Flujo/PaginaDelFlujo.xaml:327-333`,
+`Completar/PaginaDeCompletar.xaml:175-181`, `Asignar/PaginaDeAsignar.xaml:228-233`), Revisar con
+`ListView`, y **todo** con `x:Bind` (`{Binding}` → 0 en los 18 XAML). Eso no se toca.
+
+#### 1.8 Catálogo de bifurcaciones
+
+| # | Qué se parte | Dónde | Medición |
+|---|---|---|---|
+| B-1 | El mismo PDF se abre 3 veces por hoja + 1 por documento con PdfPig, y se lee entero del disco por hoja | `LecturaDePdf.cs:139,161,199,229`; `LectorDeFormularios.cs:73,96,103,106` | 19 aperturas y 6 lecturas por PDF de 6 hojas (contado); ms: no medido |
+| B-2 | La imagen viaja como PNG y se decodifica dos veces (OCR) o una más (visor) | `LecturaDePdf.cs:205-206,353`; `VisorDelDocumento.xaml.cs:235-243` | 36,1 MiB × 2 por hoja leída; 8,5 MiB por hoja vista (calculado) |
+| B-3 | El motor de OCR nunca se suelta entre tandas; el arena de ONNX Runtime no devuelve memoria por defecto | `Servicios.cs:56-57,270`; `LecturaDePdf.cs:107-121,396-402` | **Hipótesis principal del GB; no medida** (§5) |
+| B-4 | El visor rasteriza en el hilo de la ventana, sin caché, y reabre el PDF para contar hojas en cada cambio | `PaginaDeCorreccion.xaml.cs:284-290,343-367` | 384–1 380 ms por hoja (DECISIONES 09-04) |
+| B-5 | Corrección lee la base entera dos veces por cada guardado | `PaginaDeCorreccion.Grupos.cs:100-106` desde 5 sitios | ms con 37 docs: no medido |
+| B-6 | Cinco lectores independientes leen toda la base al entrar a cada pantalla; un día del calendario carga toda la base | §1.4 | 127 / 112 ms con 3 000 (DECISIONES 09-06) |
+| B-7 | Guardado hoja a hoja con una confirmación por fila, sin transacción | `GuardadoDeHojas.Filas.cs:139,209,252,314`; `RepositorioBase.cs` | 9–24 confirmaciones por hoja (contado); ms: no medido |
+| B-8 | Reportes: procedencia una consulta por caso y por persona | `LecturaParaReportes.cs:280-284` | 10 531 llamadas y 1,17 s de 1,48 s con 3 000 (DECISIONES 09-04) |
+| B-9 | Reconciliación del Excel: lista paginada entera por fila sin `casoId` | `Paquetes.cs:740-770` | no medido |
+| B-10 | Cada `Listar` son 2 SQL (COUNT + SELECT); `AgruparLasPersonas` hace `Contar` + `Listar` | `RepositorioBase.cs` `Paginar`; `LectorDelInicio.cs:467-471` | contado; menor |
+| B-11 | Ocho modelos de fila distintos para el mismo caso, uno por pantalla | §1.4 | contado |
+| B-12 | El cuaderno escribe con `File.AppendAllText` línea a línea en el hilo de la ventana | `Cascara/Registro.cs:54` | menor; no medido |
+| B-13 | GC sin `ConserveMemory`; los PNG de cada hoja caen al LOH | `Fichas.App.csproj`, `Directory.Build.props` | no medido |
+
+### 2. Lo que dicen la documentación oficial y los proyectos reales
+
+Cada cita con URL, fecha de consulta (todas el **2026-09-15**) y el texto literal que leí.
+
+#### 2.1 ONNX Runtime — el arena de memoria (B-3)
+
+- https://onnxruntime.ai/docs/get-started/with-c.html — sección «Memory arena shrinkage»:
+  *«By default, memory arenas do not shrink (return unused memory back to the system). This
+  feature allows users to "shrink" the arena at some cadence»*, y opera *«at the end of every
+  Run()»* mediante una `RunOption`. Sección `OrtArenaCfg`: `arena_extend_strategy` *«can take
+  only 2 values currently: kSameAsRequested or kNextPowerOfTwo»*; `kNextPowerOfTwo` es la
+  predeterminada y *«extends the arena by a power of 2»*.
+- https://onnxruntime.ai/docs/api/csharp/api/Microsoft.ML.OnnxRuntime.SessionOptions.html —
+  `EnableCpuMemArena`: *«Enables Arena allocator for the CPU memory allocations. Default is
+  true.»*; `EnableMemoryPattern`: *«Enables the use of the memory allocation patterns in the first
+  Run() call for subsequent runs.»*; `IntraOpNumThreads`: *«A value of 0 means ORT will pick a
+  default»*.
+- https://onnxruntime.ai/docs/api/csharp/api/Microsoft.ML.OnnxRuntime.RunOptions.html —
+  `AddRunConfigEntry(string, string)`: *«Set a single run configuration entry as a pair of
+  strings»* (es donde iría `memory.enable_memory_arena_shrinkage` = `cpu:0`).
+- https://github.com/microsoft/onnxruntime/issues/13936 (abierto el 2022-12-12, sin
+  respuesta de los mantenedores en la página) y https://github.com/microsoft/onnxruntime/discussions/18013:
+  usuarios que dicen que la reducción del arena en CPU *«doesn't seem to have any effect»*. **Lo
+  digo porque es la evidencia que hay, y no la he reproducido.**
+- RapidOcrNet 4.1.0, leído en `~/.nuget/packages/rapidocrnet/4.1.0/README.md` (local, misma
+  fecha): `InitModels(SessionOptions)` y `InitModels(det, cls, rec, keys, sessionOptions)`
+  existen; `GetDefaultSessionOptions(int numThread = 0)` *«also takes an optional thread count»*.
+  Y en el fuente https://github.com/BobLd/RapidOcrNet/blob/master/RapidOcrNet/RapidOcr.cs:
+  `GetDefaultSessionOptions` pone **solo** `GraphOptimizationLevel = ORT_ENABLE_EXTENDED`,
+  `InterOpNumThreads` e `IntraOpNumThreads`; **no toca el arena**. `Detect(SKBitmap)` reserva por
+  llamada el relleno, el redimensionado, el «letterbox» y un recorte por línea, y los libera en
+  `finally`. `Dispose()` cierra las tres sesiones. **RapidOcrNet no expone `RunOptions`**, así que
+  la reducción del arena por `Run()` no se puede pedir desde fuera sin tocar la biblioteca; lo que
+  sí se puede es `EnableCpuMemArena = false` en las `SessionOptions` o soltar el motor.
+- Tamaños medidos aquí (`ls -l` en el paquete NuGet): det 4 819 576 B, cls 1 018 508 B,
+  rec 7 904 513 B; `onnxruntime.dll` 16 149 344 B. **Los modelos son 13 MiB: el GB no son los
+  modelos, es lo que el motor reserva para trabajar.**
+
+#### 2.2 PDFium / PDFtoImage / PdfPig (B-1, B-2)
+
+- https://github.com/sungaila/PDFtoImage — *«The native PDFium library used by this project for
+  rendering is not thread-safe. For that reason, all calls into PDFium are protected with
+  locks»*, *«you can only process one PDF at a time»*. La API ofrece `ToImage` (una página) y
+  `ToImages` / `ToImagesAsync` (varias páginas en una sola carga) con `RenderOptions(Dpi, Width,
+  Height, WithAnnotations, WithFormFill, AntiAliasing, Bounds)`. La página no dice si mantiene
+  el documento abierto entre llamadas a `ToImage`: en nuestro código cada llamada recibe los
+  `bytes` enteros, así que cada hoja es una carga.
+- https://learn.microsoft.com/en-us/dotnet/api/skiasharp.skbitmap — `SKBitmap` es *«a raster
+  bitmap»* con *«a pointer to the actual pixels»* (memoria nativa, se libera con `Dispose`);
+  expone `Encode(SKEncodedImageFormat, Int32)`, `GetPixelSpan()`, `GetPixels()`,
+  `Resize(SKSizeI, SKSamplingOptions)` y `ScalePixels`. Con `GetPixels()` los píxeles pueden
+  pasarse a otro consumidor **sin codificar a PNG**.
+- PdfPig 0.1.11: `PdfDocument.Open` es lo que se repite (`LecturaDePdf.cs:139,161,229`); el mismo
+  objeto da `NumberOfPages`, `GetPage(n).Width/Height`, `GetAnnotations()` y `TryGetForm`. Una
+  apertura por documento cubre las cuatro preguntas. (Leído en el propio código, no en la web.)
+
+#### 2.3 WinUI 3 — imágenes, listas y carga (B-2, B-4)
+
+- https://learn.microsoft.com/en-us/windows/apps/develop/performance/optimize-animations-and-media
+  (Microsoft Learn, «Optimize animations, media, and images for WinUI apps», actualizada
+  2026-08-21):
+  - *«If DecodePixelWidth/Height are explicitly set larger than the image will be displayed
+    on-screen then the app will unnecessarily use extra memory—up to 4 bytes per pixel—which
+    quickly becomes expensive for large images.»*
+  - Right-sized decoding: *«This feature will be disabled if any of the following conditions are
+    met. — The BitmapImage is connected to the live XAML tree after setting the content with
+    SetSourceAsync or UriSource.»* → **es exactamente el orden de `VisorDelDocumento.xaml.cs:243-244`.**
+  - *«Images initialized from separate streams with SetSourceAsync don't have a shared URI
+    identity, so WinUI decodes each stream independently.»* y *«Retaining BitmapImage instances
+    can retain associated image resources.»*
+  - `SoftwareBitmapSource`: *«This class obviates an extra copy that would typically be necessary
+    with WriteableBitmap, and that helps reduce peak memory and source-to-screen latency.»* y
+    *«your app should use SoftwareBitmapSource when loading uncompressed image data instead of
+    using WriteableBitmap.»* → camino para pasar los píxeles de PDFium a la pantalla **sin PNG**.
+  - *«If an image is removed from the tree … XAML will optimize memory usage by releasing the
+    hardware resources for the image … released during the frame update that occurs after one
+    second of the image element no longer being in the tree.»*
+- https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.media.imaging.writeablebitmap.pixelbuffer
+  — el ejemplo oficial escribe píxeles `Bgra8` en `PixelBuffer.AsStream()`; comentario literal
+  del ejemplo: *«WriteableBitmap uses BGRA format»*. Es el camino alternativo (una copia más que
+  `SoftwareBitmapSource`, pero sin codificar).
+- https://learn.microsoft.com/en-us/windows/apps/develop/performance/optimize-xaml-loading
+  («Optimize XAML loading for WinUI and Windows App SDK», 2026-03-18): *«Use the x:Load attribute
+  instead of the Visibility property … When you use x:Load instead, the framework does not create
+  the object instance until it is needed, so the memory costs are even lower.»* y la nota
+  *«In Windows App SDK, x:Load is the recommended deferred-loading pattern»*. En la App hay
+  `x:Load` → 0 y marcos que se esconden con `Visibility.Collapsed` (p. ej.
+  `PaginaDeCorreccion.xaml.cs:202-203,227,251`). Es una mejora **menor** y así se anota.
+- https://learn.microsoft.com/en-us/windows/apps/develop/ui/controls/items-repeater (2026-08-19):
+  *«ItemsRepeater supports virtualizing UI layouts, while ItemsControl does not»*; el
+  `ScrollViewer` es el anfitrión que da la virtualización. Ya se cumple (§1.7).
+- https://learn.microsoft.com/en-us/uwp/api/windows.data.pdf.pdfpage.rendertostreamasync —
+  `Windows.Data.Pdf` renderiza *«a stream of data, which represents a … page's contents»* con
+  `PdfPageRenderOptions`. Es la vía nativa sin PDFium **para el visor**; la descarto para el OCR
+  por la decisión del 2026-09-04 (misma imagen que `pypdfium2`), y para el visor **no está
+  medido** si pinta los formularios rellenables (`WithFormFill` fue imprescindible en PDFium,
+  `LecturaDePdf.cs:180-186`). Queda como alternativa no recomendada hasta medirlo.
+
+#### 2.4 .NET 10 — el recolector de basura (B-13)
+
+- https://learn.microsoft.com/en-us/dotnet/core/runtime-config/garbage-collector (actualizada
+  2026-02-09): `System.GC.ConserveMemory` — *«Configures the garbage collector to conserve memory
+  at the expense of more frequent garbage collections and possibly longer pause times. Default
+  value is 0 … values between 1 and 9 … If the value is non-zero, the large object heap will be
+  compacted automatically if it has too much fragmentation.»* Consejo literal: *«Start with a
+  value between 5 and 7.»* Se pone por `RuntimeHostConfigurationOption` en el `.csproj`.
+  `System.GC.RetainVM` — default `false`: *«Release segments back to the operating system.»*
+  DATAS: *«Enabled by default starting in .NET 9.»*
+- https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/large-object-heap
+  (2026-08-13): *«If an object is greater than or equal to 85,000 bytes in size, it's considered
+  a large object»*; *«the GC sweeps the LOH»* (no lo compacta por defecto); *«we recommend that
+  you allocate a pool of large objects that you reuse instead of allocating temporary ones»*;
+  *«During a generation 1 or generation 2 GC, the garbage collector releases segments that have
+  no live objects on them back to the OS»*. Consecuencia para B-2: cada PNG por hoja es un objeto
+  grande temporal; el consejo oficial es reutilizar el búfer (`ArrayPool<byte>.Shared`) o no
+  crearlo.
+
+#### 2.5 Microsoft.Data.Sqlite (B-7, B-8)
+
+- https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/bulk-insert — *«SQLite doesn't
+  have any special way to bulk insert data. To get optimal performance when inserting or updating
+  data, ensure that you do the following: Use a transaction. Reuse the same parameterized command.
+  Subsequent executions will reuse the compilation of the first one.»* Hoy el guardado no cumple
+  ninguna de las dos (§1.3): cada fila crea su `SqliteCommand` y confirma sola.
+- Lo que **no** cambio: `Pooling=false` (motivo escrito en `FabricaDeConexiones.cs:70-73`), las
+  consultas parametrizadas y los índices existentes (`DdlDeLaVersionInicial.cs:156-164`,
+  `idx_casos_viaje_activos`, `idx_personas_caso`, `idx_procedencia_registro`).
+
+#### 2.6 Proyectos reales
+
+- **PDFtoImage** (sungaila, arriba): el propio proyecto declara que solo se procesa un PDF a la
+  vez → la importación secuencial de hoy es la correcta, y paralelizar hojas no da nada.
+- **RapidOcrNet** (BobLd, arriba): reserva y libera por llamada; su README recomienda `DetectAsync`
+  para no bloquear la ventana y el fuente advierte que *«padding a 5184x6708 page allocates and
+  blits some 140MB»*. Confirma que el pico por hoja es del orden de decenas a cientos de MiB y
+  que se libera; lo que no se libera es la sesión.
+- **PdfiumViewer** (https://github.com/pvginkel/PdfiumViewer): la página pública no detalla el
+  caché ni el renderizado bajo demanda; **no encontré evidencia consultable** de cómo lo hace y
+  no lo afirmo.
+
+### 3. El plan por fases
+
+Ordenadas por lo que más da al dueño por menos riesgo. Una fase = un pase de programador. Cada
+una nombra qué la limita. **R-0 va primero porque sin sus números las demás no pueden cerrar.**
+
+#### R-0 — El medidor permanente de memoria en `fichas.log`
+
+- **Objeto.** Una línea en el cuaderno en cuatro momentos: ventana lista, fin de cada tanda de
+  importación, al abrir un documento en Corrección y al cerrar; con `Environment.WorkingSet`,
+  `GC.GetTotalMemory(false)`, `GC.GetGCMemoryInfo().TotalCommittedBytes` y
+  `Process.GetCurrentProcess().PrivateMemorySize64`. Y una orden de sonda `--soltar-ocr` (o un
+  botón oculto) que llame `LecturaDePdf.Dispose()` y anote la línea antes y después.
+- **Por qué no duplica al programador que mide ahora.** Él mide una vez con herramientas; esto
+  deja el número escrito en cada sesión del dueño para siempre, que es lo que hoy no existe (el
+  «1 GB» es una captura del Administrador de tareas, sin desglose).
+- **Criterio de cierre.** El `fichas.log` de una sesión que importa los 7 escaneos reales y abre
+  uno en Corrección trae las cuatro líneas; la resta «antes − después de soltar el OCR» está
+  escrita en `DECISIONES.md` con su valor. Ese número decide R-2.
+- **Riesgo.** Ninguno funcional. Límite: la clave y los datos del dueño no van al cuaderno
+  (regla del 2026-09-11); solo cifras.
+
+#### R-1 — El visor no congela y no repite
+
+- **Objeto (B-4, B-2 en el visor).** (a) Rasterizar fuera del hilo de la ventana (`Task.Run`,
+  como ya hace `LeerLasBandas`); (b) `ContarPaginas` una vez por documento, no por hoja; (c) una
+  caché pequeña por documento abierto (las últimas 3 hojas rasterizadas), que se vacía al
+  cambiar de caso; (d) atar la `BitmapImage` a `_imagen.Source` **antes** de `SetSourceAsync`
+  (orden que la documentación exige para el right-sized decoding, §2.3) o, mejor, pasar los
+  píxeles con `SoftwareBitmapSource` sin PNG (§2.3), decidiendo por medición cuál de las dos.
+- **Criterio de cierre.** Con `ELTC2609` o cualquier PDF real de ≥ 2 hojas: cambiar de hoja
+  antes/después en ms (hoy 384–1 380 ms de raster en el hilo de la ventana); volver a una hoja
+  ya vista: 0 rasterizados nuevos (contador en el cuaderno); la ventana no se queda quieta más
+  de 100 ms medido con `Stopwatch` alrededor del manejador; memoria del proceso tras abrir 5
+  documentos seguidos: antes/después (R-0). El defecto del 2026-09-15 (saltar a la hoja 1 al
+  escribir en la 2, `PaginaDeCorreccion.xaml.cs:287-289`) está en el mismo archivo: **se arregla
+  en este pase o en el anterior a él, nunca en paralelo.**
+- **Riesgo.** Medio: el foco cambia de hoja mientras una rasterización va en camino → hay que
+  descartar la que llega tarde (comparar la hoja pedida con la vigente). Límite: el tope de 1 700
+  px del visor y de 3 500 del OCR no se tocan (regla de no regresión).
+
+#### R-2 — El motor de OCR se suelta al terminar la tanda
+
+- **Objeto (B-3).** Opción **A**: al terminar `ImportarAsync` (y al terminar `LeerLasBandas`),
+  `Servicios` desecha la `LecturaDePdf` y deja el `Lazy` listo para crear otra; el coste es
+  volver a cargar tres modelos de 13 MiB en la siguiente tanda. Opción **B**:
+  `RapidOcr.GetDefaultSessionOptions()` con `EnableCpuMemArena = false` pasado a
+  `InitModels(det, cls, rec, keys, sessionOptions)`, de modo que ONNX Runtime pida y devuelva al
+  sistema en vez de acumular en el arena. Se hacen **las dos** en la misma sonda y se mide; se
+  deja la que más devuelva con menos coste por hoja. Mi recomendación a priori es A: no cambia ni
+  un byte de lo que lee (mismos modelos, mismo `PythonCompat`) y su efecto se ve en la línea de
+  R-0.
+- **Criterio de cierre.** `WorkingSet` tras importar los 7 escaneos reales, antes/después, y
+  tras la segunda tanda (que la memoria no crezca tanda a tanda); segundos por hoja antes/después
+  (línea base 9,4–13,3 s por hoja, DECISIONES 2026-09-04); **7 de 7 con los mismos valores uno a
+  uno** que hoy (criterio de lectura intacto). Si A y B no bajan la memoria, se escribe y se pasa
+  a R-8.
+- **Riesgo.** Bajo en A (la recarga por tanda no está medida en C#; en Python eran 2,2 s); medio
+  en B (la documentación no promete que el arena sea la causa). Límite: regla permanente 1 (sin
+  IA; nada de esto la toca) y la decisión del motor (RapidOcrNet, vía B del ADR-0004).
+
+#### R-3 — Una sola pasada por el PDF y una sola imagen por hoja
+
+- **Objeto (B-1, B-2).** Dentro de `Fichas.Lectura`: (a) abrir el PDF con PdfPig **una vez por
+  documento** y sacar de ahí el número de hojas, el tamaño de cada una y sus anotaciones; (b)
+  leer los bytes del archivo una vez y rasterizar cada hoja desde ese mismo `byte[]`; (c) entregar
+  al OCR el `SKBitmap` de PDFium **sin pasar por PNG** (un método interno de `LecturaDePdf` que
+  devuelva el mapa; `LectorDeFormularios` lo usa). El contrato `ILecturaDePdf` (congelado) sigue
+  devolviendo `ImagenDePagina(Png)` para quien lo pida desde fuera; el camino nuevo es interno a
+  `Fichas.Lectura`, así que **no se toca `Fichas.Contratos`**.
+- **Criterio de cierre.** Aperturas con PdfPig por PDF de 6 hojas: 19 → 1 (contador de prueba
+  con un doble del abridor); decodificaciones por hoja: 2 → 1; segundos por hoja antes/después
+  sobre los 7 escaneos reales; **los mismos 7 de 7 valores** que hoy, campo por campo (la
+  imagen que ve el OCR tiene que ser idéntica byte a byte: prueba que compara `SKBitmap.Bytes`
+  del camino viejo y del nuevo); memoria pico por hoja antes/después (R-0 con una línea extra).
+- **Riesgo.** Medio: el orden de las operaciones cambia y el OCR es sensible a la imagen; por
+  eso la prueba de igualdad byte a byte es obligatoria y bloquea el cierre.
+
+#### R-4 — Guardar una hoja en una transacción
+
+- **Objeto (B-7).** Envolver las escrituras de una hoja (caso, personas, procedencias, ilegible)
+  en una transacción de SQLite y reutilizar la orden preparada por tabla, como pide la
+  documentación (§2.5). Dónde: en `Fichas.Datos`, una puerta `AmbitoDeEscritura` que abra
+  `BeginTransaction` sobre la conexión que los seis repositorios comparten; `GuardadoDeHojas` la
+  pide al empezar cada hoja y la confirma al terminar. ⚠️ Antes de programar hay que comprobar en
+  https://learn.microsoft.com/en-us/dotnet/standard/data/sqlite/transactions si una orden sin
+  `Transaction` asignada puede ejecutarse mientras la conexión tiene una transacción abierta; si
+  no puede, `RepositorioBase.Escribir` tiene que recibir la transacción vigente. **No lo
+  verifiqué.**
+- **Criterio de cierre.** Confirmaciones por hoja: 9–24 → 1 (contadas con un doble de la
+  conexión o con el contador de `sqlite3_total_changes`); ms de guardado por hoja antes/después
+  sobre los 7 escaneos reales; si falla la tercera persona, **no queda ni el caso ni las dos
+  primeras** (hoy sí quedan: es el defecto 3 de la deuda de Datos del 2026-09-11, que este pase
+  cierra de paso para la importación).
+- **Riesgo.** Medio-bajo. Límite: `Pooling=false` y la conexión única se quedan; el respaldo
+  antes de borrar y de migrar no cambia.
+
+#### R-5 — Corrección lee una vez por guardado
+
+- **Objeto (B-5).** `LlenarLosGrupos` construye el tablero **y** el veredicto desde la misma
+  lista de casos y la misma pasada de procedencia: `LoQueLeFaltaACadaDocumento` recibe los casos
+  ya leídos por `TableroDeRevisar` en vez de volver a pedirlos.
+- **Criterio de cierre.** Llamadas a `ICasos.Listar` por guardado: 3 → 1 (medido con el doble de
+  `Fichas.Datos.Falso`, que puede contar); ms de `LlenarLosGrupos` antes/después con `--falso
+  3000` y con la copia de la base real.
+- **Riesgo.** Bajo. Límite: el veredicto sigue siendo `EsDudoso` (decisión del 2026-09-06).
+
+#### R-6 — Un solo manantial: la base en la mano, compartida por los cinco lectores
+
+- **Objeto (B-6, B-11).** Una clase `LaBaseEnLaMano` en `Fichas.App` que lee **una vez** casos,
+  personas, asignaciones, compañeros y la pasada de procedencia, y que los cinco lectores reciben
+  ya leída. Se invalida en cada escritura: como `Fichas.Contratos` está congelado, la
+  invalidación se hace con **decoradores** de los puertos en la App (`CasosQueAvisan : ICasos`,
+  etc.) que envuelven a los de `Servicios` y levantan un `Cambio` tras cada `Guardar`,
+  `MarcarEstado`, `Archivar`, `Asignar`, `Retirar`, `Anotar`, `Firmar`, `Borrar`. `DelDia` deja
+  de leer 3 000 casos para pintar un día: filtra en memoria sobre la copia. Los ocho modelos de
+  fila se quedan (son pintura de cada pantalla), pero todos nacen de la **misma** lista.
+- **Criterio de cierre.** Navegar Inicio → Flujo → Grupo → Completar sin escribir nada: lecturas
+  enteras de `casos` 4 → 1; tras un guardado en Corrección, la siguiente pantalla trae el dato
+  nuevo (prueba: guardar, navegar, comparar); ms por navegación antes/después con `--falso 3000`.
+- **Riesgo.** **Alto**: una escritura que no invalide deja una pantalla enseñando lo viejo, y en
+  este proyecto eso es «un documento que parece completo y no lo está». Mitigación obligatoria:
+  la lista de sitios que escriben se saca con `grep -rn "ResultadoDeEscritura" Fichas.App` y la
+  prueba recorre **cada** uno. Por ese riesgo va la sexta y no la primera, aunque sea la que más
+  «río único» da. Límite: Contratos no se abre (los decoradores viven en la App).
+
+#### R-7 — Reportes y paquetes sin ir fila a fila
+
+- **Objeto (B-8, B-9).** Reportes necesita, por caso, «campos, verificados y última firma», que
+  hoy salen de `DeRegistro` uno a uno. `IProcedencia` no tiene una lectura en bloque con
+  `Verificado`/`VerificadoEn` (`LasQuePesanEnElVeredicto` trae solo las que pesan). Dos opciones,
+  **decide el supervisor** porque una abre el archivo congelado: (A) añadir a `IProcedencia` un
+  `ResumenDeVerificacionPorRegistro(tabla)` (una consulta `GROUP BY`) — toca Contratos; (B) leer
+  con `DeRegistro` solo los casos **del período** que se imprime, que ya recorta a decenas. Para
+  Paquetes: `CasosConEseNumero` con el índice `idx_casos_numero` (consulta por igualdad) en vez
+  de paginar con filtro de texto.
+- **Criterio de cierre.** Con `--falso 3000`: consultas de procedencia al armar el reporte
+  10 531 → ≤ 3 (A) o ≤ 2 × casos del período (B); 1,48 s → ms medidos; el PDF que sale es
+  idéntico línea a línea al de hoy (ya existe la comparación de 68 líneas).
+- **Riesgo.** Bajo en B, medio en A (Contratos). Límite: el vocabulario del informe de los jefes
+  no cambia (decisión del 2026-09-04).
+
+#### R-8 — El recolector de basura, solo si R-2 no basta
+
+- **Objeto (B-13).** `System.GC.ConserveMemory` entre 5 y 7 (consejo literal de la
+  documentación, §2.4) por `RuntimeHostConfigurationOption` en `Fichas.App.csproj`; y en B-2, si
+  el PNG sobrevive a R-3 en algún camino, `ArrayPool<byte>.Shared` para el búfer del PNG.
+- **Criterio de cierre.** `WorkingSet` y `TotalCommittedBytes` (R-0) tras importar y abrir,
+  antes/después con el mismo guion; y que ninguna pantalla suba de tiempo más de un 10 % (el
+  ajuste cambia pausas por memoria; se mide, no se supone).
+- **Riesgo.** Bajo, reversible con una línea. Va última porque **corrige el síntoma y no la
+  causa**: si R-2 devuelve los cientos de MiB, esto sobra.
+
+### 4. Lo que NO se toca, y por qué
+
+| Qué | Por qué |
+|---|---|
+| Tope de 3 500 px en el lado largo para el OCR, y `RapidOcrOptions.PythonCompat` | regla de no regresión y línea base de los 7 escaneos (`DECISIONES.md` 2026-09-04): cambiarlo cambia lo que se lee |
+| PDFium vía PDFtoImage con `WithFormFill` | misma imagen que `pypdfium2` (decisión 2026-09-04) y los formularios rellenables se veían en blanco sin ella (medido 2026-09-10) |
+| RapidOcrNet con los tres modelos latinos | decisión del motor (vía B del ADR-0004), confirmada por medición 7 de 7 |
+| `EstadosDeCampo.EsDudoso` como único veredicto y `ProcedenciasDeUnaPasada` | cerró seis divergencias medidas (2026-09-06); R-5 y R-6 lo reutilizan, no lo duplican |
+| `ItemsRepeater` en `ScrollView` con `MaxHeight`, `ListView` en Revisar, `x:Bind` | ya virtualizan; cambiarlo es riesgo sin ganancia |
+| `Fichas.Contratos` congelado | R-1 a R-6 y R-8 no lo abren; R-7 lo devuelve al supervisor |
+| Copia de la base antes de migrar y de borrar; borrar es lo único que pregunta | decisiones del 2026-09-04 y 2026-09-05 |
+| Los cuatro estados en la base aunque a la vista sean dos | decisión del 2026-09-07 («quién dijo cada cosa» es la defensa del proyecto) |
+| `Pooling=false`, consultas parametrizadas, índices existentes | motivo escrito en `FabricaDeConexiones.cs`; línea base de seguridad (SQL siempre parametrizado) |
+| Importación secuencial (un PDF a la vez) | PDFium no es seguro entre hilos (§2.2): paralelizar no da nada y bloquea |
+| Selector de archivos por `comdlg32` | el otro no abría en el paquete publicado (2026-09-04) |
+
+### 5. Qué no pude medir y qué habría que medir primero
+
+1. **El desglose del GB.** No sé cuánto es montón administrado, cuánto arena de ONNX Runtime,
+   cuánto superficies de WinUI. La sonda que lo parte es R-0 con `--soltar-ocr`: si al desechar
+   `LecturaDePdf` bajan cientos de MiB, B-3 es la causa y R-2 la cierra; si no baja, la causa
+   está en B-2/B-13 o en WinUI y R-8 sube de prioridad. **Es lo primero que hay que medir, y lo
+   está midiendo el otro programador**: su número va antes que cualquier pase de este plan.
+2. **Milisegundos con la base real (37 documentos)** de los cinco lectores y de
+   `LlenarLosGrupos`: solo hay cifras con 3 000 inventados. Con 37 pueden ser despreciables, y
+   entonces R-5/R-6 no dan «rapidez» hoy, dan orden; hay que saberlo antes de encargarlas.
+3. **Tamaño del PNG por hoja** y **ms de la codificación/decodificación**: son la mitad de B-2 y
+   no están medidos.
+4. **Confirmaciones de SQLite en ms** en el disco del dueño (B-7): en un SSD pueden ser
+   despreciables; en un disco lento, segundos por tanda.
+5. **Si `Windows.Data.Pdf` pinta formularios rellenables**: sin eso, no se puede proponer para el
+   visor.
+6. **Si `EnableCpuMemArena = false` cuesta tiempo por hoja**: la documentación no lo dice.
+7. **Cuánto cuesta en C# recargar el motor** (opción A de R-2): la cifra de 2,2 s es del Python.
+
+### 6. Qué NO cubre esto y por qué
+
+- **No cubre la máquina del dueño.** Todo lo medido aquí y en `DECISIONES.md` es de esta máquina;
+  el «está lento» es de la suya. R-0 es lo que trae sus números aquí.
+- **No cubre el arranque del programa** (ventana lista en 868–1 108 ms medidos el 2026-09-04): el
+  dueño no lo nombró y no vi bifurcación ahí.
+- **No cubre reescribir los ocho modelos de fila en uno.** Sería el «río único» más puro, pero
+  cada uno lleva palabras y colores decididos por el dueño pantalla a pantalla; unificar la
+  pintura es riesgo de cambiarle lo que ve. Se unifica el manantial (R-6), no la pintura.
+- **No cubre `x:Load`** más que como nota (§2.3): los marcos escondidos de Corrección son pocos y
+  su memoria es pequeña frente a una hoja de 8,5 MiB.
+- **Supuestos del encargo que cuestioné:** (1) que «1 GB» sea del programa y no de la suma con
+  otros procesos del dueño — no lo puedo saber sin su cuaderno; (2) que «lento» sea rapidez y no
+  la ventana congelada mientras rasteriza — leyendo el código, lo segundo es lo que veo (B-4), y
+  por eso R-1 va antes que R-6; (3) que «simple» sea menos líneas — el código está bien partido;
+  lo que sobra no son líneas, son **pasadas** sobre lo mismo.
+- **Preguntas que me hice sin que nadie me las pidiera:** ¿por qué el visor rasteriza a 1 700
+  si el panel mide ~600 px? Porque el zoom llega al 200 % (`Encuadre.PasosDeZoom`); a menos
+  resolución se vería borroso al ampliar: por eso R-1 propone caché y no bajar el tope. ¿Hace
+  falta OCR entero para encontrar la banda de un campo al abrir Corrección? Solo cuando la
+  importación no dejó la banda (`PlanearLasBandas`, `:99-101`): si la importación la deja siempre,
+  ese camino desaparece solo; conviene medir en cuántos documentos reales se dispara.
+
+## Informe del 2026-09-15 del Claude del PC del dueño, sobre su base real (cita; NO lo ha comprobado el supervisor)
+
+El dueño puso a su Claude local a medir `Documents\Fichas` (solo lectura, sin nombres) y pasó el informe. Lo que dice, en resumen, y que gobierna el pase del «PDF pegado»:
+- 76 casos; ninguna `ruta_pdf` compartida por más de un caso. Cuatro pares de FORD2610 importados dos veces desde carpetas distintas con el mismo contenido byte a byte (76↔69, 77↔70, 78↔71, 89↔72), sin `duplicado_de`: la importación de la carpeta raíz entera del 14-09 (66 docs → 78 casos, 62 duplicados avisados) los creó y los borrados en bloque del 15 no los alcanzaron.
+- 9 rutas de casos archivados apuntan a archivos que ya no existen (carpetas renombradas a «... Complete»); 4 rutas con caracteres mal codificados que sí existen.
+- Los PDF del FORD2610: 0,63–0,67 MB, 1 hoja, sanos.
+- `fichas.log`: cada entrada a Corrección abre DOS casos —el primero del primer grupo (hoy el 76), que nadie pidió, y 250 ms después el elegido—; el OCR de bandas no se cancela y se acumula (hasta 5 en vuelo; 11–18 s sueltos, 27–58 s en paralelo); 29 de 54 trabajos sin línea de fin; el tiempo de abrir un caso sube de 241 a 2 178 ms en la sesión.
+- Su lectura: el documento que se superpone es el primero del primer grupo, cuyo OCR termina tarde y pinta sobre lo que esté en pantalla; lo acumulado explica la lentitud y parte de la memoria.
+
+Lo que el supervisor midió en el código al recibirlo: `BuscarLasBandas` (`PaginaDeCorreccion.xaml.cs:150-176`) descarta el resultado si el caso cambió pero no cancela el trabajo (0 `CancellationToken` en Corrección) y lee `_modelo` dentro del `Task.Run`; `PaginaDeCorreccion.Grupos.cs:155,235` selecciona el índice 0 y abre; el visor pinta con `_ = ComponerYPintar(imagen)` sin numerar. Pasado entero al programador del pase con cinco observables nuevos de cierre.

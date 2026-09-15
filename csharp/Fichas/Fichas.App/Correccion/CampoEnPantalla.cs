@@ -108,6 +108,20 @@ public sealed class CampoEnPantalla
     /// </remarks>
     public string NombreDeLaCasillaDeAusente => $"No está en el papel: {NombreParaElLector}";
 
+    /// <summary>
+    /// Como se llama el enlace del rotulo del papel, para quien no ve la pantalla y para la
+    /// nota al pasar el raton: dice de que campo es y en que hoja se leyo, si se sabe.
+    /// </summary>
+    /// <remarks>
+    /// Existe desde el 2026-09-15, cuando el rotulo paso a ser la accion explicita de ir a la
+    /// hoja del campo (<see cref="LaHojaQueManda"/>). Con doce fichas en el repetidor, doce
+    /// enlaces llamados «Name» no dirian a donde lleva cada uno; la hoja va dentro porque es
+    /// justo lo que el dueno quiere saber antes de pulsar.
+    /// </remarks>
+    public string NombreDelEnlaceDelPapel => PaginaPdf is int hoja
+        ? $"Ver dónde se leyó: {NombreParaElLector} (hoja {hoja})"
+        : $"Ver dónde se leyó: {NombreParaElLector}";
+
     /// <summary>La etiqueta con la persona delante, para nombrarlo en el pie sin ambiguedad.</summary>
     /// <remarks>
     /// Con cuatro personas, «Cedula» a secas no dice cual se quedo sin guardar, que es

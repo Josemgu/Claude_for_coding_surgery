@@ -106,7 +106,11 @@ public sealed partial class ModeloDeCorreccion
             Nombre = comoSeLlama,
             Mrn = suCedula,
             FilaFormulario = LaFilaQueSigue(),
-            PaginaPdf = _caso.PaginaPdf,
+            // La hoja que el dueno tiene delante, no la que abrio el caso: hasta el 2026-09-15
+            // heredaba la del caso, y con la factura en la 1 y el formulario en la 2, la persona
+            // tecleada mirando la 2 nacia en la 1 y enfocar su nombre devolvia el visor a la
+            // factura (ModeloDeCorreccion.Hoja.cs). Sin pantalla las dos son la misma.
+            PaginaPdf = HojaDelante,
         });
 
         if (!escritura.SeEscribio)

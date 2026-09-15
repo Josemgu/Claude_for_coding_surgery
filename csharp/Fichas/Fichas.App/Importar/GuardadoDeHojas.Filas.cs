@@ -21,10 +21,11 @@ public sealed partial class GuardadoDeHojas
     /// <param name="campos">Los mismos campos, ya repartidos entre caso y personas.</param>
     /// <param name="numeroCaso">El número de caso que leyó esta hoja, o nulo.</param>
     /// <param name="casosDeEsteDocumento">Número de caso → id del caso abierto por una hoja anterior de este PDF; se le añade esta hoja si es la primera con su número.</param>
+    /// <param name="rutaDelPapel">La ruta que guarda el caso y con la que se busca «la misma hoja del mismo archivo»: la copia del escaneo.</param>
     /// <returns>Un resultado con <c>Entro</c> falso si la base no dejó entrar el caso ni retirando campos.</returns>
     private ResultadoDeLaHoja AbrirUnCasoParaEstaHoja(
         HojaLeida hoja, CamposDeLaHoja campos, string? numeroCaso,
-        Dictionary<string, long> casosDeEsteDocumento)
+        Dictionary<string, long> casosDeEsteDocumento, string rutaDelPapel)
     {
         // La hermana se lee antes del alta porque el alta escribe en el diccionario del
         // documento, y entonces esta hoja se encontraria a si misma como su propia hermana.
@@ -35,15 +36,16 @@ public sealed partial class GuardadoDeHojas
 
         var mrn = campos.Personas.Select(persona => persona.ValorDelMrn)
             .Where(valor => valor is not null).Select(valor => valor!).ToArray();
-        var duplicadoDe = _duplicados.CasoDelQueEsDuplicado(numeroCaso, mrn, hoja.RutaPdf, hoja.Pagina);
+        var duplicadoDe = _duplicados.CasoDelQueEsDuplicado(numeroCaso, mrn, rutaDelPapel, hoja.Pagina);
 
-        var alta = DarDeAltaElCaso(hoja, campos, numeroCaso, duplicadoDe);
+        var alta = DarDeAltaElCaso(hoja, campos, numeroCaso, duplicadoDe, rutaDelPapel);
         if (alta.CasoId is null)
         {
             return HojaQueNoSePudoGuardar(hoja, alta.Avisos);
         }
 
         GuardarLaProcedenciaDelCaso(alta.CasoId.Value, campos);
+        _duplicados.Recordar(rutaDelPapel, hoja.Pagina, alta.CasoId.Value);
 
         // ⚠️ El nulo NUNCA entra en el diccionario del documento: con la clave «no se sabe
         // el numero», la segunda hoja sin numero se uniria a la primera y dos familias
@@ -120,8 +122,9 @@ public sealed partial class GuardadoDeHojas
     /// <param name="campos">Los campos del caso, ya repartidos.</param>
     /// <param name="numeroCaso">El número de caso leído, o nulo.</param>
     /// <param name="duplicadoDe">El id del caso que esta hoja repite, o nulo; se guarda tal cual.</param>
+    /// <param name="rutaDelPapel">La ruta que guarda el caso: la copia del escaneo, o el original si no se pudo copiar.</param>
     private AltaDelCaso DarDeAltaElCaso(
-        HojaLeida hoja, CamposDeLaHoja campos, string? numeroCaso, long? duplicadoDe)
+        HojaLeida hoja, CamposDeLaHoja campos, string? numeroCaso, long? duplicadoDe, string rutaDelPapel)
     {
         var caso = new Caso
         {
@@ -132,7 +135,7 @@ public sealed partial class GuardadoDeHojas
             UnidadNombre = campos.ValorDe(CamposDeLaHoja.CampoUnidadNombre),
             TemploNombre = campos.ValorDe(CamposDeLaHoja.CampoTemploNombre),
             CapturaManual = hoja.CapturaManual,
-            RutaPdf = hoja.RutaPdf,
+            RutaPdf = rutaDelPapel,
             PaginaPdf = hoja.Pagina >= 1 ? hoja.Pagina : null,
         };
 
@@ -348,8 +351,20 @@ public sealed partial class GuardadoDeHojas
             MotivosDeIlegible.CampoNoAceptado =>
                 "La base no aceptó lo que se leyó en un campo de esta hoja: la hoja entró SIN él, con todo " +
                 "lo demás dentro y con sus personas. Lo que decía el papel está guardado y se teclea a mano.",
+            MotivosDeIlegible.FormularioDesconocido =>
+                "Esta hoja no es un formulario de recomendación: no se encontró ninguna de sus etiquetas. " +
+                "No abrió documento ni se unió a ninguno.",
             _ => "El lector no pudo sacar nada de esta hoja.",
         };
+
+        // De la hoja de otra clase se copia su aviso, que ya dice que se leyo; los nueve
+        // «no se encontro la etiqueta» de la extraccion no van: son el motivo dicho nueve
+        // veces, y un renglon de diez lineas no lo lee nadie.
+        if (motivo == MotivosDeIlegible.FormularioDesconocido)
+        {
+            var elAviso = resultado.Avisos.FirstOrDefault(aviso => aviso.Detalle is not null);
+            return elAviso is null ? propio : $"{propio} {elAviso.Detalle}";
+        }
 
         // ⚠️ De un aviso se copia su LINEA, menos en uno. El renglon sobrevive a la tanda y
         // la franja no: si el valor que leyo la otra hoja se quedara solo en el detalle del

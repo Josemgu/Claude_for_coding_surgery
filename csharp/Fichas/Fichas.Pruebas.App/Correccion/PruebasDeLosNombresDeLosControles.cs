@@ -163,4 +163,33 @@ public sealed class PruebasDeLosNombresDeLosControles
             Assert.AreNotEqual("Está bien", campo.NombreDelBotonDeFirma);
         }
     }
+
+    /// <summary>El enlace del rotulo del papel dice DE QUE campo es y EN QUE hoja se leyo: es la accion explicita de ir a esa hoja.</summary>
+    /// <remarks>
+    /// Desde el 2026-09-15 enfocar un campo no cambia de hoja; el rotulo del papel es lo que
+    /// si la cambia, y solo al pulsarlo. Doce enlaces llamados «Name» no dirian a donde lleva
+    /// cada uno; la hoja va dentro porque es lo que hay que saber antes de pulsar.
+    /// </remarks>
+    [TestMethod]
+    public void ElEnlaceDelPapelDiceDeQueCampoEsYEnQueHoja()
+    {
+        var campos = CamposDelCaso();
+        var nombres = campos.Select(campo => campo.NombreDelEnlaceDelPapel).ToList();
+
+        Assert.AreEqual(nombres.Count, nombres.Distinct(StringComparer.Ordinal).Count());
+        foreach (var campo in campos)
+        {
+            Assert.Contains(campo.NombreParaElLector, campo.NombreDelEnlaceDelPapel, StringComparison.Ordinal);
+            Assert.Contains("hoja 1", campo.NombreDelEnlaceDelPapel, StringComparison.Ordinal);
+        }
+    }
+
+    /// <summary>Un campo que no sabe de que hoja salio no se inventa una: el enlace dice el campo y nada mas.</summary>
+    [TestMethod]
+    public void ElEnlaceDelPapelNoInventaHoja()
+    {
+        var campo = new CampoEnPantalla { Etiqueta = "Templo", Campo = "templo_nombre", PaginaPdf = null };
+
+        Assert.AreEqual("Ver dónde se leyó: Templo", campo.NombreDelEnlaceDelPapel);
+    }
 }

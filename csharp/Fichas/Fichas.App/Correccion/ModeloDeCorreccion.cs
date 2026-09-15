@@ -209,6 +209,7 @@ public sealed partial class ModeloDeCorreccion
         _respuestas = [];
 
         _caso = _casos.Obtener(casoId);
+        VolverALaHojaDelCaso();
         if (_caso is null)
         {
             _personasDelCaso = [];
@@ -291,14 +292,22 @@ public sealed partial class ModeloDeCorreccion
         return porId;
     }
 
-    /// <summary>Apunta lo que hay escrito ahora en un campo; se revalida en el acto.</summary>
+    /// <summary>Apunta lo que hay escrito ahora en un campo, y con qué hoja delante; se revalida en el acto.</summary>
     /// <remarks>
     /// Se revalida al teclear y no al guardar: un campo que se pone rojo media hora despues
     /// obliga a volver a buscar donde estaba el error (<c>interfaz/campo.py</c>).
+    /// <para>
+    /// La hoja se apunta aquí y no al guardar, y es a propósito: de dónde salió lo escrito se
+    /// sabe en el momento de escribirlo (<c>ModeloDeCorreccion.Hoja.cs</c>).
+    /// </para>
     /// </remarks>
     /// <param name="clave">La clave del campo, la que compone <see cref="CampoEnPantalla.ClaveDe"/>.</param>
     /// <param name="valor">Lo que hay en el cuadro ahora; nulo o vacio significa «se vacio».</param>
-    public void Teclear(string clave, string? valor) => _tecleado[clave] = valor;
+    public void Teclear(string clave, string? valor)
+    {
+        _tecleado[clave] = valor;
+        ApuntarLaHojaDeLoTecleado(clave);
+    }
 
     /// <summary>Lo que hay escrito ahora mismo en ese campo; vacio devuelve nulo.</summary>
     /// <remarks>

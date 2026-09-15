@@ -64,6 +64,28 @@ public sealed class BuscadorDeDuplicados
         return porMrn ?? CasoDeLaMismaHoja(rutaPdf, paginaPdf);
     }
 
+    /// <summary>
+    /// Apunta un caso que acaba de nacer en ESTA tanda, para que la siguiente hoja igual lo
+    /// encuentre.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Sin esto, dos copias de la misma ficha dentro de la MISMA tanda no se marcaban:
+    /// el indice se construye una vez por tanda, antes de que nazca ninguno de sus casos, y
+    /// la segunda copia buscaba a la primera en un indice que no la tenia. Es lo que dejo
+    /// cuatro pares sin marca en la base del dueño el 2026-09-14 (medido en su maquina el
+    /// 2026-09-15: misma ficha en «HAITI OCtubre\» y en «Octubre\», importadas en una sola
+    /// tanda de 66 documentos). Si el indice todavia no se construyo, no hay nada que
+    /// apuntar: se construira despues y ya vera el caso en la base.
+    /// </remarks>
+    /// <param name="rutaPdf">La ruta que guardo el caso.</param>
+    /// <param name="paginaPdf">La hoja, base 1; cero o menos no se apunta.</param>
+    /// <param name="casoId">El caso recién nacido.</param>
+    public void Recordar(string rutaPdf, int paginaPdf, long casoId)
+    {
+        if (_porHoja is null || string.IsNullOrWhiteSpace(rutaPdf) || paginaPdf < 1) return;
+        _porHoja.TryAdd(Clave(rutaPdf, paginaPdf), casoId);
+    }
+
     /// <summary>Se olvida de lo que tenia apuntado; se llama al empezar cada tanda.</summary>
     /// <remarks>
     /// Sin esto, el indice de una tanda anterior no veria los casos que acaba de crear
@@ -138,8 +160,13 @@ public sealed class BuscadorDeDuplicados
         }
     }
 
-    /// <summary>La clave del índice por hoja: ruta y página separadas por una barra vertical.</summary>
+    /// <summary>La clave del índice por hoja: lo que identifica al papel y la página, separados por una barra vertical.</summary>
+    /// <remarks>
+    /// Desde el 2026-09-15 el papel se identifica por <see cref="CopiaDelEscaneo.IdentidadDelPapel"/>:
+    /// la huella del contenido cuando la ruta es una copia, y la ruta entera cuando no. Así la
+    /// misma ficha importada desde dos carpetas con otro nombre es la misma hoja del mismo papel.
+    /// </remarks>
     /// <param name="rutaPdf">El archivo.</param>
     /// <param name="paginaPdf">La página del PDF, base 1.</param>
-    private static string Clave(string rutaPdf, int paginaPdf) => $"{rutaPdf}|{paginaPdf}";
+    private static string Clave(string rutaPdf, int paginaPdf) => $"{CopiaDelEscaneo.IdentidadDelPapel(rutaPdf)}|{paginaPdf}";
 }

@@ -231,8 +231,11 @@ public sealed partial class PaginaDeCorreccion
         _cambiandoDeCaso = false;
 
         // Elegir un grupo tiene que ABRIR algo: un desplegable lleno con la pantalla del
-        // documento anterior detras se lee como que elegir el grupo no hizo nada.
-        if (entradas[donde].Id != _casoAbierto) AbrirElCaso(entradas[donde].Id);
+        // documento anterior detras se lee como que elegir el grupo no hizo nada. Al LLEGAR
+        // es distinto: se abre despues y solo si nadie pide otro (PaginaDeCorreccion.Papel.cs).
+        if (entradas[donde].Id == _casoAbierto) return;
+        if (_llegando) AbrirSiNadiePideOtro(entradas[donde].Id);
+        else AbrirElCaso(entradas[donde].Id);
     }
 
     /// <summary>Se eligio otro grupo: se rehace la lista de documentos y se abre el primero.</summary>

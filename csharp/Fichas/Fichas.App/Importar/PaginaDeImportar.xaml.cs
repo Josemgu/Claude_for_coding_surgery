@@ -26,7 +26,7 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
     /// <summary>Monta la pantalla.</summary>
     public PaginaDeImportar() => InitializeComponent();
 
-    /// <summary>Deja dicho si el lector no esta disponible, en vez de fallar al pulsar.</summary>
+    /// <summary>Deja dicho si el lector no esta disponible, en vez de fallar al pulsar; y dice qué hay que comprobar de los papeles.</summary>
     protected override void AlLlegar()
     {
         if (Servicios?.SonDatosInventados == true)
@@ -37,6 +37,10 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
                 "El programa se abrió con datos de ejemplo, así que no hay dónde guardar lo que se importe.";
             _zonaDeProgreso.Visibility = Visibility.Visible;
         }
+
+        // Lo de los papeles se mira al llegar y sin OCR: leer la base y el disco cuesta lo que
+        // cuesta listar los casos y preguntar si existe cada archivo. Esta en PaginaDeImportar.Papeles.cs.
+        if (Servicios is not null) PintarLosPapeles(Servicios);
     }
 
     /// <summary>Abre el selector de archivos y arranca la tanda con lo que se elija.</summary>
@@ -204,7 +208,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
         var motor = new MotorDeImportacion(
             new GuardadoDeHojas(
                 servicios.Casos, servicios.Personas, servicios.Procedencia,
-                servicios.Ilegibles, servicios.Reloj),
+                servicios.Ilegibles, servicios.Reloj,
+                new CopiaDelEscaneo(servicios.Argumentos.CarpetaDeDatos)),
             lector.LeerDocumento);
 
         PonerEnMarcha(rutas.Count);

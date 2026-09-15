@@ -87,6 +87,31 @@ public static class MotivosDeIlegible
     public const string CampoNoAceptado = "campo_no_aceptado";
 
     /// <summary>
+    /// La hoja no es un formulario de recomendación: no se encontró ninguna de sus nueve
+    /// etiquetas impresas. No abre caso.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Codigo NUEVO del 2026-09-15. Medido con el lector real sobre un impreso sintetico
+    /// de otra clase: 9 de 9 etiquetas ausentes y un solo campo, el token «FORD2610» con
+    /// forma de numero de caso. Sin este codigo, ese impreso nacia como caso «FORD2610 · sin
+    /// unidad leida · 0 personas», que es lo que el dueño vio en su lista. El motivo entero
+    /// esta en <c>GuardadoDeHojas.Papel.cs</c>.
+    /// </remarks>
+    public const string FormularioDesconocido = "formulario_desconocido";
+
+    /// <summary>
+    /// El archivo del que salio el caso contiene hoy OTRO papel: el caso se quedo sin escaneo.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Codigo NUEVO del 2026-09-15. Lo escribe la comprobacion de los papeles
+    /// (<see cref="ComprobacionDeLosPapeles"/>) cuando varios documentos apuntan a la misma
+    /// hoja del mismo archivo con numeros distintos y lo que hay en el archivo es de otro:
+    /// los que no son de ese papel pierden la ruta, y este renglon dice donde estaba y que
+    /// hay ahora ahi.
+    /// </remarks>
+    public const string PapelPerdido = "papel_perdido";
+
+    /// <summary>
     /// Como se lee ese codigo en una pantalla, en espanol.
     /// </summary>
     /// <remarks>
@@ -111,6 +136,8 @@ public static class MotivosDeIlegible
         LoLeyoOtraHoja => "lo leyó otra hoja del mismo documento",
         NumeroNoAceptado => "la base no aceptó el número de caso leído",
         CampoNoAceptado => "la base no aceptó un campo leído",
+        FormularioDesconocido => "no es un formulario de recomendación",
+        PapelPerdido => "el archivo contiene hoy otro papel: el documento se quedó sin escaneo",
         null or "" => "sin motivo anotado",
         _ => codigo,
     };

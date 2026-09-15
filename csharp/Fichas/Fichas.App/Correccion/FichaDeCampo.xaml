@@ -42,15 +42,28 @@
                     Grid.Column="0"
                     FontWeight="SemiBold"
                     Text="" />
-                <TextBlock
+                <!--
+                    El rotulo del papel es un ENLACE desde el 2026-09-15: pulsarlo lleva el
+                    visor a la hoja donde se leyo el campo y le ilumina la banda. Es la accion
+                    explicita que sustituye al salto automatico al enfocar, que era el defecto
+                    «el documento salta a la primera hoja de la factura». Enfocar el cuadro ya
+                    no cambia de hoja; esto si, y solo porque se pulsa.
+                -->
+                <HyperlinkButton
                     x:Name="_enElPapel"
                     Grid.Column="1"
+                    Padding="2,0"
                     VerticalAlignment="Bottom"
+                    AutomationProperties.Name="Ver en el papel dónde se leyó este campo"
+                    Click="AlPulsarVerDondeSeLeyo"
                     FontSize="11"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text=""
-                    TextTrimming="CharacterEllipsis"
-                    TextWrapping="NoWrap" />
+                    ToolTipService.ToolTip="Ver en el papel dónde se leyó este campo">
+                    <TextBlock
+                        x:Name="_textoDelPapel"
+                        Text=""
+                        TextTrimming="CharacterEllipsis"
+                        TextWrapping="NoWrap" />
+                </HyperlinkButton>
                 <TextBlock
                     x:Name="_palabra"
                     Grid.Column="2"

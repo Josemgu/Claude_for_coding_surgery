@@ -125,6 +125,9 @@ public sealed partial class VisorDelDocumento : UserControl
     /// <summary>La escala PEDIDA al lienzo, que va un turno por delante de la suya; ver la nota de arriba.</summary>
     private double _zoomPedido = 1.0;
 
+    /// <summary>El turno de la ultima hoja pedida; una composicion que vuelva con un turno viejo no se pinta.</summary>
+    private readonly TurnoDePintado _turnoDeLaImagen = new();
+
     /// <summary>Monta el visor y ata el raton. Nace vacio hasta que le den una hoja.</summary>
     public VisorDelDocumento()
     {
@@ -191,6 +194,9 @@ public sealed partial class VisorDelDocumento : UserControl
     /// <param name="motivoSiNoHay">Lo que se escribe sobre el papel en blanco cuando no hay imagen.</param>
     public void MostrarHoja(ImagenDePagina? imagen, int totalDeHojas, string motivoSiNoHay)
     {
+        // El turno se pide SIEMPRE, tambien cuando no hay imagen: una composicion en camino de
+        // la hoja anterior tiene que quedarse vieja aunque lo que venga ahora sea «sin escaneo».
+        var turno = _turnoDeLaImagen.Pedir();
         TotalDeHojas = totalDeHojas;
         if (imagen is not null)
         {
@@ -213,22 +219,29 @@ public sealed partial class VisorDelDocumento : UserControl
         }
 
         Decir(string.Empty);
-        _ = ComponerYPintar(imagen);
+        _ = ComponerYPintar(imagen, turno);
     }
 
     /// <summary>
-    /// Compone el PNG y lo pone en la hoja. Un fallo NO se calla: se escribe y se avisa.
+    /// Compone el PNG y lo pone en la hoja, si para entonces sigue siendo la hoja que toca. Un
+    /// fallo NO se calla: se escribe y se avisa.
     /// </summary>
     /// <remarks>
-    /// Se atrapa <see cref="Exception"/> a secas, que es lo contrario de lo que este proyecto
+    /// <para>Se atrapa <see cref="Exception"/> a secas, que es lo contrario de lo que este proyecto
     /// hace en casi todos los demas sitios, y por el mismo motivo que
     /// <c>MotorDeImportacion</c>: por debajo hay codigo nativo de composicion de mapas de
     /// bits que levanta lo suyo, y una lista de tipos seria la lista de los fallos que se me
     /// ocurrieron. <b>Atrapar para callar esta prohibido; atrapar para convertirlo en una
-    /// linea que Miguel puede leer es lo contrario.</b>
+    /// linea que Miguel puede leer es lo contrario.</b></para>
+    ///
+    /// <para>⚠️ <b>El turno es el arreglo del 2026-09-15.</b> Dos hojas pedidas seguidas —la del
+    /// caso que se abria sin pedirlo y la del elegido— componian sus mapas de bits a la vez, y
+    /// ganaba la que terminaba la ULTIMA, no la ultima pedida: el papel de un caso sobre los
+    /// campos de otro. Ahora lo que vuelve con un turno viejo no se pinta.</para>
     /// </remarks>
     /// <param name="imagen">La hoja con sus bytes PNG; aqui ya se sabe que trae alguno.</param>
-    private async Task ComponerYPintar(ImagenDePagina imagen)
+    /// <param name="turno">El turno que pidio <see cref="MostrarHoja"/> para esta hoja.</param>
+    private async Task ComponerYPintar(ImagenDePagina imagen, long turno)
     {
         try
         {
@@ -241,6 +254,7 @@ public sealed partial class VisorDelDocumento : UserControl
             escritor.DetachStream();
             flujo.Seek(0);
             await mapa.SetSourceAsync(flujo);
+            if (!_turnoDeLaImagen.SigueVigente(turno)) return;
             _imagen.Source = mapa;
         }
         catch (Exception fallo)

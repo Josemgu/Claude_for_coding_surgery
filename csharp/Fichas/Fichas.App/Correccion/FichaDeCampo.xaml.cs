@@ -29,6 +29,11 @@ public sealed partial class FichaDeCampo : UserControl
     /// <remarks>
     /// Sin esta guarda, poner el texto o la casilla al repintar dispararia los mismos sucesos
     /// que una pulsacion suya, y repintar acabaria escribiendo en el almacen.
+    /// <para>
+    /// ⚠️ Para el cuadro de texto NO basta: <c>TextChanged</c> llega asincrono, cuando esto ya
+    /// bajo (medido el 2026-09-15; ver la nota en <see cref="Mostrar"/>). Por eso el cuadro se
+    /// pinta con el valor actual del modelo, para que ese suceso tardio no cambie nada.
+    /// </para>
     /// </remarks>
     private bool _pintando;
 
@@ -41,8 +46,14 @@ public sealed partial class FichaDeCampo : UserControl
     /// <summary>Salta al teclear, para que la pantalla vuelva a contar.</summary>
     public event EventHandler? Tecleo;
 
-    /// <summary>Salta al tomar el foco, para que el visor ilumine la banda del campo.</summary>
+    /// <summary>Salta al tomar el foco, para que el visor ilumine la banda del campo. NO cambia de hoja.</summary>
     public event EventHandler? TomoElFoco;
+
+    /// <summary>
+    /// Salta cuando Miguel pulsa el rotulo del papel: quiere ver en que hoja y donde se leyo
+    /// este campo. Es la unica accion que cambia de hoja desde una ficha, y solo porque se pulso.
+    /// </summary>
+    public event EventHandler? PidioVerDondeSeLeyo;
 
     /// <summary>Salta cuando Miguel pulsa «Esta bien». Nunca salta solo.</summary>
     public event EventHandler? PidioFirmar;
@@ -68,8 +79,17 @@ public sealed partial class FichaDeCampo : UserControl
 
         _pintando = true;
         _etiqueta.Text = campo.Etiqueta;
-        _enElPapel.Text = campo.EtiquetaDelPapel;
-        _valor.Text = campo.ValorGuardado ?? string.Empty;
+        _textoDelPapel.Text = campo.EtiquetaDelPapel;
+        // ⚠️ Se pinta lo que el modelo tiene AHORA —lo tecleado si lo hay, y si no lo guardado—
+        // y no solo lo guardado, y es por un defecto medido con la ventana abierta el
+        // 2026-09-15: tras teclear la unidad y anadir una persona a mano, las fichas se rehacen,
+        // y el cuadro se pintaba con lo guardado (vacio). La guarda de arriba no bastaba:
+        // «TextChanged» en WinUI 3 es ASINCRONO —lo dice la documentacion de TextChanging:
+        // «the TextChanged event is asynchronous and occurs after the new text is rendered»—,
+        // asi que llegaba con _pintando ya en falso y tecleaba «» en el modelo: la unidad se
+        // perdia y Guardar decia «1 campo». Con el valor actual, ese suceso tardio devuelve lo
+        // mismo que ya hay y no borra nada.
+        _valor.Text = modelo.ValorDe(campo) ?? string.Empty;
         _valor.IsReadOnly = campo.SoloLectura;
         // Un campo que no se puede tocar tampoco gasta una parada de tabulacion.
         _valor.IsTabStop = !campo.SoloLectura;
@@ -153,6 +173,9 @@ public sealed partial class FichaDeCampo : UserControl
         AutomationProperties.SetAutomationId(_botonDeFirma, $"firma:{campo.Clave}");
         AutomationProperties.SetName(_noEstaEnElPapel, campo.NombreDeLaCasillaDeAusente);
         AutomationProperties.SetAutomationId(_noEstaEnElPapel, $"ausente:{campo.Clave}");
+        AutomationProperties.SetName(_enElPapel, campo.NombreDelEnlaceDelPapel);
+        AutomationProperties.SetAutomationId(_enElPapel, $"papel:{campo.Clave}");
+        ToolTipService.SetToolTip(_enElPapel, campo.NombreDelEnlaceDelPapel);
         AutomationProperties.SetName(this, campo.NombreParaElLector);
     }
 
@@ -181,6 +204,9 @@ public sealed partial class FichaDeCampo : UserControl
 
     /// <summary>Avisa de que este campo tiene el foco, para que se ilumine su banda.</summary>
     private void AlTomarElFoco(object quien, RoutedEventArgs cuando) => TomoElFoco?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Miguel pulso el rotulo del papel: pide ver en que hoja y donde se leyo este campo.</summary>
+    private void AlPulsarVerDondeSeLeyo(object quien, RoutedEventArgs cuando) => PidioVerDondeSeLeyo?.Invoke(this, EventArgs.Empty);
 
     /// <summary>Pide firmar. Regla permanente 5: esto solo ocurre porque Miguel lo pulso.</summary>
     private void AlPulsarLaFirma(object quien, RoutedEventArgs cuando) => PidioFirmar?.Invoke(this, EventArgs.Empty);

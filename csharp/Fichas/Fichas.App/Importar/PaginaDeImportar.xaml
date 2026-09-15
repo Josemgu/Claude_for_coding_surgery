@@ -287,6 +287,44 @@
                 </StackPanel>
             </Border>
 
+            <!--
+                Los papeles de los documentos: el arreglo de datos del 2026-09-15 para una
+                base que ya tiene el dano. Siempre a la vista, no solo tras una tanda: la base
+                del dueno lo necesita sin importar nada. Lo que hay lo dice la linea al llegar
+                (leer la base y el disco, sin OCR); el boton lee con OCR solo lo que hace
+                falta para decidir, en otro hilo, y escribe en este. Sin cuadro: no borra
+                nada, y todo lo que cambia queda en la franja y en el cuaderno.
+            -->
+            <Border
+                x:Name="_zonaDeLosPapeles"
+                Padding="16,12"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="4">
+                <StackPanel Spacing="10">
+                    <TextBlock FontWeight="SemiBold" Text="Los papeles de los documentos" />
+                    <TextBlock
+                        x:Name="_lineaDeLosPapeles"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        IsTextSelectionEnabled="True"
+                        Text=""
+                        TextWrapping="Wrap" />
+                    <Button
+                        x:Name="_botonDeComprobarLosPapeles"
+                        Click="AlComprobarLosPapeles"
+                        Content="Comprobar que cada documento tiene su papel" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        TextWrapping="Wrap">
+                        Mira si varios documentos reclaman la misma hoja del mismo archivo, si algún escaneo
+                        ya no está donde estaba, y si dos documentos tienen el mismo archivo byte a byte.
+                        Lee con el lector solo lo que hace falta para decidir, y no adivina: lo que no se
+                        puede decidir se dice. No borra nada.
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
             <TextBlock
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                 TextWrapping="Wrap">

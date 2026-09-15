@@ -4190,6 +4190,96 @@ cuenta `Estado == Completa` (lo que escribe el Excel): un archivado sin ese esta
 lee «resuelto» en personas y «me falta» en documentos. Decidir si el archivado cuenta
 como documento completo es suyo.
 
+## 2026-09-15 — EL PAPEL PEGADO Y EL GIGABYTE: lo que se midió y lo que se decidió
+
+Dos quejas del dueño el mismo día sobre la v13, con su base real de 76 casos: *«un PDF se
+queda pegado y se carga a lugares que no le corresponde… está pegado a todos los casos,
+se friza y se cierra solo»* y *«Fichas está consumiendo 1 GB de RAM; está lento»*. El
+Claude de su PC midió su base y su registro (informe citado en PENDIENTES.md, entrada del
+15): ninguna ruta compartida; cada entrada a Corrección abría dos casos; el OCR de bandas
+no se cancelaba y se acumulaba (hasta 5 en vuelo, 30–58 s cada uno).
+
+### El papel pegado (programador del papel; el supervisor repitió la suite: App 1 173)
+
+Tres piezas, todas medidas con la ventana abierta: (1) **doble apertura** al entrar a
+Corrección (`Grupos.cs` seleccionaba el índice 0 y abría antes de restaurar el elegido);
+(2) **el visor pintaba sin turno** (`ComponerYPintar` asíncrono suelto: la imagen que
+terminaba la última ganaba) y rasterizaba en el hilo de la ventana (un PDF de 44 MiB la
+congelaba 1 883–2 327 ms); (3) **un OCR de bandas por apertura, sin cancelar**. Ahora: una
+sola apertura (26 ms); turno de pintado con descarte de lo tardío; rasterizado fuera del
+hilo (abre en 20 ms, la ventana viva); una sola lectura de bandas en vuelo, cancelable
+(8 cambios seguidos: 5 canceladas, 1 descartada, 1 leída; antes 8 OCR).
+
+Y tres cosas más que salieron midiendo:
+- **Duplicado por contenido**: la misma ficha en dos carpetas (mismo SHA) no se marcaba
+  porque el índice por hoja no aprendía los casos nacidos en la misma tanda. Ahora sí.
+- **Impreso ajeno** (una clase de formulario que el lector no conoce, como el FORD2610 de
+  fondos de ayuda): queda como ilegible «formulario desconocido», sin caso.
+- **Botón «Comprobar que cada documento tiene su papel»** (Importar): arreglo de datos
+  para una base con daño; sobre una dañada a propósito: 3 rutas perdidas recuperadas por
+  carpetas hermanas, 1 par idéntico marcado como duplicado, 0 sin decidir; idempotente.
+
+**Decisión del programador, devuelta al dueño y aceptada por el supervisor salvo que él
+diga lo contrario:** cada caso guarda **una copia de su escaneo** en
+`Documentos\Fichas\escaneos\<nombre>-<huella>.pdf` y apunta a ella. Motivo medido: un
+escáner que reutiliza `Scan.pdf` pisaba el papel de casos anteriores, y renombrar carpetas
+(las 9 rutas «… Complete» del dueño) dejaba casos sin papel. Coste: dobla el disco de los
+escaneos (cientos de MB con miles de papeles). Lo que NO cubre: casos anteriores al 15
+siguen con su ruta original hasta que la comprobación los toque; `PlanearLasBandas` sigue
+pidiendo banda para el número de caso en cada apertura y nunca la hay (2,5 s de OCR por
+apertura que ahora es una sola y cancelable; deuda en PENDIENTES); RapidOcrNet no se
+puede abortar a medias.
+
+### El gigabyte (programador de memoria y programador de la arena; el supervisor repitió
+la suite: App 1 180, y NO repitió las sondas)
+
+Medido con el programa publicado y los 16 PDF del corpus: el programa vacío pesa 146 MiB;
+**la arena de memoria de ONNX Runtime dentro del motor de OCR** sube a 650 MiB con la
+primera hoja y a 1 230 con la segunda, y se queda porque el motor vive hasta cerrar. Las
+hojas del visor y las tarjetas no retienen nada.
+
+**Lo decidido:** `EnableCpuMemArena = false` en la sesión de ONNX (lo demás igual) y el
+motor se suelta solo tras 30 s sin leer (recargarlo cuesta 333–471 ms). Medido: sonda
+sobre la hoja mayor, privados tras OCR 1/2/3: **706/1 300/1 321 → 160/177/200 MiB**;
+programa publicado importando los 16: pico 1 577 → 1 069, tras importar 1 460 → 447, a los
+60 s 1 460 → **293 MiB**. Coste de tiempo por hoja: entre 0 y +10 % (máquina cargada).
+**La lectura no cambió**: 16 huellas SHA-256 por documento (26 hojas) idénticas, y por
+fin fijadas en la suite (`PruebaDeLaHuellaDeLaLectura`, 17 pruebas), que es la regla de
+no regresión de la lectura hecha prueba. Lectura 93 → 115.
+
+**Devuelto al dueño:** el pico transitorio durante la importación sigue en ~1 GB;
+`EnableMemoryPattern=false` lo bajaría a ~550 MiB con coste dentro del ruido; no se aplicó.
+El umbral de 30 s de reposo lo eligió el programador.
+
+## 2026-09-15 — LA HOJA QUE EL DUEÑO ELIGIÓ MANDA MIENTRAS ESCRIBE
+
+Sus palabras: *«Cuando un PDF tiene dos hojas, a veces la primera es solo una factura y la
+segunda es la correcta… al pasar a la segunda hoja y comenzar a escribir los datos, el
+documento salta de manera automática a la primera hoja de la factura y no te deja colocar
+la información.»*
+
+Medido por el supervisor en el código y reproducido por el programador con la ventana
+abierta (PDF sintético: hoja 1 factura con dos rótulos del formulario, hoja 2 el
+formulario): al enfocar un campo, `AlEnfocarUnCampo` mostraba la hoja de la que el campo
+se leyó; con la hoja 2 delante, teclear en «Unidad» devolvía el visor a la 1.
+
+**Lo decidido:** enfocar o teclear no cambia de hoja. Ir a la hoja del campo queda como
+acción explícita: un enlace por campo «Ver dónde se leyó (hoja N)». **Lo tecleado se anota
+como salido de la hoja de delante** (`pagina_pdf` del caso y de la persona añadida a
+mano), medido en la base: caso 1 → 2, persona nueva en la 2, procedencia `manual`.
+
+**Regla del programador, devuelta al dueño:** un dato que el lector NO trajo sale de la
+hoja de delante al teclearlo; un dato que SÍ leyó se queda en su hoja aunque se corrija
+mirando otra (evita que un nombre de la hoja 4 de un formulario de grupo pase a la 1 por
+arreglarle una letra). Alternativa: siempre la de delante.
+
+**Defecto previo encontrado y arreglado de paso:** teclear la unidad y añadir una persona
+perdía la unidad (también en master; `TextBox.TextChanged` es asíncrono según la
+documentación oficial y llegaba con la guarda de pintado ya bajada). **Lo que NO cubre:**
+importar sigue uniendo hojas por número de caso y no funde la unidad de la hoja 2 en un
+caso abierto en la 1 (decisión abierta del 08/10). Suite App 1 180 → 1 203, medida por el
+supervisor tras fusionar.
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

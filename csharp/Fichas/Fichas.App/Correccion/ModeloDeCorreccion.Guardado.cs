@@ -153,8 +153,10 @@ public sealed partial class ModeloDeCorreccion
             return new ResultadoDeGuardado(0, [], [], [problema], 0, "No hay ningún caso abierto.", 0, false);
         }
 
+        // Pasa por Teclear y no escribe en _tecleado directamente: asi lo que llega ya escrito
+        // lleva tambien la hoja de delante, como lo que se teclea en la pantalla.
         if (tecleado is not null)
-            foreach (var (clave, valor) in tecleado) _tecleado[clave] = valor;
+            foreach (var (clave, valor) in tecleado) Teclear(clave, valor);
 
         var firmadosAntes = CuantosFirmados;
         var avisos = new List<Aviso>();
@@ -573,7 +575,7 @@ public sealed partial class ModeloDeCorreccion
         var delCaso = porGuardar.Where(campo => campo.Tabla == TablaDeProcedencia.Casos).ToList();
         if (delCaso.Count == 0) return;
 
-        var nuevo = caso;
+        var nuevo = ConLaHojaDeLoNuevo(caso, delCaso);
         foreach (var campo in delCaso) nuevo = ConElCampo(nuevo, campo.Campo, ValorDe(campo));
 
         var resultado = _casos.Guardar(nuevo);
@@ -613,6 +615,7 @@ public sealed partial class ModeloDeCorreccion
                 continue;
             }
 
+            persona = ConLaHojaDeLoNuevo(persona, grupo);
             foreach (var campo in grupo) persona = ConElCampo(persona, campo.Campo, ValorDe(campo));
 
             var resultado = _personas.Guardar(persona);
@@ -664,6 +667,7 @@ public sealed partial class ModeloDeCorreccion
         {
             campo.ValorGuardado = ValorDe(campo);
             _tecleado.Remove(campo.Clave);
+            OlvidarLaHojaDeLoTecleado(campo.Clave);
             campo.Procedencia = _procedencia
                 .DeRegistro(campo.Tabla, campo.RegistroId)
                 .FirstOrDefault(p => p.Campo == campo.Campo);

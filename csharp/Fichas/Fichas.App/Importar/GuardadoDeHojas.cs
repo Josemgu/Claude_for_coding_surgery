@@ -36,6 +36,8 @@ public sealed partial class GuardadoDeHojas
     private readonly IReloj _reloj;
     /// <summary>Quien contesta de qué caso guardado repite una hoja; se vacía al empezar cada tanda.</summary>
     private readonly BuscadorDeDuplicados _duplicados;
+    /// <summary>Quien guarda la copia del escaneo que el caso apunta; ver <see cref="CopiaDelEscaneo"/>.</summary>
+    private readonly CopiaDelEscaneo _copias;
 
     /// <summary>Se ata a los cuatro repositorios y al reloj.</summary>
     /// <param name="casos">Repositorio de casos.</param>
@@ -43,15 +45,19 @@ public sealed partial class GuardadoDeHojas
     /// <param name="procedencia">Repositorio de procedencia de cada campo.</param>
     /// <param name="ilegibles">Repositorio de renglones de lo que no se pudo leer.</param>
     /// <param name="reloj">De dónde sale la fecha de hoy.</param>
+    /// <param name="copias">Quien guarda la copia de cada escaneo en la carpeta de datos; el caso apunta a esa copia.</param>
     public GuardadoDeHojas(
         ICasos casos, IPersonas personas, IProcedencia procedencia,
-        IIlegibles ilegibles, IReloj reloj)
+        IIlegibles ilegibles, IReloj reloj, CopiaDelEscaneo copias)
     {
+        ArgumentNullException.ThrowIfNull(copias);
+
         _casos = casos;
         _personas = personas;
         _procedencia = procedencia;
         _ilegibles = ilegibles;
         _reloj = reloj;
+        _copias = copias;
         _duplicados = new BuscadorDeDuplicados(casos, personas);
     }
 
@@ -68,6 +74,10 @@ public sealed partial class GuardadoDeHojas
     /// v9», punto 4) que las hojas de un PDF pueden ser documentos distintos y que agruparlas
     /// tiene que ser opción suya. Este método sigue uniéndolas por número de caso: esa
     /// decisión está abierta y no se programó aquí.</para>
+    /// <para>⚠️ Desde el 2026-09-15 el caso NO guarda la ruta del archivo que se leyó sino la de
+    /// su COPIA en la carpeta de datos (<see cref="CopiaDelEscaneo"/>), hecha una vez por
+    /// documento aquí. Los renglones de ilegibles siguen llevando la ruta original: es la que el
+    /// dueño busca en su carpeta para ir a mirar el papel.</para>
     /// </remarks>
     /// <param name="hojas">Las hojas del documento, en el orden del PDF.</param>
     /// <returns>Un resultado por hoja, en el mismo orden, aunque la hoja no dejara nada.</returns>
@@ -75,17 +85,18 @@ public sealed partial class GuardadoDeHojas
     {
         ArgumentNullException.ThrowIfNull(hojas);
 
+        var papel = PapelDelDocumento(hojas);
         var casosDeEsteDocumento = new Dictionary<string, long>(StringComparer.Ordinal);
         var salida = new List<ResultadoDeLaHoja>(hojas.Count);
 
         foreach (var hoja in hojas)
         {
-            var resultado = GuardarUnaHoja(hoja, casosDeEsteDocumento);
+            var resultado = GuardarUnaHoja(hoja, casosDeEsteDocumento, papel);
             AnotarLosRenglones(hoja, resultado);
             salida.Add(resultado);
         }
 
-        return salida;
+        return ConLosAvisosDeLaCopia(salida, papel);
     }
 
     /// <summary>Se olvida del indice de duplicados; se llama al empezar cada tanda.</summary>
@@ -94,7 +105,9 @@ public sealed partial class GuardadoDeHojas
     /// <summary>Guarda una hoja y dice que paso con ella.</summary>
     /// <param name="hoja">La hoja leída.</param>
     /// <param name="casosDeEsteDocumento">Número de caso → id del caso que abrió una hoja anterior de este mismo PDF.</param>
-    private ResultadoDeLaHoja GuardarUnaHoja(HojaLeida hoja, Dictionary<string, long> casosDeEsteDocumento)
+    /// <param name="papel">La copia del escaneo, que se hace la primera vez que una hoja abre caso; el caso guarda su ruta.</param>
+    private ResultadoDeLaHoja GuardarUnaHoja(
+        HojaLeida hoja, Dictionary<string, long> casosDeEsteDocumento, Lazy<CopiaGuardada> papel)
     {
         var campos = new CamposDeLaHoja(hoja.Campos);
 
@@ -106,9 +119,16 @@ public sealed partial class GuardadoDeHojas
             return HojaQueNoDejoNada(hoja);
         }
 
+        // Y una hoja que no es un formulario de recomendacion tampoco abre caso: deja su
+        // renglon con lo que se leyo. El motivo, medido, esta en GuardadoDeHojas.Papel.cs.
+        if (EsUnFormularioDesconocido(hoja))
+        {
+            return HojaDeOtraClase(hoja, campos);
+        }
+
         var numeroCaso = campos.ValorDe(CamposDeLaHoja.CampoNumeroCaso);
         var unida = UnirSiEsHojaDelMismoCaso(hoja, campos, numeroCaso, casosDeEsteDocumento);
-        return unida ?? AbrirUnCasoParaEstaHoja(hoja, campos, numeroCaso, casosDeEsteDocumento);
+        return unida ?? AbrirUnCasoParaEstaHoja(hoja, campos, numeroCaso, casosDeEsteDocumento, papel.Value.RutaDelPapel);
     }
 
     /// <summary>Lo que se devuelve de una hoja que no se pudo leer en absoluto.</summary>

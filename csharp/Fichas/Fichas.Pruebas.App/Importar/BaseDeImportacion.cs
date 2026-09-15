@@ -38,6 +38,16 @@ public abstract class BaseDeImportacion
     /// <summary>El guardado que se esta probando.</summary>
     protected GuardadoDeHojas Guardado { get; private set; } = null!;
 
+    /// <summary>
+    /// Donde el guardado deja su copia de cada escaneo: dentro de la carpeta de datos de la
+    /// prueba, como en el programa dentro de la del dueño.
+    /// </summary>
+    /// <remarks>
+    /// Entró el 2026-09-15 con el defecto del papel pegado: desde entonces un caso no guarda
+    /// la ruta del escáner sino la de su copia, y las pruebas necesitan saber dónde mirar.
+    /// </remarks>
+    protected CopiaDelEscaneo Copias { get; private set; } = null!;
+
     /// <summary>Abre una base nueva, migrada al dia, en una carpeta que nadie mas usa.</summary>
     [TestInitialize]
     public void Preparar()
@@ -52,9 +62,10 @@ public abstract class BaseDeImportacion
             new RepositorioDeProcedencia(_conexion),
             new RepositorioDeIlegibles(_conexion));
 
+        Copias = new CopiaDelEscaneo(Path.Combine(_carpeta, "datos"));
         Guardado = new GuardadoDeHojas(
             Datos.Casos, Datos.Personas, Datos.Procedencia, Datos.Ilegibles,
-            new RelojDelSistema());
+            new RelojDelSistema(), Copias);
     }
 
     /// <summary>Cierra la base y borra la carpeta; una prueba no deja rastro.</summary>

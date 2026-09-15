@@ -78,7 +78,23 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         _visor.HojaPedida += AlPedirOtraHoja;
         _visor.ArrastreTerminado += AlTerminarUnArrastre;
         _visor.NoSePudoPintar += AlNoPoderPintar;
-        LlenarLosGrupos();
+        PrepararLaBusquedaDeBandas(Servicios);
+
+        // ⚠️ Mientras se llega, el primer documento del primer grupo NO se abre en el acto: se
+        // deja para despues, con prioridad baja, y solo si nadie abrio otro. Quien llega desde
+        // el flujo o desde el grupo encola SU documento justo despues de navegar, y hasta el
+        // 2026-09-15 eso eran DOS aperturas seguidas —medido en el cuaderno del dueño: «abre el
+        // caso 76» y 250 ms despues «abre el caso 58», 54 veces en una sesion—, cada una con su
+        // rasterizado y su OCR. El motivo entero esta en PaginaDeCorreccion.Papel.cs.
+        _llegando = true;
+        try
+        {
+            LlenarLosGrupos();
+        }
+        finally
+        {
+            _llegando = false;
+        }
     }
 
     /// <summary>Abre el caso elegido.</summary>
@@ -104,6 +120,10 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         if (_modelo is null || Servicios is null) return;
 
         var cronometro = Stopwatch.StartNew();
+        // El turno va ANTES de cargar nada: todo lo que vuelva de otro hilo para el caso de
+        // antes —su hoja, sus bandas— se compara con este y se tira. Es lo que impide que el
+        // papel de un caso se pinte sobre los campos de otro (PaginaDeCorreccion.Papel.cs).
+        var turno = EmpezarOtroTurno();
         var abrio = _modelo.Cargar(casoId);
         _casoAbierto = casoId;
 
@@ -123,11 +143,14 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         // debe estar ahi, porque ya esta todo listo».
         MostrarSiYaEstaResuelto();
         Recontar();
-        MostrarLaHoja(_modelo.Caso?.PaginaPdf ?? 1);
         cronometro.Stop();
 
+        // Desde el 2026-09-15 la cifra ya NO incluye rasterizar la hoja: eso corre en otro
+        // hilo y se anota aparte («VISOR hoja … en N ms»). Antes iba dentro, en el hilo de la
+        // ventana, y con un PDF pesado eran 1,9-2,3 s de ventana congelada por apertura.
         MilisegundosDelUltimoCaso = cronometro.Elapsed.TotalMilliseconds;
         Servicios.Registro.AnotarNavegacion($"Correccion abre el caso {casoId}", MilisegundosDelUltimoCaso);
+        MostrarLaHoja(_modelo.Caso?.PaginaPdf ?? 1, turno);
 
         var plan = _modelo.PlanearLasBandas();
         Servicios.Avisos.CerrarTodos();
@@ -138,49 +161,7 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         // Medido con la ventana abierta sobre los siete escaneos del dueno: hacerlo aqui
         // mismo dejaba la ventana congelada 6,6 s de los 8,3 que costaba entrar. Son las
         // palabras del dueno sobre el programa viejo: «conmigo es lento, se corta».
-        if (plan.Peticion is not null) _ = BuscarLasBandas(casoId, plan.Peticion);
-    }
-
-    /// <summary>
-    /// Busca en el documento las bandas que faltan, sin congelar la ventana.
-    /// </summary>
-    /// <remarks>
-    /// ⚠️ El <c>Task.Run</c> solo envuelve <see cref="ModeloDeCorreccion.LeerLasBandas"/>, que
-    /// no toca ni las fichas ni el almacen —hay pruebas que lo fijan—. Repartir lo leido y
-    /// pintar vuelven a este hilo, que es el de la ventana.
-    /// <para>
-    /// ⛔ Y el <c>catch</c> no calla: escribe la linea en el pie y en el cuaderno. Es la
-    /// regla que dejo el defecto que QA midio en Importar.
-    /// </para>
-    /// </remarks>
-    /// <param name="casoId">El caso para el que se leen; si al volver ya no es el abierto, lo leido se tira.</param>
-    /// <param name="peticion">Que archivo y que campos, tal como lo planeo el modelo.</param>
-    private async Task BuscarLasBandas(long casoId, PeticionDeBandas peticion)
-    {
-        try
-        {
-            var cronometro = Stopwatch.StartNew();
-            var leidas = await Task.Run(() => _modelo!.LeerLasBandas(peticion)).ConfigureAwait(true);
-            cronometro.Stop();
-
-            // Mientras se leia se pudo cambiar de caso. Lo leido es de otro papel: se tira.
-            if (_casoAbierto != casoId || _modelo is null) return;
-
-            var avisos = _modelo.AplicarLasBandas(leidas);
-            foreach (var ficha in _fichas) ficha.Refrescar();
-            if (avisos.Count > 0) Servicios?.Avisos.Dejar(avisos);
-
-            Servicios?.Registro.Anotar(string.Format(
-                System.Globalization.CultureInfo.InvariantCulture,
-                "VISOR  bandas del documento del caso {0}: {1} de {2} campos en {3:F0} ms",
-                casoId, leidas.PorClave.Count, peticion.Faltantes.Count, cronometro.Elapsed.TotalMilliseconds));
-        }
-        catch (Exception fallo)
-        {
-            var linea = TextoDelVisor.LineaDeFallo(_visor.Hoja, fallo);
-            Decir(linea);
-            Servicios?.Registro.Anotar($"VISOR  buscando las bandas  {linea}");
-        }
+        if (plan.Peticion is not null) _ = BuscarLasBandas(casoId, turno, plan.Peticion);
     }
 
     /// <summary>Reparte los campos en los dos grupos: lo dudoso arriba y lo demas cerrado.</summary>
@@ -264,6 +245,7 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         {
             ficha.Tecleo += AlTeclearEnUnCampo;
             ficha.TomoElFoco += AlEnfocarUnCampo;
+            ficha.PidioVerDondeSeLeyo += AlPedirVerDondeSeLeyo;
             ficha.PidioFirmar += AlPedirLaFirma;
             ficha.PidioMarcarQueNoEstaEnElPapel += AlPedirMarcarQueNoEstaEnElPapel;
             _fichas.Add(ficha);
@@ -274,18 +256,40 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     private void AlTeclearEnUnCampo(object? quien, EventArgs cuando) => Recontar();
 
     /// <summary>
-    /// Ilumina en el documento la banda del campo que acaba de recibir el foco.
+    /// Ilumina en el documento la banda del campo que acaba de recibir el foco, SIN cambiar
+    /// de hoja.
     /// </summary>
     /// <remarks>
-    /// La funcion que el planificador encontro en Rossum. Si el campo es de otra hoja, se
-    /// cambia de hoja: un caso de doce personas ocupa seis, y tabular a alguien de la
-    /// cuarta tiene que ensenar la cuarta.
+    /// ⛔ <b>Hasta el 2026-09-15 aqui se cambiaba de hoja a la del campo</b> —lo que el
+    /// planificador trajo de Rossum: tabular a alguien de la cuarta hoja ensenaba la cuarta—,
+    /// y eso es el defecto que el dueno describio con sus palabras: <i>«al pasar a la segunda
+    /// hoja y comenzar a escribir los datos, el documento salta de manera automática a la
+    /// primera hoja de la factura»</i>. Medido con la ventana abierta sobre master: <c>2 / 2</c>
+    /// → enfocar «Unidad» → <c>1 / 2</c>. La hoja que el eligio a mano manda; ir a la hoja del
+    /// campo sigue existiendo, pero como accion suya: <see cref="AlPedirVerDondeSeLeyo"/>. La
+    /// regla, probada sin ventana, esta en <see cref="LaHojaQueManda"/>.
     /// </remarks>
     private void AlEnfocarUnCampo(object? quien, EventArgs cuando)
     {
         if (quien is not FichaDeCampo ficha || ficha.Campo is null) return;
-        var hoja = ficha.Campo.PaginaPdf ?? _visor.Hoja;
-        if (hoja != _visor.Hoja) MostrarLaHoja(hoja);
+        _visor.Enfocar(LaHojaQueManda.BandaQueSeIlumina(ficha.Campo, _visor.Hoja));
+    }
+
+    /// <summary>
+    /// Lleva el visor a la hoja donde se leyo el campo y le ilumina la banda. Solo porque el
+    /// dueno lo pidio pulsando el rotulo del papel: nunca solo.
+    /// </summary>
+    /// <remarks>
+    /// Es la accion explicita que sustituye al salto automatico de <see cref="AlEnfocarUnCampo"/>.
+    /// Si la hoja del campo ya esta delante, solo ilumina; si es otra, la pide con el turno
+    /// vigente —como las flechas— y el resalte se coloca sobre ella cuando llega, porque el
+    /// visor recoloca la banda al pintar cada hoja.
+    /// </remarks>
+    private void AlPedirVerDondeSeLeyo(object? quien, EventArgs cuando)
+    {
+        if (quien is not FichaDeCampo ficha || ficha.Campo is null) return;
+        var hoja = LaHojaQueManda.HojaDondeSeLeyo(ficha.Campo, _visor.Hoja);
+        if (hoja != _visor.Hoja) MostrarLaHoja(hoja, TurnoVigente);
         _visor.Enfocar(ficha.Campo.Banda);
     }
 
@@ -326,46 +330,6 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         Recontar();
     }
 
-    /// <summary>
-    /// Rasteriza una hoja y se la da al visor. Que no se pueda leer NO tumba nada, y NO se calla.
-    /// </summary>
-    /// <remarks>
-    /// ⛔ El <c>try</c> no esta para silenciar: esta para que el fallo salga como una linea en
-    /// el pie en vez de tumbar la pantalla. Es la regla que dejo el defecto que QA midio en
-    /// Importar, donde el manejador se tragaba la excepcion y los botones parecian muertos.
-    /// <para>
-    /// Se atrapa <see cref="Exception"/> a secas por lo mismo que en <c>MotorDeImportacion</c>:
-    /// por debajo estan PDFium y PdfPig, que levantan cada una lo suyo, y una lista de tipos
-    /// seria la lista de los fallos que se me ocurrieron.
-    /// </para>
-    /// </remarks>
-    /// <param name="hoja">Que hoja del PDF se pide, base 1; el visor la acota antes de pedirla.</param>
-    private void MostrarLaHoja(int hoja)
-    {
-        if (Servicios is null || _modelo?.Caso is null) return;
-
-        var ruta = _modelo.Caso.RutaPdf;
-        if (string.IsNullOrWhiteSpace(ruta))
-        {
-            _visor.MostrarHoja(null, 0, TextoDelVisor.SinEscaneo);
-            return;
-        }
-
-        try
-        {
-            var imagen = Servicios.LecturaDePdf.RasterizarPagina(ruta, hoja, AnchoDeLaHoja);
-            var total = Servicios.LecturaDePdf.ContarPaginas(ruta);
-            _visor.MostrarHoja(imagen, total, TextoDelVisor.HojaQueNoSePudoAbrir(hoja, ruta));
-        }
-        catch (Exception fallo)
-        {
-            var linea = TextoDelVisor.LineaDeFallo(hoja, fallo);
-            _visor.MostrarHoja(null, 0, linea + " Los campos se corrigen igual, sin la imagen al lado.");
-            Decir(linea);
-            Servicios.Registro.Anotar($"VISOR  {linea}");
-        }
-    }
-
     /// <summary>Dice una linea en el pie. Un fallo que no se ve es un fallo que no existe.</summary>
     /// <remarks>Sin ventana principal —en una prueba— no dice nada y no lanza.</remarks>
     /// <param name="linea">Lo que se lee en el acuse del pie; se apaga solo a los pocos segundos.</param>
@@ -381,8 +345,18 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         Servicios?.Registro.Anotar($"VISOR  {linea}");
     }
 
-    /// <summary>El visor pidio otra hoja.</summary>
-    private void AlPedirOtraHoja(object? quien, int hoja) => MostrarLaHoja(hoja);
+    /// <summary>El visor pidio otra hoja con las flechas: es la eleccion a mano del dueno.</summary>
+    /// <remarks>
+    /// El resalte se apaga antes de pedirla: la banda iluminada era de la hoja que se deja, y
+    /// el visor la recoloca al pintar cada hoja, asi que sin esto saldria pintada sobre la
+    /// hoja nueva senalando un sitio que no es. Vuelve a encenderse al enfocar un campo de la
+    /// hoja nueva o al pedir «ver donde se leyo».
+    /// </remarks>
+    private void AlPedirOtraHoja(object? quien, int hoja)
+    {
+        _visor.Enfocar(null);
+        MostrarLaHoja(hoja, TurnoVigente);
+    }
 
     /// <summary>
     /// Anota en el cuaderno lo que costo el arrastre. Es de donde sale la cifra del informe.
