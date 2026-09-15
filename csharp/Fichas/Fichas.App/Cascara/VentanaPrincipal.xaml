@@ -50,12 +50,26 @@
         </Grid.RowDefinitions>
 
         <!--
-            ⚠️ Background transparente y no el suyo por defecto. Medido el 2026-09-05 sobre
-            el paquete publicado: con el tema claro esta franja se quedaba NEGRA mientras el
-            resto de la ventana era claro, porque su fondo por defecto no sigue al tema del
-            elemento. Transparente deja pasar el de _raiz, que si lo sigue.
+            LA BARRA DE TITULO DE LA VENTANA, la de verdad: «Fichas», el icono y, encima de
+            su lado derecho, minimizar, maximizar y cerrar, que los sigue dibujando Windows.
+
+            ⚠️ Hasta el 2026-09-15 esta barra era una SEGUNDA fila debajo de la del sistema:
+            el XAML la traia, pero nadie decia ExtendsContentIntoTitleBar ni SetTitleBar, y
+            la ventana ensenaba las dos —la de Windows, blanca aunque el programa estuviera
+            en oscuro, y esta debajo, ya oscura—. Medido por pixel ese dia sobre master con
+            tema=oscuro: barra del sistema #F3F3F3 a y=16 y esta fila #202020 a y=48. El
+            dueno mando la captura de la blanca: «esta parte quiero que se ponga de color de
+            Wind…». Quien la convierte en la barra de verdad y la pinta con el tema es
+            Cascara/VentanaPrincipal.Tema.cs (MontarLaBarraDeTitulo y PintarLaBarraDeTitulo);
+            por eso lleva nombre.
+
+            El fondo lo pone el codigo con ColoresDeLaBarraDeTitulo, en vez de dejarlo
+            transparente: asi el color de la barra es una decision escrita y probada, no lo
+            que pase a haber detras. El valor es el mismo que pinta _raiz, para que no haya
+            costura con el rail.
         -->
         <TitleBar
+            x:Name="_barraDeTitulo"
             Grid.Row="0"
             Title="Fichas"
             Background="Transparent">

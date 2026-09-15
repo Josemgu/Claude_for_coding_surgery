@@ -86,6 +86,11 @@ public sealed partial class PaginaDeCorreccion
     /// <see cref="LoQueLeFaltaACadaDocumento"/>, en bloque. Lo que cuesta se anota en el
     /// cuaderno, para que se vea y no se suponga.</para>
     ///
+    /// <para>⚠️ Y desde el plan del 2026-09-15 (R-5), «una pasada» es una de verdad: los dos
+    /// lectores reciben el mismo <see cref="CasosLeidosUnaVez"/>, así que la lista de casos se
+    /// pide a la base UNA vez y no una por lector. Contado con un doble: 2 → 1 por cada llamada
+    /// a esta función (al llegar, al resolverse un documento, al eliminar, al dar por completo).</para>
+    ///
     /// <para>⛔ <b>Los archivados no entran</b>, que es la regla del dueno del 2026-09-06:
     /// «debe pasar a archivado y no aparecer más en ningún lado». <c>TableroDeRevisar.Cargar</c>
     /// ya los deja fuera por defecto.</para>
@@ -104,13 +109,16 @@ public sealed partial class PaginaDeCorreccion
         if (Servicios is null) return;
 
         var cronometro = Stopwatch.StartNew();
+        // La misma lectura de casos para los dos lectores de abajo; vive lo que dura esta
+        // función y se tira al salir (R-5).
+        var casos = new CasosLeidosUnaVez(Servicios.Casos);
         var tablero = new TableroDeRevisar(
-            Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Servicios.Reloj);
+            casos, Servicios.Asignaciones, Servicios.Companeros, Servicios.Reloj);
         tablero.Cargar();
 
         _todosLosGrupos = GruposParaCorregir.Armar(tablero.Cargadas);
         _loQueLeFalta = LoQueLeFaltaACadaDocumento.DeTodaLaBase(
-            Servicios.Casos, Servicios.Personas, Servicios.Procedencia);
+            casos, Servicios.Personas, Servicios.Procedencia);
 
         // ⛔ Aqui es donde Correccion deja de ser un almacen. Hasta el 2026-09-09 se ofrecian
         // TODOS los documentos no archivados; desde hoy solo los que piden algo, que es lo que
@@ -124,9 +132,9 @@ public sealed partial class PaginaDeCorreccion
 
         Servicios.Registro.Anotar(string.Format(
             System.Globalization.CultureInfo.InvariantCulture,
-            "CORRECCION  {0} grupos con {1} documentos que piden algo, de {2} sin archivar, leidos en {3:F0} ms",
+            "CORRECCION  {0} grupos con {1} documentos que piden algo, de {2} sin archivar, leidos en {3:F0} ms ({4} lectura(s) de la lista de casos)",
             _grupos.Count, CuantosPidenAlgo(), tablero.Total,
-            cronometro.Elapsed.TotalMilliseconds));
+            cronometro.Elapsed.TotalMilliseconds, casos.LecturasALaBase));
 
         _cambiandoDeGrupo = true;
         _queGrupo.ItemsSource = _grupos.Select(grupo => grupo.Etiqueta).ToList();

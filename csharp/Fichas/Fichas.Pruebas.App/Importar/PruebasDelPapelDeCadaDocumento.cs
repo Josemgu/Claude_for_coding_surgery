@@ -105,7 +105,7 @@ public sealed class PruebasDelPapelDeCadaDocumento : BaseDeImportacion
         File.WriteAllText(dondeNoSePuede, "ocupado");
         var guardado = new GuardadoDeHojas(
             Datos.Casos, Datos.Personas, Datos.Procedencia, Datos.Ilegibles,
-            new RelojDelSistema(), new CopiaDelEscaneo(dondeNoSePuede));
+            new RelojDelSistema(), new CopiaDelEscaneo(dondeNoSePuede), () => new AmbitoDeGuardadoSobreSqlite(Conexion));
 
         guardado.EmpezarUnaTanda();
         var resultado = guardado.GuardarLasHojasDelDocumento([Hoja(ruta, 1, "PULC2609", [("Ana Prueba", null)])]);

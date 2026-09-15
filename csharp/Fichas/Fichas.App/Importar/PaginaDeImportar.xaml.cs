@@ -209,7 +209,8 @@ public sealed partial class PaginaDeImportar : PaginaDeFichas
             new GuardadoDeHojas(
                 servicios.Casos, servicios.Personas, servicios.Procedencia,
                 servicios.Ilegibles, servicios.Reloj,
-                new CopiaDelEscaneo(servicios.Argumentos.CarpetaDeDatos)),
+                new CopiaDelEscaneo(servicios.Argumentos.CarpetaDeDatos),
+                servicios.AbrirAmbitoDeGuardado),
             lector.LeerDocumento);
 
         PonerEnMarcha(rutas.Count);

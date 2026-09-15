@@ -46,6 +46,10 @@ public sealed partial class PaginaDeCorreccion
     /// <summary>La última hoja que se pidió al visor; una rasterizada de otra hoja que llegue después no se pinta.</summary>
     private int _hojaPedida;
 
+    /// <summary>Las últimas hojas rasterizadas del caso de delante y cuántas tiene; nula hasta que llegan los servicios.</summary>
+    /// <remarks>Se vacía en cada apertura (<see cref="AbrirElCaso"/>) y al irse de la pantalla; la regla está en <see cref="HojasDelDocumento"/>.</remarks>
+    private HojasDelDocumento? _hojas;
+
     /// <summary>El turno vigente, para las hojas que se piden sin cambiar de caso (foco, flechas).</summary>
     private long TurnoVigente => _turno.Vigente;
 
@@ -70,15 +74,22 @@ public sealed partial class PaginaDeCorreccion
     {
         base.OnNavigatedFrom(cuando);
         EmpezarOtroTurno();
+        // Las hojas guardadas son de esta instancia, que ya nadie va a mirar: se sueltan
+        // ahora y no cuando el GC quiera.
+        _hojas?.Abrir(null);
     }
 
-    /// <summary>Monta la búsqueda de bandas sobre el modelo y el cuaderno.</summary>
+    /// <summary>Monta la búsqueda de bandas y la memoria corta de hojas sobre los servicios y el cuaderno.</summary>
     /// <param name="servicios">Los servicios de la ventana.</param>
-    private void PrepararLaBusquedaDeBandas(Cascara.Servicios servicios)
-        => _busquedaDeBandas = new BusquedaDeBandas(
+    private void PrepararElPapel(Cascara.Servicios servicios)
+    {
+        _busquedaDeBandas = new BusquedaDeBandas(
             peticion => Task.Run(() => _modelo!.LeerLasBandas(peticion)),
             servicios.Registro.Anotar,
             BusquedaDeBandas.TurnoDeLecturaDelPrograma);
+        _hojas = new HojasDelDocumento(servicios.LecturaDePdf, AnchoDeLaHoja);
+        _visor.HojaPintada += AlPintarUnaHoja;
+    }
 
     /// <summary>
     /// Abre ese documento después y solo si para entonces nadie ha abierto otro.
@@ -101,7 +112,8 @@ public sealed partial class PaginaDeCorreccion
         });
 
     /// <summary>
-    /// Rasteriza una hoja en otro hilo y se la da al visor si sigue siendo la que toca.
+    /// Enseña una hoja: de la memoria corta si ya se vio, y si no, rasterizada en otro hilo
+    /// y dada al visor solo si sigue siendo la que toca.
     /// </summary>
     /// <remarks>
     /// <para>⛔ El <c>try</c> no esta para silenciar: esta para que el fallo salga como una linea
@@ -111,6 +123,10 @@ public sealed partial class PaginaDeCorreccion
     /// <para>Lo que vuelve se pinta solo si el turno sigue vigente Y la hoja sigue siendo la
     /// última pedida: cambiar de caso o pulsar dos veces la flecha mientras se rasteriza deja
     /// una imagen vieja en camino, y esa se tira y se anota.</para>
+    ///
+    /// <para>Desde el plan del 2026-09-15 (R-1): volver a una hoja ya vista no rasteriza nada, y
+    /// las hojas de un documento se cuentan una vez y no en cada cambio de hoja. La regla vive
+    /// en <see cref="HojasDelDocumento"/>; aquí se mira antes de irse a otro hilo.</para>
     /// </remarks>
     /// <param name="hoja">Que hoja del PDF se pide, base 1; el visor la acota antes de pedirla.</param>
     /// <param name="turno">El turno de la apertura que la pide.</param>
@@ -121,7 +137,7 @@ public sealed partial class PaginaDeCorreccion
     /// <param name="turno">El turno de la apertura que la pide.</param>
     private async Task MostrarLaHojaSinTumbarNada(int hoja, long turno)
     {
-        if (Servicios is null || _modelo?.Caso is null) return;
+        if (Servicios is null || _modelo?.Caso is null || _hojas is null) return;
 
         var ruta = _modelo.Caso.RutaPdf;
         if (string.IsNullOrWhiteSpace(ruta))
@@ -131,12 +147,22 @@ public sealed partial class PaginaDeCorreccion
         }
 
         _hojaPedida = hoja;
-        var lectura = Servicios.LecturaDePdf;
+        if (_hojas.YaRasterizada(hoja) is { } yaVista)
+        {
+            EnsenarLaHojaTraida(new HojaTraida(yaVista, _hojas.TotalDeHojas ?? 0), hoja, ruta);
+            Servicios.Registro.Anotar(string.Format(
+                CultureInfo.InvariantCulture,
+                "VISOR  hoja {0} del caso {1} servida de la memoria corta, 0 rasterizados nuevos ({2} guardadas, {3} rasterizadas en total)",
+                hoja, _casoAbierto, _hojas.Guardadas, _hojas.Rasterizadas));
+            return;
+        }
+
+        var totalSabido = _hojas.TotalDeHojas;
+        var hojas = _hojas;
         var cronometro = Stopwatch.StartNew();
         try
         {
-            var (imagen, total) = await Task.Run(
-                () => (lectura.RasterizarPagina(ruta, hoja, AnchoDeLaHoja), lectura.ContarPaginas(ruta))).ConfigureAwait(true);
+            var traida = await Task.Run(() => hojas.Traer(ruta, hoja, totalSabido)).ConfigureAwait(true);
             cronometro.Stop();
 
             if (!_turno.SigueVigente(turno) || hoja != _hojaPedida)
@@ -148,12 +174,15 @@ public sealed partial class PaginaDeCorreccion
                 return;
             }
 
-            _visor.MostrarHoja(imagen, total, TextoDelVisor.HojaQueNoSePudoAbrir(hoja, ruta));
-            DecirleAlModeloQueHojaEstaDelante();
+            _hojas.Guardar(ruta, traida);
+            EnsenarLaHojaTraida(traida, hoja, ruta);
             Servicios.Registro.Anotar(string.Format(
                 CultureInfo.InvariantCulture,
-                "VISOR  hoja {0} del caso {1} rasterizada en {2:F0} ms{3}",
-                hoja, _casoAbierto, cronometro.Elapsed.TotalMilliseconds, imagen is null ? " (no se pudo abrir)" : string.Empty));
+                "VISOR  hoja {0} del caso {1} rasterizada en {2:F0} ms{3}{4} ({5} guardadas, {6} conteos de hojas de este documento)",
+                hoja, _casoAbierto, cronometro.Elapsed.TotalMilliseconds,
+                traida.Imagen is null ? " (no se pudo abrir)" : string.Empty,
+                totalSabido is null ? ", contando sus hojas" : string.Empty,
+                _hojas.Guardadas, totalSabido is null ? 1 : 0));
         }
         catch (Exception fallo)
         {
@@ -164,6 +193,26 @@ public sealed partial class PaginaDeCorreccion
             Servicios.Registro.Anotar($"VISOR  {linea}");
         }
     }
+
+    /// <summary>Da la hoja al visor y le dice al modelo cuál está delante.</summary>
+    /// <param name="traida">La hoja (o nula, si no se pudo dibujar) y el total de hojas.</param>
+    /// <param name="hoja">Qué hoja se pidió, para el motivo si no hay imagen.</param>
+    /// <param name="ruta">La ruta del escaneo, para el motivo si no hay imagen.</param>
+    private void EnsenarLaHojaTraida(HojaTraida traida, int hoja, string ruta)
+    {
+        _visor.MostrarHoja(traida.Imagen, traida.Total, TextoDelVisor.HojaQueNoSePudoAbrir(hoja, ruta));
+        DecirleAlModeloQueHojaEstaDelante();
+    }
+
+    /// <summary>El visor terminó de componer y pintar una hoja: se anota lo que costó desde que la recibió.</summary>
+    /// <remarks>Es la otra mitad de la cifra: «rasterizada en N ms» dice lo que costó traerla; esto, lo que costó pintarla.</remarks>
+    /// <param name="quien">El visor.</param>
+    /// <param name="medida">Qué hoja y cuántos milisegundos desde que se le dio hasta que quedó pintada.</param>
+    private void AlPintarUnaHoja(object? quien, MedidaDelPintado medida)
+        => Servicios?.Registro.Anotar(string.Format(
+            CultureInfo.InvariantCulture,
+            "VISOR  hoja {0} pintada {1:F0} ms después de llegar, {2}",
+            medida.Hoja, medida.Milisegundos, medida.Como));
 
     /// <summary>
     /// Le dice al modelo qué hoja enseña el visor ahora, para que lo que se teclee a partir

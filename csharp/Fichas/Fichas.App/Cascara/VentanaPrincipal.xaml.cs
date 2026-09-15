@@ -43,7 +43,8 @@ public sealed partial class VentanaPrincipal : Window
         AppWindow.Resize(new SizeInt32(servicios.Argumentos.Ancho, servicios.Argumentos.Alto));
 
         // El tema que eligio el dueno, ANTES de que se vea nada: ponerlo despues de activar
-        // la ventana ensena un parpadeo del tema equivocado. Vive en VentanaPrincipal.Tema.cs.
+        // la ventana ensena un parpadeo del tema equivocado. Vive en VentanaPrincipal.Tema.cs,
+        // y desde el 2026-09-15 tambien hace suya la barra de titulo y la pinta con el tema.
         MontarElTema();
 
         // El icono de la barra de titulo y de la barra de tareas. Vive en

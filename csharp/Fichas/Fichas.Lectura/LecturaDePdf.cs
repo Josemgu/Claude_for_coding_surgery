@@ -1,12 +1,8 @@
 using Fichas.Contratos.Lectura;
 using Fichas.Contratos.Puertos;
 using Microsoft.ML.OnnxRuntime;
-using PDFtoImage;
 using RapidOcrNet;
 using SkiaSharp;
-using UglyToad.PdfPig;
-using UglyToad.PdfPig.AcroForms.Fields;
-using UglyToad.PdfPig.Tokens;
 
 namespace Fichas.Lectura;
 
@@ -236,78 +232,97 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
         }
     }
 
+    /// <summary>Cuántas veces se abrió un PDF con PdfPig desde que existe este lector.</summary>
+    /// <remarks>
+    /// Los tres contadores existen para la prueba de no regresión del plan R-3
+    /// (<c>PruebaDeUnaSolaPasadaPorElPdf</c>): un documento de seis hojas tiene que abrirse
+    /// una vez, rasterizarse seis y no decodificarse desde PNG ninguna. No los mira nadie
+    /// más; contar es un incremento atómico y no cuesta nada en la lectura.
+    /// </remarks>
+    internal int AperturasConPdfPig => Volatile.Read(ref _aperturasConPdfPig);
+
+    /// <summary>Cuántas hojas rasterizó PDFium desde que existe este lector.</summary>
+    internal int RasterizacionesConPdfium => Volatile.Read(ref _rasterizacionesConPdfium);
+
+    /// <summary>Cuántas imágenes PNG decodificó para el OCR desde que existe este lector; por el camino interno es cero.</summary>
+    internal int DecodificacionesDePng => Volatile.Read(ref _decodificacionesDePng);
+
+    /// <summary>Respaldo de <see cref="AperturasConPdfPig"/>.</summary>
+    private int _aperturasConPdfPig;
+
+    /// <summary>Respaldo de <see cref="RasterizacionesConPdfium"/>.</summary>
+    private int _rasterizacionesConPdfium;
+
+    /// <summary>Respaldo de <see cref="DecodificacionesDePng"/>.</summary>
+    private int _decodificacionesDePng;
+
+    /// <summary>
+    /// Abre el PDF una sola vez para leerlo entero; nulo si no se pudo, sin lanzar.
+    /// </summary>
+    /// <remarks>
+    /// Es el camino de dentro (plan R-3): <see cref="LectorDeFormularios"/> lo abre una
+    /// vez por documento y saca de ahí hojas, tamaños, anotaciones y mapas de bits. Los
+    /// métodos públicos del contrato, que trabajan por ruta y número de hoja, también pasan
+    /// por aquí: cada uno abre y cierra lo suyo. Quien lo recibe lo desecha.
+    /// </remarks>
+    /// <param name="rutaPdf">Ruta del archivo en disco.</param>
+    /// <returns>El documento abierto, o nulo si el archivo no se pudo leer como PDF.</returns>
+    internal DocumentoAbierto? AbrirDocumento(string rutaPdf)
+    {
+        Interlocked.Increment(ref _aperturasConPdfPig);
+        return DocumentoAbierto.Abrir(rutaPdf);
+    }
+
+    /// <summary>
+    /// Rasteriza una hoja de un documento ya abierto y devuelve el mapa de bits de PDFium
+    /// tal cual, sin PNG; nulo si la hoja no existe o no se pudo.
+    /// </summary>
+    /// <remarks>Ver <see cref="DocumentoAbierto.RasterizarHoja"/>: el tope es del lado largo y <c>WithFormFill</c> va a cierto. Quien lo recibe lo desecha.</remarks>
+    /// <param name="documento">El documento abierto con <see cref="AbrirDocumento"/>.</param>
+    /// <param name="pagina">Número de hoja, base 1.</param>
+    /// <param name="ladoLargoMaximo">Tope en píxeles del lado largo.</param>
+    internal SKBitmap? RasterizarHoja(DocumentoAbierto documento, int pagina, int ladoLargoMaximo)
+    {
+        Interlocked.Increment(ref _rasterizacionesConPdfium);
+        return documento.RasterizarHoja(pagina, ladoLargoMaximo);
+    }
+
     /// <inheritdoc />
     /// <remarks>Devuelve 0 si el archivo no se puede abrir: un PDF roto no lanza, se cuenta como cero.</remarks>
     public int ContarPaginas(string rutaPdf)
     {
-        try
-        {
-            using var documento = PdfDocument.Open(rutaPdf);
-            return documento.NumberOfPages;
-        }
-        catch (Exception excepcion) when (excepcion is not OutOfMemoryException)
-        {
-            // No se silencia: quien llama recibe 0, que significa «no se pudo abrir», y
-            // deja su renglon de ilegible. Un `throw` aqui tumbaria la tanda entera.
-            return 0;
-        }
+        using var documento = AbrirDocumento(rutaPdf);
+        return documento?.Paginas ?? 0;
     }
 
-    /// <summary>El tamano de la hoja en puntos PDF; nulo si no se pudo abrir.</summary>
-    /// <remarks>
-    /// Hace falta fuera para dos cosas: calcular la escala del rasterizado y saber la
-    /// relacion de aspecto que las bandas necesitan.
-    /// </remarks>
+    /// <summary>El tamaño de la hoja en puntos PDF; nulo si no se pudo abrir.</summary>
+    /// <remarks>Abre el PDF para contestar; dentro de una lectura entera se pregunta al <see cref="DocumentoAbierto"/> y no aquí.</remarks>
     /// <param name="rutaPdf">Ruta del archivo en disco.</param>
     /// <param name="pagina">Número de hoja, base 1; fuera de rango devuelve nulo, no lanza.</param>
     public (double AnchoPuntos, double AltoPuntos)? TamanoDeLaPagina(string rutaPdf, int pagina)
     {
-        try
-        {
-            using var documento = PdfDocument.Open(rutaPdf);
-            if (pagina < 1 || pagina > documento.NumberOfPages) return null;
-            var hoja = documento.GetPage(pagina);
-            return (hoja.Width, hoja.Height);
-        }
-        catch (Exception excepcion) when (excepcion is not OutOfMemoryException)
-        {
-            return null;
-        }
+        using var documento = AbrirDocumento(rutaPdf);
+        return documento?.TamanoDeLaHoja(pagina);
     }
 
     /// <inheritdoc />
     /// <remarks>
-    /// El <paramref name="anchoMaximo"/> es el tope del LADO LARGO, no del ancho: es lo
-    /// que hace la regla de no regresion de los 3 500 px, y en estas hojas verticales el
-    /// lado largo es el alto. La escala se baja al <c>double</c> inmediatamente anterior
-    /// (ver <see cref="Geometria.EscalaDeRasterizado"/>) para que el mapa de bits salga
-    /// justo en el tope y no uno por encima.
-    ///
-    /// <para>⚠️ <b><c>WithFormFill</c> va a cierto, y no es un adorno</b> (2026-09-10). PDFium no
-    /// pinta los campos de un formulario rellenable con solo <c>WithAnnotations</c>: hace
-    /// falta el entorno de relleno de formulario. Medido sobre el PDF del dueño: la casilla
-    /// del nombre salia con <b>0 de 58 011</b> pixeles oscuros sin esta opcion y con 4 431 con
-    /// ella. Sin ella, Miguel veia la tabla en blanco con la persona ahi delante, y el OCR no
-    /// tenia nada que leer. En un escaneo sin formulario no cambia ni un pixel: comprobado
-    /// por SHA-256 del PNG sobre los diez documentos escaneados.</para>
+    /// Es el camino del contrato, para quien pide la hoja desde fuera de <c>Fichas.Lectura</c>
+    /// (el visor de Corrección): abre el PDF, rasteriza con <see cref="DocumentoAbierto.RasterizarHoja"/>
+    /// —tope del lado largo, <c>WithFormFill</c> a cierto— y codifica a PNG, que es lo que el
+    /// contrato promete. La lectura entera no pasa por aquí: va por <see cref="RasterizarHoja"/>
+    /// y le da el mapa al OCR sin codificarlo.
     /// </remarks>
     public ImagenDePagina? RasterizarPagina(string rutaPdf, int pagina, int anchoMaximo)
     {
-        var tamano = TamanoDeLaPagina(rutaPdf, pagina);
-        if (tamano is null) return null;
+        using var documento = AbrirDocumento(rutaPdf);
+        if (documento is null) return null;
+
+        using var mapa = RasterizarHoja(documento, pagina, anchoMaximo);
+        if (mapa is null) return null;
 
         try
         {
-            double escala = Geometria.EscalaDeRasterizado(tamano.Value.AnchoPuntos, tamano.Value.AltoPuntos, anchoMaximo);
-            int anchoPx = (int)Math.Ceiling(tamano.Value.AnchoPuntos * escala);
-            int altoPx = (int)Math.Ceiling(tamano.Value.AltoPuntos * escala);
-
-            var bytes = File.ReadAllBytes(rutaPdf);
-            using var mapa = Conversion.ToImage(
-                bytes,
-                page: new Index(pagina - 1),
-                options: new RenderOptions(Width: anchoPx, Height: altoPx, WithAnnotations: true, WithFormFill: true));
-
             using var datos = mapa.Encode(SKEncodedImageFormat.Png, 100);
             return new ImagenDePagina(pagina, mapa.Width, mapa.Height, datos.ToArray());
         }
@@ -318,141 +333,62 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     }
 
     /// <inheritdoc />
-    /// <remarks>
-    /// Salen las <c>/FreeText</c>, las <c>/Ink</c> y, desde el 2026-09-10, los campos de
-    /// TEXTO del formulario rellenable —<c>/Widget</c> de tipo <c>/Tx</c>—, que es donde un
-    /// formulario rellenado en el ordenador lleva tecleados el nombre, la cedula, las fechas
-    /// y el templo. Los demas subtipos se ignoran a proposito: un <c>/Link</c> o un
-    /// <c>/Popup</c> no dicen nada del formulario, y las casillas (<c>/Btn</c>) no entran
-    /// todavia: la App no tiene por donde guardarlas. Lo que NO se ignora es un <c>/Ink</c>
-    /// que no se sepa clasificar; ese vuelve igual y <see cref="Anotaciones.ClaseDe"/> lo
-    /// llama desconocido.
-    /// </remarks>
+    /// <remarks>Abre el PDF para contestar; qué anotaciones salen y cuáles no lo dice <see cref="DocumentoAbierto.AnotacionesDeLaHoja"/>.</remarks>
     public IReadOnlyList<AnotacionDelPdf> LeerAnotaciones(string rutaPdf, int pagina)
     {
-        try
-        {
-            using var documento = PdfDocument.Open(rutaPdf);
-            if (pagina < 1 || pagina > documento.NumberOfPages) return [];
-
-            var hoja = documento.GetPage(pagina);
-            var leidas = new List<AnotacionDelPdf>(CamposDeTextoDelFormulario(documento, pagina, hoja.Width, hoja.Height));
-
-            foreach (var anotacion in hoja.GetAnnotations())
-            {
-                string subtipo = anotacion.Type.ToString();
-                if (subtipo != Anotaciones.SubtipoDeTexto && subtipo != Anotaciones.SubtipoDeTrazo) continue;
-
-                var rectangulo = anotacion.Rectangle;
-                var banda = Geometria.RectanguloPdfAFracciones(
-                    rectangulo.Left, rectangulo.Bottom, rectangulo.Right, rectangulo.Top, hoja.Width, hoja.Height);
-
-                var (rojo, verde, azul) = ColorDe(anotacion.AnnotationDictionary);
-                leidas.Add(new AnotacionDelPdf(
-                    Subtipo: subtipo,
-                    Texto: string.IsNullOrEmpty(anotacion.Content) ? null : anotacion.Content,
-                    Banda: banda,
-                    Rojo: rojo,
-                    Verde: verde,
-                    Azul: azul,
-                    Grosor: GrosorDe(anotacion.AnnotationDictionary)));
-            }
-            return leidas;
-        }
-        catch (Exception excepcion) when (excepcion is not OutOfMemoryException)
-        {
-            return [];
-        }
-    }
-
-    /// <summary>
-    /// Los campos de texto del formulario que caen en esta hoja, vacios incluidos.
-    /// </summary>
-    /// <remarks>
-    /// Se leen por el <c>AcroForm</c> del documento y no por el diccionario de cada
-    /// <c>/Widget</c>, porque el tipo y el valor de un campo pueden venir HEREDADOS de su
-    /// padre (<c>/Parent</c>), y PdfPig resuelve esa herencia al construir el arbol. Un
-    /// campo con varios widgets es un nodo con hijos: se aplana y cada hijo trae su propio
-    /// rectangulo. Los vacios se devuelven con texto nulo: sirven para saber que fila del
-    /// formulario es cada una, aunque no propongan nada.
-    ///
-    /// <para>⛔ El texto sale TAL CUAL lo tecleo alguien (regla permanente 1): con sus
-    /// espacios y sus mayusculas. Darle forma es cosa de <see cref="Normalizacion"/>, igual
-    /// que a lo que lee el OCR.</para>
-    /// </remarks>
-    /// <param name="documento">El PDF abierto; sin <c>AcroForm</c> devuelve la lista vacía.</param>
-    /// <param name="pagina">Número de hoja, base 1: solo salen los campos cuyo widget cae en ella.</param>
-    /// <param name="anchoPuntos">Ancho de la hoja, para pasar los rectángulos a fracciones.</param>
-    /// <param name="altoPuntos">Alto de la hoja, para lo mismo.</param>
-    /// <returns>Una anotación de subtipo <see cref="Anotaciones.SubtipoDeCampoDeTexto"/> por campo, sin color ni grosor.</returns>
-    private static IEnumerable<AnotacionDelPdf> CamposDeTextoDelFormulario(
-        PdfDocument documento, int pagina, double anchoPuntos, double altoPuntos)
-    {
-        if (!documento.TryGetForm(out var formulario) || formulario is null) return [];
-
-        return formulario.Fields
-            .SelectMany(AplanarCampo)
-            .OfType<AcroTextField>()
-            .Where(campo => campo.PageNumber == pagina && campo.Bounds is not null)
-            .Select(campo => new AnotacionDelPdf(
-                Subtipo: Anotaciones.SubtipoDeCampoDeTexto,
-                Texto: string.IsNullOrEmpty(campo.Value) ? null : campo.Value,
-                Banda: Geometria.RectanguloPdfAFracciones(
-                    campo.Bounds!.Value.Left, campo.Bounds.Value.Bottom,
-                    campo.Bounds.Value.Right, campo.Bounds.Value.Top, anchoPuntos, altoPuntos),
-                Rojo: null,
-                Verde: null,
-                Azul: null,
-                Grosor: null))
-            .ToArray();
-    }
-
-    /// <summary>El campo y, si tiene hijos, todos sus descendientes.</summary>
-    /// <param name="campo">Un nodo del árbol del <c>AcroForm</c>; los no terminales no se devuelven, solo sus hojas.</param>
-    private static IEnumerable<AcroFieldBase> AplanarCampo(AcroFieldBase campo)
-        => campo is AcroNonTerminalField padre ? padre.Children.SelectMany(AplanarCampo) : [campo];
-
-    /// <summary>El <c>/C</c> de la anotacion en RGB; nulo en los tres si no lo declara.</summary>
-    /// <remarks>Un <c>/C</c> que no tenga exactamente tres números (gris o CMYK) también vuelve nulo: no se convierte, y así el trazo queda como desconocido.</remarks>
-    /// <param name="diccionario">El diccionario de la anotación tal como lo da PdfPig.</param>
-    private static (double? Rojo, double? Verde, double? Azul) ColorDe(DictionaryToken diccionario)
-    {
-        if (!diccionario.TryGet(NameToken.Create("C"), out ArrayToken? color) || color is null) return (null, null, null);
-
-        var canales = color.Data.OfType<NumericToken>().Select(t => t.Data).ToArray();
-        return canales.Length != 3 ? (null, null, null) : ((double?)canales[0], canales[1], canales[2]);
-    }
-
-    /// <summary>El <c>/BS /W</c> de la anotacion, o nulo si no declara estilo de borde.</summary>
-    /// <param name="diccionario">El diccionario de la anotación tal como lo da PdfPig.</param>
-    private static double? GrosorDe(DictionaryToken diccionario)
-    {
-        if (!diccionario.TryGet(NameToken.Create("BS"), out DictionaryToken? estilo) || estilo is null) return null;
-        if (!estilo.TryGet(NameToken.Create("W"), out NumericToken? ancho) || ancho is null) return null;
-        return (double)ancho.Data;
+        using var documento = AbrirDocumento(rutaPdf);
+        return documento?.AnotacionesDeLaHoja(pagina) ?? [];
     }
 
     /// <inheritdoc />
     /// <remarks>
-    /// Se usa el preajuste <c>PythonCompat</c> del motor, y no el <c>Default</c>: es el
-    /// que reproduce el preproceso del `rapidocr` de Python —remuestreo adaptativo del
-    /// lado corto a 736 px, sin borde blanco anadido—, que es con el que se midio la
-    /// linea base de los siete escaneos. Cambiarlo cambia lo que se lee.
-    ///
-    /// <para>Una pagina sin texto legible devuelve la lista vacia, no una excepcion: un
-    /// escaneo en blanco es un caso normal, no un fallo del programa.</para>
+    /// Es el camino del contrato: decodifica el PNG y pasa por <see cref="LeerConOcr(SKBitmap)"/>.
+    /// Una imagen con PNG vacío o que no se pueda decodificar devuelve la lista vacía, no una
+    /// excepción: un escaneo en blanco es un caso normal, no un fallo del programa.
     /// </remarks>
     public IReadOnlyList<LineaDeOcr> LeerConOcr(ImagenDePagina imagen)
     {
         ArgumentNullException.ThrowIfNull(imagen);
         if (imagen.Png.Length == 0) return [];
 
+        Interlocked.Increment(ref _decodificacionesDePng);
+        SKBitmap? mapa;
+        try
+        {
+            mapa = SKBitmap.Decode(imagen.Png);
+        }
+        catch (Exception excepcion) when (excepcion is not OutOfMemoryException)
+        {
+            // Un PNG que no se deja decodificar es una hoja que no se pudo leer, como antes;
+            // no es un fallo de instalacion y no se confunde con uno.
+            return [];
+        }
+        using (mapa)
+        {
+            return mapa is null ? [] : LeerConOcr(mapa);
+        }
+    }
+
+    /// <summary>Pasa el OCR a un mapa de bits ya en memoria: el camino sin PNG (plan R-3).</summary>
+    /// <remarks>
+    /// Se usa el preajuste <c>PythonCompat</c> del motor, y no el <c>Default</c>: es el
+    /// que reproduce el preproceso del `rapidocr` de Python —remuestreo adaptativo del
+    /// lado corto a 736 px, sin borde blanco añadido—, que es con el que se midió la
+    /// línea base de los siete escaneos. Cambiarlo cambia lo que se lee.
+    ///
+    /// <para>Una página sin texto legible devuelve la lista vacía, no una excepción.</para>
+    /// </remarks>
+    /// <param name="mapa">La hoja rasterizada; las bandas salen en fracciones de su ancho y su alto.</param>
+    /// <returns>Las líneas leídas de arriba abajo y de izquierda a derecha; vacía si la hoja no tenía texto.</returns>
+    /// <exception cref="FileNotFoundException">Faltan los modelos: sube a propósito, no se confunde con una hoja en blanco.</exception>
+    internal IReadOnlyList<LineaDeOcr> LeerConOcr(SKBitmap mapa)
+    {
         // Como lector: varias hojas pueden leer a la vez, y mientras alguna esté a medias
         // nadie puede soltar el motor (ver SoltarElMotor).
         _usoDelMotor.EnterReadLock();
         try
         {
-            return LeerConElMotor(imagen);
+            return LeerConElMotor(mapa);
         }
         finally
         {
@@ -461,9 +397,9 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
     }
 
     /// <summary>Pide el motor y pasa el OCR; quien llama ya lo tiene tomado como lector.</summary>
-    /// <param name="imagen">La imagen rasterizada, con PNG no vacío.</param>
+    /// <param name="mapa">La hoja rasterizada.</param>
     /// <returns>Las líneas leídas de arriba abajo y de izquierda a derecha; vacía si la hoja no tenía texto.</returns>
-    private IReadOnlyList<LineaDeOcr> LeerConElMotor(ImagenDePagina imagen)
+    private IReadOnlyList<LineaDeOcr> LeerConElMotor(SKBitmap mapa)
     {
         // ⛔ El motor se pide FUERA del `try` a proposito. Si faltan los modelos, eso NO
         // puede parecer una hoja en blanco: son averias distintas con arreglos distintos,
@@ -474,9 +410,6 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
 
         try
         {
-            using var mapa = SKBitmap.Decode(imagen.Png);
-            if (mapa is null) return [];
-
             var resultado = motor.Detect(mapa, RapidOcrOptions.PythonCompat);
             AnotarUsoDelMotor();
             if (resultado.TextBlocks is null) return [];
@@ -487,8 +420,8 @@ public sealed class LecturaDePdf : ILecturaDePdf, IDisposable
                     Confianza: ConfianzaDe(bloque),
                     Banda: Geometria.BandaDesdePuntos(
                         bloque.BoxPoints.Select(punto => ((double)punto.X, (double)punto.Y)),
-                        imagen.Ancho,
-                        imagen.Alto)))
+                        mapa.Width,
+                        mapa.Height)))
                 .OrderBy(linea => linea.Banda.Y0)
                 .ThenBy(linea => linea.Banda.X0)
                 .ToArray();

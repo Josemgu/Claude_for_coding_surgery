@@ -19,12 +19,14 @@ namespace Fichas.Reportes.Consultas;
 /// cada una en su sitio. La consecuencia comprobable: archivar un caso del periodo NO cambia
 /// ningun total de aqui, y hay una prueba que lo mide.
 ///
-/// ⚠️ <b>Y una limitacion del contrato que hay que decir, no tapar.</b> <see cref="IProcedencia"/>
-/// no tiene ninguna lectura en bloque: para saber cuantos campos tiene cada caso y cuando se
-/// firmo el ultimo hay que llamar a <c>DeRegistro</c> UNA VEZ POR CASO Y UNA POR PERSONA. Con
-/// 3 000 casos son unas 10 500 llamadas. Con el almacen en memoria se aguanta y esta medido;
-/// contra SQLite serian 10 500 consultas, y eso pide un metodo nuevo en Fichas.Contratos que NO
-/// se toca aqui porque esta congelado. Va en la entrega.
+/// <b>La verificación se lee en bloque, no registro a registro.</b> Hasta el 2026-09-15 esta
+/// clase llamaba a <c>DeRegistro</c> UNA VEZ POR CASO Y UNA POR PERSONA —10 531 llamadas con
+/// 3 000 casos, medidas— porque se creía que <see cref="IProcedencia"/> no tenía lectura en
+/// bloque con la firma. La tiene: <see cref="IProcedencia.LasQuePesanEnElVeredicto"/> trae todas
+/// las filas con <c>verificado</c>, y <see cref="IProcedencia.CamposAnotadosDe"/> dice cuántos
+/// campos tiene cada registro. Con las dos bastan tres consultas, sin abrir el contrato
+/// congelado (R-7 del plan del 2026-09-15). <c>PruebaDeQueLaLecturaNoVaFilaAFila</c> cuenta
+/// las llamadas y compara el resultado con el de leer registro a registro.
 /// </remarks>
 public sealed class LecturaParaReportes
 {
@@ -99,7 +101,7 @@ public sealed class LecturaParaReportes
     /// <param name="personas">El puerto de personas.</param>
     /// <param name="companeros">El puerto de compañeros; se leen activos e inactivos.</param>
     /// <param name="asignaciones">El puerto de asignaciones; solo se leen las vivas.</param>
-    /// <param name="procedencia">El puerto de procedencia; se consulta una vez por caso y una por persona.</param>
+    /// <param name="procedencia">El puerto de procedencia; se consulta tres veces en total, nunca por registro.</param>
     public static LecturaParaReportes Leer(
         ICasos casos, IPersonas personas, ICompaneros companeros,
         IAsignaciones asignaciones, IProcedencia procedencia)
@@ -242,53 +244,100 @@ public sealed class LecturaParaReportes
     /// <remarks>
     /// La marca es la del ULTIMO campo verificado del caso: el instante en que alguien termino
     /// de mirarlo. Es nula mientras no haya ni un campo verificado.
+    /// <para>
+    /// Se lee en TRES consultas y no en una por caso y otra por persona (R-7, 2026-09-15):
+    /// cuántos campos tiene cada registro sale de <see cref="IProcedencia.CamposAnotadosDe"/>
+    /// —una por tabla— y las firmas salen de <see cref="IProcedencia.LasQuePesanEnElVeredicto"/>,
+    /// que trae TODAS las filas con <c>verificado</c> venga el umbral que venga. Con 3 000 casos
+    /// eran 10 531 llamadas a <c>DeRegistro</c>; ahora son 3, y la prueba lo cuenta.
+    /// </para>
     /// </remarks>
     /// <param name="casos">Todos los casos.</param>
     /// <param name="personasPorCaso">Las personas de cada caso, por id de caso.</param>
-    /// <param name="procedencia">El puerto de procedencia; se llama una vez por caso y una por persona.</param>
+    /// <param name="procedencia">El puerto de procedencia; se consulta tres veces en total.</param>
     /// <returns>Un registro por caso, ordenados por número de caso y luego por id.</returns>
     private static List<CasoConSuVerificacion> LeerLaVerificacion(
         IReadOnlyList<Caso> casos,
         IReadOnlyDictionary<long, IReadOnlyList<Persona>> personasPorCaso,
         IProcedencia procedencia)
     {
-        var lectura = new List<CasoConSuVerificacion>(casos.Count);
+        var camposDeCasos = procedencia.CamposAnotadosDe(TablaDeProcedencia.Casos);
+        var camposDePersonas = procedencia.CamposAnotadosDe(TablaDeProcedencia.Personas);
+        var firmasPorRegistro = FirmasPorRegistro(procedencia);
 
+        var lectura = new List<CasoConSuVerificacion>(casos.Count);
         foreach (var caso in casos)
         {
             var suyas = personasPorCaso.TryGetValue(caso.Id, out var lista) ? lista : [];
 
-            var campos = 0;
-            var verificados = 0;
-            string? ultimaFirma = null;
-
-            void Sumar(IReadOnlyList<ProcedenciaDeCampo> filas)
-            {
-                campos += filas.Count;
-                foreach (var fila in filas)
-                {
-                    if (!fila.Verificado) continue;
-                    verificados++;
-                    if (fila.VerificadoEn is null) continue;
-                    if (ultimaFirma is null || string.CompareOrdinal(fila.VerificadoEn, ultimaFirma) > 0)
-                    {
-                        ultimaFirma = fila.VerificadoEn;
-                    }
-                }
-            }
-
-            Sumar(procedencia.DeRegistro(TablaDeProcedencia.Casos, caso.Id));
+            var campos = CuantosCampos(camposDeCasos, caso.Id);
+            var firmas = firmasPorRegistro.GetValueOrDefault((TablaDeProcedencia.Casos, caso.Id));
             foreach (var persona in suyas)
             {
-                Sumar(procedencia.DeRegistro(TablaDeProcedencia.Personas, persona.Id));
+                campos += CuantosCampos(camposDePersonas, persona.Id);
+                firmas = Firmas.Sumar(firmas, firmasPorRegistro.GetValueOrDefault((TablaDeProcedencia.Personas, persona.Id)));
             }
 
-            lectura.Add(new CasoConSuVerificacion(caso, suyas.Count, campos, verificados, ultimaFirma));
+            lectura.Add(new CasoConSuVerificacion(caso, suyas.Count, campos, firmas.Cuantas, firmas.Ultima));
         }
 
         return lectura
             .OrderBy(c => c.Caso.NumeroCaso ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(c => c.Caso.Id)
             .ToList();
+    }
+
+    /// <summary>Cuántos campos anotados tiene ese registro; cero si no está en el diccionario.</summary>
+    /// <param name="camposAnotados">Lo que devolvió <see cref="IProcedencia.CamposAnotadosDe"/> para su tabla.</param>
+    /// <param name="registroId">El id del caso o de la persona.</param>
+    private static int CuantosCampos(IReadOnlyDictionary<long, IReadOnlyList<string>> camposAnotados, long registroId)
+        => camposAnotados.TryGetValue(registroId, out var suyos) ? suyos.Count : 0;
+
+    /// <summary>Cuántos campos firmados tiene cada registro y cuándo se firmó el último, en una sola consulta.</summary>
+    /// <remarks>
+    /// El umbral va a cero a propósito: por debajo de cero no hay confianza que entre, así que la
+    /// consulta trae solo las firmadas y las marcadas (ausente, tachón, confianza nula), y de esas
+    /// se quedan las que llevan <c>verificado</c>. Cualquier otro umbral daría el mismo recuento
+    /// con más filas por el camino.
+    /// </remarks>
+    /// <param name="procedencia">El puerto de procedencia.</param>
+    /// <returns>Por (tabla, id de registro), las firmas sumadas; sin entrada para el registro que no tiene ninguna.</returns>
+    private static Dictionary<(TablaDeProcedencia, long), Firmas> FirmasPorRegistro(IProcedencia procedencia)
+    {
+        var porRegistro = new Dictionary<(TablaDeProcedencia, long), Firmas>();
+        foreach (var fila in procedencia.LasQuePesanEnElVeredicto(umbral: 0))
+        {
+            if (!fila.Verificado) continue;
+            var clave = (fila.Tabla, fila.RegistroId);
+            porRegistro[clave] = porRegistro.GetValueOrDefault(clave).ConUnaMas(fila.VerificadoEn);
+        }
+
+        return porRegistro;
+    }
+
+    /// <summary>Cuántos campos firmados y la marca del último; el valor por defecto es «ninguno».</summary>
+    /// <param name="Cuantas">Cuántas filas llevan <c>verificado</c>.</param>
+    /// <param name="Ultima">La mayor marca <c>verificado_en</c> entre ellas, comparada como texto; nula si ninguna la trae.</param>
+    private readonly record struct Firmas(int Cuantas, string? Ultima)
+    {
+        /// <summary>Estas firmas más una, cuya marca puede ser nula.</summary>
+        /// <param name="verificadoEn">La marca de la firma que se suma, o nula.</param>
+        public Firmas ConUnaMas(string? verificadoEn) => new(Cuantas + 1, LaMayor(Ultima, verificadoEn));
+
+        /// <summary>Las firmas de dos registros juntas: se suman las cuentas y se queda la marca mayor.</summary>
+        /// <param name="unas">Las de un registro.</param>
+        /// <param name="otras">Las de otro.</param>
+        public static Firmas Sumar(Firmas unas, Firmas otras)
+            => new(unas.Cuantas + otras.Cuantas, LaMayor(unas.Ultima, otras.Ultima));
+
+        /// <summary>La mayor de dos marcas comparadas como texto; una nula no cuenta.</summary>
+        /// <param name="una">Una marca, o nula.</param>
+        /// <param name="otra">Otra marca, o nula.</param>
+        private static string? LaMayor(string? una, string? otra)
+        {
+            if (una is null) return otra;
+            if (otra is null) return una;
+            return string.CompareOrdinal(otra, una) > 0 ? otra : una;
+        }
     }
 }

@@ -21,6 +21,13 @@ namespace Fichas.App.Importar;
 ///
 /// <para>⛔ <b>Nada se marca como verificado aqui</b> (regla permanente 5). Las filas de
 /// procedencia nacen sin firma, y solo el boton que pulsa Miguel las cambia.</para>
+///
+/// <para><b>Cada hoja entra entera o no entra</b> (R-4, 2026-09-15). Sus filas —el caso, sus
+/// personas, la procedencia de cada campo y su renglón de ilegibles— se escriben dentro de un
+/// <see cref="IAmbitoDeGuardado"/> que se confirma al terminar la hoja: de 9 a 24
+/// confirmaciones por hoja a UNA, y si algo revienta a mitad no queda ni el caso ni las
+/// personas anteriores. Lo que el motor rechaza fila a fila (una cédula repetida) sigue
+/// siendo un aviso y no deshace la hoja: «ninguna hoja se rechaza» no cambia.</para>
 /// </remarks>
 public sealed partial class GuardadoDeHojas
 {
@@ -38,19 +45,24 @@ public sealed partial class GuardadoDeHojas
     private readonly BuscadorDeDuplicados _duplicados;
     /// <summary>Quien guarda la copia del escaneo que el caso apunta; ver <see cref="CopiaDelEscaneo"/>.</summary>
     private readonly CopiaDelEscaneo _copias;
+    /// <summary>Quien abre el ámbito en el que entra cada hoja entera; ver <see cref="IAmbitoDeGuardado"/>.</summary>
+    private readonly Func<IAmbitoDeGuardado> _abrirAmbito;
 
-    /// <summary>Se ata a los cuatro repositorios y al reloj.</summary>
+    /// <summary>Se ata a los cuatro repositorios, al reloj, a la copia y a quien abre el ámbito.</summary>
     /// <param name="casos">Repositorio de casos.</param>
     /// <param name="personas">Repositorio de personas.</param>
     /// <param name="procedencia">Repositorio de procedencia de cada campo.</param>
     /// <param name="ilegibles">Repositorio de renglones de lo que no se pudo leer.</param>
     /// <param name="reloj">De dónde sale la fecha de hoy.</param>
     /// <param name="copias">Quien guarda la copia de cada escaneo en la carpeta de datos; el caso apunta a esa copia.</param>
+    /// <param name="abrirAmbito">Quien abre, por hoja, el ámbito en el que sus filas entran todas o ninguna; con la base de verdad, una transacción de SQLite.</param>
     public GuardadoDeHojas(
         ICasos casos, IPersonas personas, IProcedencia procedencia,
-        IIlegibles ilegibles, IReloj reloj, CopiaDelEscaneo copias)
+        IIlegibles ilegibles, IReloj reloj, CopiaDelEscaneo copias,
+        Func<IAmbitoDeGuardado> abrirAmbito)
     {
         ArgumentNullException.ThrowIfNull(copias);
+        ArgumentNullException.ThrowIfNull(abrirAmbito);
 
         _casos = casos;
         _personas = personas;
@@ -58,6 +70,7 @@ public sealed partial class GuardadoDeHojas
         _ilegibles = ilegibles;
         _reloj = reloj;
         _copias = copias;
+        _abrirAmbito = abrirAmbito;
         _duplicados = new BuscadorDeDuplicados(casos, personas);
     }
 
@@ -91,12 +104,32 @@ public sealed partial class GuardadoDeHojas
 
         foreach (var hoja in hojas)
         {
-            var resultado = GuardarUnaHoja(hoja, casosDeEsteDocumento, papel);
-            AnotarLosRenglones(hoja, resultado);
-            salida.Add(resultado);
+            salida.Add(GuardarUnaHojaEntera(hoja, casosDeEsteDocumento, papel));
         }
 
         return ConLosAvisosDeLaCopia(salida, papel);
+    }
+
+    /// <summary>
+    /// Una hoja dentro de su ámbito: sus filas y su renglón, y la confirmación al final.
+    /// </summary>
+    /// <remarks>
+    /// El <c>using</c> es lo que deshace: si algo levanta entre abrir y confirmar, el ámbito se
+    /// cierra sin confirmar y la base queda como estaba antes de esta hoja. El renglón de
+    /// ilegibles va dentro también: un caso confirmado sin su renglón, o un renglón sin su
+    /// caso, sería la misma media hoja que esto existe para impedir.
+    /// </remarks>
+    /// <param name="hoja">La hoja leída.</param>
+    /// <param name="casosDeEsteDocumento">Número de caso → id del caso que abrió una hoja anterior de este mismo PDF.</param>
+    /// <param name="papel">La copia del escaneo, perezosa.</param>
+    private ResultadoDeLaHoja GuardarUnaHojaEntera(
+        HojaLeida hoja, Dictionary<string, long> casosDeEsteDocumento, Lazy<CopiaGuardada> papel)
+    {
+        using var ambito = _abrirAmbito();
+        var resultado = GuardarUnaHoja(hoja, casosDeEsteDocumento, papel);
+        AnotarLosRenglones(hoja, resultado);
+        ambito.Confirmar();
+        return resultado;
     }
 
     /// <summary>Se olvida del indice de duplicados; se llama al empezar cada tanda.</summary>

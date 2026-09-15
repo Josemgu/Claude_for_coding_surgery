@@ -28,6 +28,12 @@ public readonly record struct MedidaDelArrastre(
     int Tramos, double MediaMs, double MaximoMs,
     double MovidoX, double MovidoY, double PedidoX, double PedidoY);
 
+/// <summary>Lo que costó componer y pintar una hoja desde que el visor la recibió, para decir cifras.</summary>
+/// <param name="Hoja">Qué hoja del PDF se pintó, base 1.</param>
+/// <param name="Milisegundos">Desde <see cref="VisorDelDocumento.MostrarHoja"/> hasta que la imagen quedó atada a la pantalla.</param>
+/// <param name="Como">Con qué se pintó, en palabras, para que el cuaderno diga qué forma se midió.</param>
+public readonly record struct MedidaDelPintado(int Hoja, double Milisegundos, string Como);
+
 /// <summary>
 /// El documento al lado de los campos: se arrastra, se acerca y se ilumina la banda del campo.
 /// </summary>
@@ -176,6 +182,9 @@ public sealed partial class VisorDelDocumento : UserControl
     /// </remarks>
     public event EventHandler<string>? NoSePudoPintar;
 
+    /// <summary>Salta cuando una hoja quedó pintada, con lo que costó desde que se recibió. Es el canal por el que se MIDE el pintado.</summary>
+    public event EventHandler<MedidaDelPintado>? HojaPintada;
+
     /// <summary>
     /// Ensena una hoja ya rasterizada. Una imagen sin bytes NO es un fallo: se dice y ya.
     /// </summary>
@@ -238,24 +247,37 @@ public sealed partial class VisorDelDocumento : UserControl
     /// caso que se abria sin pedirlo y la del elegido— componian sus mapas de bits a la vez, y
     /// ganaba la que terminaba la ULTIMA, no la ultima pedida: el papel de un caso sobre los
     /// campos de otro. Ahora lo que vuelve con un turno viejo no se pinta.</para>
+    ///
+    /// <para><b>El orden: la <see cref="BitmapImage"/> se ata a la imagen ANTES de darle el
+    /// flujo.</b> Es lo que pide la documentación de WinUI («Optimize animations, media, and
+    /// images», 2026-08-21): la decodificación al tamaño que se ve se apaga si «the BitmapImage
+    /// is connected to the live XAML tree after setting the content with SetSourceAsync». Hasta
+    /// el 2026-09-15 el visor lo hacía al revés. Se midió contra la otra forma que la misma
+    /// documentación propone, <c>SoftwareBitmapSource</c> con los píxeles decodificados fuera
+    /// del hilo: en la misma sesión (cinco documentos y cinco cambios de hoja sobre el corpus
+    /// de 16), working set 471 frente a 504 MiB y pintado 27 frente a 24 ms de mediana. Empate
+    /// en tiempo y 30 MiB menos con esta, que además no guarda una copia de los píxeles: se
+    /// queda esta. Y lo que la documentación promete de decodificar al tamaño que se ve aquí
+    /// no ahorra nada, y se dice: la imagen se dispone a los píxeles de la hoja (1 700 de
+    /// ancho) y es el <c>ScrollView</c> quien la escala, así que el tamaño «que se ve» para
+    /// XAML es el natural.</para>
     /// </remarks>
     /// <param name="imagen">La hoja con sus bytes PNG; aqui ya se sabe que trae alguno.</param>
     /// <param name="turno">El turno que pidio <see cref="MostrarHoja"/> para esta hoja.</param>
     private async Task ComponerYPintar(ImagenDePagina imagen, long turno)
     {
+        var cronometro = Stopwatch.StartNew();
         try
         {
-            var mapa = new BitmapImage();
-            using var flujo = new InMemoryRandomAccessStream();
-            var escritor = new DataWriter(flujo);
-            escritor.WriteBytes(imagen.Png);
-            await escritor.StoreAsync();
-            await escritor.FlushAsync();
-            escritor.DetachStream();
-            flujo.Seek(0);
-            await mapa.SetSourceAsync(flujo);
+            using var flujo = await FlujoDe(imagen.Png);
             if (!_turnoDeLaImagen.SigueVigente(turno)) return;
+
+            var mapa = new BitmapImage();
             _imagen.Source = mapa;
+            await mapa.SetSourceAsync(flujo);
+            cronometro.Stop();
+            if (_turnoDeLaImagen.SigueVigente(turno))
+                HojaPintada?.Invoke(this, new MedidaDelPintado(imagen.Pagina, cronometro.Elapsed.TotalMilliseconds, "BitmapImage atado antes de SetSourceAsync"));
         }
         catch (Exception fallo)
         {
@@ -264,6 +286,20 @@ public sealed partial class VisorDelDocumento : UserControl
             Decir(linea + " Los campos se corrigen igual, sin la imagen al lado.");
             NoSePudoPintar?.Invoke(this, linea);
         }
+    }
+
+    /// <summary>Copia los bytes del PNG a un flujo en memoria, listo para leer desde el principio.</summary>
+    /// <param name="png">Los bytes de la hoja.</param>
+    private static async Task<InMemoryRandomAccessStream> FlujoDe(byte[] png)
+    {
+        var flujo = new InMemoryRandomAccessStream();
+        var escritor = new DataWriter(flujo);
+        escritor.WriteBytes(png);
+        await escritor.StoreAsync();
+        await escritor.FlushAsync();
+        escritor.DetachStream();
+        flujo.Seek(0);
+        return flujo;
     }
 
     /// <summary>Escribe el motivo sobre el panel, o lo quita si no hay motivo que dar.</summary>

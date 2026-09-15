@@ -32,6 +32,9 @@ public abstract class BaseDeImportacion
     /// <summary>La carpeta temporal donde vive la base de esta prueba.</summary>
     protected string Carpeta => _carpeta;
 
+    /// <summary>La ruta del archivo de la base de esta prueba, para leer su cabecera sin pasar por el motor.</summary>
+    protected string RutaDeLaBase => Path.Combine(_carpeta, Fichas.Datos.Rutas.CarpetaDeDatos.NombreDeLaBase);
+
     /// <summary>Los repositorios reales montados sobre esa base.</summary>
     protected RepositoriosDePrueba Datos { get; private set; } = null!;
 
@@ -65,7 +68,7 @@ public abstract class BaseDeImportacion
         Copias = new CopiaDelEscaneo(Path.Combine(_carpeta, "datos"));
         Guardado = new GuardadoDeHojas(
             Datos.Casos, Datos.Personas, Datos.Procedencia, Datos.Ilegibles,
-            new RelojDelSistema(), Copias);
+            new RelojDelSistema(), Copias, () => new AmbitoDeGuardadoSobreSqlite(_conexion));
     }
 
     /// <summary>Cierra la base y borra la carpeta; una prueba no deja rastro.</summary>

@@ -78,7 +78,7 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         _visor.HojaPedida += AlPedirOtraHoja;
         _visor.ArrastreTerminado += AlTerminarUnArrastre;
         _visor.NoSePudoPintar += AlNoPoderPintar;
-        PrepararLaBusquedaDeBandas(Servicios);
+        PrepararElPapel(Servicios);
 
         // ⚠️ Mientras se llega, el primer documento del primer grupo NO se abre en el acto: se
         // deja para despues, con prioridad baja, y solo si nadie abrio otro. Quien llega desde
@@ -126,6 +126,8 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         var turno = EmpezarOtroTurno();
         var abrio = _modelo.Cargar(casoId);
         _casoAbierto = casoId;
+        // La memoria corta de hojas es del caso: se vacía aquí, aunque el papel sea el mismo.
+        _hojas?.Abrir(_modelo.Caso?.RutaPdf);
 
         // A esta pantalla se llega tambien DESDE FUERA —la pantalla del grupo, la ventana de
         // lo que no esta completo, la cola—, y esos caminos no pasan por los desplegables. Sin
@@ -150,6 +152,10 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
         // ventana, y con un PDF pesado eran 1,9-2,3 s de ventana congelada por apertura.
         MilisegundosDelUltimoCaso = cronometro.Elapsed.TotalMilliseconds;
         Servicios.Registro.AnotarNavegacion($"Correccion abre el caso {casoId}", MilisegundosDelUltimoCaso);
+        // El tercer momento del medidor de memoria (R-0, 2026-09-15): abrir cinco documentos
+        // seguidos deja cinco líneas, y la resta entre la primera y la última dice si el visor
+        // retiene algo de un caso al siguiente.
+        Servicios.Registro.AnotarMemoria($"Corrección abre el caso {casoId}");
         MostrarLaHoja(_modelo.Caso?.PaginaPdf ?? 1, turno);
 
         var plan = _modelo.PlanearLasBandas();
@@ -354,8 +360,17 @@ public sealed partial class PaginaDeCorreccion : PaginaDeFichas
     /// </remarks>
     private void AlPedirOtraHoja(object? quien, int hoja)
     {
+        // Lo que tarda ESTE manejador es lo que la ventana se queda quieta: rasterizar va en
+        // otro hilo, así que aquí tiene que caber en decenas de milisegundos, y se anota para
+        // que sea una cifra y no una impresión (criterio de R-1: menos de 100 ms).
+        var cronometro = Stopwatch.StartNew();
         _visor.Enfocar(null);
         MostrarLaHoja(hoja, TurnoVigente);
+        cronometro.Stop();
+        Servicios?.Registro.Anotar(string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "VISOR  la flecha a la hoja {0} devolvió el hilo de la ventana en {1:F1} ms",
+            hoja, cronometro.Elapsed.TotalMilliseconds));
     }
 
     /// <summary>

@@ -80,6 +80,7 @@ public sealed class Servicios : IDisposable
         // Solo con la base de VERDAD detras. Con `--falso` se queda nulo a proposito: ver
         // el comentario de la propiedad.
         Mantenimiento = new Datos.Mantenimiento.RepositorioDeMantenimiento(conexion);
+        AbrirAmbitoDeGuardado = () => new AmbitoDeGuardadoSobreSqlite(conexion);
 
         LecturaDePdf = new LecturaPerezosa(_lecturaDeVerdad);
         Extraccion = new Extraccion();
@@ -110,6 +111,7 @@ public sealed class Servicios : IDisposable
         Extraccion = falsos.Extraccion;
         Paquetes = falsos.Paquetes;
         Reportes = falsos.Reportes;
+        AbrirAmbitoDeGuardado = () => new Importar.SinAmbitoDeGuardado();
     }
 
     /// <summary>Lo comun a las dos formas de montarse: argumentos, cuaderno, buzón de avisos, reloj y actualizador.</summary>
@@ -243,6 +245,16 @@ public sealed class Servicios : IDisposable
     /// <summary>El reloj; nadie llama a DateTime.Now por su cuenta.</summary>
     public IReloj Reloj { get; }
 
+    /// <summary>
+    /// Quien abre el ámbito en el que la importación guarda cada hoja entera: una transacción de
+    /// SQLite con la base de verdad, nada con datos inventados.
+    /// </summary>
+    /// <remarks>
+    /// Es una función y no un objeto porque cada hoja abre el suyo y lo cierra; ver
+    /// <see cref="Importar.IAmbitoDeGuardado"/> y R-4 del plan del 2026-09-15.
+    /// </remarks>
+    public Func<Importar.IAmbitoDeGuardado> AbrirAmbitoDeGuardado { get; } = null!;
+
     /// <summary>Lo que se pidio en la linea de ordenes.</summary>
     public ArgumentosDeArranque Argumentos { get; }
 
@@ -296,6 +308,9 @@ public sealed class Servicios : IDisposable
 
         lectura.SoltarElMotor();
         Registro.Anotar($"OCR  motor soltado tras {parado.Value.TotalSeconds:F0} s parado; se recarga solo en la siguiente hoja");
+        // La memoria justo después de soltarlo, para que la resta con la línea de antes diga
+        // cuánto devolvió el motor y no haya que suponerlo.
+        Registro.AnotarMemoria("OCR soltado");
     }
 
     /// <summary>Cuánto lleva el motor de OCR sin leer, o nulo si no está cargado (o la lectura ni se construyó).</summary>
@@ -303,9 +318,14 @@ public sealed class Servicios : IDisposable
         => _lecturaDeVerdad is { IsValueCreated: true } ? _lecturaDeVerdad.Value.TiempoSinLeer : null;
 
     /// <summary>Cierra la base y libera el OCR si llegó a cargarse. El archivo tiene que quedar libre al salir.</summary>
-    /// <remarks>El temporizador de reposo se para ANTES de desechar la lectura, y espera a que termine una comprobación en curso: así ninguna llega a un lector ya desechado.</remarks>
+    /// <remarks>
+    /// <para>El temporizador de reposo se para ANTES de desechar la lectura, y espera a que termine una comprobación en curso: así ninguna llega a un lector ya desechado.</para>
+    /// <para>Y lo primero es la memoria de «cierre» (R-0, 2026-09-15): es el cuarto momento
+    /// del medidor, y va antes de soltar nada para que diga con qué peso terminó la sesión.</para>
+    /// </remarks>
     public void Dispose()
     {
+        Registro.AnotarMemoria("cierre");
         _sueltaDelOcr?.Dispose();
         if (_lecturaDeVerdad is { IsValueCreated: true }) _lecturaDeVerdad.Value.Dispose();
         _conexion?.Close();

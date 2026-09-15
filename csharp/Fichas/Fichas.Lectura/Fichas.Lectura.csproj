@@ -43,4 +43,13 @@
     <ProjectReference Include="..\Fichas.Contratos\Fichas.Contratos.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!--
+      Las pruebas de Lectura ven lo interno: el camino de una sola pasada por el PDF
+      (DocumentoAbierto, RasterizarHoja, LeerConOcr(SKBitmap)) y los tres contadores que
+      fijan su no regresion (plan R-3, 2026-09-15). El contrato publico no cambia.
+    -->
+    <InternalsVisibleTo Include="Fichas.Pruebas.Lectura" />
+  </ItemGroup>
+
 </Project>

@@ -4280,6 +4280,40 @@ importar sigue uniendo hojas por número de caso y no funde la unidad de la hoja
 caso abierto en la 1 (decisión abierta del 08/10). Suite App 1 180 → 1 203, medida por el
 supervisor tras fusionar.
 
+## 2026-09-15 — EL CAUCE DEL DOCUMENTO: siete de las nueve fases del plan, medidas
+
+El dueño pidió *«que el flujo del código sea como un río que corre a un mismo cauce…
+eficiente y bien optimizado»*. El planificador escribió el plan (PENDIENTES.md, «Plan del
+2026-09-15», 9 fases con fuentes) y el supervisor lo lanzó por fases en programadores
+distintos, cada uno en su terreno, repitiendo la suite tras cada fusión. Lo medido por
+cada programador (el supervisor NO repitió las sondas, sí las suites):
+
+| Fase | Antes → después | Lo que no cambia |
+|---|---|---|
+| R-2 motor de OCR sin arena de ONNX + se suelta tras 30 s en reposo | privados tras 3 hojas 1 321 → 200 MiB; programa a los 60 s de importar 1 460 → 293 MiB | 16 huellas de lectura idénticas, ahora fijadas en la suite |
+| R-3 una pasada por el PDF, una imagen por hoja | aperturas PdfPig por PDF de 6 hojas 19 → 1; tramo sin OCR 1 435 → 504 ms por hoja | píxeles que ve el OCR idénticos byte a byte (0 de 37 870 000 distintos) |
+| R-4 una transacción por hoja importada | confirmaciones por hoja 24 → 1; 77 → 13 ms por hoja (SQLite real) | «ninguna hoja se rechaza» sigue; migraciones sin transacción (fuera del pase) |
+| R-7 reportes y paquetes en bloque | consultas del reporte 10 531 → 3; 1,15 → 0,50 s; paquetes 300 → 1 lista (752 → 45 ms) | PDF y Excel idénticos byte a byte en 39 archivos; Contratos no se abre (los puertos ya tenían lecturas en bloque) |
+| R-1 el visor no congela y no repite | rasterizado fuera del hilo (ya el 15); volver a una hoja vista 3 rasterizados → 0; ventana quieta ≤ 2,9 ms; `ContarPaginas` 1 por documento; `BitmapImage` atada antes de `SetSourceAsync` (30 MiB menos que `SoftwareBitmapSource`, mismo tiempo) | topes 1 700 / 3 500 px |
+| R-5 Corrección lee una vez por guardado | `ICasos.Listar` 2 → 1 (el plan decía 3) | ms sin diferencia medible (la lectura ya era barata) |
+| R-0 medidor de memoria en `fichas.log` | cuatro líneas `MEMORIA` por sesión (ventana lista, fin de tanda, abrir documento, cierre) + «OCR soltado»; solo cifras | — |
+
+**Sin hacer, a propósito:** R-6 (una sola fuente compartida por las cinco pantallas: la
+que más «río único» da y la de más riesgo —una pantalla enseñando lo viejo—; va cuando
+las demás lleven días medidas en la máquina del dueño) y R-8 (afinar el recolector solo
+si R-2 no bastó; con 293 MiB no hace falta hoy).
+
+**Devuelto al dueño:** el pico DURANTE la importación sigue en ~1 GB (`EnableMemoryPattern
+= false` lo bajaría a ~550 MiB); las migraciones sin transacción; `BaseDePrueba` de
+Reportes firma con nombres de campo que no coinciden con el generador (la métrica 1 de
+sus pruebas daba siempre 0).
+
+**Lo que el supervisor midió tras fusionar todo:** Lectura 123, Datos 214, Reportes 158,
+Paquetes 151, Datos.Falso 46, Contratos 32, App 1 254 (1 253 en verde con la máquina
+cargada por OneDrive; el cronómetro caído da 164 ms a solas, techo 200). Un `find` huérfano
+de un programador llevaba 4 h buscando un `.onnx` por todo el disco (13 209 s de CPU):
+cerrado por el supervisor; explica parte de la lentitud de las suites de la tarde.
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

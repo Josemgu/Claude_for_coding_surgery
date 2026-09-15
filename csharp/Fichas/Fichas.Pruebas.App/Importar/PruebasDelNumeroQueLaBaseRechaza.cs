@@ -61,7 +61,8 @@ public sealed class PruebasDelNumeroQueLaBaseRechaza
         var personas = new RepositorioDePersonas(_conexion!);
         var ilegibles = new RepositorioDeIlegibles(_conexion!);
         var guardado = new GuardadoDeHojas(
-            casos, personas, new RepositorioDeProcedencia(_conexion!), ilegibles, new RelojDelSistema(), new CopiaDelEscaneo(_carpeta));
+            casos, personas, new RepositorioDeProcedencia(_conexion!), ilegibles, new RelojDelSistema(), new CopiaDelEscaneo(_carpeta),
+            () => new AmbitoDeGuardadoSobreSqlite(_conexion!));
 
         var salida = guardado.GuardarLasHojasDelDocumento([HojaConNumero("CASP26O9")]);
 
@@ -87,7 +88,8 @@ public sealed class PruebasDelNumeroQueLaBaseRechaza
         var casos = new CasosQueRechazanUnNumeroMalFormado(new RepositorioDeCasos(_conexion!));
         var guardado = new GuardadoDeHojas(
             casos, new RepositorioDePersonas(_conexion!), new RepositorioDeProcedencia(_conexion!),
-            new RepositorioDeIlegibles(_conexion!), new RelojDelSistema(), new CopiaDelEscaneo(_carpeta));
+            new RepositorioDeIlegibles(_conexion!), new RelojDelSistema(), new CopiaDelEscaneo(_carpeta),
+            () => new AmbitoDeGuardadoSobreSqlite(_conexion!));
 
         var salida = guardado.GuardarLasHojasDelDocumento([HojaConNumero("CASP2609")]);
 

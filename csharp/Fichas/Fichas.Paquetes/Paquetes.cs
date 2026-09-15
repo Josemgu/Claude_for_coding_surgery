@@ -30,9 +30,6 @@ namespace Fichas.Paquetes;
 /// </remarks>
 public sealed class Paquetes : IPaquetes
 {
-    /// <summary>Cuántos casos se piden por página al buscar por número; <see cref="CasosConEseNumero"/> recorre las que hagan falta.</summary>
-    private const int TamanoDelTrozo = 500;
-
     /// <summary>Para leer casos por id, buscarlos por número y estampar el estado del compañero.</summary>
     private readonly ICasos _casos;
 
@@ -380,8 +377,12 @@ public sealed class Paquetes : IPaquetes
             return new ResultadoDelExcelDevuelto([], [], [Aviso.Problema("No se pudo leer el Excel devuelto.", string.Empty, causa.Message)]);
         }
 
+        // Una vuelta, una lectura de casos por número (R-7): el buscador vive lo que dura esta llamada.
+        var porNumero = new CasosPorNumero(_casos);
         var resultado = Reconciliacion.Reconciliar(
-            libro, PersonasQueCasan, companeroId, rutaExcel, _reloj.Ahora());
+            libro,
+            (numeroCaso, mrn, casoId) => PersonasQueCasan(numeroCaso, mrn, casoId, porNumero),
+            companeroId, rutaExcel, _reloj.Ahora());
 
         foreach (var descartada in resultado.Descartadas)
             _ilegibles.RegistrarDescartada(descartada);
@@ -632,10 +633,12 @@ public sealed class Paquetes : IPaquetes
         var descartadas = 0;
         var estadoPorCaso = new Dictionary<long, EstadoDeRecomendacion>();
         var motivoPorCaso = new Dictionary<long, MotivoDeNoCompletar>();
+        // Una vuelta, una lectura de casos por número (R-7): solo se lee si alguna marca viene sin id.
+        var porNumero = new CasosPorNumero(_casos);
 
         foreach (var marca in marcas)
         {
-            var casan = PersonasQueCasan(marca.NumeroCaso, marca.Mrn, marca.CasoId);
+            var casan = PersonasQueCasan(marca.NumeroCaso, marca.Mrn, marca.CasoId, porNumero);
             if (casan.Count != 1)
             {
                 descartadas++;
@@ -743,7 +746,8 @@ public sealed class Paquetes : IPaquetes
     /// <param name="numeroCaso">La primera parte de la clave; solo se mira cuando no hay id.</param>
     /// <param name="mrn">La segunda parte; vacía devuelve la lista vacía sin buscar.</param>
     /// <param name="casoId">La tercera parte; con ella se busca solo dentro de ese caso.</param>
-    private IReadOnlyList<Persona> PersonasQueCasan(string? numeroCaso, string? mrn, long? casoId)
+    /// <param name="porNumero">Los casos por número de esta vuelta; solo lee la base si hace falta, y una vez.</param>
+    private IReadOnlyList<Persona> PersonasQueCasan(string? numeroCaso, string? mrn, long? casoId, CasosPorNumero porNumero)
     {
         if (string.IsNullOrWhiteSpace(mrn))
             return [];
@@ -754,39 +758,12 @@ public sealed class Paquetes : IPaquetes
         if (string.IsNullOrWhiteSpace(numeroCaso))
             return [];
 
+        // Los archivados entran (los trae `CasosPorNumero`): un caso archivado sigue teniendo
+        // personas y el companero pudo haberlo recibido antes de que se archivara. Dejarlo
+        // fuera convertiria su trabajo en un descarte «sin par» que nadie sabria explicar.
         var encontradas = new List<Persona>();
-        foreach (var caso in CasosConEseNumero(numeroCaso))
+        foreach (var caso in porNumero.ConEseNumero(numeroCaso))
             encontradas.AddRange(_personas.DeCaso(caso.Id).Where(persona => persona.Mrn == mrn));
         return encontradas;
-    }
-
-    /// <summary>
-    /// Los casos que llevan ese numero, archivados incluidos.
-    /// </summary>
-    /// <remarks>
-    /// Los archivados entran a proposito: un caso archivado sigue teniendo personas y el
-    /// companero pudo haberlo recibido antes de que se archivara. Dejarlo fuera convertiria su
-    /// trabajo en un descarte «sin par» que nadie sabria explicar.
-    /// <para>
-    /// El filtro por texto del puerto busca tambien por nombre y por MRN, asi que despues se
-    /// compara el numero LETRA POR LETRA: un filtro que sobra se recorta aqui, uno que falta no
-    /// se puede recuperar.
-    /// </para>
-    /// </remarks>
-    /// <param name="numeroCaso">El número tal como vino en la clave; se compara sin distinguir mayúsculas.</param>
-    private List<Caso> CasosConEseNumero(string numeroCaso)
-    {
-        var encontrados = new List<Caso>();
-        var filtro = new FiltroDeCasos(Texto: numeroCaso, IncluirArchivados: true);
-        var trozo = Pagina.Primera(TamanoDelTrozo);
-        while (true)
-        {
-            var pagina = _casos.Listar(filtro, trozo);
-            encontrados.AddRange(pagina.Elementos.Where(caso =>
-                string.Equals(caso.NumeroCaso, numeroCaso, StringComparison.OrdinalIgnoreCase)));
-            if (!pagina.HayMas)
-                return encontrados;
-            trozo = trozo.Siguiente();
-        }
     }
 }

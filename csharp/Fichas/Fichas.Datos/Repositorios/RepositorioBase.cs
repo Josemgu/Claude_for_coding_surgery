@@ -24,6 +24,16 @@ namespace Fichas.Datos.Repositorios;
 /// que las claves foraneas no se enciendan, que una migracion quede a medias—, que es
 /// otra cosa que un valor raro en una casilla.
 /// </para>
+/// <para>
+/// <b>Cada orden se crea en su llamada, y por eso se une sola a la transacción abierta</b>
+/// (R-4, 2026-09-15). Medido en <c>PruebaDelAmbitoDeEscritura</c> con Microsoft.Data.Sqlite
+/// 10.0.11: <c>CreateCommand()</c> asigna a la orden la transacción que la conexión tenga
+/// abierta en ese momento, y una orden nacida fuera no puede ejecutarse dentro. Quien quiera
+/// que varias escrituras sean una sola confirmación abre un
+/// <c>Fichas.Datos.Conexion.AmbitoDeEscritura</c> sobre la conexión; los repositorios no se
+/// enteran. ⛔ Y NO se guarda ninguna orden para reutilizarla: nacería atada a la transacción
+/// de su primera vez y el motor la rechazaría en la siguiente hoja.
+/// </para>
 /// </remarks>
 public abstract class RepositorioBase
 {

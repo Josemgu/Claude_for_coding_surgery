@@ -14,6 +14,11 @@ namespace Fichas.App.Cascara;
 ///
 /// <para>La cura es decirlo explicitamente con <c>AppWindow.SetIcon</c>. El mismo icono vale
 /// para la barra de titulo y para la barra de tareas.</para>
+///
+/// <para>⚠️ Desde el 2026-09-15 la barra de titulo es la del programa
+/// (<c>VentanaPrincipal.Tema.cs</c>, <c>MontarLaBarraDeTitulo</c>) y el icono que se ve en
+/// ella lo pone <c>TitleBar.IconSource</c> en el XAML. Esto sigue haciendo falta: es lo que
+/// ensena la barra de tareas y Alt+Tab, que Windows sigue dibujando por su cuenta.</para>
 /// </remarks>
 public sealed partial class VentanaPrincipal
 {

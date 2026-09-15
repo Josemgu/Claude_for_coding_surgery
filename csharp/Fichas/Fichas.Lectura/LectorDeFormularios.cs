@@ -62,48 +62,77 @@ public sealed class LectorDeFormularios
 
     /// <summary>Todas las hojas del PDF, cada una como un formulario propio.</summary>
     /// <remarks>
-    /// Un archivo que no se puede abrir devuelve UNA hoja con su renglon de ilegible y
+    /// <para>El PDF se abre UNA vez para todas sus hojas (plan R-3 del 2026-09-15): de esa
+    /// apertura salen el número de hojas, el tamaño y las anotaciones de cada una, y los
+    /// bytes desde los que PDFium rasteriza. Antes cada hoja lo abría tres veces más.</para>
+    ///
+    /// <para>Un archivo que no se puede abrir devuelve UNA hoja con su renglon de ilegible y
     /// nada mas. No devuelve la lista vacia: una lista vacia se pierde en silencio, y eso
-    /// es justo lo que no puede pasar.
+    /// es justo lo que no puede pasar.</para>
     /// </remarks>
     /// <param name="rutaPdf">Ruta del archivo en disco; no se comprueba que exista antes de intentar abrirlo.</param>
     /// <returns>Una <see cref="HojaLeida"/> por página, en orden; o una sola, ilegible y con página 0, si el archivo no se abrió.</returns>
     public IReadOnlyList<HojaLeida> LeerDocumento(string rutaPdf)
     {
-        int paginas = _lectura.ContarPaginas(rutaPdf);
-        if (paginas <= 0)
+        using var documento = _lectura.AbrirDocumento(rutaPdf);
+        if (documento is null || documento.Paginas <= 0)
         {
             return [HojaIlegible(rutaPdf, pagina: null, "El archivo no se pudo abrir como PDF.", lineasLeidas: 0, segundos: 0.0)];
         }
-        return Enumerable.Range(1, paginas).Select(pagina => LeerHoja(rutaPdf, pagina)).ToArray();
+        return Enumerable.Range(1, documento.Paginas).Select(pagina => LeerHoja(documento, rutaPdf, pagina)).ToArray();
     }
 
-    /// <summary>Lee una hoja de punta a punta.</summary>
+    /// <summary>Lee una sola hoja de punta a punta, abriendo el PDF para ella.</summary>
+    /// <remarks>
+    /// Es para quien necesita una hoja suelta (la comprobación de papeles de la App). La
+    /// lectura entera no pasa por aquí: <see cref="LeerDocumento"/> abre una vez y lee
+    /// todas. Un archivo que no se abre vuelve como hoja ilegible con el mismo motivo que
+    /// una hoja que no se pudo rasterizar, igual que antes.
+    /// </remarks>
+    /// <param name="rutaPdf">Ruta del archivo en disco.</param>
+    /// <param name="pagina">Número de hoja, base 1.</param>
+    /// <returns>La hoja con sus campos, avisos y tiempo; nunca nula, y una hoja mala no lanza.</returns>
+    /// <exception cref="FileNotFoundException">Faltan los modelos de OCR: <see cref="LecturaDePdf.LeerConOcr(Fichas.Contratos.Lectura.ImagenDePagina)"/> la deja subir a propósito para que no pase por una hoja en blanco.</exception>
+    public HojaLeida LeerHoja(string rutaPdf, int pagina)
+    {
+        var crono = Stopwatch.StartNew();
+        using var documento = _lectura.AbrirDocumento(rutaPdf);
+        if (documento is null)
+        {
+            return HojaIlegible(rutaPdf, pagina, "La hoja no se pudo convertir en imagen.", 0, crono.Elapsed.TotalSeconds);
+        }
+        return LeerHoja(documento, rutaPdf, pagina);
+    }
+
+    /// <summary>Lee una hoja de un documento ya abierto, de punta a punta.</summary>
     /// <remarks>
     /// El orden es rasterizar, OCR, anotaciones, tamaño de página y extracción. Tres
     /// salidas distintas y las tres llevan la hoja de vuelta: no se pudo rasterizar
     /// (ilegible, sin campos); el OCR no devolvió ni una línea (ilegible, pero con los
     /// campos que las anotaciones hayan dado); y la lectura normal, floja o no.
+    ///
+    /// <para>El mapa de bits de PDFium va al OCR tal cual y se desecha al salir: una sola
+    /// imagen por hoja, sin PNG por medio (plan R-3).</para>
     /// </remarks>
-    /// <param name="rutaPdf">Ruta del archivo en disco.</param>
+    /// <param name="documento">El PDF abierto con <see cref="LecturaDePdf.AbrirDocumento"/>.</param>
+    /// <param name="rutaPdf">Ruta del archivo, que viaja en la hoja y en el renglón de ilegible.</param>
     /// <param name="pagina">Número de hoja, base 1.</param>
     /// <returns>La hoja con sus campos, avisos y tiempo; nunca nula, y una hoja mala no lanza.</returns>
-    /// <exception cref="FileNotFoundException">Faltan los modelos de OCR: <see cref="LecturaDePdf.LeerConOcr"/> la deja subir a propósito para que no pase por una hoja en blanco.</exception>
-    public HojaLeida LeerHoja(string rutaPdf, int pagina)
+    private HojaLeida LeerHoja(DocumentoAbierto documento, string rutaPdf, int pagina)
     {
         var crono = Stopwatch.StartNew();
 
-        var imagen = _lectura.RasterizarPagina(rutaPdf, pagina, Geometria.LadoLargoMaximoPx);
-        if (imagen is null)
+        using var mapa = _lectura.RasterizarHoja(documento, pagina, Geometria.LadoLargoMaximoPx);
+        if (mapa is null)
         {
             return HojaIlegible(rutaPdf, pagina, "La hoja no se pudo convertir en imagen.", 0, crono.Elapsed.TotalSeconds);
         }
 
-        var lineas = _lectura.LeerConOcr(imagen);
-        var anotaciones = _lectura.LeerAnotaciones(rutaPdf, pagina);
+        var lineas = _lectura.LeerConOcr(mapa);
+        var anotaciones = documento.AnotacionesDeLaHoja(pagina);
         string? textoLeido = TextoDeLaPagina(lineas);
 
-        var tamano = _lectura.TamanoDeLaPagina(rutaPdf, pagina);
+        var tamano = documento.TamanoDeLaHoja(pagina);
         var extraccion = new Extraccion(
             tamano is null ? 612.0 / 792.0 : tamano.Value.AnchoPuntos / tamano.Value.AltoPuntos);
 

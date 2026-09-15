@@ -76,10 +76,10 @@ public class PruebaDeRendimiento
     [TestMethod]
     public void ConTresMilCasosSeMideEnQueSeVaElTiempo()
     {
-        // El desglose importa mas que el total: IProcedencia no tiene ninguna lectura en
-        // bloque, asi que la lectura hace una llamada POR CASO y otra POR PERSONA. Contra el
-        // almacen en memoria eso se aguanta; contra SQLite serian ~10 500 consultas, y este
-        // numero es el que dice si hace falta un metodo nuevo en Fichas.Contratos.
+        // El desglose importa mas que el total. Hasta el 2026-09-15 la lectura hacia una
+        // llamada POR CASO y otra POR PERSONA (10 531 con esta base, 0,599 s); desde R-7 son
+        // tres consultas en bloque (0,114 s medidos el mismo dia). Cuantas salen lo cuenta
+        // PruebaDeQueLaLecturaNoVaFilaAFila; aqui se mide el reloj.
         var servicios = BaseDePrueba.Montar(TresMil);
 
         var reloj = Stopwatch.StartNew();

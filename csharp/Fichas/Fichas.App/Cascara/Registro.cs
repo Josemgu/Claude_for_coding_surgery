@@ -43,7 +43,22 @@ public sealed class Registro
     public string? Ruta => _ruta;
 
     /// <summary>Anota una linea con su marca de tiempo.</summary>
+    /// <remarks>
+    /// Si la línea es la con la que Importar cierra una tanda, detrás va la de memoria de
+    /// «fin de tanda»: es uno de los cuatro momentos del medidor (R-0, 2026-09-15) y se
+    /// reconoce aquí por texto porque Importar es terreno de otro pase; el motivo entero está
+    /// en <see cref="MedidorDeMemoria.EsFinDeTanda"/>.
+    /// </remarks>
+    /// <param name="linea">Lo que se anota; la marca de tiempo la pone el cuaderno.</param>
     public void Anotar(string linea)
+    {
+        Escribir(linea);
+        if (MedidorDeMemoria.EsFinDeTanda(linea)) AnotarMemoria("fin de tanda");
+    }
+
+    /// <summary>Escribe una línea con su marca de tiempo, y solo eso.</summary>
+    /// <param name="linea">Lo que se escribe.</param>
+    private void Escribir(string linea)
     {
         if (_ruta is null) return;
         var marca = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
@@ -60,20 +75,40 @@ public sealed class Registro
         }
     }
 
-    /// <summary>Anota el arranque con su cifra en milisegundos y en segundos.</summary>
+    /// <summary>
+    /// Anota las cuatro cifras de memoria del proceso en ese momento (R-0 del plan del
+    /// 2026-09-15): working set, administrada y comprometida por el GC, y privados.
+    /// </summary>
+    /// <remarks>
+    /// Los cuatro momentos que la piden: «ventana lista» (desde <see cref="AnotarArranque"/>),
+    /// «fin de tanda» (desde <see cref="Anotar"/>, al reconocer la línea de Importar),
+    /// «Corrección abre el caso N» (desde la pantalla) y «cierre» (desde
+    /// <see cref="Servicios.Dispose"/>). Solo cifras: ni clave ni datos del dueño.
+    /// </remarks>
+    /// <param name="momento">Qué estaba pasando, en palabras, sin ningún dato del dueño.</param>
+    public void AnotarMemoria(string momento)
+        => Escribir(MedidorDeMemoria.Linea(momento, MedidorDeMemoria.Leer()));
+
+    /// <summary>Anota el arranque con su cifra en milisegundos y en segundos, y detrás la memoria de «ventana lista».</summary>
     /// <remarks>
     /// Dice de que datos se abrio, y no es un adorno: si el programa arranco con datos
     /// inventados, cualquier cifra que se mida despues es de mentira, y sin esta linea no
     /// habria forma de saberlo al leer el cuaderno una semana despues.
     /// </remarks>
+    /// <param name="milisegundos">Lo que costó hasta que la ventana estuvo lista.</param>
+    /// <param name="casosInventados">Cuántos casos inventados se pidieron con <c>--falso</c>, o nulo con la base de verdad.</param>
+    /// <param name="carpetaDeDatos">De dónde se abrió la base.</param>
     public void AnotarArranque(double milisegundos, int? casosInventados, string carpetaDeDatos)
-        => Anotar(string.Format(
+    {
+        Escribir(string.Format(
             CultureInfo.InvariantCulture,
             "ARRANQUE  ventana lista en {0:F0} ms ({1:F2} s)  datos={2}  carpeta={3}",
             milisegundos,
             milisegundos / 1000.0,
             casosInventados is null ? "la base de verdad" : $"INVENTADOS ({casosInventados} casos)",
             carpetaDeDatos));
+        AnotarMemoria("ventana lista");
+    }
 
     /// <summary>Anota una navegacion con su cifra en milisegundos.</summary>
     public void AnotarNavegacion(string pantalla, double milisegundos)
