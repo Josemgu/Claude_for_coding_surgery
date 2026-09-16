@@ -55,9 +55,15 @@ public class PruebaDelExcelDeLosTresInformes
 
     // ─────────────────────── los tres escriben un .xlsx que abre ───────────────────────
 
-    /// <summary>Vigila que el .xlsx del periodo se vuelve a abrir con el resumen delante y una hoja por sección.</summary>
+    /// <summary>Vigila que el .xlsx del periodo se vuelve a abrir con UNA sola hoja, la del mockup v3.</summary>
+    /// <remarks>
+    /// ⚠️ Hasta el 2026-09-16 esta prueba fijaba «el resumen delante y una hoja por sección»
+    /// (<c>Secciones.Count + 1</c> pestanas). Ese dia el dueno aprobo el mockup de una sola
+    /// hoja y las siete pestanas se fueron; lo que se fija ahora es lo contrario. El detalle
+    /// de esa hoja esta en <c>PruebaDeLaHojaDelResumen</c>.
+    /// </remarks>
     [TestMethod]
-    public void ElInformeDelPeriodoEnExcelAbreYTieneUnaHojaPorSeccion()
+    public void ElInformeDelPeriodoEnExcelAbreYTieneUnaSolaHoja()
     {
         var reportes = Montar(out _);
         var ruta = RutaTemporal("periodo.xlsx");
@@ -66,12 +72,10 @@ public class PruebaDelExcelDeLosTresInformes
             var resultado = reportes.GenerarReporteDelPeriodoEnExcel(Desde, Hasta, ruta);
 
             Assert.IsTrue(resultado.SeEscribio, string.Join(" · ", resultado.Avisos.Select(a => a.Linea)));
-            var documento = reportes.DocumentoDelPeriodo(
-                Fichas.Reportes.Reglas.Periodo.Leer(Desde, Hasta).Periodo!, $"{BaseDePrueba.Hoy} 10:00:00");
 
             using var libro = new XLWorkbook(ruta);
-            Assert.AreEqual(documento.Secciones.Count + 1, libro.Worksheets.Count, "una hoja por sección, más el resumen");
-            Assert.AreEqual(NombreDeHoja.DelResumen, libro.Worksheets.First().Name);
+            Assert.HasCount(1, libro.Worksheets, "una sola hoja: el mockup v3 que aprobó el dueño");
+            Assert.AreEqual(HojaDelResumen.NombreDeLaHoja, libro.Worksheets.First().Name);
         }
         finally { Borrar(ruta); }
     }
@@ -126,15 +130,19 @@ public class PruebaDelExcelDeLosTresInformes
     /// No basta con mirar el libro en memoria: lo que se come el cero es el viaje a disco y la
     /// vuelta. Aqui se escribe el archivo, se cierra, se vuelve a abrir y se compara con lo que
     /// dice la base.
+    /// <para>⚠️ Desde el 2026-09-16 se mide sobre el Excel del INFORME DE AGENTE y no sobre el del
+    /// periodo: el del periodo es la hoja unica del mockup v3 y no lleva MRN; el de agente sigue
+    /// saliendo por <see cref="LibroDelInforme"/> con su Parte 1.</para>
     /// </remarks>
     [TestMethod]
     public void UnMrnConCeroDelanteVuelveDelArchivoConSuCero()
     {
-        var reportes = Montar(out _);
+        // Con 300 casos, los del primer compañero no traen ningún MRN con cero delante; con 3 000 sí.
+        var reportes = Montar(out var servicios, casos: 3000);
         var ruta = RutaTemporal("ceros.xlsx");
         try
         {
-            Assert.IsTrue(reportes.GenerarReporteDelPeriodoEnExcel(Desde, Hasta, ruta).SeEscribio);
+            Assert.IsTrue(reportes.GenerarReporteDeCompaneroEnExcel(PrimerCompanero(servicios), Desde, Hasta, ruta).SeEscribio);
 
             using var libro = new XLWorkbook(ruta);
             var parteUno = libro.Worksheets.Single(h => h.Name.Contains("Parte 1", StringComparison.Ordinal));

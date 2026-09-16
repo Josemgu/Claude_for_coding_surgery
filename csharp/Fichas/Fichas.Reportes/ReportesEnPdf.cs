@@ -151,25 +151,39 @@ public sealed class ReportesEnPdf : IReportes, IReportesDeLaEscalera, IReportesE
 
     // ---- lo que pide el puerto del Excel ------------------------------------
 
-    /// <summary>Genera el informe del periodo en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>
+    /// <summary>Genera el informe del periodo en <c>.xlsx</c> —UNA hoja, la del mockup v3— y lo deja en la ruta que se diga.</summary>
     /// <remarks>
-    /// Es el MISMO <see cref="Documento"/> que el PDF de dos metodos mas arriba. Lo unico que
-    /// cambia es quien lo escribe: ver <see cref="Formato.LibroDelInforme"/> para que forma
-    /// toma y por que no es «el PDF con bordes».
+    /// <para>⚠️ <b>Desde el 2026-09-16 este Excel NO es el <see cref="Documento"/> del PDF con
+    /// otra forma.</b> El dueno aprobo el mockup v3 —<i>«Así mismo es que quiero el reporte, como
+    /// está en el mockup»</i>— y ese mockup es un <see cref="ResumenDelPeriodo"/>: tarjetas,
+    /// tabla por unidad, tabla por agente, grafico por mes y solo los pendientes. Lo que sigue
+    /// siendo UNO es lo que cuenta: <see cref="ArmadoDelResumen"/> parte del mismo
+    /// <c>Preparacion.Recontar</c> que la portada del PDF, y hay una prueba que cruza las dos
+    /// salidas sobre la misma base. Ver <see cref="Formato.HojaDelResumen"/>.</para>
+    /// <para>El historico y el informe de agente en Excel siguen saliendo del
+    /// <see cref="Documento"/> por <see cref="Formato.LibroDelInforme"/>: no se pidieron.</para>
     /// </remarks>
     /// <param name="desdeIso">El primer día del periodo, incluido, en «AAAA-MM-DD».</param>
     /// <param name="hastaIso">El último día del periodo, incluido, en «AAAA-MM-DD».</param>
     /// <param name="rutaDestino">Donde queda el <c>.xlsx</c>.</param>
-    /// <returns>Si sale bien, cuántas hojas y cuántas filas de datos; si no, el aviso de qué falló.</returns>
+    /// <returns>Si sale bien, lo que se puede comprobar abriendo: una hoja, cuántas unidades, agentes y pendientes, y un gráfico; si no, el aviso de qué falló.</returns>
     public ResultadoDeEscritura GenerarReporteDelPeriodoEnExcel(string desdeIso, string hastaIso, string rutaDestino)
     {
         var lectura = Periodo.Leer(desdeIso, hastaIso);
         if (lectura.Periodo is null) return ResultadoDeEscritura.NoSeEscribio(lectura.Problema!);
 
-        return EscribirElExcel(
-            DocumentoDelPeriodo(lectura.Periodo, _reloj.Ahora()),
-            rutaDestino,
-            $"Reporte del período {lectura.Periodo.EnTexto()}");
+        var resumen = ArmadoDelResumen.DelPeriodo(Leer(), lectura.Periodo, _reloj.Ahora());
+        var problema = Volcar(() => HojaDelResumen.EnBytes(resumen), rutaDestino, ".xlsx");
+        if (problema is not null) return ResultadoDeEscritura.NoSeEscribio(problema);
+
+        return ResultadoDeEscritura.BienCon(0, Aviso.Informa(
+            $"Reporte del período {lectura.Periodo.EnTexto()} escrito en Excel: 1 hoja con "
+            + Plural.Con(resumen.Unidades, "unidad", "unidades") + ", "
+            + Plural.Con(resumen.Agentes, "agente", "agentes") + ", "
+            + Plural.Con(resumen.Pendientes.Count, "pendiente", "pendientes") + " y 1 gráfico por mes.",
+            string.Empty,
+            $"El archivo está en «{rutaDestino}». Las cifras son las mismas que las del PDF del mismo período. "
+            + LibroDelInforme.QueEsEsteArchivo));
     }
 
     /// <summary>Genera el informe de un companero en <c>.xlsx</c> y lo deja en la ruta que se diga.</summary>

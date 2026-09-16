@@ -241,16 +241,27 @@ public sealed class Paquetes : IPaquetes
 
     /// <summary>Una fila por persona de esos casos, con lo que la hoja «Por verificar» pide.</summary>
     /// <remarks>
-    /// Los seis pasos y la llamada al lider salen VACIOS aunque la persona ya traiga una
-    /// propuesta de una ronda anterior. Es a proposito: lo que se le manda a un companero es
-    /// lo que tiene que mirar, no lo que otro contesto. Rellenarlo de antemano invita a
-    /// confirmarlo sin comprobarlo, que es la averia contra la que existe la regla permanente 5.
+    /// <para>
+    /// ⚠️ <b>Hasta el 2026-09-16 los seis pasos y la llamada al lider salian VACIOS</b> aunque
+    /// la persona ya trajera respuestas, a proposito: «lo que se le manda a un companero es lo
+    /// que tiene que mirar, no lo que otro contesto», y rellenarlo de antemano invitaba a
+    /// confirmarlo sin comprobarlo. El dueno lo dio la vuelta ese dia (PENDIENTES.md, v16, 5):
+    /// <i>«en el sistema solo le faltan 2 preguntas por llenar, pero el paquete de Excel no
+    /// marca las preguntas que ya están completas. Eso debería hacerlo el programa»</i>. Lo que
+    /// ya esta contestado sale escrito, con una nota de quien y cuando; lo que no, en blanco.
+    /// </para>
+    /// <para>
+    /// La regla permanente 5 no se toca: lo que sale escrito es lo que Miguel o un companero
+    /// ya contesto con su firma, no una verificacion nueva; y la vuelta sigue siendo una
+    /// propuesta que el revisa.
+    /// </para>
     /// </remarks>
     /// <param name="casoIds">Los casos del paquete, en el orden en que saldrán.</param>
     /// <param name="avisos">La lista a la que se añade un aviso por cada caso que ya no está en la base.</param>
     private List<FilaDeTrabajo> ArmarLasFilas(IReadOnlyList<long> casoIds, List<Aviso> avisos)
     {
         var filas = new List<FilaDeTrabajo>();
+        var nombres = new NombresDeCompaneros(_companeros);
         foreach (var casoId in casoIds)
         {
             var caso = _casos.Obtener(casoId);
@@ -262,6 +273,8 @@ public sealed class Paquetes : IPaquetes
                     "Puede que se borrara entre la asignación y la generación. El resto del paquete sale igual."));
                 continue;
             }
+            // Una consulta por caso y no una por persona: es la forma en que el puerto las da.
+            var firmas = _personas.FirmasDeLosPasosDelCaso(casoId);
             foreach (var persona in _personas.DeCaso(casoId))
             {
                 filas.Add(new FilaDeTrabajo
@@ -282,6 +295,9 @@ public sealed class Paquetes : IPaquetes
                     AQueVa = ResumirOrdenanzas(persona),
                     // El id del caso va DENTRO de la clave: es lo unico que no se repite.
                     Clave = Columnas.ArmarLaClave(caso.NumeroCaso, persona.Mrn, caso.Id),
+                    Respuestas = Pasos.RespuestasGuardadas(persona),
+                    NotaDeLasSeis = NotasDeLaHoja.DeQuienContestoLasSeis(firmas.GetValueOrDefault(persona.Id), nombres),
+                    NotaDeLaLlamada = NotasDeLaHoja.DeQuienDijoLaLlamada(persona, nombres),
                 });
             }
         }
@@ -392,9 +408,11 @@ public sealed class Paquetes : IPaquetes
         if (resultado.SinNadaQueProponer.Count > 0)
         {
             avisos.Add(Aviso.Informa(
-                $"{resultado.SinNadaQueProponer.Count} fila(s) volvieron con las siete casillas en blanco.",
+                $"{resultado.SinNadaQueProponer.Count} fila(s) volvieron sin nada nuevo.",
                 string.Empty,
-                "Nadie las miró, que no es lo mismo que un «No». Filas: " + string.Join(", ", resultado.SinNadaQueProponer) + "."));
+                "O con las siete casillas en blanco, o tal como salieron del sistema. Nadie las miró, "
+                + "que no es lo mismo que un «No», y lo que ya estaba guardado se queda como estaba. "
+                + "Filas: " + string.Join(", ", resultado.SinNadaQueProponer) + "."));
         }
 
         var marcas = ArmarLasMarcas(resultado.Renglones, avisos);
@@ -567,30 +585,16 @@ public sealed class Paquetes : IPaquetes
         if (personas.Count == 0)
             return EstadoDeRecomendacion.SinMarcar;
 
+        // Las que volvieron traen ya lo guardado donde la hoja venia en blanco
+        // (Pasos.ConLoQueYaEstabaGuardado, en Reconciliacion); las que no, lo guardado a secas.
         var estados = personas.Select(persona => deLaHoja.TryGetValue(persona.Id, out var respuestas)
             ? Pasos.EstadoDeLosPasos(respuestas)
-            : Pasos.EstadoDeLosPasos(RespuestasGuardadas(persona))).ToList();
+            : Pasos.EstadoDeLosPasos(Pasos.RespuestasGuardadas(persona))).ToList();
 
         if (estados.Any(estado => estado == false))
             return EstadoDeRecomendacion.NoCompleta;
         return estados.All(estado => estado == true) ? EstadoDeRecomendacion.Completa : EstadoDeRecomendacion.SinMarcar;
     }
-
-    /// <summary>
-    /// Las siete respuestas que la persona ya tiene en la base, en la misma forma en que
-    /// vienen las de la hoja, para que <see cref="Pasos.EstadoDeLosPasos"/> las lea igual.
-    /// </summary>
-    /// <param name="persona">Una persona del caso que no volvió en la hoja.</param>
-    private static Dictionary<string, bool?> RespuestasGuardadas(Persona persona) => new()
-    {
-        ["paso_preparacion"] = persona.PasoPreparacion,
-        ["paso_informacion"] = persona.PasoInformacion,
-        ["paso_cita_del_templo"] = persona.PasoCitaDelTemplo,
-        ["paso_acciones_requeridas"] = persona.PasoAccionesRequeridas,
-        ["paso_entrevistas"] = persona.PasoEntrevistas,
-        ["paso_listo_para_el_templo"] = persona.PasoListoParaElTemplo,
-        [Pasos.ColumnaDeLaLlamada] = persona.LlamoAlLider,
-    };
 
     /// <summary>
     /// El unico estado que se puede deducir de los seis pasos de UNA persona.

@@ -29,6 +29,27 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
     /// <summary>El panel flotante de altas y bajas del equipo; nulo hasta <see cref="AlLlegar"/>.</summary>
     private PanelDelEquipo? _equipo;
 
+    /// <summary>
+    /// Los casos marcados, APARTE de la lista: sobreviven a buscar, a borrar la búsqueda y a repintar.
+    /// </summary>
+    /// <remarks>
+    /// ⛔ Hasta el 2026-09-16 las marcas vivían solo en <c>_lista.SelectedItems</c>, y cada
+    /// tecleo en el buscador ponía una fuente nueva que nace sin marcas. Del dueño: <i>«elimino
+    /// el nombre de búsqueda para buscar a otra persona, y el sistema desmarca a las personas
+    /// que yo ya había marcado»</i>. La regla está probada sin ventana en
+    /// <see cref="MarcasDeAsignar"/>; aquí solo se enchufa a la lista en los dos sentidos.
+    /// </remarks>
+    private readonly MarcasDeAsignar _marcas = new();
+
+    /// <summary>
+    /// Verdadero mientras la página está poniendo o quitando marcas en la lista por su
+    /// cuenta, para que <see cref="AlCambiarLaSeleccion"/> no las vuelva a leer a medias.
+    /// </summary>
+    private bool _sincronizandoLasMarcas;
+
+    /// <summary>Los renglones que la lista tiene pintados ahora mismo, para saber qué id hay en cada posición.</summary>
+    private IReadOnlyList<RenglonParaAsignar> _renglonesALaVista = [];
+
     /// <summary>Los renglones del panel de grupos, en el mismo orden en que se pintaron.</summary>
     /// <remarks>
     /// Se guardan porque un <c>ItemsRepeater</c> no dice qué dato lleva el botón que se
@@ -95,14 +116,26 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
         // Revisar: un ItemsView con elementos marcados al que se le cambia la fuente se
         // queda apuntando a lo que ya no esta, y el proceso muere sin dejar rastro.
         // Y solo si YA hay lista: desmarcar una que todavia no tiene fuente lo mata igual.
-        if (_lista.ItemsSource is not null) _lista.DeselectAll();
-
+        // Las marcas NO se pierden con esto: viven en _marcas y se vuelven a poner abajo.
         var texto = _buscador.Text ?? string.Empty;
         // Se piden todos porque ItemsView virtualiza: construye los renglones que se ven,
         // no los 3 000. El coste de la lista esta medido en PruebasDeRapidez.
         var pagina = _lectura.Ofrecer(Pagina.Primera(int.MaxValue), texto);
-        _lista.ItemsSource = pagina.Elementos;
-        PintarLosGrupos(pagina.Elementos);
+
+        _sincronizandoLasMarcas = true;
+        try
+        {
+            if (_lista.ItemsSource is not null) _lista.DeselectAll();
+
+            _renglonesALaVista = pagina.Elementos;
+            _lista.ItemsSource = pagina.Elementos;
+            VolverAPonerLasMarcasEnLaLista();
+            PintarLosGrupos(pagina.Elementos);
+        }
+        finally
+        {
+            _sincronizandoLasMarcas = false;
+        }
 
         // ⚠️ 2026-09-06. Aqui se decia tambien «N archivados fuera de la lista», y el motivo
         // escrito era bueno: sin esa cifra, una lista que encoge no se distingue de una que
@@ -120,18 +153,55 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
         ContarLoMarcado();
     }
 
-    /// <summary>Dice en una linea cuantos hay marcados y a quien irian.</summary>
+    /// <summary>Dice en una linea cuantos hay marcados, cuantos fuera de la vista, y a quien irian.</summary>
     private void ContarLoMarcado()
     {
-        var cuantos = _lista.SelectedItems.Count;
+        var cuantos = _marcas.Cuantas;
         var destino = _destinos.SelectedItem as Companero;
         _botonDeAsignar.IsEnabled = cuantos > 0 && destino is not null;
         _botonDeRetirar.IsEnabled = cuantos > 0;
-        _estadoDeLaSeleccion.Text = cuantos == 0
-            ? "Marca los casos que quieras dar. Ctrl+A marca todos los que se ven."
-            : Plural.Con(cuantos, "marcado", "marcados")
-              + " · " + Plural.Palabra(cuantos, "iría", "irían")
-              + $" a {destino?.Nombre ?? "nadie: elige un compañero"}";
+        _botonDeQuitarLasMarcas.Visibility = cuantos > 0 ? Visibility.Visible : Visibility.Collapsed;
+        _estadoDeLaSeleccion.Text = _marcas.Dicho(destino?.Nombre);
+    }
+
+    /// <summary>
+    /// Pone en la lista recien pintada las marcas que le tocan; lo que no se ve se queda marcado igual.
+    /// </summary>
+    /// <remarks>
+    /// Se marca por POSICION, que es lo que <c>ItemsView.Select</c> admite: la posicion de
+    /// cada renglon marcado se busca en la lista que se acaba de poner. Solo se llama con
+    /// <see cref="_sincronizandoLasMarcas"/> puesto, para que la seleccion que esto provoca
+    /// no se vuelva a leer como si la hubiera hecho el dueno.
+    /// </remarks>
+    private void VolverAPonerLasMarcasEnLaLista()
+    {
+        var idsPintados = _renglonesALaVista.Select(r => r.CasoId).ToList();
+        var aMarcar = _marcas.AlRepintar(idsPintados).ToHashSet();
+        if (aMarcar.Count == 0) return;
+
+        for (var posicion = 0; posicion < idsPintados.Count; posicion++)
+        {
+            if (aMarcar.Contains(idsPintados[posicion])) _lista.Select(posicion);
+        }
+    }
+
+    /// <summary>
+    /// Lee lo que el dueno acaba de marcar o desmarcar en la lista y lo pasa al conjunto.
+    /// </summary>
+    /// <remarks>
+    /// El <c>ItemsView</c> no dice QUE cambio, solo que cambio: se compara lo que la lista
+    /// tiene marcado con los renglones a la vista, y solo esos se tocan en el conjunto. Los
+    /// marcados que no estan a la vista no se rozan: no hay forma de que el dueno los haya
+    /// desmarcado desde una lista en la que no salen.
+    /// </remarks>
+    private void LeerLasMarcasDeLaLista()
+    {
+        var marcadosEnLaLista = _lista.SelectedItems.OfType<RenglonParaAsignar>().Select(r => r.CasoId).ToHashSet();
+        foreach (var renglon in _renglonesALaVista)
+        {
+            if (marcadosEnLaLista.Contains(renglon.CasoId)) _marcas.Marcar(renglon.CasoId);
+            else _marcas.Desmarcar(renglon.CasoId);
+        }
     }
 
     /// <summary>Asigna lo marcado al companero elegido, por la unica puerta que hay.</summary>
@@ -144,10 +214,38 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
         var casos = CasosMarcados();
         if (casos.Count == 0) return;
 
+        // El conjunto ENTERO, esten o no a la vista: es lo que la linea de arriba dice que
+        // se va a dar («7 marcados, 3 fuera de la vista»), y dar menos seria mentirle.
         var resumen = _asignar.AsignarVarios(casos, destino.Id, destino.Nombre);
         Acusar(resumen.Linea);
-        _lista.DeselectAll();
+        _marcas.QuitarTodas();
         Repintar();
+    }
+
+    /// <summary>Quita TODAS las marcas, tambien las que la busqueda dejo fuera de la vista.</summary>
+    /// <param name="quien">El botón que se pulsó.</param>
+    /// <param name="cuando">Los datos del evento; no se usan.</param>
+    private void AlPulsarQuitarLasMarcas(object quien, RoutedEventArgs cuando)
+    {
+        var cuantas = _marcas.Cuantas;
+        _marcas.QuitarTodas();
+        DesmarcarLaListaSinLeerla();
+        ContarLoMarcado();
+        Acusar(Plural.Con(cuantas, "marca quitada", "marcas quitadas") + "; no se asignó nada.");
+    }
+
+    /// <summary>Desmarca la lista sin que eso se vuelva a leer como un gesto del dueno.</summary>
+    private void DesmarcarLaListaSinLeerla()
+    {
+        _sincronizandoLasMarcas = true;
+        try
+        {
+            if (_lista.ItemsSource is not null) _lista.DeselectAll();
+        }
+        finally
+        {
+            _sincronizandoLasMarcas = false;
+        }
     }
 
     /// <summary>Retira lo marcado: desactiva las asignaciones vivas, nunca las borra.</summary>
@@ -164,7 +262,7 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
         Acusar(
             Plural.Con(retirados, "caso retirado", "casos retirados")
             + "; la fila de quien " + Plural.Palabra(retirados, "lo llevaba", "los llevaba") + " se conserva.");
-        _lista.DeselectAll();
+        _marcas.QuitarTodas();
         Repintar();
     }
 
@@ -328,26 +426,43 @@ public sealed partial class PaginaDeAsignar : PaginaDeFichas
         Repintar();
     }
 
-    /// <summary>Los numeros internos de los casos marcados ahora mismo.</summary>
-    private List<long> CasosMarcados()
-        => _lista.SelectedItems.OfType<RenglonParaAsignar>().Select(r => r.CasoId).ToList();
+    /// <summary>Los numeros internos de los casos marcados ahora mismo, esten o no a la vista.</summary>
+    private List<long> CasosMarcados() => _marcas.Ids.ToList();
 
-    /// <summary>Ctrl+A: marca todo lo que hay a la vista; si ya estaba todo, lo desmarca.</summary>
+    /// <summary>Ctrl+A: marca todo lo que hay a la vista; si ya estaba todo, lo desmarca. Lo de fuera no se toca.</summary>
     /// <param name="quien">El atajo que se pulsó.</param>
     /// <param name="cuando">Los datos del atajo; se marca como atendido para que no siga subiendo.</param>
     private void AlPulsarMarcarTodo(KeyboardAccelerator quien, KeyboardAcceleratorInvokedEventArgs cuando)
     {
         cuando.Handled = true;
-        if (_lista.ItemsSource is not IReadOnlyList<RenglonParaAsignar> renglones) return;
-        if (MarcarTodo.HayQueMarcar(_lista.SelectedItems.Count, renglones.Count)) _lista.SelectAll();
-        else _lista.DeselectAll();
+        if (_lista.ItemsSource is null) return;
+
+        var marco = _marcas.MarcarODesmarcarLaVista();
+        _sincronizandoLasMarcas = true;
+        try
+        {
+            if (marco) _lista.SelectAll();
+            else _lista.DeselectAll();
+        }
+        finally
+        {
+            _sincronizandoLasMarcas = false;
+        }
+
+        ContarLoMarcado();
     }
 
-    /// <summary>Al cambiar lo marcado, solo se recuenta: la lista no se reconstruye.</summary>
+    /// <summary>Al cambiar lo marcado se pasa al conjunto y se recuenta: la lista no se reconstruye.</summary>
     /// <param name="quien">La lista.</param>
     /// <param name="cuando">Los datos del evento; no se usan.</param>
     private void AlCambiarLaSeleccion(ItemsView quien, ItemsViewSelectionChangedEventArgs cuando)
-        => ContarLoMarcado();
+    {
+        // Mientras la pagina esta poniendo o quitando marcas por su cuenta, este evento
+        // salta a medias y leerlo desmarcaria en el conjunto lo que todavia no se ha puesto.
+        if (_sincronizandoLasMarcas) return;
+        LeerLasMarcasDeLaLista();
+        ContarLoMarcado();
+    }
 
     /// <summary>
     /// Al cambiar de destino tampoco se relee la base: el destino no filtra casos.

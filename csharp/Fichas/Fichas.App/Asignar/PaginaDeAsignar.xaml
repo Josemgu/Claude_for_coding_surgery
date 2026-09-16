@@ -105,7 +105,7 @@
                 AutomationProperties.Name="Equipo"
                 Click="AlPulsarEquipo"
                 Content="Equipo…"
-                ToolTipService.ToolTip="Añadir, desactivar, reactivar o quitar compañeros" />
+                ToolTipService.ToolTip="Añadir, editar, desactivar, reactivar o eliminar compañeros" />
 
             <TextBox
                 x:Name="_buscador"
@@ -127,12 +127,31 @@
                 Content="Retirar" />
         </Grid>
 
-        <!--  Lo marcado y lo que se puede hacer con ello, en una linea (requisito 4).  -->
-        <TextBlock
-            x:Name="_estadoDeLaSeleccion"
+        <!--
+            Lo marcado y lo que se puede hacer con ello, en una linea (requisito 4).
+
+            Las marcas viven en MarcasDeAsignar, APARTE de la lista, desde el 2026-09-16: el
+            dueno marcaba, buscaba a otra persona y las marcas se iban con la lista. La linea
+            dice cuantas hay y cuantas no se ven, y «Quitar las marcas» las quita TODAS,
+            tambien las que la busqueda dejo fuera de la vista.
+        -->
+        <StackPanel
             Grid.Row="2"
-            Opacity="0.85"
-            Text="" />
+            Orientation="Horizontal"
+            Spacing="10">
+            <TextBlock
+                x:Name="_estadoDeLaSeleccion"
+                VerticalAlignment="Center"
+                Opacity="0.85"
+                Text="" />
+            <Button
+                x:Name="_botonDeQuitarLasMarcas"
+                AutomationProperties.Name="Quitar las marcas"
+                Click="AlPulsarQuitarLasMarcas"
+                Content="Quitar las marcas"
+                FontSize="12"
+                Visibility="Collapsed" />
+        </StackPanel>
 
         <!--
             La franja de confirmar el reparto de un grupo: dice CUANTOS ANTES de tocar la

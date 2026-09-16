@@ -44,8 +44,10 @@ public sealed class PruebasDeLaUnidadQueLaListaDice
 
         Assert.AreNotEqual(TarjetaDeDocumento.SinUnidad, tarjeta.UnidadQueSeLee,
             "el documento abierto enseña la unidad 7000011; la lista no puede decir que no la tiene");
-        Assert.Contains(NumeroDeUnidadDelGrupo, tarjeta.Datos,
-            "la línea de la tarjeta es lo que el dueño lee sin abrir el documento");
+        // Hasta el 2026-09-16 la unidad iba dentro de «Datos»; desde ese día tiene su propia
+        // línea en la tarjeta (UnidadQueSeLee, en negrita), porque el dueño pidió verla más.
+        Assert.Contains(NumeroDeUnidadDelGrupo, tarjeta.UnidadQueSeLee,
+            "la línea de la unidad es lo que el dueño lee sin abrir el documento");
     }
 
     /// <summary>Con las dos cosas, la tarjeta las dice las dos, como la carpeta del árbol.</summary>

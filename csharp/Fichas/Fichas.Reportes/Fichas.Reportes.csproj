@@ -29,6 +29,16 @@
   -->
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.1" />
+    <!--
+      Open XML SDK, SOLO para el grafico de barras nativo de la hoja unica del reporte del
+      periodo (dueno, 2026-09-16: «gráfico de la cantidad de personas que viajaron en unos
+      meses»). ClosedXML no dibuja graficos. Es EXACTAMENTE la version que ClosedXML 0.105.1
+      ya arrastra —medida en obj/project.assets.json: DocumentFormat.OpenXml/3.1.1—, asi que
+      no anade ni un archivo a lo publicado: DocumentFormat.OpenXml.dll (6,3 MB) y su
+      .Framework.dll ya viajaban. Si se sube la version de ClosedXML, esta se sube con ella.
+      Licencia MIT. Ver Formato/GraficoDelResumen.cs.
+    -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.1.1" />
   </ItemGroup>
 
 </Project>

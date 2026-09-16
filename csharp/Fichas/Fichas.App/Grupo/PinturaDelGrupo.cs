@@ -58,17 +58,19 @@ public static class PinturaDelGrupo
     /// <param name="hayQueMirarlo">Si el detalle avisa de algo: entonces va en rojo.</param>
     public static Brush TintaDelDetalle(bool hayQueMirarlo) => PinturaDeInicio.TintaDelDetalle(hayQueMirarlo);
 
-    // ---- el verde y el rojo de cada renglon, los mismos del calendario (2026-09-14) ----------
+    // ---- el verde, el naranja y el rojo de cada renglon, los del calendario (2026-09-14/16) ----
 
     /// <summary>
-    /// El fondo del renglon de una persona: el de la pastilla verde si esta resuelta, el de la
-    /// roja si le falta algo.
+    /// El fondo del renglon de una persona: el de la pastilla verde si esta resuelta, el
+    /// naranja si esta a medias, el de la roja si le falta todo.
     /// </summary>
     /// <remarks>
     /// <para>Palabras del dueno, 2026-09-14: <i>«lo que este completo se marque en verde y lo que
-    /// no en rojo, como se muestra en el calendario afuera»</i>. Son <c>VerdeFondo</c> y
-    /// <c>RojoFondo</c> de <see cref="PinturaDeInicio"/>, los mismos dos pinceles con los que
-    /// se pinta la pastilla del dia, en los dos temas; aqui no nace ningun color.</para>
+    /// no en rojo, como se muestra en el calendario afuera»</i>; y 2026-09-16: <i>«las personas
+    /// que se han completado, por ejemplo 4 preguntas de las 6, deben pasar a color naranja»</i>.
+    /// Son <c>VerdeFondo</c>, <c>NaranjaFondo</c> y <c>RojoFondo</c> de
+    /// <see cref="PinturaDeInicio"/>, los mismos pinceles con los que se pinta la pastilla del
+    /// dia y la capa de la tarjeta de Revisar, en los dos temas; aqui no nace ningun color.</para>
     /// <para>La DECISION del color no esta aqui: viene ya tomada en
     /// <see cref="RenglonDelGrupo.Color"/>, que se puede probar sin ventana. Esta funcion solo
     /// traduce un valor a un pincel.</para>
@@ -77,23 +79,25 @@ public static class PinturaDelGrupo
     public static Brush FondoDelRenglon(ColorDeLaPastilla color) => color switch
     {
         ColorDeLaPastilla.Verde => PinturaDeInicio.VerdeFondo,
+        ColorDeLaPastilla.Naranja => PinturaDeInicio.NaranjaFondo,
         ColorDeLaPastilla.Rojo => PinturaDeInicio.RojoFondo,
         _ => Papel,
     };
 
     /// <summary>
     /// La franja de la izquierda del renglon o de la cabecera, que es lo que se ve de lejos:
-    /// verde, rojo, o gris en la cabecera de una unidad sin nadie leido.
+    /// verde, naranja, rojo, o gris en la cabecera de una unidad sin nadie leido.
     /// </summary>
     /// <remarks>
     /// Es la misma raya que lleva la pastilla en el calendario (<c>BordeDeLaPastilla</c>), con
-    /// los mismos tres pinceles y en el mismo sitio, para que dentro de la fecha se lea igual
-    /// que fuera.
+    /// los mismos pinceles y en el mismo sitio, para que dentro de la fecha se lea igual que
+    /// fuera; el naranja solo lo trae una persona, nunca la cabecera.
     /// </remarks>
     /// <param name="color">El color que el modelo ya decidio.</param>
     public static Brush FranjaDelRenglon(ColorDeLaPastilla color) => color switch
     {
         ColorDeLaPastilla.Verde => PinturaDeInicio.VerdeMarca,
+        ColorDeLaPastilla.Naranja => PinturaDeInicio.NaranjaMarca,
         ColorDeLaPastilla.Rojo => PinturaDeInicio.RojoMarca,
         _ => GrisMarca,
     };

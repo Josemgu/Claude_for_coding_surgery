@@ -54,13 +54,19 @@ public sealed class PruebasDelColorDeCadaRenglon
         Assert.AreEqual(ColorDeLaPastilla.Verde, renglon.Color);
     }
 
-    /// <summary>Una persona con alguna pregunta en no se lee «me falta» y va en rojo.</summary>
+    /// <summary>Una persona con ninguna en sí y alguna en no se lee «me falta» y va en rojo.</summary>
+    /// <remarks>
+    /// ⚠️ Hasta el 2026-09-16 se probaba con cinco en sí y una en no (<c>DejarNoListaParaViajar</c>),
+    /// y desde ese día eso es NARANJA —a medias— y no rojo: el naranja mide cuánto se avanzó
+    /// (<c>PruebasDelRenglonNaranja</c>). Lo que esta prueba vigila —que un «no» sin nada en sí
+    /// vaya en rojo con su palabra— sigue igual, con una persona que no ha avanzado nada.
+    /// </remarks>
     [TestMethod]
     public void UnaPersonaConUnaEnNoVaEnRojo()
     {
         var servicios = BaseDeInicio.MontarServicios(0);
         var caso = BaseDeInicio.MeterCaso(servicios, "CASP2609", "2026-09-17", cuantasPersonas: 1);
-        BaseDeInicio.DejarNoListaParaViajar(servicios, caso, fila: 1);
+        BaseDeInicio.ContestarLasSeisDe(servicios, caso, fila: 1, entrevistas: false);
 
         var renglon = PersonasDelDia(servicios).Single();
 
@@ -155,14 +161,17 @@ public sealed class PruebasDelColorDeCadaRenglon
         var rojos = 0;
         foreach (var renglon in dias.SelectMany(d => lector.DelDia(d).EnUnaSolaLista()).Where(r => r.EsUnaPersona))
         {
+            // Desde el 2026-09-16 hay un tercer color, naranja, para «me falta · a medias»;
+            // lo fija PruebasDelRenglonNaranja. Aquí sigue vigilándose lo del 14: verde es
+            // exactamente «resuelto», y lo que no es resuelto nunca es verde.
             var esperado = renglon.PalabraDelEstado == DosEstados.Resuelto
                 ? ColorDeLaPastilla.Verde
-                : ColorDeLaPastilla.Rojo;
+                : renglon.AMedias ? ColorDeLaPastilla.Naranja : ColorDeLaPastilla.Rojo;
             Assert.AreEqual(esperado, renglon.Color, $"«{renglon.Titulo} · {renglon.Detalle}»");
             if (renglon.Color == ColorDeLaPastilla.Verde) verdes++; else rojos++;
         }
 
-        Console.WriteLine($"{dias.Count} días · {verdes} renglones verdes · {rojos} rojos");
+        Console.WriteLine($"{dias.Count} días · {verdes} renglones verdes · {rojos} rojos o naranjas");
         Assert.IsGreaterThan(0, verdes, "La base inventada trae personas con las seis en sí.");
         Assert.IsGreaterThan(0, rojos, "Y personas a las que les falta algo.");
     }
@@ -188,12 +197,14 @@ public sealed class PruebasDelColorDeCadaRenglon
         var personas = renglones.Where(r => r.EsUnaPersona).ToList();
 
         var verdes = personas.Count(r => r.Color == ColorDeLaPastilla.Verde);
-        var rojos = personas.Count(r => r.Color == ColorDeLaPastilla.Rojo);
-        Console.WriteLine($"fuera: «{pastilla.Etiqueta}» {pastilla.Color} · dentro: {verdes} verdes, {rojos} rojos · cabecera {cabecera.Color}");
+        // La que falta tiene cinco en sí y una en no: desde el 2026-09-16 va en naranja (a
+        // medias). Lo que cuadra con la pastilla de fuera es «no verde», sea rojo o naranja.
+        var sinResolver = personas.Count(r => r.Color != ColorDeLaPastilla.Verde);
+        Console.WriteLine($"fuera: «{pastilla.Etiqueta}» {pastilla.Color} · dentro: {verdes} verdes, {sinResolver} sin resolver · cabecera {cabecera.Color}");
 
         Assert.AreEqual("me falta 1 de 3", pastilla.Etiqueta);
         Assert.AreEqual(pastilla.CuantasPersonasResueltas, verdes, "Los verdes de dentro son las resueltas de fuera.");
-        Assert.AreEqual(pastilla.CuantasPersonas - pastilla.CuantasPersonasResueltas, rojos);
+        Assert.AreEqual(pastilla.CuantasPersonas - pastilla.CuantasPersonasResueltas, sinResolver);
         Assert.AreEqual(ColorDeLaPastilla.Rojo, pastilla.Color);
         Assert.AreEqual(pastilla.Color, cabecera.Color, "La cabecera de la unidad va como su pastilla.");
     }

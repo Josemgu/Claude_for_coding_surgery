@@ -192,6 +192,11 @@ public sealed record TarjetaDeDocumento
     /// exige leer <c>procedencia_campo</c>, y esta pantalla se carga de una sola pasada sobre
     /// 3 000 documentos (criterio C13-5). La cuenta de campos vive en Inicio y en Completar,
     /// que si la leen; lo que Revisar contesta es lo que dijo el companero.</para>
+    ///
+    /// <para><b>Y desde el 2026-09-16 pasan tambien sus personas</b>, <see cref="PersonasLeidas"/>,
+    /// para que la tarjeta pueda estar A MEDIAS —alguna persona con alguna de las seis en si— y
+    /// su detalle diga «Ana Pérez: le faltan 2 de 6: Entrevistas, Listo para el templo». Siguen
+    /// siendo UNA pasada: el tablero las lee todas con una consulta, como el grupo del dia.</para>
     /// </remarks>
     public LoQueSeLeeDeUnDocumento Lectura => LoQueSeLeeDeUnDocumento.De(
         Estado,
@@ -201,7 +206,31 @@ public sealed record TarjetaDeDocumento
         quienLoLleva: SinAsignar ? string.Empty : AsignadoA,
         firma: Firma,
         fechaDeArchivado: FechaDeArchivado,
-        motivo: MotivoParaElDetalle);
+        motivo: MotivoParaElDetalle,
+        personas: PersonasLeidas);
+
+    /// <summary>
+    /// Sus personas, con nombre y con lo que se lee de cada una; vacio si el tablero se monto
+    /// sin el puerto de personas.
+    /// </summary>
+    /// <remarks>
+    /// Va en el orden del formulario, que es el orden en que el dueno las ve en el papel y en la
+    /// ventana de las seis preguntas.
+    /// </remarks>
+    public IReadOnlyList<PersonaLeida> PersonasLeidas { get; init; } = [];
+
+    /// <summary>«Ana Pérez, Luis Gómez»: los nombres de sus personas, o vacio si no se cargaron.</summary>
+    /// <remarks>
+    /// <para><b>Del dueno, 2026-09-16:</b> <i>«el nombre y la unidad son datos importantes que
+    /// deben ser mas visibles»</i>. Hasta ese dia la tarjeta decia «3 personas» y ningun nombre;
+    /// para saber quien iba habia que abrir las seis preguntas.</para>
+    /// <para>Una sola linea con puntos suspensivos si no cabe: la tarjeta tiene su alto fijado
+    /// por la rejilla, y una familia de siete no puede empujar a las demas.</para>
+    /// </remarks>
+    public string NombresDeLasPersonas => string.Join(", ", PersonasLeidas.Select(p => p.Nombre));
+
+    /// <summary>Si hay nombres que ensenar; la linea se esconde cuando no los hay.</summary>
+    public bool TieneNombres => PersonasLeidas.Count > 0;
 
     /// <summary>
     /// La palabra del estado: «resuelto» o «me falta», y no hay una tercera.
@@ -245,8 +274,38 @@ public sealed record TarjetaDeDocumento
     /// </remarks>
     public bool SeVeResuelto => Lectura.EsResuelto;
 
-    /// <summary>Si esta tarjeta se lee «me falta».</summary>
+    /// <summary>Si esta tarjeta se lee «me falta»; tambien a medias, que sigue siendo «me falta».</summary>
     public bool SeVeMeFalta => Lectura.EsMeFalta;
+
+    /// <summary>
+    /// Si la tarjeta se ve NARANJA: esta a medias y no es un duplicado.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Del dueno, 2026-09-16:</b> <i>«las personas que se han completado, por ejemplo 4
+    /// preguntas de las 6, deben pasar a color naranja e indicar que le falta»</i>. Es una capa
+    /// detras de la tarjeta, como la roja del duplicado del 14 y con el par naranja de
+    /// <c>PinturaDeInicio</c>, el mismo del renglon del grupo.</para>
+    ///
+    /// <para>⛔ <b>El duplicado manda.</b> Un duplicado a medias se ve rojo de duplicado: la capa
+    /// naranja no se enciende encima de la roja, porque dos capas de color serian un color que no
+    /// dice nada. La lectura sigue estando a medias (<see cref="Lectura"/>) y su detalle lo dice.</para>
+    /// </remarks>
+    public bool SeVeAMedias => Lectura.AMedias && !EsDuplicado;
+
+    /// <summary>« · a medias» al lado de «me falta» en la pastilla, o vacio.</summary>
+    /// <remarks>
+    /// El color nunca va solo (mockup v2): la capa naranja lleva su nota en la pastilla, igual
+    /// que el archivado lleva la suya en el renglon del grupo. No es una tercera palabra
+    /// (<see cref="DosEstados.NotaDeAMedias"/>).
+    /// </remarks>
+    public string NotaDeLaPastilla => Lectura.AMedias ? DosEstados.NotaDeAMedias : string.Empty;
+
+    /// <summary>Si la pastilla lleva nota; tambien en un duplicado a medias, que sigue diciendolo aunque la capa sea roja.</summary>
+    public bool SeVeLaNota => NotaDeLaPastilla.Length > 0;
+
+    /// <summary>La palabra con su nota: «me falta · a medias», o la palabra a secas.</summary>
+    public string PalabraConNota
+        => NotaDeLaPastilla.Length == 0 ? PalabraDelEstado : $"{PalabraDelEstado} · {NotaDeLaPastilla}";
 
     /// <summary>El motivo que va DENTRO del detalle, sin la frase de quien lo dijo delante.</summary>
     /// <remarks>
@@ -420,12 +479,17 @@ public sealed record TarjetaDeDocumento
     public string Firma { get; init; } = string.Empty;
 
     /// <summary>La linea de datos de la tarjeta, en un renglon (requisito 4: ni un parrafo).</summary>
+    /// <remarks>
+    /// ⚠️ <b>2026-09-16: la unidad ya no va aqui.</b> Iba en medio de esta linea —«3 personas ·
+    /// 2026-09-20 · 7000011 · Castries Branch · hoja 1»— y el dueno pidio verla mas: ahora
+    /// <see cref="UnidadQueSeLee"/> va en su propia linea, en negrita, encima de esta.
+    /// </remarks>
     public string Datos
     {
         get
         {
             var hoja = string.IsNullOrEmpty(Hoja) ? string.Empty : $" · {Hoja}";
-            return $"{Plural.Con(Personas, "persona", "personas")} · {FechaDeViaje} · {UnidadQueSeLee}{hoja}";
+            return $"{Plural.Con(Personas, "persona", "personas")} · {FechaDeViaje}{hoja}";
         }
     }
 

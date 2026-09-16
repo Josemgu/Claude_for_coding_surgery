@@ -20,7 +20,7 @@ public sealed record FilaDeTrabajo
     /// <summary>La fecha del viaje al templo, ISO-8601.</summary>
     public string? FechaViaje { get; init; }
 
-    /// <summary>El templo; no va en la tabla, va en la cabecera de la hoja.</summary>
+    /// <summary>El templo al que viaja. Va en su columna desde el 2026-09-16, y en la cabecera cuando todas las filas van al mismo.</summary>
     public string? Templo { get; init; }
 
     /// <summary>
@@ -51,21 +51,52 @@ public sealed record FilaDeTrabajo
     /// <summary>La clave de fila <c>CASO:MRN:ID</c>, a la vista en la ultima columna.</summary>
     public string? Clave { get; init; }
 
+    /// <summary>
+    /// Las siete respuestas que el sistema ya tiene de esta persona, por nombre de columna:
+    /// los seis pasos y la llamada al lider. Nulo donde nadie contesto.
+    /// </summary>
+    /// <remarks>
+    /// ⚠️ Hasta el 2026-09-16 las siete salian SIEMPRE vacias, a proposito: «lo que se le
+    /// manda a un companero es lo que tiene que mirar, no lo que otro contesto». El dueno lo
+    /// cambio ese dia (PENDIENTES.md, v16, 5): <i>«el paquete de Excel no marca las preguntas
+    /// que ya están completas. Eso debería hacerlo el programa»</i>. Lo que ya esta contestado
+    /// sale escrito en su celda; lo que no, en blanco para que lo rellene el.
+    /// </remarks>
+    public IReadOnlyDictionary<string, bool?> Respuestas { get; init; } = new Dictionary<string, bool?>();
+
+    /// <summary>Quien contesto los seis pasos, cuando y desde donde, ya en palabras; nulo si nadie.</summary>
+    /// <remarks>Va como nota de cada celda de paso que sale contestada. Es <c>pasos_por</c> / <c>pasos_en</c> / <c>pasos_origen</c> leidos para una persona.</remarks>
+    public string? NotaDeLasSeis { get; init; }
+
+    /// <summary>Quien dijo si llamo al lider y cuando, ya en palabras; nulo si nadie.</summary>
+    /// <remarks>La llamada NO es un paso y no la firma <c>pasos_por</c>: viene del Excel de un companero, asi que su nota sale de <c>propuesto_por</c> / <c>propuesto_en</c>.</remarks>
+    public string? NotaDeLaLlamada { get; init; }
+
     /// <summary>El valor de una columna de esta fila, buscada por el nombre de la columna.</summary>
-    /// <param name="nombreDeColumna">El nombre en la base; las siete respuestas, el motivo, el comentario y cualquier nombre desconocido dan nulo.</param>
+    /// <param name="nombreDeColumna">El nombre en la base; las siete respuestas salen como «Sí»/«No» o nulo; el motivo, el comentario y cualquier nombre desconocido dan nulo.</param>
     public string? ValorDe(string nombreDeColumna) => nombreDeColumna switch
     {
         "numero_caso" => NumeroCaso,
         "fecha_viaje" => FechaViaje,
+        Columnas.ColumnaDelTemplo => Templo,
         Columnas.ColumnaDelNumeroDeUnidad => UnidadNumero,
         "unidad_nombre" => UnidadNombre,
         "nombre" => Nombre,
         "mrn" => Mrn,
         "a_que_va" => AQueVa,
         Columnas.ColumnaDeLaClave => Clave,
-        // Las siete respuestas salen SIEMPRE vacias, aunque la persona ya traiga una
-        // propuesta de una ronda anterior: lo que se le manda a un companero es lo que
-        // tiene que mirar, no lo que otro contesto.
+        // Las siete respuestas: lo que el sistema ya tiene, escrito como lo ofrece el menu.
+        // Solo ellas estan en el diccionario; el motivo, el comentario y un nombre
+        // desconocido caen fuera y dan nulo.
+        _ => Respuestas.TryGetValue(nombreDeColumna, out var respuesta) ? Pasos.Escribir(respuesta) : null,
+    };
+
+    /// <summary>La nota que acompana a una celda de respuesta que sale contestada: quien y cuando.</summary>
+    /// <param name="nombreDeColumna">El nombre en la base; la llamada tiene su nota y los seis pasos la suya; cualquier otra da nulo.</param>
+    public string? NotaDe(string nombreDeColumna) => nombreDeColumna switch
+    {
+        Pasos.ColumnaDeLaLlamada => NotaDeLaLlamada,
+        _ when Respuestas.ContainsKey(nombreDeColumna) => NotaDeLasSeis,
         _ => null,
     };
 }
@@ -151,8 +182,23 @@ public static class LibroDeTrabajo
         + "lo que pasó en «" + MotivosDeLaHoja.RotuloDelComentario + "»: eso es lo que "
         + "vuelve al sistema.";
 
+    /// <summary>
+    /// Lo que se anadio el 2026-09-16: que lo que ya viene marcado lo puso el sistema, y que
+    /// borrarlo no lo quita.
+    /// </summary>
+    /// <remarks>
+    /// Sin esta frase el companero ve celdas amarillas ya rellenas y no sabe si alguien se
+    /// las dejo por error. Y la segunda mitad es la regla de la vuelta dicha a quien la
+    /// sufre: una celda que borre se conserva como estaba, asi que para cambiar un «Sí» tiene
+    /// que escribir «No» (ver <see cref="Pasos.ConLoQueYaEstabaGuardado"/>).
+    /// </remarks>
+    public const string InstruccionDeLoQueYaVieneMarcado =
+        " Lo que ya venga marcado con Sí o No lo tenía el sistema antes de darte esta hoja: "
+        + "déjalo si sigue igual y escribe encima si ves otra cosa; borrarlo no lo quita. "
+        + "Lo que esté en blanco es lo que falta por mirar.";
+
     /// <summary>La instruccion de la fila 5, que la lee una persona que no es Miguel.</summary>
-    public const string Instruccion = InstruccionDelViejo + InstruccionDeCuandoNoSePudo;
+    public const string Instruccion = InstruccionDelViejo + InstruccionDeCuandoNoSePudo + InstruccionDeLoQueYaVieneMarcado;
 
     /// <summary>Lo que se escribe cuando la hoja no dice a quien va.</summary>
     public const string SinAgente = "sin asignar";
@@ -328,10 +374,15 @@ public static class LibroDeTrabajo
                 var valor = filas[indice].ValorDe(columna.Nombre);
                 // Lo que el programa no sabe se dice con palabras y no con un hueco. Un hueco
                 // lo lee el companero como «esto lo relleno yo», y las unicas celdas que
-                // rellena el son las de fondo amarillo.
-                if (valor is null && !columna.EsRespuesta)
+                // rellena el son las de fondo amarillo. La excepcion es «A qué va»: ahi el
+                // blanco es lo que dice el papel (dueno, 2026-09-16: «"no consta" no es una
+                // respuesta»).
+                if (valor is null && !columna.EsRespuesta && !columna.EnBlancoSiFalta)
                     valor = Columnas.SinDato;
-                EscribirCelda(hoja, numeroDeFila, numeroDeColumna, columna, valor);
+                // La nota solo acompana a una respuesta que sale escrita: dice quien la
+                // contesto y cuando, para que el companero sepa que no es un error.
+                var nota = valor is null ? null : filas[indice].NotaDe(columna.Nombre);
+                EscribirCelda(hoja, numeroDeFila, numeroDeColumna, columna, valor, nota);
             }
         }
         return numeroDeFila;
@@ -340,17 +391,21 @@ public static class LibroDeTrabajo
     /// <summary>
     /// Una celda de datos entera: el valor, el formato de texto o de fecha, la marca de
     /// bloqueo (siempre a «libre» desde el 2026-09-07), la línea de abajo, el fondo si es
-    /// respuesta y la letra pequeña y gris si es la clave.
+    /// respuesta, la letra pequeña y gris si es la clave, y la nota si la lleva.
     /// </summary>
     /// <param name="hoja">La pestaña «Por verificar».</param>
     /// <param name="fila">El número de fila de Excel, base 1.</param>
     /// <param name="numeroDeColumna">El número de columna de Excel, base 1.</param>
     /// <param name="columna">La definición de la columna, que decide todo lo demás.</param>
     /// <param name="valor">El texto a escribir, o nulo para dejar la celda vacía con su estilo.</param>
-    private static void EscribirCelda(IXLWorksheet hoja, int fila, int numeroDeColumna, ColumnaDeLaHoja columna, string? valor)
+    /// <param name="nota">El comentario de celda, o nulo si no lleva; solo lo llevan las respuestas que salen contestadas.</param>
+    private static void EscribirCelda(
+        IXLWorksheet hoja, int fila, int numeroDeColumna, ColumnaDeLaHoja columna, string? valor, string? nota)
     {
         var celda = hoja.Cell(fila, numeroDeColumna);
         PonerElValor(celda, columna, valor);
+        if (nota is not null)
+            PonerLaNota(celda, nota);
 
         if (columna.Clase == ClaseDeColumna.Texto)
             celda.Style.NumberFormat.Format = FormatoDeTexto;
@@ -402,6 +457,25 @@ public static class LibroDeTrabajo
             return;
         }
         celda.SetValue(valor);
+    }
+
+    /// <summary>
+    /// El comentario de una celda que sale ya contestada: quien la contesto, cuando y desde
+    /// donde. Se ve al pasar el raton y no ocupa ninguna columna.
+    /// </summary>
+    /// <remarks>
+    /// Va como comentario y no como columna aparte porque la hoja ya es ancha
+    /// (<see cref="Columnas.Todas"/>), y una columna mas que solo importa cuando la celda
+    /// no esta vacia seria ruido en las filas que van enteras en blanco. La vuelta no lee comentarios (<see cref="LectorDeExcel"/> lee
+    /// valores), asi que la nota no puede descolocar nada.
+    /// </remarks>
+    /// <param name="celda">La celda de respuesta que sale escrita.</param>
+    /// <param name="nota">El texto, ya en palabras.</param>
+    private static void PonerLaNota(IXLCell celda, string nota)
+    {
+        var comentario = celda.CreateComment();
+        comentario.AddText(nota);
+        comentario.Style.Alignment.AutomaticSize = true;
     }
 
     /// <summary>

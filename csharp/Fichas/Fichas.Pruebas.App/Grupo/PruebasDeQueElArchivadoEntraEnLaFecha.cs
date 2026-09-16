@@ -69,7 +69,10 @@ public sealed class PruebasDeQueElArchivadoEntraEnLaFecha
         Assert.AreEqual(DosEstados.Resuelto, archivado.PalabraDelEstado, "Sigue siendo una de las dos palabras.");
         StringAssert.Contains(archivado.Detalle, "resuelto · archivado", StringComparison.Ordinal);
         Assert.IsFalse(elVivo.Archivado);
-        Assert.AreEqual(ColorDeLaPastilla.Rojo, elVivo.Color);
+        // Cinco en sí y una en no: desde el 2026-09-16 es NARANJA (a medias), no rojo. Lo que
+        // esta prueba vigila es que el vivo NO vaya en verde como el archivado.
+        Assert.AreEqual(ColorDeLaPastilla.Naranja, elVivo.Color);
+        Assert.AreNotEqual(ColorDeLaPastilla.Verde, elVivo.Color);
         Assert.DoesNotContain("archivado", elVivo.Detalle, StringComparison.Ordinal);
     }
 

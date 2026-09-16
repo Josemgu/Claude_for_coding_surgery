@@ -33,13 +33,14 @@ namespace Fichas.App.Asignar;
 /// a preguntar.
 /// </para>
 /// <para>
-/// <b>Las tres acciones no son intercambiables.</b> DESACTIVAR es lo normal: deja de
+/// <b>Las acciones no son intercambiables.</b> EDITAR cambia el nombre (y el puesto, en sus
+/// desplegables) sin tocar nada mas. DESACTIVAR es lo normal: deja de
 /// recibir trabajo nuevo y su nombre sigue en todo lo que ya firmo, y por eso no pregunta
-/// —se deshace con REACTIVAR—. QUITAR borra la fila de verdad y solo se ofrece a quien no
+/// —se deshace con REACTIVAR—. ELIMINAR borra la fila de verdad y solo se ofrece a quien no
 /// lleva nada; a quien lleva algo se le dice cuanto lleva y por que no se puede.
 /// </para>
 /// </remarks>
-public sealed class PanelDelEquipo
+public sealed partial class PanelDelEquipo
 {
     /// <summary>El equipo: se lee entero, desactivados incluidos, y por aquí se desactiva.</summary>
     private readonly ICompaneros _companeros;
@@ -75,8 +76,22 @@ public sealed class PanelDelEquipo
         MinWidth = 120,
     };
 
-    /// <summary>El panel flotante abierto ahora mismo; nulo hasta <see cref="Abrir"/>, y se cierra antes de preguntar por un borrado.</summary>
+    /// <summary>
+    /// El panel flotante, construido UNA vez en el primer <see cref="Abrir"/> y reutilizado
+    /// después; se cierra antes de preguntar por un borrado.
+    /// </summary>
+    /// <remarks>
+    /// ⛔ Hasta el 2026-09-16 se hacía <c>new Flyout { Content = Construir() }</c> en CADA
+    /// clic, y <see cref="Construir"/> volvía a colgar de un <c>Grid</c> nuevo los mismos
+    /// controles de arriba —<see cref="_nombreNuevo"/>, <see cref="_rolNuevo"/>,
+    /// <see cref="_categoriaNueva"/>, <see cref="_cuerpo"/>— que ya eran hijos del panel
+    /// anterior. WinUI no admite un elemento con dos padres, y el segundo clic mataba el
+    /// proceso: <i>«el segundo clic friza todo el programa; y lo cierra también»</i> (dueño).
+    /// </remarks>
     private Flyout? _panel;
+
+    /// <summary>La regla de abrir y cerrar con el mismo botón; probada sin ventana.</summary>
+    private readonly InterruptorDelPanel _interruptor = new();
 
     /// <summary>Ata el panel a los puertos que necesita y a como se dice una linea.</summary>
     /// <param name="companeros">El equipo.</param>
@@ -105,15 +120,41 @@ public sealed class PanelDelEquipo
     /// <summary>Salta cuando algo del equipo cambio, para que la pantalla se repinte.</summary>
     public event EventHandler? Cambio;
 
-    /// <summary>Abre el panel anclado a ese boton, ya pintado con el equipo de ahora.</summary>
+    /// <summary>
+    /// Un clic en el botón: abre el panel anclado a él, ya pintado con el equipo de ahora; y
+    /// si ya estaba abierto, lo cierra.
+    /// </summary>
+    /// <remarks>
+    /// El armazón se construye la primera vez y se reutiliza: ver <see cref="_panel"/>. El
+    /// «cerrar» del interruptor vale también para el clic que WinUI deja pasar tras cerrar
+    /// el panel por pulsar fuera: <c>Closed</c> ya puso el interruptor en cerrado, así que ese
+    /// clic abre, que es lo que se espera de un clic sobre un panel cerrado.
+    /// </remarks>
     /// <param name="anclaje">El botón bajo el que se abre.</param>
     public void Abrir(FrameworkElement anclaje)
     {
         ArgumentNullException.ThrowIfNull(anclaje);
 
-        _panel = new Flyout { Content = Construir(), Placement = FlyoutPlacementMode.Bottom };
+        if (_interruptor.AlPulsar() == GestoDelPanel.Cerrar)
+        {
+            _panel?.Hide();
+            return;
+        }
+
+        _panel ??= ArmarElPanel();
         Repintar();
         _panel.ShowAt(anclaje);
+    }
+
+    /// <summary>El panel flotante, una sola vez, con su contenido y con el aviso de cierre atado.</summary>
+    private Flyout ArmarElPanel()
+    {
+        var panel = new Flyout { Content = Construir(), Placement = FlyoutPlacementMode.Bottom };
+        // Se cierra por muchos caminos —Escape, clic fuera, la pregunta de borrar—, y por
+        // todos el interruptor tiene que enterarse, o el siguiente clic «cerraria» un
+        // panel que ya no esta y el dueno veria un boton que no hace nada.
+        panel.Closed += (_, _) => _interruptor.AlCerrarse();
+        return panel;
     }
 
     /// <summary>El armazon: el alta arriba, la lista debajo, y nada mas.</summary>
@@ -196,24 +237,30 @@ public sealed class PanelDelEquipo
         // «No lleva nada a su nombre» y no «Lleva nada a su nombre», que es lo que salia
         // al pegar el verbo delante de la frase de `Dicho`. Medido con la ventana abierta
         // el 2026-09-05: la frase se leia mal justo en el caso mas comun.
+        // El motivo de no poder eliminar va AQUI, a la vista, y no solo en el globo del
+        // boton apagado: un globo sobre un boton gris es lo ultimo que alguien mira.
         var detalle = new TextBlock
         {
             Text = carga is null
                 ? "—"
                 : carga.NoLlevaNada
-                    ? "No lleva nada a su nombre: se puede quitar."
-                    : "Lleva " + carga.Dicho + ".",
+                    ? "No lleva nada a su nombre: se puede eliminar."
+                    : "Lleva " + carga.Dicho + ". No se puede eliminar; desactívalo para que no reciba más.",
             FontSize = 12,
             Opacity = 0.8,
             TextWrapping = TextWrapping.Wrap,
         };
 
+        // Las tres acciones que pidio el dueno el 2026-09-16, siempre a la vista y en este
+        // orden: editar, desactivar o reactivar, eliminar.
         var acciones = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        acciones.Children.Add(BotonDeEditar(companero));
         acciones.Children.Add(BotonDeBajaOAlta(companero));
-        acciones.Children.Add(BotonDeQuitar(companero, carga));
+        acciones.Children.Add(BotonDeEliminar(companero, carga));
 
         var renglon = new StackPanel { Spacing = 2 };
         renglon.Children.Add(titulo);
+        if (_editando == companero.Id) renglon.Children.Add(FormularioDelNombre(companero));
         renglon.Children.Add(detalle);
         renglon.Children.Add(PuestoDe(companero));
         renglon.Children.Add(acciones);
@@ -346,21 +393,26 @@ public sealed class PanelDelEquipo
         return boton;
     }
 
-    /// <summary>Quitar de verdad; apagado —y con el motivo puesto— si lleva algo a su nombre.</summary>
+    /// <summary>Eliminar de verdad; apagado —y con el motivo puesto— si lleva algo a su nombre.</summary>
+    /// <remarks>
+    /// Se llamaba «Quitar» hasta el 2026-09-16; el dueño lo pidió con su palabra —<i>«eliminar,
+    /// editar o desactivar»</i>— y esa es la que se lee. Lo que hace no cambia: pregunta,
+    /// copia y borra por <see cref="IMantenimiento.PlanearCompanero"/>.
+    /// </remarks>
     /// <param name="companero">A quién afecta el botón.</param>
-    /// <param name="carga">Lo que lleva a su nombre; nula con datos inventados, y entonces no se puede quitar.</param>
-    private Button BotonDeQuitar(Companero companero, CargaDeUnCompanero? carga)
+    /// <param name="carga">Lo que lleva a su nombre; nula con datos inventados, y entonces no se puede eliminar.</param>
+    private Button BotonDeEliminar(Companero companero, CargaDeUnCompanero? carga)
     {
         var puede = carga is not null && carga.NoLlevaNada && _borrar.SePuedeBorrarAqui;
 
         var boton = new Button
         {
-            Content = "Quitar",
+            Content = "Eliminar",
             FontSize = 12,
             IsEnabled = puede,
         };
 
-        AutomationProperties.SetName(boton, "Quitar a " + companero.Nombre + " del equipo");
+        AutomationProperties.SetName(boton, "Eliminar a " + companero.Nombre + " del equipo");
 
         ToolTipService.SetToolTip(
             boton,
@@ -368,7 +420,7 @@ public sealed class PanelDelEquipo
                 ? $"Borra a {companero.Nombre} de la base. Pregunta antes y hace una copia."
                 : carga is null
                     ? "Con datos inventados no se puede borrar nada."
-                    : $"No se puede quitar: lleva {carga.Dicho}. Desactívalo en vez de quitarlo, "
+                    : $"No se puede eliminar: lleva {carga.Dicho}. Desactívalo en vez de eliminarlo, "
                       + "para no perder el rastro de quién hizo qué.");
 
         boton.Click += async (_, _) =>

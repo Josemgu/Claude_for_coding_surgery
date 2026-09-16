@@ -277,14 +277,31 @@ public sealed class LectorDeGrupos
     /// <param name="casos">Los documentos cuyas personas se quieren; las de otros se descartan.</param>
     /// <returns>Las personas de cada documento por su número interno; un documento sin personas no aparece.</returns>
     private Dictionary<long, List<Persona>> AgruparLasPersonas(IReadOnlyList<Caso> casos)
+        => LeerLasPersonasDe(_personas, casos.Select(c => c.Id));
+
+    /// <summary>
+    /// Las personas de esos documentos, en UNA sola consulta, desde cualquier pantalla.
+    /// </summary>
+    /// <remarks>
+    /// Es <see cref="AgruparLasPersonas"/> puesto donde Revisar tambien lo alcance: desde el
+    /// 2026-09-16 las tarjetas necesitan las seis de cada persona para saber si el documento
+    /// esta a medias, y copiar este bucle alli seria la segunda version de la misma lectura.
+    /// </remarks>
+    /// <param name="personas">El puerto de personas.</param>
+    /// <param name="casoIds">Los documentos cuyas personas se quieren; las de otros se descartan.</param>
+    /// <returns>Las personas de cada documento por su número interno; un documento sin personas no aparece.</returns>
+    public static Dictionary<long, List<Persona>> LeerLasPersonasDe(IPersonas personas, IEnumerable<long> casoIds)
     {
-        var queremos = casos.Select(c => c.Id).ToHashSet();
-        var cuantas = _personas.Contar(FiltroDePersonas.Todo);
-        var porCaso = new Dictionary<long, List<Persona>>(casos.Count);
+        ArgumentNullException.ThrowIfNull(personas);
+        ArgumentNullException.ThrowIfNull(casoIds);
+
+        var queremos = casoIds.ToHashSet();
+        var cuantas = personas.Contar(FiltroDePersonas.Todo);
+        var porCaso = new Dictionary<long, List<Persona>>(queremos.Count);
 
         if (cuantas > 0)
         {
-            foreach (var persona in _personas.Listar(FiltroDePersonas.Todo, new Pagina(0, cuantas)).Elementos)
+            foreach (var persona in personas.Listar(FiltroDePersonas.Todo, new Pagina(0, cuantas)).Elementos)
             {
                 if (!queremos.Contains(persona.CasoId)) continue;
                 if (!porCaso.TryGetValue(persona.CasoId, out var lista))
@@ -418,7 +435,8 @@ public sealed class LectorDeGrupos
             dueno,
             LasDosPreguntas.EstadoDe(persona),
             LasDosPreguntas.SeQuedoEn(persona),
-            caso.Archivado);
+            caso.Archivado,
+            LasDosPreguntas.LasQueNoDicenSi(persona));
 
     /// <summary>Compone la pastilla que el calendario ensena para una unidad de ese dia.</summary>
     /// <remarks>

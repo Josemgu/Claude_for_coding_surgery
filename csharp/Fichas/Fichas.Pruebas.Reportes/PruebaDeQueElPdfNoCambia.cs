@@ -61,12 +61,37 @@ public class PruebaDeQueElPdfNoCambia
     // son los tres valores de abajo, en el MISMO commit que mueve el informe.
     // ─────────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>La SHA-256 del PDF del periodo, medida el 2026-09-08 tras partir la unidad en dos columnas.</summary>
-    private const string HuellaDelPeriodo = "a8cb023f44da1ab7bc7b6a2cb7804cf77cfdb72612c35f9cd06f5315e50a8b8c";
-    /// <summary>La SHA-256 del PDF del histórico, medida el mismo día.</summary>
+    // ─────────────────────────────────────────────────────────────────────────────────────
+    // ⚠️ DOS DE LAS TRES HUELLAS CAMBIARON EL 2026-09-16, A PROPÓSITO Y POR ORDEN DEL DUEÑO.
+    //
+    // QUÉ CAMBIÓ. (1) La columna «País» de «Los viajes», que salía siempre «no consta», se va:
+    // la tabla queda con siete columnas. (2) Las dieciséis notas explicativas de las nueve
+    // secciones del informe del período se van —«Con nombre y unidad, porque…», «"Verificada"
+    // quiere decir aquí…», «"País" sale como…»—; las dos cifras que iban en la nota de las
+    // métricas pasan a la celda «Cómo se cuenta» de la métrica 3, y «N personas no traen
+    // ninguna casilla marcada» pasa a ser una fila de «A qué van al templo». El informe de
+    // agente cambia porque comparte esas secciones; el histórico NO cambia y su huella es la
+    // misma del 08.
+    //
+    // POR ORDEN DE QUIÉN. Del dueño, el 2026-09-16 (DECISIONES.md, «EL REPORTE EN EXCEL ES UNA
+    // SOLA HOJA»): «"no consta" no es una respuesta; a dónde viajarán es el templo» y «los
+    // reportes deben ser más simples, se están colocando muchas letras; debe explicarse sin
+    // leer una sola palabra». Medido sobre la base falsa de 300: 16 notas, 2 500 caracteres y
+    // 26 líneas del PDF antes; 0 después.
+    //
+    // LAS HUELLAS QUE SUSTITUYEN (las del 08):
+    //   período  a8cb023f44da1ab7bc7b6a2cb7804cf77cfdb72612c35f9cd06f5315e50a8b8c
+    //   agente   c515723aa2d13a082a94cf441cb677035a0cb57b8563e37f81bb5d4ed5106bb3
+    //
+    // La prueba NO se aflojó ni se borró: sigue comparando byte a byte.
+    // ─────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>La SHA-256 del PDF del periodo, medida el 2026-09-16 sin «País» y sin notas.</summary>
+    private const string HuellaDelPeriodo = "47e2f82805c0b03774d0f1c21e236dfc1f5fb87456f1d8643614e15e70939fa2";
+    /// <summary>La SHA-256 del PDF del histórico, medida el 2026-09-08; el 16 no cambió.</summary>
     private const string HuellaDelHistorico = "9508588f9afc32b6653222b58ad036a9f0838176e93ba3812d2e1724b2adc122";
-    /// <summary>La SHA-256 del PDF del informe de agente, medida el mismo día y ya con lo retirado dentro.</summary>
-    private const string HuellaDelInformeDeAgente = "c515723aa2d13a082a94cf441cb677035a0cb57b8563e37f81bb5d4ed5106bb3";
+    /// <summary>La SHA-256 del PDF del informe de agente, medida el 2026-09-16 sin «País» y sin las notas de las secciones compartidas.</summary>
+    private const string HuellaDelInformeDeAgente = "e3367e855054f8d8dc2314c74ff7109529f37c560e05f67831dd5a7717d901f6";
 
     /// <summary>Vigila que el PDF del periodo da la misma huella SHA-256 que la medida.</summary>
     [TestMethod]

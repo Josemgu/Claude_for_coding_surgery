@@ -4001,3 +4001,147 @@ El dueño puso a su Claude local a medir `Documents\Fichas` (solo lectura, sin n
 - Su lectura: el documento que se superpone es el primero del primer grupo, cuyo OCR termina tarde y pinta sobre lo que esté en pantalla; lo acumulado explica la lentitud y parte de la memoria.
 
 Lo que el supervisor midió en el código al recibirlo: `BuscarLasBandas` (`PaginaDeCorreccion.xaml.cs:150-176`) descarta el resultado si el caso cambió pero no cancela el trabajo (0 `CancellationToken` en Corrección) y lee `_modelo` dentro del `Task.Run`; `PaginaDeCorreccion.Grupos.cs:155,235` selecciona el índice 0 y abre; el visor pinta con `_ = ComponerYPintar(imagen)` sin numerar. Pasado entero al programador del pase con cinco observables nuevos de cierre.
+
+## Anotado el 2026-09-16 — la ventana no mira en qué monitor nace ni recuerda dónde estaba
+
+Salió de un aviso del dueño («el monitor que está en 1080 se vuelve loco; desconecté y al
+conectar no funcionan ninguno; no tengo imagen») que resultó ser de sus monitores, no de
+Fichas (el supervisor midió esta máquina —que no es la del dueño— y dio los externos con
+`Present=False`; el pase lanzado se paró por orden del dueño). Lo que sí es de Fichas, medido
+por el supervisor en el código con `grep -rn "Resize\|Move(\|DisplayArea\|DpiChanged"`:
+`VentanaPrincipal.xaml.cs:43` es la única línea (1730×770 por defecto), cero `Move`,
+`DisplayArea` ni `DpiChanged`; `app.manifest` es `PerMonitorV2`. Es decir: la ventana nace
+siempre a 1730×770 sin mirar si cabe (a 125 % son 2 162×962 físicos: en 1920×1080 no
+cabe; aritmética, no medido en pantalla), y no guarda posición, monitor ni maximizado, así
+que si se cierra en un monitor que luego no está, no hay nada que la traiga. Pase pendiente:
+nacer cabiendo en el monitor donde aparece, recordar posición/monitor/maximizado en la
+carpeta de datos, y volver al principal entera si la posición guardada cae fuera de toda
+pantalla. Hace falta una máquina con dos monitores para medir el cruce.
+
+## Para la v16 — anotado el 2026-09-16 por orden del dueño; NO se empieza hasta que diga «seguimos»
+
+Sus palabras: *«anota, no hagas nada; cuando yo te diga seguimos con la actualización v16, ahí
+continuamos»*.
+
+1. **Asignar: eliminar, editar o desactivar agentes.** *«En Asignar debe dar la opción de
+   eliminar, editar o desactivar agentes.»* Medido por el supervisor el 16 en el código
+   (`Fichas.App/Asignar/PanelDelEquipo.cs`): existen «dar de baja/alta» (`BotonDeBajaOAlta`)
+   y «quitar» (`BotonDeQuitar`, apagado si lleva algo a su nombre, vía `IMantenimiento.
+   PlanearCompanero`); **editar** (nombre, rol, categoría) no existe (grep de `Editar|Renombrar`
+   en `Asignar/`: 0). Lo que falta: editar; y que las tres acciones estén a la vista en el
+   panel del equipo con sus preguntas.
+
+2. **Persona a medias en naranja, y nombre y unidad más visibles.** *«Las personas que se han
+   completado, por ejemplo 4 preguntas de las 6, deben pasar a color naranja e indicar que le
+   falta; el nombre y la unidad son datos importantes que deben ser más visibles.»* Medido el
+   16: hoy hay dos colores (verde «resuelto» / rojo «me falta», decisión del 07 y del 14,
+   `Grupo/ColorDelRenglon.cs`, `PinturaDeInicio.VerdeMarca/RojoMarca`); no existe un tercer
+   estado de color. El dueño pide un **tercero, naranja**: persona con alguna de las seis en
+   «sí» pero no las seis (o con campos a medias), que diga qué le falta; y que **nombre y
+   unidad** se lean más grandes o más destacados en las tarjetas y renglones (Revisar, Grupo,
+   Corrección). Toca la decisión «DOS ESTADOS Y NO CUATRO» del 07: sigue habiendo dos palabras
+   (resuelto / me falta), el naranja es un matiz de «me falta»; precisarlo en DECISIONES.md al
+   hacerlo.
+
+3. ⚠️ **DEFECTO, el primero de la v16: el segundo clic en «Equipo…» congela el programa y lo
+   cierra.** *«En el botón Equipo, el segundo clic friza todo el programa; y lo cierra
+   también.»* Medido por el supervisor el 16 en el código: `PaginaDeAsignar.xaml.cs:304`
+   `AlPulsarEquipo` → `PanelDelEquipo.Abrir(boton)` (`PanelDelEquipo.cs:110-116`), que en
+   CADA clic hace `_panel = new Flyout { Content = Construir(), … }; _panel.ShowAt(anclaje)`,
+   sin mirar si ya hay uno abierto ni cerrarlo antes. No verificado con la ventana: el pase
+   tiene que reproducir el segundo clic (con el panel abierto y tras cerrarlo), leer
+   `fichas.log` (¿`FALLO SIN RECOGER`?) y arreglar lo que la medición diga, con prueba en
+   rojo primero. Es lo primero que se lanza al decir «seguimos».
+
+4. **Asignar: buscar otra persona borra las marcas anteriores.** *«Si yo busco el nombre de una
+   persona, lo marco para poder asignarlo en grupo, y elimino el nombre de búsqueda para buscar
+   a otra persona, el sistema desmarca a las personas que yo ya había marcado. Es algo incómodo
+   para trabajar.»* Medido por el supervisor el 16 en el código: `PaginaDeAsignar.xaml.cs:370`
+   `AlEscribirEnElBuscador` → `Repintar()`, que en `:104` pone `_lista.ItemsSource =
+   pagina.Elementos` (lista nueva); y las marcas viven solo en `_lista.SelectedItems` (`:333`
+   `CasosMarcados`), así que cada tecleo en el buscador rehace la lista y se pierden. Lo que
+   tiene que quedar: las marcas viven aparte de la lista (un conjunto de casos marcados en la
+   página) y sobreviven a buscar, borrar la búsqueda y cambiar de página; una franja o contador
+   «N marcados» con «quitar todas»; y «Asignar los marcados» usa ese conjunto aunque los
+   marcados no estén a la vista. No verificado con la ventana.
+
+5. **El Excel del paquete debe salir con las preguntas que ya están contestadas.** *«Mira: en el
+   sistema solo le faltan 2 preguntas por llenar, pero cuando le asigné los casos a un gerente
+   (Silvestre Brea), el paquete de Excel no marca las preguntas que ya están completas. Eso
+   debería hacerlo el programa: llenar lo que ya está completo en el Excel.»* Captura: hoja
+   «Preparación para las ordenanzas · PULC2609» con las dos personas y las seis columnas de
+   respuesta en blanco (fondo amarillo), mientras en Revisar las dos tienen 1–4 en «sí»
+   («Contestó Jose Miguel · el 16 de septiembre · desde a mano en la pantalla»). Medido por el
+   supervisor el 16 en el código: `Fichas.Paquetes/Paquetes.cs:265-285` arma cada
+   `FilaDeTrabajo` con caso, fecha, templo, unidad, nombre, cédula, «a qué va» y clave, **sin
+   ninguna de las seis respuestas ni la llamada al líder**; `LibroDeTrabajo.cs:325-335` deja
+   las columnas de respuesta vacías (solo las no-respuesta reciben «sin dato»). Las respuestas
+   guardadas sí existen en `Persona` (`PasoPreparacion`… `LlamoAlLider`) y `Paquetes.cs:584`
+   ya las lee para la vuelta. Lo que tiene que quedar: la fila del paquete lleva las
+   respuestas ya contestadas («sí»/«no» y la llamada), escritas en sus celdas al generar, con
+   quién y cuándo si cabe en una nota; el compañero rellena solo lo que falta; y la vuelta
+   (`Reconciliacion`) sigue leyendo lo que él deje, sin pisar con blanco lo que ya estaba en
+   «sí» si él no lo tocó (decisión a precisar: ¿un «sí» del sistema que el compañero borra
+   vuelve a «sin mirar» o se conserva?). No verificado con un paquete real.
+
+6. **El número de unidad puede tener menos de 6 dígitos.** *«Hay barrios que no tienen tantos
+   dígitos.»* Captura: «N.º de unidad 86320» en rojo con «El número de unidad son 6 o 7 dígitos,
+   como 123456 o 7000011». Medido por el supervisor el 16: la regla vive dos veces —
+   `Fichas.Datos/Validacion/ReglasDeFormato.cs:62` `^[0-9]{6,7}$` y `Fichas.App/Correccion/
+   ReglasDeCampo.cs:47` (el duplicado ya anotado el 11)— y nació de la decisión del 2026-09-02
+   («manda el papel»: 4 de 9 páginas traían 7000011). El dueño trae ahora un papel con **5**
+   dígitos (86320). Lo que tiene que quedar: la regla del papel se ensancha a lo que los papeles
+   traen (mínimo a medir: ¿5? ¿4?), en UN solo sitio, con el texto del aviso y las dos pruebas
+   que la fijan; y la decisión del 02 se precisa en DECISIONES.md con la fecha. Pregunta para
+   el dueño antes de programar: ¿cuál es el número de unidad más corto que existe en sus
+   papeles?
+
+7. **El reporte en Excel: una sola hoja, bonito y profesional, azul marino, con gráfico.** Sus
+   palabras: *«El reporte debe ser bonito, profesional, en un solo worksheet, con colores como
+   el azul marino. Lo importante del reporte son las unidades: quiénes viajaron de esa unidad
+   con todo completo y quiénes no; a qué agente se le asignó y si lo completó o no; gráfico de
+   la cantidad de personas que viajaron en unos meses sin problemas o dificultades; números
+   fríos.»* Captura: el Excel de hoy sale con una pestaña «Resumen» llena de párrafos
+   explicativos y una pestaña por sección (1. Quiénes viajaron…, 2. Los viajes, 3. A qué van…
+   5. Unidades…); lo que él llama «no profesional» son los párrafos y las siete pestañas.
+   Medido por el supervisor el 16: `Fichas.Reportes/Formato/LibroDelInforme.cs:82-84` crea
+   `AddWorksheet(Resumen)` + una hoja por sección; **ningún gráfico** (grep `Chart` en Reportes:
+   0); ClosedXML 0.105.1 es el único paquete (y ClosedXML no dibuja gráficos: para un gráfico
+   nativo de Excel hace falta otro camino —OpenXML a mano, o un paquete— y por la regla 3 hay
+   que decir cuánto pesa; alternativa sin paquete: barras dibujadas con celdas coloreadas, o
+   una imagen PNG incrustada generada con SkiaSharp, que ya viene con PDFtoImage). Lo que
+   tiene que quedar: UNA hoja, cabecera azul marino, sin párrafos (los textos explicativos se
+   van a una nota o desaparecen), y en este orden: por unidad → quiénes viajaron completos y
+   quiénes no; por agente → a quién se asignó y si lo completó; un gráfico de personas que
+   viajaron por mes, completas frente a con dificultades; y los números en frío. El PDF del
+   reporte de los jefes NO cambia (decisión del 04, vocabulario) salvo que el dueño lo pida.
+   Antes de programar: un mockup del Excel (diseñador) que el dueño apruebe, porque «bonito» no
+   se mide sin verlo.
+
+8. **Fuera «País» de los reportes; el templo, sí, también en los paquetes; y los reportes con
+   menos letras.** Sus palabras: *«Los países de donde viajan… no sé dónde colocarle el país a
+   los casos para los reportes, pero el reporte lo contempla, así que vamos a eliminar eso:
+   «no consta» no es una respuesta. Eliminamos esa columna en el PDF, que es donde está, y en
+   los paquetes. A dónde viajarán es el templo: eso sí debe ponerse (templo de Panamá, templo
+   de Santo Domingo). Y los reportes deben ser un poco más simples, se están colocando muchas
+   letras; debe explicarse sin leer una sola palabra.»* Medido por el supervisor el 16:
+   la columna «País» está en la sección «Los viajes» del reporte de dirección
+   (`Fichas.Reportes/Armado/SeccionesDeDireccion.cs:58`) y siempre sale «no consta»
+   (`:190`, `Vocabulario.ElPaisNoSeGuarda`); «Templo» ya está al lado (`:59`). En el paquete
+   (`Fichas.Paquetes/Columnas.cs:169-175`) NO hay columna «País»; el templo va solo en la
+   cabecera («Templo: …», `LibroDeTrabajo.cs:269`) y no en cada fila; el «no consta» que él ve
+   en el paquete es «A qué va» cuando el papel no trae casilla marcada. Lo que tiene que
+   quedar: (a) quitar «País» del PDF y del Excel del reporte y de cualquier texto que lo
+   nombre; (b) columna «Templo» en cada fila del paquete (Excel y PDF del paquete), además de
+   la cabecera; (c) en «A qué va», si no hay casilla, celda vacía o «—» en vez de «no consta»
+   —decisión del dueño: «no consta no es una respuesta»—; (d) los reportes con los párrafos
+   explicativos fuera (van al mockup del punto 7): títulos, cifras y tablas que se entiendan
+   sin leer. El vocabulario de la decisión del 04 se precisa en DECISIONES.md al hacerlo.
+
+### Deuda del 2026-09-16 (programador de Paquetes v16), sin tocar
+- `RepositorioDePersonas.AnotarPropuesta` (Datos): si el compañero deja las seis intactas y escribe solo motivo o comentario, la marca conserva las seis de Miguel pero firma `pasos_por` = compañero. Antes pisaba las seis a nulo; ahora dato intacto, firma equivocada. Arreglo: «nulo = no tocar» y firmar solo si el Excel trajo alguna respuesta. Terreno Datos.
+- Base cambiada entre generar y devolver (Miguel pone «no» tras generar; el «Sí» prellenado vuelve intacto): se aplica el «Sí» viejo; sin marca de tiempo en la hoja no se detecta.
+- El PDF del paquete es la unión de escaneos con hojas de aviso: no tiene filas ni celdas; respuestas y Templo solo van en el Excel. Decisión de diseño si el PDF debe llevar una hoja resumen.
+
+### El número de unidad corto queda para la v17 (2026-09-16, supervisor)
+El programador se paró a las 4 h con el trabajo a medias (rama `unidad-a-medias`, commit «A MEDIAS»). Lo que midió y cambia el pase: el aviso de pantalla y `ReglasDeFormato` ya aceptan 4–7, pero **el `CHECK` de `casos.unidad_numero` de la migración 16 sigue en 6–7**, y también el patrón del OCR (`Fichas.Lectura/Normalizacion`) y los dos de las carpetas de importación (`Importar/CarpetasDeLaTanda.cs:219`). Es decir: aceptar 86320 en pantalla y que la base lo rechace sería peor que hoy. Hace falta una migración (20) que relaje el CHECK, y tocar Lectura e Importar: cuatro terrenos. Va como pase propio en la v17, partiendo de esa rama. 4 pruebas de Corrección quedaron rojas en la rama (medido por el supervisor: 327 de 331).

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas v3 · Reporte en Excel — mockup de una sola hoja</title>
+<style>
+/* ==========================================================================
+   Fichas — v3 · REPORTE EN EXCEL, UNA SOLA HOJA. MOCKUP PARA QUE EL DUEÑO LO
+   APRUEBE ANTES DE PROGRAMARLO (PENDIENTES.md, «Para la v16», puntos 7 y 8).
+
+   Imita lo que el dueño verá al abrir el .xlsx: cuadrícula, columnas A–N,
+   filas 1–30, las filas 1–2 inmovilizadas, UNA sola pestaña. No es una
+   pantalla del programa: es la hoja de cálculo que el programa escribe.
+
+   100% autocontenido: cero file://, cero CDN, cero fuentes externas, cero
+   <use>, cero sprites, cero ids de SVG. Todo lo que se pinta va inline.
+   TODOS los nombres de unidad, de agente y las cifras son INVENTADOS.
+
+   Tema único: Excel es claro. Se declara y no se disimula.
+
+   Colores: el azul marino es el MISMO que ya lleva la fila de títulos de la
+   hoja del compañero (`Fichas.Paquetes/LibroDeTrabajo.cs:114`, Tinta
+   #16233A), para que los dos Excel que salen del programa se reconozcan
+   como hermanos. El resto sale de la paleta de `mockup-v2-inicio.html`.
+   Los contrastes de cada par, medidos, están en `mockup-v3-reporte-excel.md`;
+   aquí va la regla, no la cifra: todo texto sobre su fondo pasa de 4.5:1, y
+   el semáforo lleva SIEMPRE tinta oscura sobre fondo claro (verde, naranja,
+   rojo), nunca texto blanco sobre el color.
+   ⚠️ Un anillo de foco de tinta sobre el marino es invisible (mismo valor de
+   luminancia). Por eso ningún interactivo cae sobre marino: todo lo enfocable
+   va sobre superficie clara y usa --foco (tinta).
+   ========================================================================== */
+
+:root{
+  --papel:#FFFFFF; --panel:#F4F5F7; --panel-hondo:#E9EBEF;
+  --linea:#D3D7DE; --linea-fuerte:#AAB1BC;
+  --tinta:#1A1D21; --tinta-suave:#46505C; --apagado:#646C77;
+
+  /* El marino del reporte y su texto claro. */
+  --marino:#16233A; --marino-texto:#FFFFFF; --marino-texto-suave:#C9D3E6;
+  --azul-marca:#1B4F9C;
+
+  /* El semáforo. Tres fondos con su tinta, y tres «marcas» para dibujar
+     sobre papel (barras del gráfico, ✓ y ✗). */
+  --verde-fondo:#E7F5EC;   --verde-marca:#1B6E3C;   --verde-tinta:#12351F;
+  --naranja-fondo:#FFE0B3; --naranja-marca:#9A4A00; --naranja-tinta:#5A2E00;
+  --rojo-fondo:#FDE7E7;    --rojo-marca:#B3261E;    --rojo-tinta:#4A0F0B;
+
+  /* Lo que Excel pinta de suyo: cuadrícula, encabezados de fila y columna,
+     el verde de la celda seleccionada. No son de nuestra paleta: son de Excel. */
+  --excel-cuadricula:#D9D9D9; --excel-cabecera:#F0F0F0; --excel-cabecera-tinta:#444444;
+  --excel-seleccion:#217346; --excel-marco:#E6E6E6;
+
+  --foco:#1A1D21;
+
+  /* Escala de espaciado. Todo valor de separación DEL DOCUMENTO sale de aquí.
+     EXCEPCIÓN DECLARADA con su motivo: los anchos de columna y altos de fila
+     de la hoja (`--col-*`, `--fila-*`) NO son espaciado: son las medidas de
+     Excel (ancho en caracteres × 7 + 5 px, alto en puntos × 4/3), y el
+     programa las fija con `Column(n).Width` y `Row(n).Height`. Convertirlas
+     a --sp-* sería mentir sobre lo que son. Igual el `padding:0 3px` de las
+     celdas: es el sangrado interno de Excel (≈ 3 px a 100 %), no un token. */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+
+  /* Anchos de columna en px = ancho Excel (caracteres) × 7 + 5.
+     A 2 · B 9 · C 24 · D 10 · E 11 · F 13 · G 22 · H 11 · I 2 · J 22 · K 11 · L 11 · M 13 · N 11
+     Suma: 1.274 px. Con el encabezado de filas (40 px): 1.314 px. */
+  --col-A:19px; --col-B:68px; --col-C:173px; --col-D:75px; --col-E:82px; --col-F:96px;
+  --col-G:159px; --col-H:82px; --col-I:19px; --col-J:159px; --col-K:82px; --col-L:82px;
+  --col-M:96px; --col-N:82px; --col-filas:40px;
+
+  /* Altos de fila en px = puntos × 4/3. La normal es 15 pt = 20 px. */
+  --fila-normal:20px; --fila-titulo:36px; --fila-subtitulo:24px; --fila-hueco:10px;
+  --fila-rotulo:18px; --fila-cifra:44px; --fila-seccion:22px; --fila-total:22px;
+}
+*{ box-sizing:border-box; }
+html{ background:#5C6270; }
+body{
+  margin:0; color:var(--tinta);
+  /* Segoe UI es la letra del programa; Calibri la de Excel. La hoja usa
+     Calibri (o Carlito, su métrica gemela) y el resto del documento Segoe UI.
+     No se incrustan: Calibri es propietaria y las dos están en Windows. */
+  font-family:"Segoe UI", system-ui, sans-serif; font-size:14px; line-height:1.45;
+  padding:var(--sp-6) var(--sp-4); background:#5C6270;
+}
+h1{ font-size:20px; margin:0 0 var(--sp-2); color:var(--papel); }
+h2{ font-size:16px; margin:var(--sp-8) 0 var(--sp-2); }
+p{ margin:0 0 var(--sp-2); }
+code{ font-family:Consolas,"Courier New",monospace; font-size:0.92em; background:var(--panel-hondo); padding:0 3px; border-radius:2px; }
+.intro{ color:var(--papel); max-width:1314px; margin:0 auto var(--sp-4); }
+.intro p{ color:#E9EBEF; }
+:focus-visible{ outline:2px solid var(--foco); outline-offset:2px; }
+
+/* ───────────────────────── la ventana de Excel ───────────────────────── */
+.excel{
+  width:1314px; max-width:100%; margin:0 auto; background:var(--papel);
+  border:1px solid var(--linea-fuerte); border-radius:6px; overflow:hidden;
+  font-family:Calibri, Carlito, "Segoe UI", sans-serif; font-size:14.67px; /* 11 pt */
+}
+.excel-titulo{
+  display:flex; align-items:center; gap:var(--sp-2); padding:var(--sp-1) var(--sp-3);
+  background:var(--excel-seleccion); color:var(--papel); font-family:"Segoe UI",system-ui,sans-serif; font-size:13px;
+}
+.excel-titulo .x{ display:inline-block; width:1.15em; height:1.15em; }
+.excel-cinta{
+  display:flex; gap:var(--sp-4); padding:var(--sp-1) var(--sp-3);
+  background:var(--excel-marco); color:var(--tinta-suave); font-family:"Segoe UI",system-ui,sans-serif; font-size:12px;
+  border-bottom:1px solid var(--linea);
+}
+.excel-cinta b{ color:var(--excel-seleccion); font-weight:600; }
+.barra-formulas{
+  display:flex; align-items:stretch; gap:var(--sp-1); padding:var(--sp-1) var(--sp-2);
+  background:var(--papel); border-bottom:1px solid var(--linea); font-family:"Segoe UI",system-ui,sans-serif; font-size:12px;
+}
+.cuadro-nombres{ width:80px; border:1px solid var(--linea); padding:0 var(--sp-1); }
+.formula{ flex:1; border:1px solid var(--linea); padding:0 var(--sp-1); color:var(--apagado); }
+
+/* El visor de la hoja: desplaza, y las filas 1–2 y los encabezados quedan
+   fijos (sticky) igual que con «Inmovilizar paneles». */
+.hoja-vista{ height:560px; overflow:auto; background:var(--papel); }
+.hoja-vista:focus-visible{ outline-offset:-3px; }
+.hoja{ border-collapse:separate; border-spacing:0; table-layout:fixed; width:1314px; }
+.hoja col.cf{ width:var(--col-filas); }
+.hoja col.cA{ width:var(--col-A); } .hoja col.cB{ width:var(--col-B); } .hoja col.cC{ width:var(--col-C); }
+.hoja col.cD{ width:var(--col-D); } .hoja col.cE{ width:var(--col-E); } .hoja col.cF{ width:var(--col-F); }
+.hoja col.cG{ width:var(--col-G); } .hoja col.cH{ width:var(--col-H); } .hoja col.cI{ width:var(--col-I); }
+.hoja col.cJ{ width:var(--col-J); } .hoja col.cK{ width:var(--col-K); } .hoja col.cL{ width:var(--col-L); }
+.hoja col.cM{ width:var(--col-M); } .hoja col.cN{ width:var(--col-N); }
+
+.hoja th, .hoja td{
+  padding:0 3px; overflow:hidden; white-space:nowrap; text-overflow:clip;
+  border-right:1px solid var(--excel-cuadricula); border-bottom:1px solid var(--excel-cuadricula);
+  height:var(--fila-normal); vertical-align:middle; text-align:left; font-weight:400;
+}
+/* Encabezados de columna (A…N) y de fila (1…30): los pinta Excel. */
+.hoja thead th{
+  position:sticky; top:0; z-index:3; background:var(--excel-cabecera); color:var(--excel-cabecera-tinta);
+  text-align:center; height:var(--fila-normal); font-family:"Segoe UI",system-ui,sans-serif; font-size:12px;
+}
+.hoja thead th:first-child{ left:0; z-index:4; }
+.hoja td.f{
+  position:sticky; left:0; z-index:2; background:var(--excel-cabecera); color:var(--excel-cabecera-tinta);
+  text-align:center; font-family:"Segoe UI",system-ui,sans-serif; font-size:12px;
+}
+/* Las filas inmovilizadas: 1 y 2. `top` = alto del encabezado de columnas (+ alto de la fila 1). */
+tr.fija-1 td{ position:sticky; top:var(--fila-normal); z-index:2; }
+tr.fija-2 td{ position:sticky; top:calc(var(--fila-normal) + var(--fila-titulo)); z-index:2; }
+tr.fija-1 td.f, tr.fija-2 td.f{ z-index:3; }
+/* La raya que Excel dibuja bajo el último panel inmovilizado. */
+tr.fija-2 td{ border-bottom:1px solid var(--linea-fuerte); }
+
+/* Altos de fila. */
+tr.r-titulo td{ height:var(--fila-titulo); }
+tr.r-subtitulo td{ height:var(--fila-subtitulo); }
+tr.r-hueco td{ height:var(--fila-hueco); }
+tr.r-rotulo td{ height:var(--fila-rotulo); }
+tr.r-cifra td{ height:var(--fila-cifra); }
+tr.r-seccion td{ height:var(--fila-seccion); }
+tr.r-total td{ height:var(--fila-total); }
+
+/* Estilos de celda, que son los que ClosedXML escribe. */
+.marino{ background:var(--marino); color:var(--marino-texto); border-right-color:var(--marino); border-bottom-color:var(--marino); }
+.marino.suave{ color:var(--marino-texto-suave); }
+.titulo{ font-size:21.33px; font-weight:700; }          /* 16 pt */
+.subtitulo{ font-size:16px; }                            /* 12 pt */
+.der{ text-align:right; } .cen{ text-align:center; }
+.n{ text-align:right; font-variant-numeric:tabular-nums; }
+.b{ font-weight:700; }
+.rotulo{ color:var(--apagado); font-size:12px; text-transform:uppercase; letter-spacing:0.04em; }  /* 9 pt */
+.cifra{ font-size:32px; font-weight:700; line-height:1; } /* 24 pt */
+/* Color de la cifra: prefijo c- para no chocar con los rellenos del semáforo (td.verde…). */
+.cifra.c-verde{ color:var(--verde-marca); } .cifra.c-rojo{ color:var(--rojo-marca); }
+.cifra.c-naranja{ color:var(--naranja-marca); } .cifra.c-marino{ color:var(--marino); }
+.sub{ color:var(--tinta-suave); font-size:12px; }
+/* Tarjeta: borde exterior fino + borde superior grueso marino. En Excel es
+   `Style.Border.OutsideBorder` sobre el rango B4:C6 y `TopBorder = Thick`. */
+td.tarjeta-arriba{ border-top:3px solid var(--marino); border-left:1px solid var(--linea-fuerte); border-right:1px solid var(--linea-fuerte); border-bottom:none; }
+td.tarjeta-medio{ border-left:1px solid var(--linea-fuerte); border-right:1px solid var(--linea-fuerte); border-bottom:none; }
+td.tarjeta-abajo{ border-left:1px solid var(--linea-fuerte); border-right:1px solid var(--linea-fuerte); border-bottom:1px solid var(--linea-fuerte); }
+td.seccion{ color:var(--marino); font-weight:700; font-size:16px; border-bottom:2px solid var(--marino); }
+td.cab{ background:var(--marino); color:var(--marino-texto); font-weight:700; border-right-color:#2B3B5C; border-bottom-color:var(--marino); }
+td.total{ font-weight:700; border-top:2px solid var(--marino); background:var(--panel); }
+td.verde{ background:var(--verde-fondo); color:var(--verde-tinta); font-weight:700; }
+td.naranja{ background:var(--naranja-fondo); color:var(--naranja-tinta); font-weight:700; }
+td.rojo{ background:var(--rojo-fondo); color:var(--rojo-tinta); font-weight:700; }
+td.ok{ color:var(--verde-marca); font-weight:700; text-align:center; }
+td.no{ color:var(--rojo-marca); font-weight:700; text-align:center; }
+td.nada{ color:var(--apagado); text-align:center; }
+td.gris{ color:var(--apagado); }
+td.a1{ box-shadow:inset 0 0 0 2px var(--excel-seleccion); }
+/* Leyenda del semáforo: tres puntos con dos palabras cada uno. */
+.punto{ display:inline-block; width:0.8em; height:0.8em; border-radius:50%; vertical-align:-0.05em; margin-right:var(--sp-1); }
+.punto.v{ background:var(--verde-marca); } .punto.o{ background:var(--naranja-marca); } .punto.r{ background:var(--rojo-marca); }
+/* La celda que aloja el gráfico: en Excel el gráfico flota SOBRE J19:N30. */
+td.grafico{ padding:0; vertical-align:top; border-right-color:transparent; border-bottom-color:transparent; }
+td.grafico svg{ display:block; width:501px; height:234px; }
+.g-marco{ fill:var(--papel); stroke:var(--linea); }
+.g-titulo{ font-family:Calibri,Carlito,"Segoe UI",sans-serif; font-size:16px; font-weight:700; fill:var(--marino); }
+.g-eje{ font-family:Calibri,Carlito,"Segoe UI",sans-serif; font-size:12px; fill:var(--tinta-suave); }
+.g-etq{ font-family:Calibri,Carlito,"Segoe UI",sans-serif; font-size:12px; font-weight:700; fill:var(--tinta); text-anchor:middle; }
+.g-linea{ stroke:var(--excel-cuadricula); stroke-width:1; }
+.g-cero{ stroke:var(--linea-fuerte); stroke-width:1; }
+.g-verde{ fill:var(--verde-marca); } .g-rojo{ fill:var(--rojo-marca); }
+.g-leyenda{ font-family:Calibri,Carlito,"Segoe UI",sans-serif; font-size:12px; fill:var(--tinta-suave); }
+
+/* Pestañas: UNA. Esa es la noticia. */
+.pestanas{
+  display:flex; align-items:center; gap:var(--sp-2); padding:var(--sp-1) var(--sp-2);
+  background:var(--excel-marco); border-top:1px solid var(--linea); font-family:"Segoe UI",system-ui,sans-serif; font-size:12px;
+}
+.pestana{
+  border:1px solid var(--linea-fuerte); border-top:none; background:var(--papel); color:var(--excel-seleccion);
+  font-weight:700; padding:2px var(--sp-3); border-bottom:2px solid var(--excel-seleccion); cursor:default;
+  font:inherit; font-weight:700;
+}
+.pestanas .mas{ color:var(--apagado); }
+
+/* ───────────────────────── la especificación ───────────────────────── */
+.especificacion{ max-width:1314px; margin:var(--sp-8) auto 0; background:var(--papel); border-radius:6px; padding:var(--sp-5) var(--sp-6) var(--sp-6); }
+.especificacion table{ border-collapse:collapse; width:100%; margin:var(--sp-2) 0 var(--sp-4); font-size:13px; }
+.especificacion th, .especificacion td{ border:1px solid var(--linea); padding:var(--sp-1) var(--sp-2); text-align:left; vertical-align:top; }
+.especificacion th{ background:var(--panel); }
+.especificacion ul{ margin:0 0 var(--sp-2) var(--sp-5); padding:0; }
+.aviso{ background:var(--naranja-fondo); color:var(--naranja-tinta); padding:var(--sp-2) var(--sp-3); border-left:3px solid var(--naranja-marca); margin:var(--sp-3) 0; }
+
+/* ───────────────────────── impresión: una A4 apaisada ─────────────────
+   Lo que Excel hace con FitToPages(1,1) en A4 horizontal: encoge la hoja
+   hasta que quepa. Aquí: 277 mm útiles ≈ 1.047 px; la hoja mide 1.274 px sin
+   encabezados → escala 0,82. Alto: A1:N30 mide 685 px × 0,82 = 562 px < 718 px.
+   Se ocultan el marco de Excel (barra, cinta, fórmulas, pestañas, encabezados
+   de fila y columna: `ShowRowAndColumnHeadings=false`) y la especificación. */
+@page{ size:A4 landscape; margin:10mm; }
+@media print{
+  html, body{ background:var(--papel); padding:0; }
+  .intro, .especificacion, .excel-titulo, .excel-cinta, .barra-formulas, .pestanas{ display:none !important; }
+  .excel{ border:none; border-radius:0; width:auto; max-width:none; overflow:visible; }
+  .hoja-vista{ height:auto; overflow:visible; }
+  .hoja{ zoom:0.82; }  /* zoom y no transform: transform no encoge la caja de maquetación y salían dos páginas */
+  .hoja thead, tr.fuera{ display:none; }  /* filas 31–36: fuera del área de impresión A1:N30 */
+  /* La columna de números de fila NO se oculta con display:none: el <colgroup>
+     seguiría asignando el primer <col> a la primera celda visible y toda la
+     hoja se correría una columna (medido: «Los Pinos» recortado a 19 px).
+     Se colapsa el <col> a 0 y la celda se vacía. */
+  .hoja col.cf{ width:0; }
+  .hoja td.f{ padding:0; border:none; color:transparent; }
+  .hoja th, .hoja td, tr.fija-1 td, tr.fija-2 td{ position:static; }
+  td.a1{ box-shadow:none; }
+  .hoja td{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+@media (prefers-reduced-motion:reduce){ *{ scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>Fichas v3 · Reporte en Excel — una sola hoja</h1>
+  <p>Así se vería el <code>.xlsx</code> al abrirlo. Una pestaña. Sin párrafos. Datos inventados. Desplaza la hoja: las filas 1–2 y los encabezados quedan fijos. <kbd>Ctrl+P</kbd> lo imprime en una A4 apaisada.</p>
+</div>
+
+<div class="excel" aria-label="Ventana de Excel con el reporte">
+  <div class="excel-titulo" aria-hidden="true">
+    <svg class="x" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="2" fill="#FFFFFF"/><path d="M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5" stroke="#217346" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <span>Reporte-2026-06-a-08.xlsx — Excel</span>
+  </div>
+  <div class="excel-cinta" aria-hidden="true"><b>Archivo</b><span>Inicio</span><span>Insertar</span><span>Disposición de página</span><span>Fórmulas</span><span>Datos</span><span>Revisar</span><span>Vista</span></div>
+  <div class="barra-formulas" aria-hidden="true"><span class="cuadro-nombres">A1</span><span class="formula">fx</span></div>
+
+  <div class="hoja-vista" tabindex="0" aria-label="Hoja «Reporte», desplazable">
+  <table class="hoja" aria-label="Reporte de recomendaciones al templo, junio a agosto de 2026">
+    <colgroup>
+      <col class="cf"><col class="cA"><col class="cB"><col class="cC"><col class="cD"><col class="cE"><col class="cF"><col class="cG">
+      <col class="cH"><col class="cI"><col class="cJ"><col class="cK"><col class="cL"><col class="cM"><col class="cN">
+    </colgroup>
+    <thead>
+      <tr><th scope="col"></th><th scope="col">A</th><th scope="col">B</th><th scope="col">C</th><th scope="col">D</th><th scope="col">E</th><th scope="col">F</th><th scope="col">G</th><th scope="col">H</th><th scope="col">I</th><th scope="col">J</th><th scope="col">K</th><th scope="col">L</th><th scope="col">M</th><th scope="col">N</th></tr>
+    </thead>
+    <tbody>
+      <!-- Fila 1 · cabecera marino: título a la izquierda, templo a la derecha. A1:N1 relleno marino; B1:H1 y I1:N1 combinadas. -->
+      <tr class="fija-1 r-titulo">
+        <td class="f">1</td>
+        <td class="marino a1"></td>
+        <td class="marino titulo" colspan="7">Fichas · Reporte de recomendaciones al templo</td>
+        <td class="marino subtitulo der b" colspan="6">Templo de Santo Domingo</td>
+      </tr>
+      <!-- Fila 2 · período y generado. -->
+      <tr class="fija-2 r-subtitulo">
+        <td class="f">2</td>
+        <td class="marino"></td>
+        <td class="marino suave subtitulo" colspan="7">1 jun – 31 ago 2026 · 3 meses</td>
+        <td class="marino suave der" colspan="6">Generado el 16-09-2026</td>
+      </tr>
+      <tr class="r-hueco"><td class="f">3</td><td colspan="14"></td></tr>
+
+      <!-- Filas 4–6 · cinco tarjetas de cifras frías. Cada una: B4:C4 (rótulo), B5:C5 (cifra), B6:C6 (detalle), borde exterior B4:C6. -->
+      <tr class="r-rotulo">
+        <td class="f">4</td><td></td>
+        <td class="rotulo tarjeta-arriba" colspan="2">Viajaron</td>
+        <td class="rotulo tarjeta-arriba" colspan="3">Completos</td>
+        <td class="rotulo tarjeta-arriba" colspan="2">Sin completar</td>
+        <td></td>
+        <td class="rotulo tarjeta-arriba" colspan="2">Unidades con pendientes</td>
+        <td class="rotulo tarjeta-arriba" colspan="3">Paquetes devueltos</td>
+      </tr>
+      <tr class="r-cifra">
+        <td class="f">5</td><td></td>
+        <td class="cifra c-marino tarjeta-medio" colspan="2">128</td>
+        <td class="cifra c-verde tarjeta-medio" colspan="3">97</td>
+        <td class="cifra c-rojo tarjeta-medio" colspan="2">31</td>
+        <td></td>
+        <td class="cifra c-naranja tarjeta-medio" colspan="2">6 <span class="sub">de 14</span></td>
+        <td class="cifra c-marino tarjeta-medio" colspan="3">10 <span class="sub">de 13</span></td>
+      </tr>
+      <tr class="r-rotulo">
+        <td class="f">6</td><td></td>
+        <td class="sub tarjeta-abajo" colspan="2">personas · 3 meses</td>
+        <td class="sub tarjeta-abajo" colspan="3">76 % de las que viajaron</td>
+        <td class="sub tarjeta-abajo" colspan="2">24 % · 6 unidades</td>
+        <td></td>
+        <td class="sub tarjeta-abajo" colspan="2">1 sin agente</td>
+        <td class="sub tarjeta-abajo" colspan="3">5 agentes · 3 sin nada pendiente</td>
+      </tr>
+      <tr class="r-hueco"><td class="f">7</td><td colspan="14"></td></tr>
+
+      <!-- Fila 8 · títulos de sección. -->
+      <tr class="r-seccion">
+        <td class="f">8</td><td></td>
+        <td class="seccion" colspan="7">Por unidad</td>
+        <td></td>
+        <td class="seccion" colspan="5">Por agente</td>
+      </tr>
+      <!-- Fila 9 · cabeceras de las dos tablas. -->
+      <tr>
+        <td class="f">9</td><td></td>
+        <td class="cab">N.º</td><td class="cab">Unidad</td><td class="cab der">Viajaron</td><td class="cab der">Completos</td><td class="cab der">Sin completar</td><td class="cab">Agente</td><td class="cab cen">Devolvió</td>
+        <td></td>
+        <td class="cab">Agente</td><td class="cab der">Asignados</td><td class="cab der">Completos</td><td class="cab der">Sin completar</td><td class="cab cen">Devolvió</td>
+      </tr>
+      <!-- Filas 10–23 · una por unidad (14). Semáforo = relleno de «Sin completar»:
+           verde 0 · naranja pendientes con paquete devuelto · rojo pendientes sin devolver.
+           A la derecha, filas 10–14 los cinco agentes, 15 «sin asignar», 16 el total. -->
+      <tr>
+        <td class="f">10</td><td></td>
+        <td class="n">86320</td><td>Los Pinos</td><td class="n">14</td><td class="n">14</td><td class="n verde">0</td><td>R. Peña</td><td class="ok">✓</td>
+        <td></td>
+        <td>R. Peña</td><td class="n">31</td><td class="n">28</td><td class="n naranja">3</td><td class="ok">3 de 3</td>
+      </tr>
+      <tr>
+        <td class="f">11</td><td></td>
+        <td class="n">123456</td><td>El Faro</td><td class="n">11</td><td class="n">8</td><td class="n naranja">3</td><td>R. Peña</td><td class="ok">✓</td>
+        <td></td>
+        <td>M. Castillo</td><td class="n">25</td><td class="n">25</td><td class="n verde">0</td><td class="ok">3 de 3</td>
+      </tr>
+      <tr>
+        <td class="f">12</td><td></td>
+        <td class="n">7000011</td><td>La Ceiba</td><td class="n">9</td><td class="n">9</td><td class="n verde">0</td><td>M. Castillo</td><td class="ok">✓</td>
+        <td></td>
+        <td>L. Ferreira</td><td class="n">17</td><td class="n">12</td><td class="n rojo">5</td><td class="no">1 de 2</td>
+      </tr>
+      <tr>
+        <td class="f">13</td><td></td>
+        <td class="n">210987</td><td>Villa Sol</td><td class="n">12</td><td class="n">7</td><td class="n rojo">5</td><td>L. Ferreira</td><td class="no">✗</td>
+        <td></td>
+        <td>A. Núñez</td><td class="n">21</td><td class="n">17</td><td class="n naranja">4</td><td class="ok">3 de 3</td>
+      </tr>
+      <tr>
+        <td class="f">14</td><td></td>
+        <td class="n">345678</td><td>Monte Alto</td><td class="n">8</td><td class="n">8</td><td class="n verde">0</td><td>M. Castillo</td><td class="ok">✓</td>
+        <td></td>
+        <td>J. Báez</td><td class="n">22</td><td class="n">14</td><td class="n rojo">8</td><td class="no">0 de 2</td>
+      </tr>
+      <tr>
+        <td class="f">15</td><td></td>
+        <td class="n">456789</td><td>Río Claro</td><td class="n">10</td><td class="n">6</td><td class="n naranja">4</td><td>A. Núñez</td><td class="ok">✓</td>
+        <td></td>
+        <td class="gris">Sin asignar</td><td class="n">12</td><td class="n">1</td><td class="n rojo">11</td><td class="nada">—</td>
+      </tr>
+      <tr class="r-total">
+        <td class="f">16</td><td></td>
+        <td class="n">567890</td><td>San Rafael</td><td class="n">7</td><td class="n">7</td><td class="n verde">0</td><td>A. Núñez</td><td class="ok">✓</td>
+        <td></td>
+        <td class="total">Total</td><td class="n total">128</td><td class="n total">97</td><td class="n total">31</td><td class="total cen">10 de 13</td>
+      </tr>
+      <tr>
+        <td class="f">17</td><td></td>
+        <td class="n">678901</td><td>Las Palmas</td><td class="n">13</td><td class="n">10</td><td class="n rojo">3</td><td>J. Báez</td><td class="no">✗</td>
+        <td></td>
+        <td colspan="5"></td>
+      </tr>
+      <tr class="r-seccion">
+        <td class="f">18</td><td></td>
+        <td class="n">789012</td><td>La Loma</td><td class="n">6</td><td class="n">6</td><td class="n verde">0</td><td>R. Peña</td><td class="ok">✓</td>
+        <td></td>
+        <td class="seccion" colspan="5">Viajaron por mes</td>
+      </tr>
+      <!-- Filas 19–30, columnas J:N · el gráfico flota sobre estas celdas. -->
+      <tr>
+        <td class="f">19</td><td></td>
+        <td class="n">890123</td><td>El Portal</td><td class="n">9</td><td class="n">4</td><td class="n rojo">5</td><td>J. Báez</td><td class="no">✗</td>
+        <td></td>
+        <td class="grafico" colspan="5" rowspan="12">
+          <!-- Gráfico de columnas agrupadas, tal como lo dibuja Excel: título, cuadrícula, etiquetas de dato, leyenda abajo.
+               Alto de J19:N30 = 5×20 + 22 + 12 + 20 + 4×20 = 234 px; ancho J:N = 501 px. -->
+          <svg viewBox="0 0 501 234" role="img" aria-label="Gráfico de columnas: personas que viajaron por mes, completas frente a con dificultades. Junio 30 y 9, julio 33 y 12, agosto 34 y 10.">
+            <rect class="g-marco" x="0.5" y="0.5" width="500" height="233" rx="2"/>
+            <!-- Eje Y: 0 a 40, rayas cada 10. Área de trazado: x 44–486, y 30–190 (160 px = 40 personas → 4 px/persona). -->
+            <g class="g-eje" text-anchor="end">
+              <text x="36" y="194">0</text><text x="36" y="154">10</text><text x="36" y="114">20</text><text x="36" y="74">30</text><text x="36" y="34">40</text>
+            </g>
+            <line class="g-linea" x1="44" y1="150" x2="486" y2="150"/>
+            <line class="g-linea" x1="44" y1="110" x2="486" y2="110"/>
+            <line class="g-linea" x1="44" y1="70" x2="486" y2="70"/>
+            <line class="g-linea" x1="44" y1="30" x2="486" y2="30"/>
+            <line class="g-cero" x1="44" y1="190.5" x2="486" y2="190.5"/>
+            <!-- Junio: 30 completos (120 px) · 9 con dificultades (36 px). Grupo centrado en x=118. -->
+            <rect class="g-verde" x="76" y="70" width="38" height="120"/><text class="g-etq" x="95" y="64">30</text>
+            <rect class="g-rojo" x="122" y="154" width="38" height="36"/><text class="g-etq" x="141" y="148">9</text>
+            <!-- Julio: 33 (132 px) · 12 (48 px). Centro x=265. -->
+            <rect class="g-verde" x="223" y="58" width="38" height="132"/><text class="g-etq" x="242" y="52">33</text>
+            <rect class="g-rojo" x="269" y="142" width="38" height="48"/><text class="g-etq" x="288" y="136">12</text>
+            <!-- Agosto: 34 (136 px) · 10 (40 px). Centro x=412. -->
+            <rect class="g-verde" x="370" y="54" width="38" height="136"/><text class="g-etq" x="389" y="48">34</text>
+            <rect class="g-rojo" x="416" y="150" width="38" height="40"/><text class="g-etq" x="435" y="144">10</text>
+            <!-- Eje X. -->
+            <g class="g-eje" text-anchor="middle">
+              <text x="118" y="208">jun</text><text x="265" y="208">jul</text><text x="412" y="208">ago</text>
+            </g>
+            <!-- Leyenda. -->
+            <rect class="g-verde" x="160" y="219" width="10" height="10"/><text class="g-leyenda" x="175" y="228">Completos</text>
+            <rect class="g-rojo" x="262" y="219" width="10" height="10"/><text class="g-leyenda" x="277" y="228">Con dificultades</text>
+          </svg>
+        </td>
+      </tr>
+      <tr>
+        <td class="f">20</td><td></td>
+        <td class="n">901234</td><td>Valle Verde</td><td class="n">5</td><td class="n">5</td><td class="n verde">0</td><td>L. Ferreira</td><td class="ok">✓</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="f">21</td><td></td>
+        <td class="n">7000123</td><td>Puerto Nuevo</td><td class="n">8</td><td class="n">8</td><td class="n verde">0</td><td>M. Castillo</td><td class="ok">✓</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="f">22</td><td></td>
+        <td class="n">112233</td><td>Costa Azul</td><td class="n">4</td><td class="n">4</td><td class="n verde">0</td><td>A. Núñez</td><td class="ok">✓</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="f">23</td><td></td>
+        <td class="n">998877</td><td>Buena Vista</td><td class="n">12</td><td class="n">1</td><td class="n rojo">11</td><td class="gris">Sin asignar</td><td class="nada">—</td>
+        <td></td>
+      </tr>
+      <tr class="r-total">
+        <td class="f">24</td><td></td>
+        <td class="total" colspan="2">Total · 14 unidades</td><td class="n total">128</td><td class="n total">97</td><td class="n total">31</td><td class="total">5 agentes</td><td class="total cen">10 de 13</td>
+        <td></td>
+      </tr>
+      <tr class="r-hueco"><td class="f">25</td><td colspan="9"></td></tr>
+      <!-- Fila 26 · la leyenda del semáforo: tres puntos, dos o tres palabras cada uno. -->
+      <tr>
+        <td class="f">26</td><td></td>
+        <td class="sub" colspan="7"><span class="punto v"></span>Todo completo &nbsp;&nbsp; <span class="punto o"></span>Pendientes · paquete devuelto &nbsp;&nbsp; <span class="punto r"></span>Pendientes · sin devolver</td>
+        <td></td>
+      </tr>
+      <tr><td class="f">27</td><td colspan="9"></td></tr>
+      <tr><td class="f">28</td><td colspan="9"></td></tr>
+      <tr><td class="f">29</td><td colspan="9"></td></tr>
+      <tr><td class="f">30</td><td colspan="9"></td></tr>
+      <tr class="fuera"><td class="f">31</td><td colspan="14"></td></tr>
+      <tr class="fuera"><td class="f">32</td><td colspan="14"></td></tr>
+      <tr class="fuera"><td class="f">33</td><td colspan="14"></td></tr>
+      <tr class="fuera"><td class="f">34</td><td colspan="14"></td></tr>
+      <tr class="fuera"><td class="f">35</td><td colspan="14"></td></tr>
+      <tr class="fuera"><td class="f">36</td><td colspan="14"></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="pestanas">
+    <button type="button" class="pestana" aria-current="page">Reporte</button>
+    <span class="mas" aria-hidden="true">＋</span>
+  </div>
+</div>
+
+<section class="especificacion" aria-labelledby="esp">
+  <h2 id="esp" style="margin-top:0">Lo que el programa tiene que escribir (y cómo)</h2>
+  <p>Una sola hoja, <code>AddWorksheet("Reporte")</code>. Lo que hoy hace <code>LibroDelInforme.cs</code> (una pestaña «Resumen» + una por sección) se sustituye entero. Los párrafos del PDF no entran: ni el titular, ni la frase, ni las notas. Cada elemento de arriba, con la llamada de ClosedXML 0.105.1 que lo produce (miembros comprobados contra la DLL del paquete el 2026-09-16):</p>
+  <table>
+    <thead><tr><th>Elemento</th><th>Celdas</th><th>ClosedXML</th></tr></thead>
+    <tbody>
+      <tr><td>Banda marino con título / templo / período</td><td>A1:N2</td><td><code>Range("A1:N2").Style.Fill.BackgroundColor = XLColor.FromHtml("#16233A")</code>; <code>Range("B1:H1").Merge()</code>, <code>Range("I1:N1").Merge()</code>, ídem fila 2; fuente blanca 16 pt negrita en B1, 12 pt en I1; <code>Row(1).Height = 27</code>, <code>Row(2).Height = 18</code>.</td></tr>
+      <tr><td>Cinco tarjetas de cifras</td><td>B4:C6 · D4:F6 · G4:H6 · J4:K6 · L4:N6</td><td>Tres <code>Merge()</code> por tarjeta (rótulo, cifra, detalle); <code>Range("B4:C6").Style.Border.OutsideBorder = XLBorderStyleValues.Thin</code> y <code>Range("B4:C4").Style.Border.TopBorder = XLBorderStyleValues.Thick</code> con <code>TopBorderColor</code> marino; cifra 24 pt negrita con <code>Font.FontColor</code> verde / rojo / naranja / marino; <code>Row(5).Height = 33</code>.</td></tr>
+      <tr><td>Títulos de sección</td><td>B8:H8 · J8:N8 · J18:N18</td><td><code>Merge()</code>, fuente marino 12 pt negrita, <code>Border.BottomBorder = Medium</code> marino.</td></tr>
+      <tr><td>Cabecera de tabla</td><td>B9:H9 · J9:N9</td><td>Relleno marino, fuente blanca negrita; numéricas con <code>Alignment.Horizontal = Right</code>.</td></tr>
+      <tr><td>Filas por unidad / por agente</td><td>B10:H23 · J10:N15</td><td>Una fila por unidad; N.º con formato de texto <code>"@"</code> (que no se coma ceros, como ya hace el espejo); cifras como números (no texto) para que sumen.</td></tr>
+      <tr><td>Semáforo en «Sin completar»</td><td>F10:F23 · M10:M15</td><td>Formato condicional con fórmula: <code>Range("F10:F23").AddConditionalFormat().WhenIsTrue("=F10=0")</code> → relleno verde; <code>WhenIsTrue("=AND(F10&gt;0,H10=\"✓\")")</code> → naranja; <code>WhenIsTrue("=AND(F10&gt;0,H10&lt;&gt;\"✓\")")</code> → rojo. Tres reglas, en ese orden. Alternativa sin fórmulas: pintar el relleno celda a celda al escribir (el programa ya sabe el estado). Recomendada la segunda: el archivo no se rellena ni se recalcula, y así el color no depende de que Excel evalúe fórmulas.</td></tr>
+      <tr><td>✓ / ✗ / —</td><td>H10:H23 · N10:N15</td><td>Texto centrado, fuente verde / rojo / gris. Calibri no trae ✓ (U+2713) ni ✗ (U+2717): Excel los sustituye con Segoe UI Symbol, que va en todo Windows. Si se prefiere no depender de la sustitución: <code>Font.FontName = "Segoe UI Symbol"</code> en esas celdas.</td></tr>
+      <tr><td>Fila de total</td><td>B24:H24 · J16:N16</td><td>Negrita, <code>Border.TopBorder = Medium</code> marino, relleno gris panel. Cifras escritas por el programa (no <code>SUM</code>): es lo que ya cuenta <code>Preparacion.Recontar</code> y así el PDF y el Excel dicen lo mismo.</td></tr>
+      <tr><td>Gráfico</td><td>flota sobre J19:N30</td><td>Ver las tres vías en <code>mockup-v3-reporte-excel.md</code>. Con la vía recomendada (PNG con SkiaSharp): <code>hoja.AddPicture(flujo, XLPictureFormat.Png).MoveTo(hoja.Cell("J19")).WithSize(501, 234)</code>.</td></tr>
+      <tr><td>Leyenda del semáforo</td><td>B26:H26</td><td><code>Merge()</code>, 9 pt gris; los puntos son «●» (U+25CF) con <code>Font.FontColor</code> por tramo — o tres celdas pequeñas con relleno, si se prefiere no mezclar colores en una celda (ClosedXML admite texto enriquecido con <code>Cell.GetRichText()</code>, pero es más código).</td></tr>
+      <tr><td>Anchos de columna</td><td>A–N</td><td><code>Column("A").Width = 2</code> … con los anchos en caracteres de la tabla de abajo. No <code>AdjustToContents()</code>: el diseño es fijo.</td></tr>
+      <tr><td>Inmovilizar</td><td>filas 1–2</td><td><code>hoja.SheetView.FreezeRows(2)</code> (hoy el informe ya usa <code>FreezeRows(1)</code>).</td></tr>
+      <tr><td>Sin cuadrícula (opcional)</td><td>toda la hoja</td><td><code>hoja.ShowGridLines = false</code>: los dashboards de una página suelen quitarla. El mockup la deja para que se vea que es Excel; decisión del dueño.</td></tr>
+      <tr><td>Imprimir en una A4 apaisada</td><td>A1:N30</td><td><code>PageSetup.PaperSize = XLPaperSize.A4Paper</code>; <code>PageSetup.PageOrientation = XLPageOrientation.Landscape</code>; <code>PageSetup.FitToPages(1, 1)</code>; <code>PageSetup.PrintAreas.Add("A1:N30")</code>; <code>PageSetup.ShowGridlines = false</code>; márgenes 1 cm.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Medidas de la hoja</h2>
+  <table>
+    <thead><tr><th>Columna</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th>H</th><th>I</th><th>J</th><th>K</th><th>L</th><th>M</th><th>N</th></tr></thead>
+    <tbody>
+      <tr><td>Ancho Excel (caracteres)</td><td>2</td><td>9</td><td>24</td><td>10</td><td>11</td><td>13</td><td>22</td><td>11</td><td>2</td><td>22</td><td>11</td><td>11</td><td>13</td><td>11</td></tr>
+      <tr><td>Ancho en píxeles (×7+5)</td><td>19</td><td>68</td><td>173</td><td>75</td><td>82</td><td>96</td><td>159</td><td>82</td><td>19</td><td>159</td><td>82</td><td>82</td><td>96</td><td>82</td></tr>
+    </tbody>
+  </table>
+  <p>Suma: 1.274 px de hoja (1.314 con el encabezado de filas). Altos: fila 1 = 27 pt, fila 2 = 18 pt, filas 3/7/25 = 7,5 pt, fila 4 y 6 = 13,5 pt, fila 5 = 33 pt, filas 8/18 y totales = 16,5 pt, el resto 15 pt. Alto total de A1:N30 medido en Chrome: 685 px (las filas de 15 pt salen a 20 px + 1 px de cuadrícula). En una A4 apaisada con 10 mm de margen (277 × 190 mm ≈ 1.047 × 718 px) cabe a escala 0,82 — que es lo que <code>FitToPages(1,1)</code> hará solo.</p>
+
+  <h2>Control / qué hace de verdad</h2>
+  <table>
+    <thead><tr><th>Control</th><th>Qué hace aquí</th><th>Qué dice la pantalla después</th><th>En el .xlsx real</th></tr></thead>
+    <tbody>
+      <tr><td>Desplazar la hoja (rueda, teclado con el visor enfocado)</td><td>Desplaza las filas 3–36; las filas 1–2 y los encabezados A–N y 1–36 quedan fijos (<code>position:sticky</code>).</td><td>La banda marino con título, templo y período sigue arriba; debajo, las filas que tocan.</td><td>Igual: <code>FreezeRows(2)</code>.</td></tr>
+      <tr><td>Pestaña «Reporte»</td><td>Nada: es la única. Recibe foco (anillo de tinta sobre gris claro, 15.50:1).</td><td>Sigue marcada como activa.</td><td>Una sola hoja; el «＋» es de Excel.</td></tr>
+      <tr><td>Ctrl+P / imprimir</td><td><code>@page A4 landscape</code>; oculta marco, encabezados y especificación; escala la hoja a 0,82.</td><td>Una página con A1:N30 entero.</td><td><code>FitToPages(1,1)</code> + área de impresión.</td></tr>
+      <tr><td>Celdas</td><td>No son editables ni enfocables: es un mockup.</td><td>—</td><td>Editables, como cualquier hoja sin proteger. Este Excel no vuelve al programa.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="aviso">Lo que este mockup <b>no</b> decide y hay que preguntarle al dueño está en la sección «Lo que queda abierto» de más abajo: las palabras («Completos» aquí frente a «Verificadas» del 04), el orden (cifras arriba frente a «números fríos» al final), «quiénes» frente a «cuántos», la leyenda de la fila 26, y si «devolvió» se cuenta por unidad, por agente o por persona.</div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     LA NOTA DEL DISEÑADOR. Iba a ser `mockups/mockup-v3-reporte-excel.md` y el
+     candado del proyecto (CLAUDE.md §5: cuatro documentos de trabajo, ningún
+     documento nuevo sin llave del dueño) no lo permite. Vive aquí, en el
+     mismo archivo, fuera del área de impresión. Si el supervisor la quiere en
+     EN-CURSO.md, es copiar estas secciones.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<section class="especificacion" aria-labelledby="nota">
+  <h2 id="nota" style="margin-top:0">Nota del diseñador — 2026-09-16</h2>
+  <p>Todo lo que aquí se afirma lleva su comando o su URL con fecha de lectura; lo que no se comprobó lo dice.</p>
+
+  <h2>0. La premisa del pase, verificada</h2>
+  <table>
+    <thead><tr><th>Afirmación del pase</th><th>Cómo se midió</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td>Hoy el Excel sale con «Resumen» + una pestaña por sección</td><td><code>LibroDelInforme.cs:82-84</code></td><td><code>AddWorksheet(NombreDeHoja.DelResumen)</code> + <code>for … AddWorksheet(pestanas[indice])</code>. Cierto.</td></tr>
+      <tr><td>Sin gráficos</td><td><code>grep -rn Chart csharp/Fichas/Fichas.Reportes | wc -l</code></td><td><code>0</code>. Cierto.</td></tr>
+      <tr><td>ClosedXML 0.105.1 es el único paquete de Reportes</td><td><code>Fichas.Reportes.csproj</code></td><td>Cierto. <b>Pero arrastra <code>DocumentFormat.OpenXml</code> 3.1.1</b> (<code>project.assets.json</code> de Fichas.App).</td></tr>
+      <tr><td>SkiaSharp «ya está en el programa»</td><td><code>bin/Release/…/win-x64/</code>: <code>SkiaSharp.dll</code> 527.712 B, <code>libSkiaSharp.dll</code> 12.254.048 B; <code>using SkiaSharp</code> en <code>Fichas.Lectura/LecturaDePdf.cs:5</code></td><td>Cierto: SkiaSharp 4.150.1 viaja por PDFtoImage.</td></tr>
+      <tr><td>El vocabulario del reporte es el del 04</td><td><code>Fichas.Reportes/Reglas/Vocabulario.cs:39-45</code></td><td>«Verificadas» / «Sin verificar» / «Quiénes viajaron sin verificar». La unidad se llama «Barrio o rama» (<code>SeccionesDeDireccion.cs:48,87</code>).</td></tr>
+      <tr><td>«¿Devolvió el paquete?» existe como dato</td><td><code>Fichas.Contratos/Modelos/Asignacion.cs</code>, <code>Reglas/TrabajoDeAgente.cs</code></td><td><b>No hay entidad «paquete» ni bandera «devuelto»</b>: se infiere por caso (<code>TrabajoDeUnAgente.Contesto</code>). Ver §5.</td></tr>
+      <tr><td>La columna «País»</td><td><code>SeccionesDeDireccion.cs:58</code>, <code>Vocabulario.ElPaisNoSeGuarda</code></td><td>Existe y siempre dice «no consta». El mockup no la lleva.</td></tr>
+    </tbody>
+  </table>
+  <p>Lo que el pase no traía y hubo que decidir: el orden (cifras arriba, como piden todas las fuentes de §1) y qué es «devolvió» (§5). Ambas se devuelven al dueño.</p>
+
+  <h2>1. Búsqueda con fuentes (leídas el 2026-09-16)</h2>
+  <p>Criterio: reportes o tableros de <b>una página</b>, sin macros, sin complementos, sin marca registrada que haya que reproducir. Ocho consultadas, dos descartadas.</p>
+  <table>
+    <thead><tr><th>#</th><th>Fuente</th><th>URL</th><th>Qué se toma</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Explore Excel — <i>KPI dashboard</i></td><td>https://exploreexcel.com/templates/kpi-dashboard/</td><td>«A one-page dashboard where every chart reads from one clean data sheet». Sin macros ni complementos. Confirma que una sola hoja de salida es lo normal, con los datos aparte.</td></tr>
+      <tr><td>2</td><td>Smartsheet — <i>Free KPI Dashboard Templates</i></td><td>https://www.smartsheet.com/content/kpi-dashboard-templates</td><td>KPI «en formato de tabla y de gráfico»; barras y líneas «mes a mes». Se toma: tabla y gráfico conviven en la misma vista, la tabla manda.</td></tr>
+      <tr><td>3</td><td>theSmallman — <i>Excel dashboards</i></td><td>https://www.thesmallman.com/dashboards</td><td>«Simple use of colours, clean design»; el <i>Operational Dashboard</i> usa <b>tres colores (azul, rojo y verde)</b>; hay un <i>Traffic Light Dashboard</i>; «most of these do not need VBA». Se toma: tres colores y el semáforo.</td></tr>
+      <tr><td>4</td><td>Big Excel Energy — <i>Excel dashboard design principles</i></td><td>https://bigexcelenergy.com/excel-dashboard-design-principles/</td><td>«Three to seven headline KPIs on the top row, with supporting detail below»; «consistent margins and padding do more for perceived polish than almost any single feature». Se toma: <b>cinco cifras arriba</b>, detalle debajo, márgenes iguales (columnas A e I de 2 caracteres).</td></tr>
+      <tr><td>5</td><td>Excel Accesible — <i>Plantilla KPI Excel gratis</i> (en español)</td><td>https://excel-accesible.com/plantilla/plantilla-kpi-excel-gratis/</td><td>«Visión en un vistazo: dashboard con semáforos y tendencias mes a mes»; verde / ámbar / rojo; sin macros; formato español. Se toma: el semáforo como relleno de celda y el gráfico por mes.</td></tr>
+      <tr><td>6</td><td>Chandoo — <i>Excel dashboards</i> · <i>KPI dashboard revisited</i></td><td>https://chandoo.org/wp/excel-dashboards/ · https://chandoo.org/wp/kpi-dashboard-revisited/</td><td>La cifra más importante arriba a la izquierda, «where the eye naturally wanders first». <b>Leído solo en el resumen del buscador, NO abrí la página.</b> Se toma: «Viajaron» en B4.</td></tr>
+      <tr><td>7</td><td>Microsoft Learn — <i>How to: Insert a chart into a spreadsheet document</i> (Open XML SDK), <code>ms.date</code> 2025-01-14</td><td>https://learn.microsoft.com/en-us/office/open-xml/spreadsheet/how-to-insert-a-chart-into-a-spreadsheet</td><td>La vía (a) del gráfico, con el código completo: <code>DrawingsPart</code> → <code>ChartPart</code> → <code>BarChart</code> (Column, Clustered) → <code>TwoCellAnchor</code>. Nota del artículo: «This code can be run only once».</td></tr>
+      <tr><td>8</td><td>Microsoft Support — <i>Scale a worksheet</i></td><td>https://support.microsoft.com/en-us/excel/scale-a-worksheet</td><td>«Fit to 1 page(s) wide by 1 tall»; «Excel ignores manual page breaks when you use the Fit to option». <b>Leído en el resumen del buscador, NO abrí la página</b> (la URL vieja devolvió 404).</td></tr>
+      <tr><td>—</td><td>HubSpot — <i>KPI Dashboard Template</i></td><td>https://www.hubspot.com/resources/templates/kpi-dashboard</td><td><b>Descartada</b>: requiere registro y lleva marca.</td></tr>
+      <tr><td>—</td><td>Microsoft Create — <i>Chart templates</i></td><td>https://create.microsoft.com/en-us/templates/charts</td><td><b>Descartada</b>: redirige a <code>excel.cloud.microsoft</code> y solo lista «Dashboard maker», sin disposición ni paleta.</td></tr>
+    </tbody>
+  </table>
+  <p>De la wiki de ClosedXML (https://github.com/ClosedXML/ClosedXML-wiki/blob/master/Conditional-Formatting.md) se leyó solo el resumen del buscador; la API se comprobó contra la DLL (§3).</p>
+
+  <h2>2. Lo medido en este mockup</h2>
+  <p>Paleta: el marino es <code>#16233A</code>, <b>el mismo de la fila de títulos de la hoja del compañero</b> (<code>Fichas.Paquetes/LibroDeTrabajo.cs:114</code>). Contrastes (WCAG 2.x, script en Python):</p>
+  <table>
+    <thead><tr><th>Par</th><th>Valor</th></tr></thead>
+    <tbody>
+      <tr><td>blanco #FFFFFF / marino #16233A</td><td>15.72:1</td></tr>
+      <tr><td>gris claro #C9D3E6 / marino</td><td>10.44:1</td></tr>
+      <tr><td>tinta #1A1D21 / papel</td><td>16.91:1</td></tr>
+      <tr><td>tinta suave #46505C / papel</td><td>8.20:1</td></tr>
+      <tr><td>apagado #646C77 / papel</td><td>5.31:1</td></tr>
+      <tr><td>verde tinta #12351F / verde fondo #E7F5EC</td><td>12.01:1</td></tr>
+      <tr><td>verde marca #1B6E3C / papel</td><td>6.28:1</td></tr>
+      <tr><td>naranja tinta #5A2E00 / naranja fondo #FFE0B3</td><td>9.07:1</td></tr>
+      <tr><td>naranja marca #9A4A00 / papel</td><td>6.26:1</td></tr>
+      <tr><td>rojo tinta #4A0F0B / rojo fondo #FDE7E7</td><td>13.02:1</td></tr>
+      <tr><td>rojo marca #B3261E / papel</td><td>6.54:1</td></tr>
+      <tr><td>foco tinta #1A1D21 / marino</td><td><b>1.08:1 — invisible; por eso nada enfocable cae sobre marino</b></td></tr>
+      <tr><td>foco tinta / gris de pestañas #E6E6E6</td><td>13.6:1 (en Chrome: <code>outline solid 1.89px rgb(26,29,33)</code> sobre <code>rgb(230,230,230)</code>)</td></tr>
+    </tbody>
+  </table>
+  <p>Medidas en Chrome (JS sobre el DOM): tabla 1.314 px de ancho (1.274 sin el encabezado de filas); 36 filas y <b>todas con 15 celdas efectivas</b> (contadas con colspan y rowspan); A1:N30 = 685 px de alto; SVG del gráfico 501 × 234 px; 0 recursos externos, 0 <code>&lt;use&gt;</code>, 0 ids de SVG.</p>
+  <p>Impresión, medida con Chrome sin cabeza (<code>--headless=new --print-to-pdf</code>): <b>1 página</b>, <code>MediaBox 0 0 841.92 594.96</code> (A4 apaisada). Dos defectos salieron de esa prueba y están corregidos: <code>transform:scale</code> no encoge la caja de maquetación (salían 2 páginas → <code>zoom:0.82</code>), y ocultar la columna de números de fila con <code>display:none</code> corría el <code>&lt;colgroup&gt;</code> una columna («Los Pinos» recortado a 19 px → el <code>&lt;col&gt;</code> se colapsa a 0).</p>
+  <p>API de ClosedXML 0.105.1 comprobada por nombres en el binario del paquete (<code>grep -a -c</code> sobre <code>ClosedXML.dll</code>; PowerShell 5.1 no carga la DLL netstandard2.1 por reflexión): <code>Merge, AddPicture, MoveTo, WithSize, SetBackgroundColor, OutsideBorder, FitToPages, PagesWide, PagesTall, PageOrientation, PaperSize, PrintAreas, IconSet, DataBar, WhenEquals, WhenIsTrue, FreezeRows, SetFontColor, WrapText, ShowGridLines, XLPictureFormat</code>: todos presentes. Precedente en el proyecto: <code>FreezeRows</code> (<code>LibroDelInforme.cs:225</code>), <code>Column(n).Width</code> (<code>:210</code>), <code>Fill.BackgroundColor = XLColor.FromHtml(…)</code> (<code>LibroDeTrabajo.cs:307,370</code>), <code>Border.BottomBorder</code> (<code>:367-368</code>).</p>
+
+  <h2>4. El gráfico: tres vías, con su coste</h2>
+  <p>Medido en la salida Release del programa (<code>Fichas.App/bin/Release/net10.0-windows10.0.26100.0/win-x64/</code>, 2026-09-16):</p>
+  <table>
+    <thead><tr><th></th><th>(a) Gráfico nativo, Open XML SDK</th><th>(b) Barras con celdas coloreadas</th><th>(c) PNG con SkiaSharp + AddPicture</th></tr></thead>
+    <tbody>
+      <tr><td>Paquete nuevo</td><td><b>Ninguno.</b> <code>DocumentFormat.OpenXml</code> 3.1.1 ya viaja: lo arrastra ClosedXML (<code>DocumentFormat.OpenXml.dll</code> 6.349.424 B + <code>.Framework.dll</code> 471.152 B ya están en la carpeta). Licencia MIT (nuspec). Solo hay que referenciarlo en <code>Fichas.Reportes.csproj</code> con la misma versión: 0 archivos más.</td><td>Ninguno.</td><td><b>Ninguno.</b> SkiaSharp 4.150.1 ya viaja por PDFtoImage (<code>SkiaSharp.dll</code> 527.712 B, <code>libSkiaSharp.dll</code> 12.254.048 B). Licencia MIT (nuspec). <code>PackageReference</code> en Reportes con la misma versión: 0 archivos más (mejor que un <code>ProjectReference</code> a Lectura, que acoplaría reportes con OCR).</td></tr>
+      <tr><td>Código</td><td>~120 líneas (fuente 7): abrir el <code>.xlsx</code> <b>que ClosedXML ya guardó</b> con <code>SpreadsheetDocument.Open</code>, añadir <code>DrawingsPart</code> + <code>ChartPart</code> + <code>BarChart</code> (Column, Clustered) con dos series (<code>NumberLiteral</code>: valores literales, no leen celdas) y anclar con <code>TwoCellAnchor</code> en J19:N30.</td><td>~40 líneas: una columna por mes, N celdas verdes y M rojas apiladas, la cifra encima.</td><td>~80 líneas: <code>SKSurface</code> 1002×468 (2× para imprimir), ejes, barras, etiquetas y leyenda; <code>hoja.AddPicture(png, XLPictureFormat.Png).MoveTo(hoja.Cell("J19")).WithSize(501, 234)</code>.</td></tr>
+      <tr><td>Lo que ve el dueño</td><td>Un gráfico <b>de Excel</b>: se pulsa, se recolorea, se copia a Word; vectorial, nítido con <code>FitToPages</code>.</td><td>Rectángulos de celda: se lee, pero no es «un gráfico»; con 12 meses no cabe en J:N.</td><td>Una imagen: nítida en pantalla, algo suave al encoger a 0,82; no se edita.</td></tr>
+      <tr><td>Riesgos</td><td>El ejemplo de Microsoft avisa «can be run only once». Va <b>después</b> del <code>SaveAs</code> de ClosedXML, en un paso aparte; ClosedXML no tiene API de gráficos. No comprobado que ClosedXML conserve el <code>ChartPart</code> si se reabriera con él (aquí no se reabre).</td><td>Ninguno técnico. Es el que peor cumple «bonito, profesional».</td><td>La fuente del PNG la resuelve SkiaSharp en la máquina: fijar <code>SKTypeface.FromFamilyName("Calibri")</code> con reserva a Segoe UI. Se prueba por tamaño y por que quede un <code>DrawingsPart</code>, no comparando bytes.</td></tr>
+      <tr><td>Variante</td><td>—</td><td>(b′) <code>AddConditionalFormat().DataBar(...)</code> en una columna de cifras por mes: barra dentro de la celda, nativa de Excel, 3 líneas. Sirve de respaldo dentro de la tabla, no como el gráfico.</td><td>—</td></tr>
+    </tbody>
+  </table>
+  <p><b>Recomendación: (a), el gráfico nativo con Open XML SDK.</b> Cuesta <b>0 bytes</b> de paquete nuevo (ya viaja), es MIT, y es lo único que produce lo que el dueño llamó «gráfico» en un Excel «profesional»: un objeto de Excel, no una foto. Su coste real es de programador (~120 líneas y un paso de post-proceso sobre el archivo guardado) y de prueba (abrir el <code>.xlsx</code> con <code>SpreadsheetDocument</code> y comprobar que hay un <code>ChartPart</code> con dos series y tres puntos). Si el post-proceso resultara frágil en el pase, la reserva es <b>(c)</b>, también a 0 bytes; <b>(b)</b> se descarta salvo como respaldo (b′). Por la regla 3: ninguna de las dos vías añade un archivo a lo publicado; lo que cambia es un <code>PackageReference</code> en <code>Fichas.Reportes.csproj</code>, y eso se anota en <code>DECISIONES.md</code> con estas cifras al hacerlo.</p>
+
+  <h2>5. Lo que queda abierto — preguntas para el dueño</h2>
+  <ol>
+    <li><b>Las palabras.</b> El 04 decidió «como el viejo»: «Verificadas» / «Sin verificar» (<code>Vocabulario.cs:39-45</code>), y el 07 dejó a los reportes «con su vocabulario». El 16 dijo «con todo completo / sin completar». El mockup usa <b>«Completos / Sin completar»</b>. Pero el Excel sale del MISMO <code>Documento</code> que el PDF. ¿El PDF sigue diciendo «Verificadas» y el Excel «Completos», o se unifican? Recomendación: una sola palabra en los dos, «Completos», precisando en DECISIONES.md que aquí «completo» = las seis preguntas en «sí» (<code>Preparacion</code>), no la firma de campos.</li>
+    <li><b>El orden.</b> Sus palabras ponen «números fríos» al final; todas las fuentes de §1 y el pase los ponen arriba. El mockup los pone arriba. ¿Arriba o al final? Recomendación: arriba, porque «debe explicarse sin leer» y la primera mirada cae ahí.</li>
+    <li><b>«Quiénes».</b> Dijo «quiénes viajaron de esa unidad con todo completo y quiénes no». La tabla por unidad da <b>cuántos</b>, no quiénes; 128 nombres no caben en una A4 apaisada. ¿Basta la cuenta por unidad, o quiere debajo (fila 32 en adelante, misma hoja, segunda página impresa) la lista de las <b>personas sin completar</b> con unidad, nombre, qué les falta y agente? Recomendación: la lista de solo los pendientes debajo, que son los que causan el daño que el programa evita.</li>
+    <li><b>«Devolvió el paquete».</b> No existe el paquete como dato: se infiere por caso. En el mockup, ✓ por unidad = todos los casos de esa unidad asignados a ese agente volvieron contestados; «3 de 3» por agente = unidades a su cargo con todo devuelto. ¿Se cuenta por unidad, por agente o por persona? ¿«Sin asignar» cuenta como unidad con pendientes (en el mockup, sí)?</li>
+    <li><b>La leyenda de la fila 26</b> son tres etiquetas de dos o tres palabras. «Sin leer una sola palabra» pediría quitarla; sin ella el naranja no se explica. ¿Se queda?</li>
+    <li><b>El templo va en la cabecera.</b> Si en un período hay viajes a dos templos, la cabecera no puede decir uno, y una columna «Templo» por unidad no cabe en A–N sin quitar otra. ¿Un reporte por templo, o cabecera «2 templos» y la columna en la lista de personas del punto 3? Recomendación: un reporte por templo.</li>
+    <li><b>Cuadrícula de Excel</b> a la vista o no (<code>ShowGridLines</code>). El mockup la deja para que se vea que es Excel; los tableros de §1 la quitan.</li>
+    <li><b>Lo que NO cambia:</b> el PDF de los jefes (decisión del 04) y las «dos palabras» del 07 en las pantallas. El naranja del semáforo coincide con el punto 2 de la v16 (persona a medias en naranja): conviene que reporte y pantalla lo digan igual.</li>
+  </ol>
+
+  <h2>7. Qué NO cubre y qué NO se pudo verificar</h2>
+  <ul>
+    <li><b>No se abrió en Excel.</b> No hay <code>.xlsx</code>: es un mockup HTML. Lo que Excel hará con ✓/✗ (sustitución de fuente), con <code>FitToPages(1,1)</code> sobre 1.274 px y con el gráfico anclado se sabrá en el pase de programación.</li>
+    <li><b>No se compiló nada.</b> La API de ClosedXML se comprobó por nombres en el binario, no compilando; el ejemplo de Open XML SDK se leyó, no se ejecutó.</li>
+    <li><b>Las fuentes 6 y 8</b> se leyeron en el resumen del buscador, no en la página. La wiki de ClosedXML tampoco se abrió.</li>
+    <li><b>Solo Chrome.</b> Captura, medidas del DOM y PDF son de Chrome; no se probó en Edge.</li>
+    <li><b>Datos por mes:</b> el pase dice que existen; no se buscó en <code>Consultas/</code> de dónde salen. El gráfico asume tres cifras por mes en dos series.</li>
+    <li><b>La lista de personas</b> (§5.3) no está dibujada: depende de la respuesta del dueño.</li>
+    <li><b>La nota iba a ser un <code>.md</code> aparte</b> y el candado del proyecto lo impidió (documentos nuevos solo con llave del dueño): por eso vive aquí.</li>
+    <li>El hook de escritura marcó «etiquetas P1/D2» en este archivo: son referencias de celda de Excel (<code>B4:C6</code>, <code>J19:N30</code>), no etiquetas de plan.</li>
+  </ul>
+</section>
+
+</body>
+</html>

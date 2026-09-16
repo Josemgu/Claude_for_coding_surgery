@@ -81,6 +81,12 @@ public static class PalabrasDelEstado
 /// sale verde, se lee «resuelto» con la nota «archivado» al lado, y ni se asigna ni se
 /// verifica desde aqui.
 /// </param>
+/// <param name="LasQueNoDicenSi">
+/// Sus pasos que NO dicen que si —en no o en blanco—, sin el numero de delante; nulo si quien
+/// la arma no los tiene. Entro el 2026-09-16 para saber si esta A MEDIAS: con alguna en si y no
+/// las seis, el renglon va en naranja y dice cuales le faltan. Sin esto se lee como hasta ese
+/// dia: rojo.
+/// </param>
 public sealed record PersonaDelGrupo(
     long PersonaId,
     long CasoId,
@@ -95,17 +101,28 @@ public sealed record PersonaDelGrupo(
     string Dueno,
     bool? Recomendacion = null,
     IReadOnlyList<string>? SeQuedoEn = null,
-    bool Archivado = false)
+    bool Archivado = false,
+    IReadOnlyList<string>? LasQueNoDicenSi = null)
 {
     /// <summary>Los pasos donde se quedo, nunca nulo.</summary>
     public IReadOnlyList<string> PasosSinCompletar => SeQuedoEn ?? [];
 
-    /// <summary>Verde si esta resuelta, rojo si le falta algo; la regla esta en <see cref="ColorDelRenglon"/>.</summary>
+    /// <summary>
+    /// Verde si esta resuelta, naranja si esta a medias, rojo si le falta todo; la regla esta
+    /// en <see cref="ColorDelRenglon"/>.
+    /// </summary>
     /// <remarks>
     /// Sale de la MISMA lectura que <see cref="PalabraDelEstado"/>: el color no puede decir
     /// una cosa y la palabra otra, que es justo lo que el dueno leia el 2026-09-05.
     /// </remarks>
-    public ColorDeLaPastilla Color => ColorDelRenglon.De(Lectura.Lo, Archivado);
+    public ColorDeLaPastilla Color => ColorDelRenglon.De(Lectura, Archivado);
+
+    /// <summary>Si esta a medias: alguna de las seis en si y no las seis, y no archivada.</summary>
+    /// <remarks>
+    /// Un archivado a medias NO esta a medias: esta resuelto, porque lo cerro el dueno. Es lo
+    /// que dice <see cref="Lectura"/>, que para un archivado no mira las seis.
+    /// </remarks>
+    public bool AMedias => Lectura.AMedias;
 
     /// <summary>
     /// El estado DEL DOCUMENTO y su motivo, con las palabras del dueno (C13-4).
@@ -149,7 +166,7 @@ public sealed record PersonaDelGrupo(
     /// </remarks>
     public LoQueSeLeeDeUnaPersona Lectura => Archivado
         ? new LoQueSeLeeDeUnaPersona(LoQueSeLee.Resuelto, "lo archivaste tú · no queda nada que hacer con ella")
-        : LoQueSeLeeDeUnaPersona.De(Recomendacion, PasosSinCompletar);
+        : LoQueSeLeeDeUnaPersona.De(Recomendacion, PasosSinCompletar, LasQueNoDicenSi);
 
     /// <summary>Si no le queda nada que hacer con ella: las seis en si, o su documento archivado.</summary>
     public bool EstaResuelta => Lectura.EsResuelto;
@@ -244,10 +261,19 @@ public sealed record PersonaDelGrupo(
     /// ⚠️ <b>2026-09-14:</b> un archivado lleva la nota «archivado» pegada a su palabra
     /// —«resuelto · archivado»—, que es donde el dueno pidio ver el estado. Sigue sin haber
     /// una tercera palabra: <see cref="PalabraDelEstado"/> es una de las dos.
+    /// <para>⚠️ <b>2026-09-16:</b> y una persona a medias lleva la nota «a medias» de la misma
+    /// forma —«me falta · a medias»— (<see cref="DosEstados.NotaDeAMedias"/>): el color nunca va
+    /// solo, y asi el naranja tiene su palabra al lado. Que le falta va en su propia linea del
+    /// renglon, <see cref="DetalleDelEstado"/>, que para ella si se ensena.</para>
     /// </remarks>
     public string Detalle
-        => $"{NumeroCaso} · {PalabraDelEstado}{(Archivado ? " · " + NotaDeArchivado : string.Empty)}"
+        => $"{NumeroCaso} · {PalabraDelEstado}{Nota}"
            + $" · {DuenoTexto} · {PdfTexto}";
+
+    /// <summary>« · archivado», « · a medias», o nada.</summary>
+    private string Nota => Archivado
+        ? " · " + NotaDeArchivado
+        : AMedias ? " · " + DosEstados.NotaDeAMedias : string.Empty;
 }
 
 /// <summary>
@@ -649,6 +675,11 @@ public sealed record GrupoDelDia(
 /// apaga (<see cref="SePuedeVerificar"/>). Falso en una cabecera: lo suyo va en
 /// <paramref name="CasosDeLaUnidad"/>, que ya viene sin archivados.
 /// </param>
+/// <param name="AMedias">
+/// Si esta persona esta a medias: alguna de las seis en si y no las seis (2026-09-16). El
+/// renglon va en naranja y ensena <paramref name="DetalleDelEstado"/> a la vista, que es donde
+/// dice cuales le faltan: el dueno pidio «indicar que le falta». Falso en una cabecera.
+/// </param>
 public sealed record RenglonDelGrupo(
     bool EsCabecera,
     string Titulo,
@@ -664,7 +695,8 @@ public sealed record RenglonDelGrupo(
     string DetalleDelEstado = "",
     string LoQueLeFaltaALaUnidad = "",
     ColorDeLaPastilla Color = ColorDeLaPastilla.Rojo,
-    bool Archivado = false)
+    bool Archivado = false,
+    bool AMedias = false)
 {
     /// <summary>La cabecera de una unidad dentro del dia.</summary>
     /// <remarks>
@@ -707,7 +739,8 @@ public sealed record RenglonDelGrupo(
             persona.PalabraDelEstado,
             persona.DetalleDelEstado,
             Color: persona.Color,
-            Archivado: persona.Archivado);
+            Archivado: persona.Archivado,
+            AMedias: persona.AMedias);
     }
 
     /// <summary>Si este renglon es una persona; lo lee la plantilla para ensenar su mitad.</summary>

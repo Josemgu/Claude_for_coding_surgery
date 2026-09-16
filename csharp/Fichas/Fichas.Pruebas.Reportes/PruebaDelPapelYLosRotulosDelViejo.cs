@@ -91,25 +91,36 @@ public class PruebaDelPapelYLosRotulosDelViejo
     }
 
     /// <summary>
-    /// La aclaracion NO desaparece: se dice dentro del informe, que es donde la lee quien manda.
+    /// Ninguna seccion del informe del periodo lleva notas: titulos, cifras y tablas.
     /// </summary>
     /// <remarks>
-    /// Es lo unico que se conserva del criterio C8-2. Sin esta nota, un jefe que lea
-    /// «Verificadas» puede creer que habla de la firma de Miguel sobre un campo leido, y son
-    /// dos hechos distintos que conviven en el mismo documento —las metricas del final SI
-    /// hablan de la firma—.
+    /// ⚠️ Hasta el 2026-09-16 esta prueba vigilaba lo contrario: que la nota que separa
+    /// «verificada» aqui (los seis pasos del sistema del lider) de la firma de Miguel sobre un
+    /// campo estuviera DENTRO del informe. Ese dia el dueno pidio los reportes sin parrafos
+    /// —<i>«se están colocando muchas letras; debe explicarse sin leer una sola palabra»</i>— y
+    /// las dieciseis notas se fueron. El riesgo de la palabra doble sigue y queda anotado en
+    /// <c>SeccionesDeDireccion</c>; lo que se vigila ahora es que no vuelva ningun parrafo.
     /// </remarks>
     [TestMethod]
-    public void ElInformeDiceQueVerificadaAquiSonLosSeisPasosYNoLaFirmaDeMiguel()
+    public void ElInformeNoLlevaNingunaNotaEnNingunaSeccion()
     {
-        var notas = Informe().Secciones.SelectMany(seccion => seccion.Notas).ToList();
+        var informe = Informe();
+        var notas = informe.Secciones.SelectMany(seccion => seccion.Notas).ToList();
 
-        Assert.IsTrue(
-            notas.Any(nota =>
-                nota.Contains("seis pasos", StringComparison.OrdinalIgnoreCase)
-                && nota.Contains("firma", StringComparison.OrdinalIgnoreCase)),
-            "Falta la nota que separa «verificada» aquí (los seis pasos del sistema del líder) de la "
-            + "firma de Miguel sobre un campo. Sin ella la palabra vuelve a significar dos cosas.");
+        Assert.IsEmpty(notas, "sin párrafos explicativos, por orden del dueño del 2026-09-16: " + string.Join(" | ", notas));
+        Assert.IsGreaterThanOrEqualTo(7, informe.Secciones.Count, "las secciones siguen; lo que se fue son sus notas");
+    }
+
+    /// <summary>La columna «País» no esta en ninguna tabla del informe: el dueno la quito el 2026-09-16.</summary>
+    [TestMethod]
+    public void NingunaTablaLlevaLaColumnaPais()
+    {
+        var columnas = Informe().Secciones.SelectMany(seccion => seccion.Columnas).Select(c => c.Nombre).ToList();
+
+        Assert.DoesNotContain("País", columnas);
+        var viajes = Informe().Secciones.Single(s => s.Titulo == "Los viajes");
+        Assert.HasCount(7, viajes.Columnas, "las ocho del viejo menos «País»");
+        Assert.AreEqual("Templo", viajes.Columnas[1].Nombre, "el templo queda donde estaba, detrás del caso");
     }
 
     /// <summary>El pie vuelve a la frase del viejo, para que no discuta con las columnas.</summary>

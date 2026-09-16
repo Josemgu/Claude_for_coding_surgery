@@ -42,6 +42,12 @@ namespace Fichas.Pruebas.Paquetes;
 /// <c>numero_caso</c> y <c>mrn</c> y protege la hoja; el C# ya no.
 /// </para>
 /// <para>
+/// <b>Cuarta diferencia declarada, del 2026-09-16.</b> La hoja del C# lleva una columna mas
+/// —«Templo», detras de la fecha de viaje—, las siete respuestas salen escritas cuando el
+/// sistema ya las tiene, y la instruccion lleva una tercera frase que lo dice. Las tres las
+/// pidio el dueno ese dia (PENDIENTES.md, v16, 5 y 8b).
+/// </para>
+/// <para>
 /// Lo que se sigue comparando letra por letra son las CATORCE que quedan de las 16 del
 /// Python: sus nombres, sus titulos, su orden relativo, sus anchos, sus formatos y sus siete
 /// menus. Los bloqueos ya NO se comparan contra el Python y se comprueban aparte, por su
@@ -56,7 +62,7 @@ public class PruebasContraElPython
     private static readonly string[] LasDosQueSeQuitaron = ["fecha_solicitud", "estaca"];
 
     /// <summary>
-    /// Las tres que el C# tiene y el Python no, EN EL ORDEN EN QUE SALEN EN LA HOJA.
+    /// Las cuatro que el C# tiene y el Python no, EN EL ORDEN EN QUE SALEN EN LA HOJA.
     /// </summary>
     /// <remarks>
     /// El orden importa: se comparan contra <c>Except</c>, que conserva el orden de la hoja. El
@@ -65,6 +71,7 @@ public class PruebasContraElPython
     /// </remarks>
     private static string[] LasQueSeAnadieron =>
     [
+        Columnas.Por(Columnas.ColumnaDelTemplo).Titulo,
         Columnas.Por(Columnas.ColumnaDelNumeroDeUnidad).Titulo,
         MotivosDeLaHoja.RotuloDelMotivo,
         MotivosDeLaHoja.RotuloDelComentario,
@@ -140,10 +147,11 @@ public class PruebasContraElPython
 
     /// <summary>
     /// Las cuatro primeras, letra por letra. La quinta —la instruccion— es la del Python
-    /// MAS la frase de las dos columnas nuevas, y se comprueba que empieza igual.
+    /// MAS la frase de las dos columnas nuevas (2026-09-05) MAS la de lo que ya viene marcado
+    /// (2026-09-16), y se comprueba que empieza igual.
     /// </summary>
     [TestMethod]
-    public void LasCincoLineasDeCabeceraDicenLoMismoMasLaFraseDeLoQueNoSePudo()
+    public void LasCincoLineasDeCabeceraDicenLoMismoMasLasDosFrasesAnadidas()
     {
         var hoja = HojaDelCSharp();
         for (var fila = 1; fila <= 4; fila++)
@@ -152,8 +160,10 @@ public class PruebasContraElPython
         var instruccion = hoja.Cell(5, 1).GetString();
         Assert.AreEqual(LibroDeTrabajo.InstruccionDelViejo, Python.cinco_lineas[4],
             "lo que decía el Python no se toca");
-        Assert.AreEqual(LibroDeTrabajo.InstruccionDelViejo + LibroDeTrabajo.InstruccionDeCuandoNoSePudo, instruccion,
-            "la instrucción es la del viejo más la frase de dónde decir que no se pudo");
+        Assert.AreEqual(
+            LibroDeTrabajo.InstruccionDelViejo + LibroDeTrabajo.InstruccionDeCuandoNoSePudo + LibroDeTrabajo.InstruccionDeLoQueYaVieneMarcado,
+            instruccion,
+            "la instrucción es la del viejo, más dónde decir que no se pudo, más que lo marcado viene del sistema");
         StringAssert.Contains(instruccion, MotivosDeLaHoja.RotuloDelMotivo);
         StringAssert.Contains(instruccion, MotivosDeLaHoja.RotuloDelComentario);
     }
@@ -169,14 +179,14 @@ public class PruebasContraElPython
         var titulosQuitados = TitulosDelPythonDe(LasDosQueSeQuitaron);
 
         CollectionAssert.AreEqual(LasQueSeAnadieron, nuestros.Except(Python.titulos).ToArray(),
-            "no puede sobrar ninguna columna más que las tres que el dueño añadió el 2026-09-05 y el 2026-09-07");
+            "no puede sobrar ninguna columna más que las cuatro que el dueño añadió el 2026-09-05, el 2026-09-07 y el 2026-09-16");
         CollectionAssert.AreEqual(titulosQuitados, Python.titulos.Except(nuestros).ToArray(),
             "no puede faltar ninguna columna más que las dos que el dueño quitó el 2026-09-06");
 
         CollectionAssert.AreEqual(
             Python.titulos.Where(t => !titulosQuitados.Contains(t)).ToArray(),
             nuestros.Where(t => !LasQueSeAnadieron.Contains(t)).ToArray(),
-            "quitando las cuatro declaradas, la hoja sigue siendo la del Python en su orden");
+            "quitando las seis declaradas, la hoja sigue siendo la del Python en su orden");
     }
 
     /// <summary>Los rotulos con los que el Python llama a esas columnas, sacados de su huella.</summary>

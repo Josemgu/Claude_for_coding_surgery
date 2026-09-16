@@ -73,10 +73,10 @@ public static class Motivos
 /// <param name="Nombre">El nombre tal como venia escrito; NO se usa para casar y NO se guarda.</param>
 /// <param name="PersonaId">La persona de la base a la que resolvio.</param>
 /// <param name="CasoId">El caso de esa persona; es lo que decide de que documento es el estado.</param>
-/// <param name="Respuestas">Las siete respuestas, ya leidas: verdadero, falso o nulo.</param>
+/// <param name="Respuestas">Las siete respuestas que valen: las de la hoja, y donde la hoja venia en blanco, las que ya estaban guardadas (<see cref="Pasos.ConLoQueYaEstabaGuardado"/>).</param>
 /// <param name="Motivo">Por que no se completo, si el companero lo dijo.</param>
 /// <param name="Comentario">Lo que escribio de su puno; texto libre, tal cual.</param>
-/// <param name="TraeAlgo">Si la fila venia con algo: una respuesta, el motivo o el comentario.</param>
+/// <param name="TraeAlgo">Si la fila venia con algo nuevo: una respuesta distinta de la guardada, el motivo o el comentario.</param>
 public sealed record RenglonDeLaVuelta(
     int FilaExcel,
     string? NumeroCaso,
@@ -90,9 +90,9 @@ public sealed record RenglonDeLaVuelta(
     bool TraeAlgo);
 
 /// <summary>Lo que sale de reconciliar un archivo: lo que caso, lo que no y lo que nadie miro.</summary>
-/// <param name="Renglones">Las filas que resolvieron a una persona y traian algo contestado.</param>
+/// <param name="Renglones">Las filas que resolvieron a una persona y traian algo nuevo.</param>
 /// <param name="Descartadas">Las que no entraron, con su motivo escrito y su numero de fila.</param>
-/// <param name="SinNadaQueProponer">Las filas que resolvieron pero venian con las siete en blanco.</param>
+/// <param name="SinNadaQueProponer">Las filas que resolvieron pero no traian nada nuevo: las siete en blanco, o tal como salieron del sistema.</param>
 /// <param name="Avisos">Lo que hay que senalar en la franja.</param>
 public sealed record ResultadoDeReconciliar(
     IReadOnlyList<RenglonDeLaVuelta> Renglones,
@@ -234,14 +234,25 @@ public static class Reconciliacion
     }
 
     /// <summary>
-    /// Decide qué es una fila: un renglón que casó, una fila en blanco, o un descarte con su
-    /// motivo. En este orden: par ilegible, respuesta ilegible, clave incompleta, repetida,
-    /// ambigua, sin par; y solo entonces se mira si trae algo.
+    /// Decide qué es una fila: un renglón que casó, una fila sin nada nuevo, o un descarte con
+    /// su motivo. En este orden: par ilegible, respuesta ilegible, clave incompleta, repetida,
+    /// ambigua, sin par; y solo entonces se mira si trae algo distinto de lo guardado.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Pasa de 30 líneas y no se parte a propósito: es la cadena de descartes entera, y su
     /// valor está en que los seis motivos se lean seguidos y en su orden. Cada rama termina en
     /// un <c>return</c> y ninguna fila sale por dos sitios.
+    /// </para>
+    /// <para>
+    /// ⚠️ Desde el 2026-09-16 la hoja sale con las respuestas que el sistema ya tenia, asi
+    /// que «trae algo» ya no es «alguna celda no viene en blanco»: es «alguna celda dice otra
+    /// cosa que la base», o un motivo, o un comentario (<see cref="Pasos.TraeAlgoDistinto"/>).
+    /// Y las respuestas que siguen son las de la hoja completadas con lo guardado donde la
+    /// hoja venia en blanco (<see cref="Pasos.ConLoQueYaEstabaGuardado"/>): un blanco es «no
+    /// la toqué», no «no». Las dos cosas necesitan a la persona resuelta, por eso van despues
+    /// de casar.
+    /// </para>
     /// </remarks>
     /// <param name="valores">La fila como diccionario «título → valor».</param>
     /// <param name="numeroDeFila">El número de fila de Excel, para los motivos y para la huella de repetidas.</param>
@@ -265,9 +276,6 @@ public static class Reconciliacion
         var respuestas = LeerLasRespuestas(valores, out var reparo);
         var motivo = LeerElMotivo(valores, numeroDeFila, avisos);
         var comentario = Valor(valores, MotivosDeLaHoja.ColumnaDelComentario);
-        var traeAlgo = (respuestas is not null && respuestas.Values.Any(valor => valor is not null))
-                       || motivo != MotivoDeNoCompletar.SinMotivo
-                       || comentario is not null;
 
         var par = ParDeLaFila(valores, out var motivoDelPar);
         if (par is null)
@@ -315,13 +323,18 @@ public static class Reconciliacion
         }
 
         yaVistos[huella] = numeroDeFila;
+        var persona = casan[0];
+        var traeAlgo = Pasos.TraeAlgoDistinto(respuestas!, persona)
+                       || motivo != MotivoDeNoCompletar.SinMotivo
+                       || comentario is not null;
         if (!traeAlgo)
         {
             sinNada.Add(numeroDeFila);
             return;
         }
         renglones.Add(new RenglonDeLaVuelta(
-            numeroDeFila, numeroCaso, mrn, nombre, casan[0].Id, casan[0].CasoId, respuestas!,
+            numeroDeFila, numeroCaso, mrn, nombre, persona.Id, persona.CasoId,
+            Pasos.ConLoQueYaEstabaGuardado(respuestas!, persona),
             motivo, comentario, traeAlgo));
     }
 

@@ -311,6 +311,13 @@
             «duplicado de…» y la de «N documentos con este numero», porque un duplicado
             casi siempre comparte numero con su original— tiene siete filas y se cortaba
             por abajo dejando «Las seis preguntas…» a medias. Con 200 caben las siete.
+
+            Y 236 desde el 2026-09-16: la tarjeta lleva dos lineas mas —la unidad en la suya
+            y los nombres de las personas (dueno: «el nombre y la unidad son datos importantes
+            que deben ser mas visibles»)—, unos 36 px a 12,5. Medido sobre el paquete con la
+            base inventada de 300, que trae duplicados con numero compartido: es la tarjeta
+            mas alta, y con 236 no se corta. Caben menos tarjetas por pantallada a 700 de
+            alto; es el precio de que se lea quien va.
         -->
         <ItemsView
             x:Name="_rejilla"
@@ -322,7 +329,7 @@
                 <UniformGridLayout
                     ItemsStretch="Fill"
                     MinColumnSpacing="8"
-                    MinItemHeight="200"
+                    MinItemHeight="236"
                     MinItemWidth="330"
                     MinRowSpacing="8" />
             </ItemsView.Layout>
@@ -349,6 +356,24 @@
                                 BorderThickness="2"
                                 CornerRadius="4"
                                 Visibility="{x:Bind EsDuplicado}" />
+                            <!--
+                                LA TARJETA A MEDIAS, EN NARANJA.
+
+                                Del dueño, 2026-09-16: «las personas que se han completado, por
+                                ejemplo 4 preguntas de las 6, deben pasar a color naranja e
+                                indicar que le falta». La misma capa que la del duplicado, con el
+                                par naranja de PinturaDeInicio (el mismo del renglón del grupo:
+                                claro #FFDFC2 / #9E4500, oscuro #4A2A10 / #FFB070). Se enciende
+                                con SeVeAMedias, que se apaga si además es duplicado: el rojo
+                                manda. La palabra va en la pastilla («me falta · a medias») y lo
+                                que le falta a cada persona, en el detalle al pulsarla.
+                            -->
+                            <Border
+                                Background="{x:Bind inicio:PinturaDeInicio.NaranjaFondo, Mode=OneTime}"
+                                BorderBrush="{x:Bind inicio:PinturaDeInicio.NaranjaMarca, Mode=OneTime}"
+                                BorderThickness="2"
+                                CornerRadius="4"
+                                Visibility="{x:Bind SeVeAMedias}" />
                             <Grid Padding="10,8" RowSpacing="4">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -423,11 +448,33 @@
                                                     BorderThickness="1"
                                                     CornerRadius="8"
                                                     Visibility="{x:Bind SeVeMeFalta}">
-                                                    <TextBlock
-                                                        FontSize="11"
-                                                        FontWeight="Bold"
-                                                        Foreground="{ThemeResource TintaDelEstadoMeFalta}"
-                                                        Text="{x:Bind PalabraDelEstado}" />
+                                                    <!--
+                                                        La palabra y, si está a medias, su nota
+                                                        («me falta · a medias»): el color naranja
+                                                        de la tarjeta nunca va solo. Sigue siendo
+                                                        PalabraDelEstado: la nota va aparte para
+                                                        que la prueba del color-con-palabra la
+                                                        siga viendo.
+                                                    -->
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            FontWeight="Bold"
+                                                            Foreground="{ThemeResource TintaDelEstadoMeFalta}"
+                                                            Text="{x:Bind PalabraDelEstado}" />
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            FontWeight="Bold"
+                                                            Foreground="{ThemeResource TintaDelEstadoMeFalta}"
+                                                            Text="·"
+                                                            Visibility="{x:Bind SeVeLaNota}" />
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            FontWeight="Bold"
+                                                            Foreground="{ThemeResource TintaDelEstadoMeFalta}"
+                                                            Text="{x:Bind NotaDeLaPastilla}"
+                                                            Visibility="{x:Bind SeVeLaNota}" />
+                                                    </StackPanel>
                                                 </Border>
                                                 <Border
                                                     Padding="6,1"
@@ -548,6 +595,32 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Spacing="1">
+                                        <!--
+                                            LA UNIDAD Y LOS NOMBRES, MÁS VISIBLES (dueño, 2026-09-16:
+                                            «el nombre y la unidad son datos importantes que deben
+                                            ser más visibles»).
+
+                                            Medido antes de tocar: la unidad iba dentro de «Datos»
+                                            a 12 con opacidad 0,85 —«3 personas · 2026-09-20 ·
+                                            7000011 · Castries Branch · hoja 1»— y los nombres no
+                                            salían. Ahora la unidad va primera, a 12,5 SemiBold y
+                                            sin opacidad; debajo los nombres, a 12,5 SemiBold; y
+                                            «Datos» se queda con las personas, la fecha y la hoja.
+                                            La línea de nombres solo existe si el tablero trae
+                                            personas (TieneNombres), y se recorta con puntos
+                                            suspensivos: el alto de la tarjeta lo fija la rejilla.
+                                        -->
+                                        <TextBlock
+                                            FontSize="12.5"
+                                            FontWeight="SemiBold"
+                                            Text="{x:Bind UnidadQueSeLee}"
+                                            TextTrimming="CharacterEllipsis" />
+                                        <TextBlock
+                                            FontSize="12.5"
+                                            FontWeight="SemiBold"
+                                            Text="{x:Bind NombresDeLasPersonas}"
+                                            TextTrimming="CharacterEllipsis"
+                                            Visibility="{x:Bind TieneNombres}" />
                                         <TextBlock
                                             FontSize="12"
                                             Opacity="0.85"

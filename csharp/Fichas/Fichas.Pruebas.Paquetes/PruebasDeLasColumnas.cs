@@ -3,7 +3,7 @@ using Fichas.Paquetes;
 namespace Fichas.Pruebas.Paquetes;
 
 /// <summary>
-/// Las 17 columnas de la hoja «Por verificar», sus titulos y sus anchos.
+/// Las 18 columnas de la hoja «Por verificar», sus titulos y sus anchos.
 /// </summary>
 /// <remarks>
 /// El criterio C6-1 de PENDIENTES.md habla de «16 titulos y anchos», que eran los 16 de
@@ -22,17 +22,17 @@ namespace Fichas.Pruebas.Paquetes;
 [TestClass]
 public class PruebasDeLasColumnas
 {
-    /// <summary>Vigila el recuento: 16 del Python, menos dos, más dos, más una.</summary>
+    /// <summary>Vigila el recuento: 16 del Python, menos dos, más dos, más una, más el templo (2026-09-16).</summary>
     [TestMethod]
-    public void LaHojaTieneDiecisieteColumnas() => Assert.HasCount(17, Columnas.Todas);
+    public void LaHojaTieneDieciochoColumnas() => Assert.HasCount(18, Columnas.Todas);
 
-    /// <summary>Vigila los diecisiete títulos impresos, letra por letra y en su orden.</summary>
+    /// <summary>Vigila los dieciocho títulos impresos, letra por letra y en su orden.</summary>
     [TestMethod]
     public void LosTitulosSonLosDeLaHojaQueElDuenoVerifica()
     {
         string[] esperados =
         [
-            "Caso", "Fecha de viaje", "Número de unidad", "Barrio o rama",
+            "Caso", "Fecha de viaje", "Templo", "Número de unidad", "Barrio o rama",
             "Hermano(a) que viaja", "Cédula de miembro", "A qué va",
             "1. Preparación", "2. Información", "3. Cita del templo",
             "4. Acciones requeridas", "5. Entrevistas", "6. Listo para el templo",
@@ -41,13 +41,13 @@ public class PruebasDeLasColumnas
         CollectionAssert.AreEqual(esperados, Columnas.Titulos().ToArray());
     }
 
-    /// <summary>Vigila los diecisiete nombres de columna en la base, en el mismo orden que los títulos.</summary>
+    /// <summary>Vigila los dieciocho nombres de columna, en el mismo orden que los títulos.</summary>
     [TestMethod]
     public void LosNombresDeColumnaSonLosDeLaBase()
     {
         string[] esperados =
         [
-            "numero_caso", "fecha_viaje", "unidad_numero", "unidad_nombre",
+            "numero_caso", "fecha_viaje", "templo", "unidad_numero", "unidad_nombre",
             "nombre", "mrn", "a_que_va",
             "paso_preparacion", "paso_informacion", "paso_cita_del_templo",
             "paso_acciones_requeridas", "paso_entrevistas", "paso_listo_para_el_templo",

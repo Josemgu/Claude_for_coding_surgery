@@ -70,8 +70,9 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel VerticalAlignment="Center">
+                            <!--  La unidad, a 14 Bold desde el 2026-09-16 (iba a 13): el dueño la quiere más visible.  -->
                             <TextBlock
-                                FontSize="13"
+                                FontSize="14"
                                 FontWeight="Bold"
                                 Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}"
                                 Text="{x:Bind Titulo, Mode=OneTime}"
@@ -109,11 +110,21 @@
                 <!--
                     ···· una persona del grupo ····
 
-                    VERDE si está resuelta, ROJO si le falta algo: fondo, franja de la
-                    izquierda y la tinta del detalle, con los mismos pinceles de la
-                    pastilla del calendario. Palabras del dueño, 2026-09-14: «cuando des
-                    clic y entres a la fecha, lo que esté completo se marque en verde y lo
-                    que no en rojo, como se muestra en el calendario afuera».
+                    VERDE si está resuelta, NARANJA si está a medias, ROJO si le falta
+                    todo: fondo, franja de la izquierda y la tinta del detalle, con los
+                    mismos pinceles de la pastilla del calendario. Palabras del dueño,
+                    2026-09-14: «cuando des clic y entres a la fecha, lo que esté completo
+                    se marque en verde y lo que no en rojo, como se muestra en el calendario
+                    afuera». Y 2026-09-16: «las personas que se han completado, por ejemplo
+                    4 preguntas de las 6, deben pasar a color naranja e indicar que le
+                    falta; el nombre y la unidad son datos importantes que deben ser más
+                    visibles».
+
+                    Medido el 2026-09-16 antes de tocar: el nombre iba a 12,5 SemiBold y
+                    la cabecera de la unidad a 13 Bold. Ahora el nombre va a 14 Bold y la
+                    unidad a 14 Bold; la cédula y el detalle se quedan como estaban. La
+                    persona a medias enseña además una tercera línea con lo que le falta
+                    (DetalleDelEstado), solo ella: es lo que el dueño pidió «indicar».
 
                     Medido antes de tocar nada: este renglón solo usaba Tinta, TintaSuave y
                     PanelHondo; la palabra «resuelto» / «me falta» ya iba en el detalle y el
@@ -147,9 +158,10 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel VerticalAlignment="Center">
+                        <!--  El nombre, a 14 Bold desde el 2026-09-16 (iba a 12,5 SemiBold).  -->
                         <TextBlock
-                            FontSize="12.5"
-                            FontWeight="SemiBold"
+                            FontSize="14"
+                            FontWeight="Bold"
                             Foreground="{x:Bind grupo:PinturaDelGrupo.Tinta, Mode=OneTime}"
                             Text="{x:Bind Titulo, Mode=OneTime}"
                             TextTrimming="CharacterEllipsis" />
@@ -159,6 +171,20 @@
                             Foreground="{x:Bind grupo:PinturaDelGrupo.TintaDelDetalle(ElPdfNoSePuedeAbrir, Color), Mode=OneTime}"
                             Text="{x:Bind Detalle, Mode=OneTime}"
                             TextTrimming="CharacterEllipsis" />
+                        <!--
+                            Qué le falta a la persona A MEDIAS: «le faltan 2 de 6: Entrevistas,
+                            Listo para el templo · te toca a ti…». Solo se ve en ella; las demás
+                            siguen con el detalle a un clic (o en voz alta), como el 07 mandó.
+                            Se ajusta y no se recorta: medido a 1100×700 el 2026-09-16, con
+                            puntos suspensivos se perdía justo «te toca a ti: mirarlas…», que es
+                            lo que dice qué hacer. Solo crece el renglón de ella.
+                        -->
+                        <TextBlock
+                            FontSize="11.5"
+                            Foreground="{x:Bind grupo:PinturaDelGrupo.FranjaDelRenglon(Color), Mode=OneTime}"
+                            Text="{x:Bind DetalleDelEstado, Mode=OneTime}"
+                            TextWrapping="Wrap"
+                            Visibility="{x:Bind grupo:PinturaDelGrupo.SeVe(AMedias), Mode=OneTime}" />
                     </StackPanel>
 
                     <TextBlock

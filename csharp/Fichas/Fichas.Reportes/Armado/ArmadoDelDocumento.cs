@@ -163,10 +163,7 @@ public static class ArmadoDelDocumento
 
         return new Seccion(
             "Parte 1 — Personas que viajaron, y en qué estado quedó su recomendación",
-            [
-                "Entran todas las personas cuyo caso tenía fecha de viaje dentro del período, "
-                + "estén archivadas o no. Archivar un caso no cambia este total.",
-            ],
+            [],
             ColumnasDeQuienViajo,
             personas
                 .Select(f => (IReadOnlyList<string?>)new string?[]
@@ -198,11 +195,7 @@ public static class ArmadoDelDocumento
         IReadOnlyDictionary<long, CasoConSuVerificacion> casosPorId)
         => new(
             "Parte 2 — Personas que NO pudieron viajar",
-            [
-                "Solo aparece quien está anotado a mano como que no pudo viajar. El programa no "
-                + "lo deduce de ningún dato: alguien tuvo que escribirlo, y el motivo es lo que "
-                + "esa persona escribió, sin retocar.",
-            ],
+            [],
             ColumnasDeQuienNoViajo,
             personas
                 .Select(f => (IReadOnlyList<string?>)new string?[]
@@ -233,6 +226,11 @@ public static class ArmadoDelDocumento
     }
 
     /// <summary>Las metricas de trabajo del equipo, con sus denominadores a la vista.</summary>
+    /// <remarks>
+    /// Sin notas desde el 2026-09-16. Los cinco cubos de la metrica 3 —que hasta entonces iban
+    /// dos en la nota y tres en la celda— van los cinco en la celda «Cómo se cuenta»: son
+    /// cifras, y sumadas dan los casos del periodo, que es lo que permite comprobarla.
+    /// </remarks>
     /// <param name="verificados">Métrica 1: los casos verificados en el periodo.</param>
     /// <param name="demora">Métrica 2: la demora de importar a verificar.</param>
     /// <param name="deteccion">Métrica 3: la detección antes del viaje.</param>
@@ -241,13 +239,7 @@ public static class ArmadoDelDocumento
         IReadOnlyList<CasoConSuVerificacion> verificados, Demora demora, Deteccion deteccion)
         => new(
             "Métricas del trabajo del equipo",
-            [
-                "Cada métrica usa una columna de fecha distinta y por eso los tres números no son "
-                + "comparables entre sí: la columna «Cómo se cuenta» dice cuál usa cada una.",
-                $"Casos del período por fecha de viaje: {deteccion.CasosDelPeriodo}. "
-                + $"Sin estado de recomendación escrito: {deteccion.SinEstadoRegistrado}. "
-                + $"Con la recomendación resuelta: {deteccion.ConRecomendacionResuelta}.",
-            ],
+            [],
             ColumnasDeLasMetricas,
             [
                 [
@@ -271,7 +263,9 @@ public static class ArmadoDelDocumento
                     + $"{deteccion.DetectadosATiempo} vistos antes del día del viaje, "
                     + $"{deteccion.DetectadosDespuesDelViaje} el mismo día o después, "
                     + $"{deteccion.ConProblemaSinFechaDeDeteccion} sin ningún campo verificado con "
-                    + "el que fechar cuándo se vio.",
+                    + "el que fechar cuándo se vio. "
+                    + $"Sin estado escrito: {deteccion.SinEstadoRegistrado}. "
+                    + $"Ya resueltos: {deteccion.ConRecomendacionResuelta}.",
                 ],
             ],
             null);

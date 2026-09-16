@@ -239,6 +239,23 @@ public enum ColorDeLaPastilla
     /// preguntar. El gris es el único que dice «esto todavía no contesta esa pregunta».
     /// </remarks>
     Gris = 2,
+
+    /// <summary>
+    /// A medias: alguna de las seis en sí y no las seis. Naranja. Solo lo devuelve
+    /// <c>Grupo.ColorDelRenglon</c> —una persona o un documento—; la pastilla del calendario
+    /// no lo usa.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Del dueño, 2026-09-16:</b> <i>«las personas que se han completado, por ejemplo 4
+    /// preguntas de las 6, deben pasar a color naranja e indicar que le falta»</i>.</para>
+    ///
+    /// <para>⛔ <b>La pastilla y la cabecera de la unidad NO se ponen naranjas</b>, y es una
+    /// decisión medida: la pastilla es la alarma del calendario —«alguien va a viajar sin la
+    /// recomendación confirmada»— y una persona a medias sigue sin poder entrar. El naranja es
+    /// de la PERSONA, que es donde el dueño lo pidió. <c>ColoresDeLaPastilla.De</c> sigue con sus
+    /// tres respuestas.</para>
+    /// </remarks>
+    Naranja = 3,
 }
 
 /// <summary>De qué color va cada pastilla; la regla, sin un solo pincel dentro.</summary>

@@ -114,6 +114,29 @@ public static class LasDosPreguntas
         => persona is null ? [] : Pasos.SinCompletar(persona);
 
     /// <summary>
+    /// Los pasos de esa persona que NO dicen que si —en no o en blanco—; con las seis en si,
+    /// vacio. Es lo que hace falta para saber si esta A MEDIAS (2026-09-16).
+    /// </summary>
+    /// <remarks>
+    /// <para>Es <see cref="Pasos.LasQueNoDicenSi"/> y no una regla nueva. Una persona sin leer
+    /// —un documento del que no se saco a nadie— devuelve los seis: no dice que si a ninguna,
+    /// y asi <c>LoQueSeLeeDeUnaPersona</c> la lee como que nadie ha contestado, que es la
+    /// verdad, y no como a medias.</para>
+    ///
+    /// <para>Quien tenga una <see cref="Persona"/> y llame a <c>LoQueSeLeeDeUnaPersona.De</c> pasa
+    /// esto como tercer argumento; sin el, la lectura no puede saber si esta a medias y se queda
+    /// en rojo. Hoy lo pasan el grupo del dia y las tarjetas de Revisar; los tickets de Inicio y
+    /// la recomendacion de Correccion todavia no.</para>
+    /// </remarks>
+    /// <param name="persona">La persona, o nulo si el documento no trajo ninguna.</param>
+    public static IReadOnlyList<string> LasQueNoDicenSi(Persona? persona)
+        => persona is null ? LosSeisSinNumero : Pasos.LasQueNoDicenSi(persona);
+
+    /// <summary>Los seis rotulos sin numero, para la persona que no existe: no dice que si a ninguno.</summary>
+    private static readonly IReadOnlyList<string> LosSeisSinNumero =
+        Pasos.LasQueNoDicenSi(new Persona());
+
+    /// <summary>
     /// La linea entera de una persona: como esta, como esta su recomendacion y, si no esta
     /// lista, en que paso se quedo.
     /// </summary>

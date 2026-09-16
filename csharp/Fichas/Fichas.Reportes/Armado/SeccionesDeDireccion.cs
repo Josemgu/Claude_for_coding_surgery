@@ -29,9 +29,20 @@ namespace Fichas.Reportes.Armado;
 /// correccion es la FIRMA de Miguel sobre un campo leido, y aqui son los seis pasos que
 /// contesta un companero. El C8-2 las habia separado llamando a estas «con la preparación
 /// completa»; el dueno pidio el informe del viejo el 2026-09-04 y con el volvieron sus
-/// rotulos. <b>Lo que se conserva del C8-2 es la aclaracion</b>, dicha dentro del informe en
-/// la nota de <see cref="QuienViajoSinVerificar"/>: la palabra es la que el pidio y el lector
-/// se encuentra la explicacion antes que ninguna tabla que la use.
+/// rotulos. Hasta el 2026-09-16 la aclaracion iba dicha DENTRO del informe, en una nota bajo
+/// «Quiénes viajaron sin verificar»; ese dia el dueno pidio los reportes sin parrafos
+/// —<i>«se están colocando muchas letras; debe explicarse sin leer una sola palabra»</i>— y la
+/// nota se fue con todas las demas. El riesgo sigue siendo real y queda escrito aqui.
+///
+/// ⚠️ <b>Ninguna seccion lleva notas desde el 2026-09-16.</b> Las dieciseis que habia —2 500
+/// caracteres, 26 lineas del PDF sobre la base falsa de 300— eran los parrafos explicativos que
+/// el dueno mando quitar: titulos, cifras y tablas. Lo que una nota decia con numeros (quien
+/// no trae casilla en «A qué van»; los cubos de la metrica 3) se movio a su tabla; lo que decia
+/// con palabras se quito.
+///
+/// ⚠️ <b>Y tampoco lleva la columna «País»</b>, que salia siempre como «no consta»: el dueno,
+/// el 2026-09-16, <i>«"no consta" no es una respuesta; a dónde viajarán es el templo»</i>. Los
+/// viajes quedan con siete columnas y «Templo» donde estaba.
 ///
 /// <b>Aqui no se cuenta nada</b>: las cuentas estan en <see cref="Preparacion"/>. Esto las
 /// escribe en espanol y las coloca en columnas. Y <b>sin dinero, en ninguna de las seis</b>.
@@ -51,11 +62,10 @@ public static class SeccionesDeDireccion
         new("Qué pasó", ClaseDeColumna.Crudo, 40),
     ];
 
-    /// <summary>Las ocho columnas de «Los viajes», las del informe viejo; «País» sale siempre como que no consta.</summary>
+    /// <summary>Las siete columnas de «Los viajes»: las del informe viejo menos «País» (dueno, 2026-09-16).</summary>
     private static readonly Columna[] ColumnasDeLosViajes =
     [
         new("Caso", ClaseDeColumna.Texto, 12),
-        new("País", ClaseDeColumna.Crudo, 16),
         new("Templo", ClaseDeColumna.Crudo, 20),
         new("Sale", ClaseDeColumna.Temporal, 14),
         new("Asignado a", ClaseDeColumna.Crudo, 24),
@@ -120,10 +130,7 @@ public static class SeccionesDeDireccion
             ]);
 
     /// <summary>Con nombre y unidad, porque cada renglon es una persona que no recibio nada.</summary>
-    /// <remarks>
-    /// Es la seccion que ABRE el informe y por eso lleva ella la aclaracion de la palabra: quien
-    /// lo lee se la encuentra antes que ninguna tabla que la use.
-    /// </remarks>
+    /// <remarks>Es la seccion que ABRE el informe. Sin notas desde el 2026-09-16: ver la cabecera de la clase.</remarks>
     /// <param name="sinCompletar">Las personas que ya viajaron sin los seis pasos en sí; una por fila.</param>
     /// <returns>La sección, con tabla vacía y resumen «0 personas viajaron sin verificar» si no hay ninguna.</returns>
     public static Seccion QuienViajoSinVerificar(IReadOnlyList<PersonaConSuCaso> sinCompletar)
@@ -142,19 +149,7 @@ public static class SeccionesDeDireccion
 
         return new Seccion(
             Vocabulario.QuienesViajaronSinVerificar,
-            [
-                "Con nombre y unidad, porque cada uno de estos renglones es una persona que fue "
-                + "al templo y no recibió su ordenanza.",
-                // La aclaracion que se conserva del criterio C8-2. Sin ella, «Verificadas» se
-                // lee como la firma de Miguel sobre un campo, y son dos hechos distintos que
-                // conviven en este mismo documento: las metricas del final SI hablan de la firma.
-                "«Verificada» quiere decir aquí los seis pasos del sistema del líder contestados "
-                + "que sí, y NO la firma de Miguel sobre un campo del formulario. Las dos cosas "
-                + "salen en este informe: las métricas del final son las de la firma.",
-                "«Nadie la miró» y «no está completa» no son lo mismo y piden dos remedios "
-                + "distintos: la primera es trabajo que no se hizo, la segunda es trabajo que se "
-                + "hizo y encontró algo.",
-            ],
+            [],
             ColumnasDeQuienViajoSinVerificar,
             filas,
             Plural.Con(filas.Count, "persona viajó", "personas viajaron") + " sin verificar");
@@ -169,7 +164,6 @@ public static class SeccionesDeDireccion
             .Select(r => (IReadOnlyList<string?>)new string?[]
             {
                 r.NumeroCaso,
-                Vocabulario.ElPaisNoSeGuarda,
                 string.IsNullOrWhiteSpace(r.Templo) ? Vocabulario.SinDato : r.Templo,
                 r.FechaViaje,
                 r.AsignadoA,
@@ -181,17 +175,7 @@ public static class SeccionesDeDireccion
 
         return new Seccion(
             "Los viajes",
-            [
-                "«Sin verificar» sale con una raya en los casos que todavía no han "
-                + "salido: ahí lo que falta no es un fallo, es trabajo por hacer.",
-                // Copiada palabra por palabra del Python (secciones_de_direccion.py). La fecha va
-                // dentro a proposito: la nota le dice a quien lee el informe POR QUE un caso
-                // viejo sale sin templo, y quitarla convierte una explicacion en una excusa.
-                $"«País» sale como «{Vocabulario.ElPaisNoSeGuarda}» en todas las filas porque no "
-                + "está impreso en el formulario y su catálogo todavía no se ha decidido. «Templo» "
-                + "sí se lee del papel desde el 2026-09-03, y sale igual cuando el caso se importó "
-                + "antes de esa fecha o cuando el lector no lo encontró.",
-            ],
+            [],
             ColumnasDeLosViajes,
             filas,
             Plural.Con(filas.Count, "caso en el período", "casos en el período"));
@@ -199,34 +183,23 @@ public static class SeccionesDeDireccion
 
     /// <summary>A que van al templo las personas del periodo, contado por ordenanza.</summary>
     /// <param name="personas">Todas las personas del periodo; se cuentan sus casillas <c>Ord*</c>.</param>
-    /// <returns>La sección, sin resumen; con una segunda nota si alguien no trae ninguna casilla marcada.</returns>
+    /// <returns>La sección, sin resumen; con una fila más, <see cref="SinNingunaCasillaMarcada"/>, si alguien no trae ninguna.</returns>
     public static Seccion AQueVan(IReadOnlyList<PersonaConSuCaso> personas)
     {
         var suyas = personas.Select(f => f.Persona).ToList();
         var sinMarcar = suyas.Count(Ordenanzas.SinNingunaMarcada);
 
-        var notas = new List<string>
-        {
-            "Una persona puede ir a varias ordenanzas, así que estos números suman más que el "
-            + "total de personas. No es un error de cuenta.",
-        };
-        if (sinMarcar > 0)
-        {
-            notas.Add(
-                Plural.Con(sinMarcar, "persona no trae", "personas no traen")
-                + " ninguna casilla marcada. Esas casillas del formulario son marcas de tilde y "
-                + "hoy se ponen a mano.");
-        }
+        var filas = Ordenanzas.Contar(suyas)
+            .Select(c => (IReadOnlyList<string?>)new string?[] { c.Rotulo, Numero(c.Personas) })
+            .ToList();
+        // Hasta el 2026-09-16 esto era una nota; la cifra sigue, ahora como fila de la tabla.
+        if (sinMarcar > 0) filas.Add([SinNingunaCasillaMarcada, Numero(sinMarcar)]);
 
-        return new Seccion(
-            "A qué van al templo",
-            notas,
-            ColumnasDeLasOrdenanzas,
-            Ordenanzas.Contar(suyas)
-                .Select(c => (IReadOnlyList<string?>)new string?[] { c.Rotulo, Numero(c.Personas) })
-                .ToList(),
-            null);
+        return new Seccion("A qué van al templo", [], ColumnasDeLasOrdenanzas, filas, null);
     }
+
+    /// <summary>La fila de «A qué van» que cuenta a quien no trae ninguna casilla marcada en el papel.</summary>
+    public const string SinNingunaCasillaMarcada = "Sin ninguna casilla marcada";
 
     /// <summary>En que paso del sistema del lider se quedan las preparaciones.</summary>
     /// <remarks>
@@ -250,10 +223,7 @@ public static class SeccionesDeDireccion
 
         return new Seccion(
             "Dónde se traban las preparaciones",
-            [
-                "De los seis pasos del sistema del líder, estos son los que quedaron sin "
-                + "completar. Es donde hay que acompañar más a las unidades.",
-            ],
+            [],
             ColumnasDeLosPasosTrabados,
             cuentas
                 .OrderByDescending(par => par.Value)
@@ -304,12 +274,7 @@ public static class SeccionesDeDireccion
 
         return new Seccion(
             "Unidades con preparaciones sin completar",
-            [
-                "Es «Dónde se traban» mirado por el otro lado: aquella tabla dice qué paso falla "
-                + "y esta dice en qué unidad. Con las dos se sabe a quién llamar y de qué hablarle.",
-                "Solo salen las unidades que tienen a alguien sin verificar. Las "
-                + "que están al día no ocupan sitio.",
-            ],
+            [],
             ColumnasDeLasUnidades,
             conFalta
                 .Select(par => (IReadOnlyList<string?>)new string?[]
@@ -371,13 +336,7 @@ public static class SeccionesDeDireccion
 
         return new Seccion(
             "El equipo",
-            [
-                "«Sin mirar» no es lo mismo que «sin completar»: son las personas de las que no "
-                + "consta NI UN paso contestado, o sea trabajo que no se ha empezado.",
-                "Un caso asignado a dos compañeros cuenta para los dos, así que estas cifras "
-                + "pueden sumar más que el total de personas. No es un error de cuenta: la "
-                + "pregunta que contesta la tabla es a quién preguntarle por cada persona.",
-            ],
+            [],
             ColumnasDelEquipo,
             filas,
             Plural.Con(filas.Count, "agente con trabajo en el período", "agentes con trabajo en el período"));

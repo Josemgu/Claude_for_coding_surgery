@@ -4314,6 +4314,37 @@ cargada por OneDrive; el cronómetro caído da 164 ms a solas, techo 200). Un `f
 de un programador llevaba 4 h buscando un `.onnx` por todo el disco (13 209 s de CPU):
 cerrado por el supervisor; explica parte de la lentitud de las suites de la tarde.
 
+## 2026-09-16 — EL REPORTE EN EXCEL ES UNA SOLA HOJA, COMO EL MOCKUP v3
+
+Sus palabras: *«El reporte debe ser bonito, profesional, en un solo worksheet, con colores
+como el azul marino. Lo importante son las unidades: quiénes viajaron de esa unidad con
+todo completo y quiénes no; a qué agente se le asignó y si lo completó; gráfico de la
+cantidad de personas que viajaron en unos meses sin problemas o dificultades; números
+fríos. Los reportes deben ser más simples, se están colocando muchas letras; debe
+explicarse sin leer una sola palabra. Fuera la columna País: "no consta" no es una
+respuesta; a dónde viajarán es el templo.»* Y sobre el mockup del diseñador
+(`mockups/mockup-v3-reporte-excel.html`, ocho plantillas de internet como fuente, con
+URL dentro del propio HTML): *«Así mismo es que quiero el reporte, como está en el
+mockup.»*
+
+**Lo decidido (el mockup manda):** una hoja A4 apaisada; cabecera azul marino `#16233A`
+(el mismo de la hoja del compañero); tarjetas de cifras arriba; tabla por unidad con
+semáforo (cuántos viajaron, completos, sin completar, agente, si devolvió); tabla por
+agente; gráfico de barras por mes (completos frente a con dificultades); la lista de
+**solo los pendientes** debajo (segunda página al imprimir), porque «quiénes» de todos
+no cabe; «devolvió el paquete» se deduce de si el agente contestó (no existe como dato);
+un templo en la cabecera (con dos templos, un reporte por templo o los dos nombrados:
+lo decide el programador midiendo qué pasa hoy). Sin párrafos: títulos cortos, cifras y
+tablas. La columna «País» desaparece del PDF y del Excel. El **PDF** de los jefes conserva
+su vocabulario del 04 salvo la columna País y los párrafos explicativos, que se van.
+
+**El gráfico:** nativo de Excel vía Open XML SDK, que **no añade ningún byte** al programa
+(`DocumentFormat.OpenXml.dll` 6,3 MB ya viaja con ClosedXML; medido por el diseñador en
+la carpeta publicada; regla 3 respetada); reserva, PNG con SkiaSharp (también ya viaja).
+
+**Lo que NO cubre:** nada se ha abierto todavía en Excel de verdad; lo que se sepa al
+programar (fuentes de ✓/✗, ajuste a una página, anclaje del gráfico) se mide entonces.
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

@@ -123,6 +123,59 @@ public sealed class PuestosDelEquipo
     }
 
     /// <summary>
+    /// Edita a alguien que ya esta: nombre, rol y peldano en un gesto, sin tocar nada mas.
+    /// </summary>
+    /// <remarks>
+    /// <para>Del dueño, 2026-09-16: <i>«En Asignar debe dar la opción de eliminar, editar o
+    /// desactivar agentes»</i>. Desactivar y quitar ya existían; editar no.</para>
+    ///
+    /// <para><b>Editar el nombre no toca lo que ya firmó.</b> Medido antes de escribir esto:
+    /// todas las firmas de la base guardan el <b>id</b> del compañero, nunca su nombre
+    /// —<c>verificado_por</c>, <c>estado_marcado_por</c>, <c>estado_del_companero_por</c>,
+    /// <c>propuesto_por</c>, <c>contactado_por</c>, <c>pasos_por</c>, todas <c>INTEGER</c>—.
+    /// Así que las filas firmadas quedan intactas; lo que cambia es cómo se LEE esa firma
+    /// desde ahora: con el nombre nuevo, porque el nombre se resuelve por id al pintar. Hay
+    /// una prueba que cuenta firmas y asignaciones antes y después.</para>
+    ///
+    /// <para>Igual que <see cref="Cambiar"/>, se relee y se reescribe con <c>with</c>:
+    /// <c>Activo</c>, <c>DesactivadoEn</c> y <c>CreadoEn</c> salen tal cual. Editar no es una
+    /// puerta trasera para reactivar. Y si no cambia nada, no se escribe ni se avisa.</para>
+    /// </remarks>
+    /// <param name="companeroId">A quién se edita; si ya no está, se dice y no se escribe.</param>
+    /// <param name="nombre">El nombre nuevo; en blanco no se escribe, porque una firma sin nombre no dice quién firmó.</param>
+    /// <param name="rol">El rol nuevo.</param>
+    /// <param name="categoria">El peldaño nuevo, desde <see cref="CategoriaMinima"/>.</param>
+    public ResultadoDeEscritura Editar(long companeroId, string nombre, RolDeCompanero rol, int categoria)
+    {
+        if (RechazarPeldano(categoria) is ResultadoDeEscritura malo) return malo;
+
+        var nombreLimpio = (nombre ?? string.Empty).Trim();
+        if (nombreLimpio.Length == 0)
+        {
+            return Decir(Aviso.Problema(
+                "No se guardó: el compañero necesita un nombre.",
+                nameof(Companero.Nombre),
+                "El nombre es lo único que identifica a quien firma, y una firma sin nombre no dice quién firmó."));
+        }
+
+        if (_companeros.Obtener(companeroId) is not Companero companero)
+        {
+            return Decir(Aviso.Problema(
+                "No se editó: ese compañero ya no está en el equipo.",
+                nameof(Companero.Id),
+                $"Ninguna fila de compañeros con el número interno {companeroId}. "
+                + "Vuelve a abrir el panel del equipo para verlo como está ahora."));
+        }
+
+        var editado = companero with { Nombre = nombreLimpio, Rol = rol, Categoria = categoria };
+        if (editado == companero) return ResultadoDeEscritura.NoSeEscribio();
+
+        var resultado = _companeros.Guardar(editado);
+        _avisos.Dejar(resultado.Avisos);
+        return resultado;
+    }
+
+    /// <summary>
     /// Lo que hay que decir sobre el atajo del administrador, o nulo si no hay nada.
     /// </summary>
     /// <remarks>

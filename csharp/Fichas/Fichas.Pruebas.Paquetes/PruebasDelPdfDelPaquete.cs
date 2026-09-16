@@ -454,10 +454,11 @@ public class PruebasDelPdfDelPaquete
         // Se cuentan las columnas ESCRITAS y no las de la lista: lo que dice que el Excel no
         // cambió es la hoja del disco, y contar `Columnas.Todas` aquí solo repetía la lista
         // desde otro archivo. Fueron 16 desde el 2026-09-06, cuando el dueño quitó dos, y son
-        // 17 desde el 2026-09-07, cuando pidió el número de la unidad en su propia columna.
+        // 17 desde el 2026-09-07, cuando pidió el número de la unidad en su propia columna, y
+        // 18 desde el 2026-09-16, cuando pidió el templo en cada fila.
         Assert.AreEqual(Columnas.Todas.Count, hoja.LastColumnUsed()!.ColumnNumber());
-        Assert.AreEqual(17, hoja.LastColumnUsed()!.ColumnNumber(),
-            "17 desde el 2026-09-07: entró «Número de unidad»");
+        Assert.AreEqual(18, hoja.LastColumnUsed()!.ColumnNumber(),
+            "18 desde el 2026-09-16: entró «Templo»");
         Assert.AreEqual("MANO2609", hoja.Cell(Columnas.PrimeraFilaDeDatos, Columnas.IndiceDe("numero_caso")).GetString());
     }
 }

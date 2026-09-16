@@ -133,7 +133,8 @@ public class PruebaDelReporteDelPeriodo
         Assert.DoesNotContain("%", frase);
     }
 
-    /// <summary>Vigila que la fila de la métrica 3 y la nota de la sección dicen los denominadores.</summary>
+    /// <summary>Vigila que la fila de la métrica 3 dice su denominador y los cinco cubos, en la celda y no en una nota.</summary>
+    /// <remarks>Hasta el 2026-09-16 dos de los cubos iban en una nota de la sección; las notas se fueron por orden del dueño y las cifras pasaron a la tabla.</remarks>
     [TestMethod]
     public void LaMetricaTresDiceSuDenominadorYSusCincoCubos()
     {
@@ -146,7 +147,9 @@ public class PruebaDelReporteDelPeriodo
 
         StringAssert.Contains(comoSeCuenta, "casos que viajaban en el período");
         StringAssert.Contains(comoSeCuenta, "tienen un problema escrito");
-        StringAssert.Contains(metricas.Notas[1], "Casos del período por fecha de viaje:");
+        StringAssert.Contains(comoSeCuenta, "Sin estado escrito:");
+        StringAssert.Contains(comoSeCuenta, "Ya resueltos:");
+        Assert.IsEmpty(metricas.Notas, "sin notas: las cifras van en la tabla");
     }
 
     /// <summary>Vigila que ninguna cadena del documento nombra transporte, alimentos, alojamiento, costos ni «$».</summary>

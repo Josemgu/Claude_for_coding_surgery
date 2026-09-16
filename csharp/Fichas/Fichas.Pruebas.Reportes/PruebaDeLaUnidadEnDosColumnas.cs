@@ -266,23 +266,18 @@ public class PruebaDeLaUnidadEnDosColumnas
     /// <returns>Cada celda no vacía de la columna del número, en todas las hojas que la tienen.</returns>
     private static List<string> NumerosDeUnidadDelLibro(string ruta)
     {
-        var leidos = new List<string>();
+        // ⚠️ Desde el 2026-09-16 el Excel del periodo es UNA hoja (mockup v3) y el numero de
+        // unidad va en la columna B bajo dos rotulos «N.º»: la tabla por unidad y la lista de
+        // pendientes. Se leen todas las celdas de B que llevan formato de texto «@», que son
+        // exactamente las de numero de unidad: los rotulos y los totales no lo llevan.
         using var libro = new XLWorkbook(ruta);
+        var hoja = libro.Worksheet(1);
 
-        foreach (var hoja in libro.Worksheets)
-        {
-            var cabecera = hoja.Row(1).CellsUsed().FirstOrDefault(c => c.GetString() == RotuloDelNumero);
-            if (cabecera is null) continue;
-
-            var columna = cabecera.Address.ColumnNumber;
-            for (var fila = 2; fila <= hoja.LastRowUsed()?.RowNumber(); fila++)
-            {
-                var texto = hoja.Cell(fila, columna).GetString();
-                if (!string.IsNullOrWhiteSpace(texto)) leidos.Add(texto);
-            }
-        }
-
-        return leidos;
+        return hoja.Column(2).CellsUsed()
+            .Where(c => c.Style.NumberFormat.Format == "@")
+            .Select(c => c.GetString())
+            .Where(texto => !string.IsNullOrWhiteSpace(texto))
+            .ToList();
     }
 
     // ---- el escenario -------------------------------------------------------

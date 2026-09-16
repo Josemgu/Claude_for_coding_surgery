@@ -73,15 +73,12 @@ public static class Vocabulario
     /// </remarks>
     public const string Archivado = "archivado";
 
-    /// <summary>Lo que se escribe en la columna «País», que la base no guarda.</summary>
-    /// <remarks>
-    /// El dueno la pidio el 2026-09-03 y de los dos datos, el templo YA se lee y el pais no:
-    /// no esta impreso en el formulario y sale de un catalogo que espera al ADR-0002. La
-    /// columna se escribe igual porque es la del informe que el aprobo, y se rellena con la
-    /// palabra que dice que no consta en vez de en blanco: un hueco en un informe a la
-    /// direccion se lee como un dato que se perdio por el camino.
-    /// </remarks>
-    public const string ElPaisNoSeGuarda = SinDato;
+    // ⛔ Aqui vivia `ElPaisNoSeGuarda`, que valia `SinDato` y rellenaba la columna «País» de
+    // «Los viajes» —pedida el 2026-09-03, nunca leida del papel porque no esta impreso, y
+    // siempre «no consta»—. El dueno la quito el 2026-09-16: «"no consta" no es una respuesta;
+    // a dónde viajarán es el templo». La columna se fue del PDF y del Excel, y con ella la
+    // constante y la nota que la explicaba. Si algun dia el pais entra al esquema (ADR-0002),
+    // esta es la historia.
 
     /// <summary>El rotulo de la columna con el numero de la unidad, en las seis tablas.</summary>
     /// <remarks>

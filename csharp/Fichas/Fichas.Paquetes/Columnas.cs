@@ -57,13 +57,20 @@ public enum ClaseDeRespuesta
 /// —«no bloquees las celdas por favor, de los paquetes»—, asi que ninguna se escribe bloqueada.
 /// </param>
 /// <param name="Respuesta">Que le pide al companero, si es que le pide algo.</param>
+/// <param name="EnBlancoSiFalta">
+/// Si la celda se deja VACIA cuando la base no tiene el dato, en vez de escribir
+/// <see cref="Columnas.SinDato"/>. Solo «A qué va» lo lleva, por decision del dueno del
+/// 2026-09-16: «"no consta" no es una respuesta». En esa columna un blanco es lo que el papel
+/// dice —ninguna casilla marcada—, no un dato que se perdio.
+/// </param>
 public sealed record ColumnaDeLaHoja(
     string Nombre,
     string Titulo,
     ClaseDeColumna Clase,
     bool EsClave,
     bool EsEditable,
-    ClaseDeRespuesta Respuesta)
+    ClaseDeRespuesta Respuesta,
+    bool EnBlancoSiFalta = false)
 {
     /// <summary>Si el companero VIENE a rellenarla; son las que llevan fondo.</summary>
     public bool EsRespuesta => Respuesta != ClaseDeRespuesta.Ninguna;
@@ -127,6 +134,12 @@ public static class Columnas
     public const char SeparadorDeLaClave = ':';
 
     /// <summary>Lo que se escribe donde la base no tiene el dato. Misma palabra en todo el programa.</summary>
+    /// <remarks>
+    /// No en «A qué va» desde el 2026-09-16 (<see cref="ColumnaDeLaHoja.EnBlancoSiFalta"/>):
+    /// «"no consta" no es una respuesta», dijo el dueno. Las demas columnas del sistema la
+    /// siguen escribiendo, y esta medido columna a columna en
+    /// <c>PruebasDelLibroDeTrabajo.SoloLasColumnasDelSistemaMenosAQueVaDicenNoConstaCuandoFalta</c>.
+    /// </remarks>
     public const string SinDato = "no consta";
 
     /// <summary>Lo que se ensancha una columna que no tiene ancho propio: los seis pasos.</summary>
@@ -135,10 +148,22 @@ public static class Columnas
     /// <summary>Como se llama en la base la columna con el numero de la unidad.</summary>
     public const string ColumnaDelNumeroDeUnidad = "unidad_numero";
 
+    /// <summary>Como se llama en la hoja la columna del templo al que viaja la persona.</summary>
+    public const string ColumnaDelTemplo = "templo";
+
     /// <summary>
-    /// Las 17 columnas en el orden en que salen impresas.
+    /// Las 18 columnas en el orden en que salen impresas.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// ⚠️ <b><c>templo</c> es del 2026-09-16 y la pidio el dueno:</b> «A dónde viajarán es el
+    /// templo: eso sí debe ponerse (templo de Panamá, templo de Santo Domingo)». Hasta ese dia
+    /// el templo iba SOLO en la linea 2 de la cabecera, y solo cuando todas las filas iban al
+    /// mismo; un paquete con dos templos no lo decia en ningun sitio. Va detras de la fecha de
+    /// viaje —cuando y a donde, juntos— y no toca la vuelta: <c>Reconciliacion</c> lee por
+    /// rotulo y no por posicion, y esta medido en <c>PruebasDelTemploEnCadaFila</c> y en
+    /// <c>PruebasDelPaqueteViejoQueVuelve</c> (una hoja sin esta columna sigue volviendo).
+    /// </para>
     /// ⚠️ <b>Ninguna va bloqueada desde el 2026-09-07</b>, por orden del dueno: «no bloquees
     /// las celdas por favor, de los paquetes». Hasta ese dia <c>numero_caso</c> y <c>mrn</c>
     /// iban bloqueadas como las dos mitades del par que reconciliaba. Ya no reconcilian: desde
@@ -168,11 +193,13 @@ public static class Columnas
     [
         new("numero_caso", "Caso", ClaseDeColumna.Texto, EsClave: true, EsEditable: true, ClaseDeRespuesta.Ninguna),
         new("fecha_viaje", "Fecha de viaje", ClaseDeColumna.Temporal, false, true, ClaseDeRespuesta.Ninguna),
+        new(ColumnaDelTemplo, "Templo", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna),
         new(ColumnaDelNumeroDeUnidad, "Número de unidad", ClaseDeColumna.Texto, false, true, ClaseDeRespuesta.Ninguna),
         new("unidad_nombre", "Barrio o rama", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna),
         new("nombre", "Hermano(a) que viaja", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna),
         new("mrn", "Cédula de miembro", ClaseDeColumna.Texto, EsClave: true, EsEditable: true, ClaseDeRespuesta.Ninguna),
-        new("a_que_va", "A qué va", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna),
+        // Sin casilla marcada sale EN BLANCO y no «no consta» (dueno, 2026-09-16, punto 8c).
+        new("a_que_va", "A qué va", ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.Ninguna, EnBlancoSiFalta: true),
         .. Pasos.Todos.Select(paso => new ColumnaDeLaHoja(
             paso.Nombre, paso.Rotulo, ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.SiONo)),
         new(Pasos.ColumnaDeLaLlamada, Pasos.RotuloDeLaLlamada, ClaseDeColumna.Crudo, false, true, ClaseDeRespuesta.SiONo),
@@ -196,6 +223,8 @@ public static class Columnas
     {
         ["numero_caso"] = 11,
         ["fecha_viaje"] = 14,
+        // «Santo Domingo» son 13 caracteres; con aire para «Ciudad de Guatemala».
+        [ColumnaDelTemplo] = 20,
         // 16, que es lo que mide su propio rotulo: un numero de unidad son siete digitos, asi
         // que lo que decide el ancho aqui es la cabecera y no el dato.
         [ColumnaDelNumeroDeUnidad] = 16,

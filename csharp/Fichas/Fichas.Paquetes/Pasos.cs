@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Fichas.Contratos.Modelos;
 
 namespace Fichas.Paquetes;
 
@@ -45,6 +46,103 @@ public static class Pasos
     /// mirar» invitaria a rellenarlo por rellenar.
     /// </summary>
     public static IReadOnlyList<string> Respuestas { get; } = ["Sí", "No"];
+
+    /// <summary>
+    /// Como se escribe en una celda de la hoja una respuesta que ya esta guardada: «Sí», «No»
+    /// o nada. Es la operacion inversa de <see cref="SeEntiendeLaRespuesta"/>.
+    /// </summary>
+    /// <remarks>
+    /// Se escribe exactamente lo que ofrece el menu de la celda, y no otra forma del si,
+    /// para que al volver se lea igual que si el companero la hubiera elegido el.
+    /// </remarks>
+    /// <param name="respuesta">Verdadero, falso o nulo.</param>
+    /// <returns>«Sí», «No», o nulo para dejar la celda en blanco.</returns>
+    public static string? Escribir(bool? respuesta) => respuesta switch
+    {
+        true => Respuestas[0],
+        false => Respuestas[1],
+        null => null,
+    };
+
+    /// <summary>
+    /// Las siete respuestas que la persona ya tiene en la base, por nombre de columna de la
+    /// hoja, en la misma forma en que vienen las de la hoja.
+    /// </summary>
+    /// <remarks>
+    /// Es una sola forma para los dos sentidos: la ida las escribe en sus celdas
+    /// (<c>Paquetes.ArmarLasFilas</c>) y la vuelta las compara con lo que trae la hoja
+    /// (<see cref="ConLoQueYaEstabaGuardado"/>, <c>Paquetes.EstadoDelDocumento</c>).
+    /// </remarks>
+    /// <param name="persona">La persona tal como esta en la base.</param>
+    /// <returns>Los seis pasos y la llamada al líder; nulo donde nadie contestó.</returns>
+    public static Dictionary<string, bool?> RespuestasGuardadas(Persona persona)
+    {
+        ArgumentNullException.ThrowIfNull(persona);
+        return new()
+        {
+            ["paso_preparacion"] = persona.PasoPreparacion,
+            ["paso_informacion"] = persona.PasoInformacion,
+            ["paso_cita_del_templo"] = persona.PasoCitaDelTemplo,
+            ["paso_acciones_requeridas"] = persona.PasoAccionesRequeridas,
+            ["paso_entrevistas"] = persona.PasoEntrevistas,
+            ["paso_listo_para_el_templo"] = persona.PasoListoParaElTemplo,
+            [ColumnaDeLaLlamada] = persona.LlamoAlLider,
+        };
+    }
+
+    /// <summary>
+    /// Las respuestas que valen tras la vuelta: lo que trae la hoja, y donde la hoja viene en
+    /// blanco, lo que ya estaba guardado.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// ⚠️ <b>Una celda en blanco es «no la toqué», no «no».</b> Desde el 2026-09-16 la hoja
+    /// sale con las respuestas que el sistema ya tenia escritas en sus celdas (punto 5 de la
+    /// v16), asi que un blanco que vuelve puede ser una celda que el companero borro sin
+    /// querer, o una que ya venia en blanco porque nadie la habia contestado. En los dos casos
+    /// se conserva lo guardado: si era «sí», sigue «sí»; si era nulo, sigue nulo. Solo un «No»
+    /// —o un «Sí»— escrito cambia lo que habia.
+    /// </para>
+    /// <para>
+    /// <b>La decidio el supervisor el 2026-09-16 a falta de respuesta del dueno</b>, y esta
+    /// aqui, en una sola funcion, para que el la cambie: si prefiere que un «sí» borrado vuelva
+    /// a «sin mirar», esta funcion devuelve <paramref name="deLaHoja"/> tal cual y nada mas.
+    /// </para>
+    /// </remarks>
+    /// <param name="deLaHoja">Las siete leídas del Excel; nulo donde la celda venía en blanco.</param>
+    /// <param name="persona">La persona a la que resolvió la fila, con lo que ya tenía guardado.</param>
+    /// <returns>Las siete: la de la hoja si trae valor, si no la guardada.</returns>
+    public static Dictionary<string, bool?> ConLoQueYaEstabaGuardado(
+        IReadOnlyDictionary<string, bool?> deLaHoja, Persona persona)
+    {
+        ArgumentNullException.ThrowIfNull(deLaHoja);
+        var guardadas = RespuestasGuardadas(persona);
+        var efectivas = new Dictionary<string, bool?>(guardadas);
+        foreach (var (columna, valor) in deLaHoja)
+            if (valor is not null)
+                efectivas[columna] = valor;
+        return efectivas;
+    }
+
+    /// <summary>
+    /// Si la hoja trae alguna respuesta DISTINTA de la que ya estaba guardada.
+    /// </summary>
+    /// <remarks>
+    /// Hasta el 2026-09-16 «trae algo» era «alguna de las siete no viene en blanco». Con las
+    /// respuestas ya escritas en la hoja eso dejo de servir: una fila devuelta tal como salio
+    /// traeria cuatro «Sí» y se aplicaria como propuesta del companero, y
+    /// <c>IPersonas.AnotarPropuesta</c> lo firmaria a el como quien contesto lo que contesto
+    /// Miguel. Lo que cuenta es lo que cambio.
+    /// </remarks>
+    /// <param name="deLaHoja">Las siete leídas del Excel; nulo donde la celda venía en blanco.</param>
+    /// <param name="persona">La persona a la que resolvió la fila.</param>
+    /// <returns>Verdadero si alguna celda con valor dice otra cosa que la base.</returns>
+    public static bool TraeAlgoDistinto(IReadOnlyDictionary<string, bool?> deLaHoja, Persona persona)
+    {
+        ArgumentNullException.ThrowIfNull(deLaHoja);
+        var guardadas = RespuestasGuardadas(persona);
+        return deLaHoja.Any(par => par.Value is not null && par.Value != guardadas.GetValueOrDefault(par.Key));
+    }
 
     // Como llega escrito «si» y como llega escrito «no» cuando alguien no usa el menu. La
     // lista sale del programa viejo, donde se fue llenando con lo que los agentes escribian

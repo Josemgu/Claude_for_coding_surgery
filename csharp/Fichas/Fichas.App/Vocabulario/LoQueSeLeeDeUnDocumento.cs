@@ -17,7 +17,12 @@ namespace Fichas.App.Vocabulario;
 /// </remarks>
 /// <param name="Lo">Si al dueno le queda algo que hacer con este documento.</param>
 /// <param name="Detalle">Que falta y a quien le toca, o quien lo dio por bueno y cuando.</param>
-public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
+/// <param name="AMedias">
+/// Si es «me falta» y alguna de sus personas ya avanzo —alguna de las seis en si, o las seis—
+/// sin que el documento este resuelto. Es el matiz naranja del 2026-09-16, no una tercera
+/// palabra: <see cref="DosEstados.NotaDeAMedias"/>.
+/// </param>
+public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle, bool AMedias = false)
 {
     /// <summary>La palabra que se lee: «resuelto» o «me falta».</summary>
     public string Palabra => DosEstados.Palabra(Lo);
@@ -68,6 +73,11 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
     /// <param name="firma">«Completada por Sandy · 2026-08-30», tal como la compone la tarjeta.</param>
     /// <param name="fechaDeArchivado">Cuando se archivo, para poder decirlo en el detalle.</param>
     /// <param name="motivo">Por que dijo el companero que no estaba completa.</param>
+    /// <param name="personas">
+    /// Sus personas ya leidas, con nombre, si quien llama las tiene; nulo si no. Con ellas el
+    /// documento puede estar A MEDIAS (2026-09-16) y el detalle nombra a cada una con lo que le
+    /// falta. Sin ellas se lee como hasta hoy.
+    /// </param>
     public static LoQueSeLeeDeUnDocumento De(
         EstadoDeRecomendacion estado,
         bool archivado,
@@ -76,15 +86,37 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
         string quienLoLleva,
         string firma,
         string fechaDeArchivado = "",
-        string motivo = "")
+        string motivo = "",
+        IReadOnlyList<PersonaLeida>? personas = null)
     {
         if (archivado) return Resuelto(DetalleDeLoArchivado(fechaDeArchivado, firma));
         if (estado == EstadoDeRecomendacion.Completa) return Resuelto(DetalleDeLoCompletado(firma));
 
+        var aMedias = EstaAMedias(personas);
+        var detalle = DetalleDeLoQueFalta(estado, cuantoLeFalta, sinNingunaPersonaLeida, quienLoLleva, motivo);
         return new LoQueSeLeeDeUnDocumento(
             LoQueSeLee.MeFalta,
-            DetalleDeLoQueFalta(estado, cuantoLeFalta, sinNingunaPersonaLeida, quienLoLleva, motivo));
+            aMedias ? $"{DetalleDeLasPersonas(personas!)} · {detalle}" : detalle,
+            aMedias);
     }
+
+    /// <summary>
+    /// Si un documento «me falta» ya avanzo: alguna de sus personas tiene alguna de las seis en
+    /// si, o las seis.
+    /// </summary>
+    /// <remarks>
+    /// Cuenta tambien a la persona con las seis en si porque el documento como tal no esta
+    /// resuelto —le falta otra persona, o un campo— y ya se avanzo: es el «algun campo resuelto
+    /// y otros no» del encargo. Sin personas a la vista no se sabe, y no se inventa.
+    /// </remarks>
+    /// <param name="personas">Las personas leídas, o nulo.</param>
+    private static bool EstaAMedias(IReadOnlyList<PersonaLeida>? personas)
+        => personas is not null && personas.Any(p => p.Lectura.AMedias || p.Lectura.EsResuelto);
+
+    /// <summary>«a medias · Ana Pérez: le faltan 2 de 6: Entrevistas, Listo para el templo · Luis Gómez: sin contestar».</summary>
+    /// <param name="personas">Las personas leídas; al menos una.</param>
+    private static string DetalleDeLasPersonas(IReadOnlyList<PersonaLeida> personas)
+        => DosEstados.NotaDeAMedias + " · " + string.Join(" · ", personas.Select(p => $"{p.Nombre}: {p.Lectura.Resumen}"));
 
     /// <summary>Una lectura resuelta con su detalle ya compuesto.</summary>
     /// <param name="detalle">Quién lo cerró o lo dio por bueno, y cuándo.</param>
@@ -186,3 +218,13 @@ public sealed record LoQueSeLeeDeUnDocumento(LoQueSeLee Lo, string Detalle)
             : "te toca a ti: repartirlo a un compañero";
     }
 }
+
+/// <summary>Una persona de un documento, con su nombre y su lectura, para el detalle del documento.</summary>
+/// <remarks>
+/// Existe para que <see cref="LoQueSeLeeDeUnDocumento.De"/> pueda decir «Ana Pérez: le faltan 2
+/// de 6» sin depender del modelo de la base: el vocabulario no importa <c>Persona</c>, y asi
+/// se sigue pudiendo leer sin ventana y sin base.
+/// </remarks>
+/// <param name="Nombre">Su nombre, o lo que se sepa decir de ella.</param>
+/// <param name="Lectura">Lo que se lee de ella.</param>
+public sealed record PersonaLeida(string Nombre, LoQueSeLeeDeUnaPersona Lectura);

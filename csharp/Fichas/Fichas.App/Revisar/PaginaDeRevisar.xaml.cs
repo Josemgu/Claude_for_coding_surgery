@@ -76,7 +76,9 @@ public sealed partial class PaginaDeRevisar : PaginaDeFichas
     {
         if (Servicios is null) return;
 
-        _tablero = new TableroDeRevisar(Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Servicios.Reloj);
+        // Con el puerto de personas desde el 2026-09-16: la tarjeta a medias y los nombres salen de ahi.
+        _tablero = new TableroDeRevisar(
+            Servicios.Casos, Servicios.Asignaciones, Servicios.Companeros, Servicios.Reloj, Servicios.Personas);
         _asignar = new OperacionDeAsignar(Servicios.Asignaciones, Servicios.Reloj, Servicios.Avisos);
         // Archivar quita la asignacion por la MISMA puerta que asigna y retira esta pantalla
         // (2026-09-11): si fueran dos operaciones, sus avisos caerian en franjas distintas.

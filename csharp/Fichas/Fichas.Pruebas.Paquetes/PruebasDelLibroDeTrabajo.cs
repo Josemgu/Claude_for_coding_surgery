@@ -209,16 +209,51 @@ public class PruebasDelLibroDeTrabajo
     /// Hasta el 2026-09-06 esto se medía sobre «Estaca o distrito» y «Fecha de solicitud», que
     /// salian SIEMPRE con «no consta» porque la base no las guarda. El dueno las quito ese dia
     /// —«son informaciones que no me pide verificar»—, asi que la regla se mide donde todavia
-    /// pasa de verdad: «A qué va» sale vacio cuando ninguna casilla de ordenanzas se leyo, y el
-    /// barrio sale vacio cuando el escaneo no lo dio. La regla no cambio; cambio donde se ve.
+    /// pasa de verdad: el barrio sale vacio cuando el escaneo no lo dio. La regla no cambio;
+    /// cambio donde se ve. Y desde el 2026-09-16 «A qué va» es la excepcion, medida aparte en
+    /// <see cref="AQueVaSinCasillaSaleEnBlancoYNoConNoConsta"/>.
     /// </remarks>
     [TestMethod]
     public void LoQueLaBaseNoSabeSaleConLaPalabraQueLoDiceYNoEnBlanco()
     {
-        var fila = UnaFila() with { AQueVa = null, UnidadNombre = null };
+        var fila = UnaFila() with { UnidadNombre = null };
         var hoja = Hoja(fila);
-        Assert.AreEqual("no consta", hoja.Cell(7, Columnas.IndiceDe("a_que_va")).GetString());
         Assert.AreEqual("no consta", hoja.Cell(7, Columnas.IndiceDe("unidad_nombre")).GetString());
+    }
+
+    /// <summary>
+    /// «A qué va» sin ninguna casilla marcada sale EN BLANCO. Decision del dueno del 2026-09-16:
+    /// «"no consta" no es una respuesta».
+    /// </summary>
+    /// <remarks>
+    /// Es distinta de las demas columnas que escribe el sistema: un blanco en el MRN o en la
+    /// unidad es un dato que el papel deberia traer y no se leyo; un blanco en «A qué va» es
+    /// lo que el papel dice de verdad —ninguna casilla marcada—, y ponerle una palabra encima
+    /// es inventar una lectura.
+    /// </remarks>
+    [TestMethod]
+    public void AQueVaSinCasillaSaleEnBlancoYNoConNoConsta()
+    {
+        var hoja = Hoja(UnaFila() with { AQueVa = null });
+        Assert.AreEqual(string.Empty, hoja.Cell(7, Columnas.IndiceDe("a_que_va")).GetString());
+    }
+
+    /// <summary>
+    /// Fija, columna a columna, cuales siguen diciendo «no consta» cuando la base no tiene el
+    /// dato y cuales salen en blanco. Medido el 2026-09-16 al vaciar «A qué va».
+    /// </summary>
+    [TestMethod]
+    public void SoloLasColumnasDelSistemaMenosAQueVaDicenNoConstaCuandoFalta()
+    {
+        var hoja = Hoja(new FilaDeTrabajo());
+        string[] conPalabra = ["numero_caso", "fecha_viaje", Columnas.ColumnaDelTemplo, Columnas.ColumnaDelNumeroDeUnidad, "unidad_nombre", "nombre", "mrn", Columnas.ColumnaDeLaClave];
+        foreach (var nombre in conPalabra)
+            Assert.AreEqual(Columnas.SinDato, hoja.Cell(7, Columnas.IndiceDe(nombre)).GetString(), nombre);
+
+        var enBlanco = Columnas.Todas.Select(c => c.Nombre).Except(conPalabra).ToArray();
+        Assert.HasCount(10, enBlanco, "«A qué va», las siete respuestas, el motivo y el comentario");
+        foreach (var nombre in enBlanco)
+            Assert.AreEqual(string.Empty, hoja.Cell(7, Columnas.IndiceDe(nombre)).GetString(), nombre);
     }
 
     /// <summary>
@@ -230,22 +265,23 @@ public class PruebasDelLibroDeTrabajo
     /// en <see cref="Columnas.Todas"/> dejaria pasar que alguien las siguiera pintando aparte.
     /// </remarks>
     [TestMethod]
-    public void LaHojaSaleConDiecisieteColumnasYSinLaFechaDeSolicitudNiLaEstaca()
+    public void LaHojaSaleConDieciochoColumnasYSinLaFechaDeSolicitudNiLaEstaca()
     {
         var hoja = Hoja(UnaFila());
-        Assert.AreEqual(17, hoja.LastColumnUsed()!.ColumnNumber(),
-            "18 → 16 el 2026-09-06 → 17 el 2026-09-07, cuando entró «Número de unidad»");
+        Assert.AreEqual(18, hoja.LastColumnUsed()!.ColumnNumber(),
+            "18 → 16 el 2026-09-06 → 17 el 2026-09-07 («Número de unidad») → 18 el 2026-09-16 («Templo»)");
 
-        var rotulos = Enumerable.Range(1, 17)
+        var rotulos = Enumerable.Range(1, 18)
             .Select(columna => hoja.Cell(Columnas.FilaDeLaCabecera, columna).GetString())
             .ToArray();
         CollectionAssert.DoesNotContain(rotulos, "Fecha de solicitud");
         CollectionAssert.DoesNotContain(rotulos, "Estaca o distrito");
         Assert.AreEqual("Caso", rotulos[0]);
         Assert.AreEqual("Fecha de viaje", rotulos[1], "la fecha de viaje sube al puesto de la de solicitud");
-        Assert.AreEqual("Número de unidad", rotulos[2], "el número de la unidad, en su propia columna");
-        Assert.AreEqual("Barrio o rama", rotulos[3], "y al lado el nombre de la unidad");
-        Assert.AreEqual("clave", rotulos[16], "la clave sigue siendo la última y a la vista");
+        Assert.AreEqual("Templo", rotulos[2], "a dónde viaja, al lado de cuándo (dueño, 2026-09-16)");
+        Assert.AreEqual("Número de unidad", rotulos[3], "el número de la unidad, en su propia columna");
+        Assert.AreEqual("Barrio o rama", rotulos[4], "y al lado el nombre de la unidad");
+        Assert.AreEqual("clave", rotulos[17], "la clave sigue siendo la última y a la vista");
     }
 
     /// <summary>Vigila que las columnas del compañero salgan vacías: lo que se le manda es lo que tiene que mirar.</summary>

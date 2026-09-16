@@ -1,4 +1,5 @@
 using Fichas.App.Asignar;
+using Fichas.App.Grupo;
 using Fichas.App.Vocabulario;
 using Fichas.Contratos.Consultas;
 using Fichas.Contratos.Modelos;
@@ -75,20 +76,35 @@ public sealed class TableroDeRevisar
     private readonly ICompaneros _companeros;
     /// <summary>De dónde sale «hoy», para saber qué fecha de viaje ya pasó.</summary>
     private readonly IReloj _reloj;
+    /// <summary>De dónde salen las personas con sus seis, o nulo si el tablero se montó sin ellas.</summary>
+    private readonly IPersonas? _personas;
     /// <summary>Lo que dejó la última <see cref="Cargar"/>; los cinco tableros se cuentan sobre esto.</summary>
     private List<TarjetaDeDocumento> _tarjetas = [];
 
-    /// <summary>Ata el tablero a los tres repositorios y al reloj.</summary>
+    /// <summary>Ata el tablero a los repositorios y al reloj.</summary>
+    /// <remarks>
+    /// <para>⚠️ <b>El puerto de personas entro el 2026-09-16 y es opcional a proposito.</b> Con el,
+    /// cada tarjeta trae a sus personas con sus seis, y puede estar A MEDIAS y decir sus nombres
+    /// (<i>«el nombre y la unidad son datos importantes que deben ser mas visibles»</i>). Sin el
+    /// —como lo montan Correccion y buena parte de las pruebas— se lee como hasta ese dia: nada
+    /// se rompe por debajo, y no se adivina.</para>
+    /// <para>Sigue siendo UNA pasada (criterio C13-5): las personas se leen con una sola consulta
+    /// para todos los documentos, la misma que hace el grupo del dia
+    /// (<see cref="LectorDeGrupos.LeerLasPersonasDe"/>).</para>
+    /// </remarks>
     /// <param name="casos">El puerto de documentos.</param>
     /// <param name="asignaciones">El puerto de asignaciones.</param>
     /// <param name="companeros">El puerto del equipo.</param>
     /// <param name="reloj">De dónde sale «hoy».</param>
-    public TableroDeRevisar(ICasos casos, IAsignaciones asignaciones, ICompaneros companeros, IReloj reloj)
+    /// <param name="personas">El puerto de personas, para las seis de cada una; nulo para no leerlas.</param>
+    public TableroDeRevisar(
+        ICasos casos, IAsignaciones asignaciones, ICompaneros companeros, IReloj reloj, IPersonas? personas = null)
     {
         _casos = casos;
         _asignaciones = asignaciones;
         _companeros = companeros;
         _reloj = reloj;
+        _personas = personas;
     }
 
     /// <summary>
@@ -159,12 +175,41 @@ public sealed class TableroDeRevisar
         var portadores = QuienLlevaCada(nombres);
         var originales = LosOriginalesDeLosDuplicados(casos);
         var comparten = CuantosPorNumeroDeCaso(casos, filtro);
+        var leidas = LasPersonasLeidas(casos);
         var hoy = _reloj.Hoy();
 
         _tarjetas = casos
-            .Select(caso => Componer(caso, personas, nombres, portadores, originales, comparten, hoy))
+            .Select(caso => Componer(caso, personas, nombres, portadores, originales, comparten, leidas, hoy))
             .ToList();
     }
+
+    /// <summary>
+    /// Las personas de cada documento, ya leidas con su nombre y sus seis; vacio sin el puerto.
+    /// </summary>
+    /// <param name="casos">Los documentos ya leídos en esta carga.</param>
+    /// <returns>Por número interno de documento, sus personas leídas en el orden del formulario.</returns>
+    private Dictionary<long, IReadOnlyList<PersonaLeida>> LasPersonasLeidas(IReadOnlyList<Caso> casos)
+    {
+        if (_personas is null) return [];
+
+        return LectorDeGrupos.LeerLasPersonasDe(_personas, casos.Select(c => c.Id))
+            .ToDictionary(
+                porCaso => porCaso.Key,
+                porCaso => (IReadOnlyList<PersonaLeida>)porCaso.Value
+                    .OrderBy(p => p.FilaFormulario)
+                    .Select(LeerLaPersona)
+                    .ToList());
+    }
+
+    /// <summary>Una persona con su nombre y lo que se lee de ella, con sus seis a la vista.</summary>
+    /// <param name="persona">La persona tal como está en la base.</param>
+    private static PersonaLeida LeerLaPersona(Persona persona)
+        => new(
+            string.IsNullOrWhiteSpace(persona.Nombre) ? "sin nombre leído" : persona.Nombre.Trim(),
+            LoQueSeLeeDeUnaPersona.De(
+                LasDosPreguntas.EstadoDe(persona),
+                LasDosPreguntas.SeQuedoEn(persona),
+                LasDosPreguntas.LasQueNoDicenSi(persona)));
 
     /// <summary>
     /// Cuantos documentos hay con cada numero de caso, para la pista de grupo de viaje.
@@ -295,8 +340,8 @@ public sealed class TableroDeRevisar
         // exactamente las tarjetas que dicen «me falta». Con dos condiciones escritas aparte,
         // una tarjeta archivada podia quedarse fuera de los dos tableros y desaparecer de
         // «Todo» sin que nadie lo notara.
-        FiltroDeTarjeta.MeFalta => tarjeta.SeVeMeFalta,
-        FiltroDeTarjeta.Resuelto => tarjeta.SeVeResuelto,
+        FiltroDeTarjeta.MeFalta => tarjeta.Lectura.EsMeFalta,
+        FiltroDeTarjeta.Resuelto => tarjeta.Lectura.EsResuelto,
         FiltroDeTarjeta.SinAsignar => tarjeta.SinAsignar,
         FiltroDeTarjeta.FechaPasada => tarjeta.FechaYaPasada && !tarjeta.Archivado,
         _ => true,
@@ -309,6 +354,7 @@ public sealed class TableroDeRevisar
     /// <param name="portadores">Quién lleva vivo cada documento, por número interno.</param>
     /// <param name="originales">El original de cada duplicado, por número interno.</param>
     /// <param name="comparten">Cuántos documentos hay por número de caso.</param>
+    /// <param name="leidas">Las personas leídas de cada documento, con sus seis; vacío sin el puerto.</param>
     /// <param name="hoy">La fecha de hoy en ISO-8601.</param>
     private static TarjetaDeDocumento Componer(
         Caso caso,
@@ -317,11 +363,13 @@ public sealed class TableroDeRevisar
         IReadOnlyDictionary<long, string> portadores,
         IReadOnlyDictionary<long, Caso> originales,
         IReadOnlyDictionary<string, int> comparten,
+        IReadOnlyDictionary<long, IReadOnlyList<PersonaLeida>> leidas,
         string hoy)
     {
         var lleva = portadores.TryGetValue(caso.Id, out var quien) ? quien : null;
         return new TarjetaDeDocumento
         {
+            PersonasLeidas = leidas.TryGetValue(caso.Id, out var suyas) ? suyas : [],
             CuantosCompartenElNumero = comparten.TryGetValue(ClaveDelNumero(caso.NumeroCaso), out var cuantos)
                 ? cuantos
                 : 1,

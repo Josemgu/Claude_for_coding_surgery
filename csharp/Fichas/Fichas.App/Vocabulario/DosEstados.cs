@@ -65,6 +65,22 @@ public static class DosEstados
     /// <summary>La misma, con mayuscula.</summary>
     public const string MeFaltaEnCabecera = "Me falta";
 
+    /// <summary>
+    /// La nota que lleva al lado «me falta» cuando algo esta A MEDIAS: «me falta · a medias».
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Del dueno, 2026-09-16:</b> <i>«las personas que se han completado, por ejemplo 4
+    /// preguntas de las 6, deben pasar a color naranja e indicar que le falta»</i>.</para>
+    ///
+    /// <para>⛔ <b>NO es una tercera palabra de estado</b>, y <see cref="LasDos"/> siguen siendo dos.
+    /// Es una nota al lado de la palabra, igual que «archivado» va al lado de «resuelto» desde el
+    /// 2026-09-14 (<c>PersonaDelGrupo.NotaDeArchivado</c>): a medias sigue siendo «me falta»
+    /// —le queda trabajo— y lo que cambia es el color (naranja) y que el detalle dice cuantas
+    /// van y cuales faltan. Por eso la decision «DOS ESTADOS Y NO CUATRO» del 2026-09-07 no se
+    /// toca: se precisa.</para>
+    /// </remarks>
+    public const string NotaDeAMedias = "a medias";
+
     /// <summary>Las dos palabras de estado que puede haber en la pantalla, y ninguna mas.</summary>
     /// <remarks>
     /// Se expone como lista para que una prueba pueda recorrer una pantalla y comprobar que no

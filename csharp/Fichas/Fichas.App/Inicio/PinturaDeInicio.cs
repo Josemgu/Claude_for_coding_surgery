@@ -106,6 +106,25 @@ public static class PinturaDeInicio
     /// <summary>El fondo de la pastilla de un grupo al que le falta alguna.</summary>
     public static Brush RojoFondo => Elegir(ClaroRojoFondo, OscuroRojoFondo);
 
+    /// <summary>
+    /// Lo que esta A MEDIAS —alguna de las seis en si, no las seis—, escrito sobre el papel.
+    /// </summary>
+    /// <remarks>
+    /// <para><b>Del dueno, 2026-09-16:</b> <i>«las personas que se han completado, por ejemplo 4
+    /// preguntas de las 6, deben pasar a color naranja e indicar que le falta»</i>. Es el tercer
+    /// par de marca y fondo, junto al verde de «resuelto» y al rojo de «me falta», y es un matiz
+    /// de «me falta»: la palabra no cambia.</para>
+    ///
+    /// <para><b>Medido el 2026-09-16 (WCAG, razon de contraste):</b> claro #9E4500 sobre su fondo
+    /// #FFDFC2 da 5,02:1 y sobre el papel blanco 6,35:1; oscuro #FFB070 sobre #4A2A10 da 7,18:1 y
+    /// sobre el papel #1F2328 8,80:1. Todos por encima del 4,5:1. Y no es el ambar de
+    /// <see cref="AmbarMarca"/> —#8A5B00, lo que lleva un companero— a proposito: son dos cosas.</para>
+    /// </remarks>
+    public static Brush NaranjaMarca => Elegir(ClaroNaranjaMarca, OscuroNaranjaMarca);
+
+    /// <summary>El fondo de lo que esta a medias; su marca es <see cref="NaranjaMarca"/>.</summary>
+    public static Brush NaranjaFondo => Elegir(ClaroNaranjaFondo, OscuroNaranjaFondo);
+
     // ---- las cabeceras de color, que NO cambian con el tema -------------------
 
     /// <summary>
@@ -260,6 +279,10 @@ public static class PinturaDeInicio
     private static readonly SolidColorBrush ClaroRojoFondo = Pintar(0xFD, 0xE7, 0xE7);
     /// <summary>En tema claro: el sombreado de los 7 días de la ventana; #FFF7F7.</summary>
     private static readonly SolidColorBrush ClaroFondoDeLaVentana = Pintar(0xFF, 0xF7, 0xF7);
+    /// <summary>En tema claro: el acento de lo que está a medias; #9E4500.</summary>
+    private static readonly SolidColorBrush ClaroNaranjaMarca = Pintar(0x9E, 0x45, 0x00);
+    /// <summary>En tema claro: el fondo de lo que está a medias; #FFDFC2.</summary>
+    private static readonly SolidColorBrush ClaroNaranjaFondo = Pintar(0xFF, 0xDF, 0xC2);
 
     /// <summary>En tema oscuro: --papel, el fondo de tarjeta y del día del mes; #1F2328.</summary>
     private static readonly SolidColorBrush OscuroPapel = Pintar(0x1F, 0x23, 0x28);
@@ -291,6 +314,10 @@ public static class PinturaDeInicio
     private static readonly SolidColorBrush OscuroRojoFondo = Pintar(0x3B, 0x1C, 0x1A);
     /// <summary>En tema oscuro: el sombreado de los 7 días de la ventana; #2E1F20.</summary>
     private static readonly SolidColorBrush OscuroFondoDeLaVentana = Pintar(0x2E, 0x1F, 0x20);
+    /// <summary>En tema oscuro: el acento de lo que está a medias; #FFB070.</summary>
+    private static readonly SolidColorBrush OscuroNaranjaMarca = Pintar(0xFF, 0xB0, 0x70);
+    /// <summary>En tema oscuro: el fondo de lo que está a medias; #4A2A10.</summary>
+    private static readonly SolidColorBrush OscuroNaranjaFondo = Pintar(0x4A, 0x2A, 0x10);
 
     /// <summary>Borde de 1 px, el de cualquier dia.</summary>
     private static readonly Thickness BordeNormal = new(1);

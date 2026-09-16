@@ -59,6 +59,30 @@ public static class Pasos
     public static IReadOnlyList<string> SinCompletar(Persona persona)
         => LosSeis
             .Where(paso => paso.Leer(persona) == false)
-            .Select(paso => paso.Rotulo[(paso.Rotulo.IndexOf(". ", StringComparison.Ordinal) + 2)..])
+            .Select(paso => SinElNumero(paso.Rotulo))
             .ToList();
+
+    /// <summary>Los rotulos de los pasos que NO dicen que si —en no o en blanco—, sin el numero de delante.</summary>
+    /// <remarks>
+    /// <para>Entro el 2026-09-16 para la persona A MEDIAS: <i>«las personas que se han completado,
+    /// por ejemplo 4 preguntas de las 6, deben pasar a color naranja e indicar que le falta»</i>.
+    /// <see cref="Estado"/> contesta si/no/nada y <see cref="SinCompletar"/> solo los que dicen no;
+    /// ninguna de las dos dice CUANTAS van en si, y es lo que hace falta para saber si se avanzo.</para>
+    ///
+    /// <para>⛔ <b>No cambia la regla:</b> <see cref="Estado"/> sigue igual. Esto es una proyeccion
+    /// de las mismas seis casillas, y vive aqui porque aqui es donde estan las seis, y no en una
+    /// segunda lista que un dia se separe de esta.</para>
+    /// </remarks>
+    /// <param name="persona">La persona con sus seis casillas <c>Paso*</c>.</param>
+    /// <returns>Los rótulos en el orden de la pantalla del líder; vacía con las seis en sí.</returns>
+    public static IReadOnlyList<string> LasQueNoDicenSi(Persona persona)
+        => LosSeis
+            .Where(paso => paso.Leer(persona) != true)
+            .Select(paso => SinElNumero(paso.Rotulo))
+            .ToList();
+
+    /// <summary>«5. Entrevistas» → «Entrevistas».</summary>
+    /// <param name="rotulo">El rótulo con su número delante.</param>
+    private static string SinElNumero(string rotulo)
+        => rotulo[(rotulo.IndexOf(". ", StringComparison.Ordinal) + 2)..];
 }
