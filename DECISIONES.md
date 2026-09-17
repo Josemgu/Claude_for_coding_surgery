@@ -4345,6 +4345,54 @@ la carpeta publicada; regla 3 respetada); reserva, PNG con SkiaSharp (también y
 **Lo que NO cubre:** nada se ha abierto todavía en Excel de verdad; lo que se sepa al
 programar (fuentes de ✓/✗, ajuste a una página, anclaje del gráfico) se mide entonces.
 
+## 2026-09-17 — «NO SE GUARDAN LOS «SÍ»»: lo que se midió en la v16 y lo que se cambió
+
+Sus palabras, sobre la v16 en su PC: *«En la v16 arruinaste una función que funcionaba para
+probar completar otra; no debes arruinar la que funciona. No se guardan los «sí» de las
+preguntas: las colocas, le das a Guardar y no se guarda.»* Y al preguntarle: *«No me sale
+ningún aviso, y no toqué el equipo.»*
+
+**Lo medido por el programador con las dos versiones publicadas** (`Instalar-Fichas-v16.exe`
+y `-v15.exe` instaladas en carpetas de ensayo, base SQLite propia sembrada igual —Miguel
+administrador único, Sandy compañera, 3 documentos, 4 personas—, conducidas por UIA por id de
+proceso; el cursor de esta máquina sigue congelado, decisión del 2026-09-05):
+
+- **Cuatro en «sí» + «Guardar las seis»**, v16: `personas.paso_* = 1,1,1,1,NULL,NULL`,
+  `pasos_por=2`, `pasos_origen='a mano en la pantalla'`; franja con el acuse; los cuatro
+  desplegables siguen en «sí» tras repintar. **v15: idéntico.**
+- **«Marcar las seis en «sí»» + Guardar**, v16: seis en 1, origen «de un tirón», y el
+  documento pasa a `completa` firmado por Miguel. **v15: idéntico.**
+- `fichas.log` **no escribía nada** al pulsar Guardar, ni en la v15 ni en la v16.
+- `git diff v15..v16` no toca ninguno de los archivos del camino de Guardar
+  (`VentanaDeLasPreguntas`, `AccionesDeLasPreguntas`, `RepositorioDePersonas`,
+  `ElAdministrador`, `Fichas.Datos` entero); lo que cambió en Revisar es la tarjeta.
+
+**Conclusión: el defecto tal como se describe NO se reproduce**; la escritura de la v16 es la
+de la v15 byte a byte y medida igual. **Lo único medido que contradice lo guardado** es lo que
+la ventana ENSEÑA después de guardar cuatro de seis: la línea del estado de esa persona decía
+*«me falta · nadie ha contestado sus seis preguntas · te toca a ti: mirarlas…»* con cuatro
+«sí» recién escritos y la firma «Contestó Miguel» justo debajo, mientras la tarjeta de Revisar
+y el renglón del grupo ya la leían «a medias · le faltan 2 de 6» desde el 16. En la v15 decía
+lo mismo, pero en la v15 no existía «a medias» y él nunca guardó cuatro: lo probó en la v16
+para ver el naranja. Cuatro contestadas no es nadie, y una ventana que lo dice se lee como
+«no se guardó».
+
+**Lo cambiado (mínimo, en `Fichas.App/Revisar/`):** el ticket y el acuse de la ventana
+componen la frase con las que no dicen «sí» (`PreguntasDeUnDocumento.FraseDelEstadoDe`), la
+misma lectura que la tarjeta y el grupo: ahora dice *«me falta · le faltan 2 de 6:
+Entrevistas, Listo para el templo · te toca a ti: mirarlas en el sistema del líder»*. Y cada
+Guardar deja una línea `SEIS` en `fichas.log` con la persona, las seis tal como se pulsaron,
+si fue de un tirón y qué contestó la base: la próxima vez que él diga «no se guarda», su
+cuaderno lo dirá. Pruebas nuevas: `PruebasDeLasCuatroEnSi` (3, sobre el falso, del
+desplegable a la base y a la frase; 2 en rojo antes del cambio) y
+`CuatroEnSiYDosEnBlancoQuedanAsiEnLaBaseDeVerdad` (SQLite real, columnas crudas).
+
+**Lo que NO cubre, y lo que se le pide al dueño:** no se reprodujo «sin aviso» en esta
+máquina; falta su `fichas.log` de hoy (con esta versión llevará la línea `SEIS`), saber si
+la ventana de las seis le cabe entera en su pantalla (la franja del acuse va al pie, fuera
+de la lista que se desplaza), desde dónde la abre (Revisar o Flujo) y si al reabrirla los
+«sí» están o no. Con esos cuatro datos se sabe si es la frase, la pantalla o la base.
+
 ## Reglas de no regresión
 
 ⚠️ **Procedencia:** estas seis las trae el plan del dueño como hallazgos de

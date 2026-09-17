@@ -111,7 +111,13 @@ public sealed class PruebasDeLasSeisPreguntas
 
         Assert.IsNull(ticket.Preguntas[4].Respuesta, "No se pudo volver a dejar en blanco una ya contestada.");
         Assert.AreEqual(DosEstados.MeFalta, Palabra(ticket.FraseDelEstado));
-        Assert.Contains("nadie ha contestado", ticket.FraseDelEstado);
+        // Hasta el 2026-09-17 aquí se fijaba «nadie ha contestado»: con cinco en «sí» y una
+        // en blanco, la ventana decía eso y se leía como que no se guardó (medido con la
+        // v16). Ahora dice cuál queda en blanco, la misma frase que la tarjeta y el grupo.
+        // Lo que se vigila sigue siendo lo mismo: en blanco NO es «sí» ni es «no».
+        Assert.DoesNotContain("dicen que sí", ticket.FraseDelEstado, "La que volvió a blanco se leyó como «sí».");
+        Assert.DoesNotContain("se quedó en", ticket.FraseDelEstado, "La que volvió a blanco se leyó como «no».");
+        Assert.Contains("le falta 1 de 6: Entrevistas", ticket.FraseDelEstado, "No dice cuál es la que quedó en blanco.");
     }
 
     /// <summary>

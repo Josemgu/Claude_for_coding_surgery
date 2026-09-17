@@ -121,6 +121,41 @@ public sealed class PruebaDeContestarLosPasos
     }
 
     /// <summary>
+    /// Dada una persona sin contestar, cuando se contestan cuatro en «sí» y se dejan dos en
+    /// blanco, entonces la base de verdad tiene exactamente eso en sus columnas, con la firma.
+    /// </summary>
+    /// <remarks>
+    /// Del dueño, 2026-09-17, sobre la v16: <i>«No se guardan los «sí» de las preguntas: las
+    /// colocas, le das a Guardar y no se guarda»</i>. Se mide contra SQLite y leyendo las
+    /// columnas crudas, no el modelo: es la verdad de la base, no lo que el lector cree leer.
+    /// Las seis en «sí» ya estaban fijadas; cuatro de seis, que es lo que él probaba, no.
+    /// </remarks>
+    [TestMethod]
+    public void CuatroEnSiYDosEnBlancoQuedanAsiEnLaBaseDeVerdad()
+    {
+        using var baseDePrueba = BaseDePrueba.Nueva();
+        var personas = new RepositorioDePersonas(baseDePrueba.Conexion);
+        var (miguel, caso, persona) = SembrarUnDocumentoDeUnaPersona(baseDePrueba.Conexion);
+        var cuatroEnSi = new RespuestaALosPasos(true, true, true, true, null, null);
+
+        var escritura = personas.ResponderLosPasos(persona, cuatroEnSi, miguel, OrigenAMano);
+        var crudas = LasSeisColumnasCrudas(baseDePrueba.Conexion, persona);
+
+        Console.WriteLine("== escrito={0} · columnas crudas: {1} ==", escritura.SeEscribio, string.Join(", ", crudas));
+
+        Assert.IsTrue(escritura.SeEscribio, "No se escribieron las cuatro en «sí».");
+        CollectionAssert.AreEqual(
+            new object[] { 1L, 1L, 1L, 1L, DBNull.Value, DBNull.Value },
+            crudas,
+            "Las columnas paso_* no quedaron en 1,1,1,1,NULL,NULL.");
+        CollectionAssert.AreEqual(
+            new bool?[] { true, true, true, true, null, null },
+            LasSeisDe(personas.Obtener(persona)!),
+            "Al releer con el modelo no vuelven cuatro en «sí» y dos en blanco.");
+        Assert.AreEqual(miguel, personas.FirmasDeLosPasosDelCaso(caso)[persona].Por, "No quedo firmado quien contesto las cuatro.");
+    }
+
+    /// <summary>
     /// Dada una pregunta ya contestada, cuando se vuelve a dejar en blanco, entonces se
     /// queda en blanco: contestar no es irreversible.
     /// </summary>
@@ -387,6 +422,23 @@ public sealed class PruebaDeContestarLosPasos
     /// <param name="seis">Los seis pasos en su orden.</param>
     private static string Enumerar(bool?[] seis)
         => string.Join(", ", seis.Select(v => v switch { true => "sí", false => "no", _ => "en blanco" }));
+
+    /// <summary>Las seis columnas <c>paso_*</c> de esa persona tal como estan en SQLite: <c>1</c>, <c>0</c> o <c>DBNull</c>.</summary>
+    /// <param name="conexion">La conexión de la base de prueba.</param>
+    /// <param name="personaId">La persona cuya fila se lee.</param>
+    private static object[] LasSeisColumnasCrudas(SqliteConnection conexion, long personaId)
+    {
+        using var orden = conexion.CreateCommand();
+        orden.CommandText =
+            "SELECT paso_preparacion, paso_informacion, paso_cita_del_templo, paso_acciones_requeridas, " +
+            "paso_entrevistas, paso_listo_para_el_templo FROM personas WHERE id = $id";
+        orden.Parameters.AddWithValue("$id", personaId);
+        using var lector = orden.ExecuteReader();
+        Assert.IsTrue(lector.Read(), $"No hay fila de la persona {personaId}.");
+        var seis = new object[6];
+        lector.GetValues(seis);
+        return seis;
+    }
 
     /// <summary>Cuántas filas de <c>procedencia_campo</c> están firmadas: tiene que seguir en cero después de contestar.</summary>
     /// <param name="conexion">La conexión de la base de prueba.</param>

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Fichas.App.Cascara;
 using Fichas.Contratos.Modelos;
 using Microsoft.UI.Xaml;
@@ -374,6 +375,14 @@ public sealed class VentanaDeLasPreguntas : Window
             ? _acciones.GuardarDeUnTiron(ticket.PersonaId, seis)
             : _acciones.Guardar(ticket.PersonaId, seis);
 
+        // Queda en el cuaderno, como cualquier otra escritura desde una pantalla: el 2026-09-17
+        // el dueño dijo «le das a Guardar y no se guarda» y su fichas.log no tenía con qué
+        // decir si el botón llegó aquí ni qué contestó la base. Ahora sí.
+        _servicios.Registro.Anotar(
+            $"SEIS  persona {ticket.PersonaId.ToString(CultureInfo.InvariantCulture)}"
+            + $"  {DescribirLasSeis(elegidas)}  de un tirón={fueDeUnTiron}  escrito={resultado.SeEscribio}"
+            + (resultado.Avisos.Count == 0 ? string.Empty : "  " + string.Join(" | ", resultado.Avisos.Select(aviso => aviso.Linea))));
+
         if (!resultado.SeEscribio)
         {
             Decir(resultado.Avisos);
@@ -393,10 +402,9 @@ public sealed class VentanaDeLasPreguntas : Window
         // escrito y no de lo que esta ventana creía estar escribiendo.
         Repintar();
 
-        var frase = recien is null
-            ? "guardado"
-            : Grupo.LasDosPreguntas.FraseDeUnaPersona(
-                Grupo.LasDosPreguntas.EstadoDe(recien), Grupo.LasDosPreguntas.SeQuedoEn(recien));
+        // La MISMA frase que la del ticket que se acaba de repintar (a medias incluido):
+        // el acuse y la tarjeta de la persona no pueden decir dos cosas distintas.
+        var frase = recien is null ? "guardado" : PreguntasDeUnDocumento.FraseDelEstadoDe(recien);
 
         Decir([
             AccionesDeLasPreguntas.LoQueSeGuardo(
@@ -405,6 +413,16 @@ public sealed class VentanaDeLasPreguntas : Window
             .. completado,
         ]);
     }
+
+    /// <summary>«sí, sí, sí, sí, en blanco, en blanco»: las seis tal como se pulsaron, para el cuaderno.</summary>
+    /// <param name="elegidas">Las seis leídas de los desplegables.</param>
+    private static string DescribirLasSeis(IReadOnlyList<PreguntaDeUnaPersona> elegidas)
+        => string.Join(", ", elegidas.Select(pregunta => pregunta.Respuesta switch
+        {
+            true => "sí",
+            false => "no",
+            _ => "en blanco",
+        }));
 
     /// <summary>Enseña lo que pasó, sin detener nada y sin abrir un cuadro.</summary>
     /// <param name="avisos">Lo que se enseña, uno por renglón; con ninguno la franja se esconde.</param>

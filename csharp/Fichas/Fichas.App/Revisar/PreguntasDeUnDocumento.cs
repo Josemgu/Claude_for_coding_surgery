@@ -143,16 +143,48 @@ public static class PreguntasDeUnDocumento
         ArgumentNullException.ThrowIfNull(firma);
         ArgumentNullException.ThrowIfNull(equipo);
 
-        var estado = LasDosPreguntas.EstadoDe(persona);
-
         return new TicketDeUnaPersona(
             PersonaId: persona.Id,
             DeQuien: DeQuien(persona),
             Cedula: Cedula(persona),
             Preguntas: LasSeisDe(persona),
-            FraseDelEstado: LasDosPreguntas.FraseDeUnaPersona(estado, LasDosPreguntas.SeQuedoEn(persona)),
+            FraseDelEstado: FraseDelEstadoDe(persona),
             LineaDeLaFirma: LineaDeLaFirma(firma, equipo),
             LoContestoOtro: firma.YaContesto && firma.Por != quienMira?.Id);
+    }
+
+    /// <summary>
+    /// Cómo está esa persona, en la misma frase que la tarjeta de Revisar y el renglón del
+    /// grupo: «resuelto · …», «me falta · le faltan 2 de 6: …», «me falta · se quedó en …».
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>El defecto que cierra, medido con la v16 y la v15 publicadas el 2026-09-17.</b> El
+    /// dueño puso cuatro en «sí» y pulsó Guardar; la base escribió
+    /// <c>paso_* = 1,1,1,1,NULL,NULL</c> con su firma, y esta ventana, al repintarse desde
+    /// la base, decía de esa persona <i>«me falta · nadie ha contestado sus seis preguntas»</i>.
+    /// Cuatro contestadas no es nadie, y una ventana que lo dice se lee como que no se guardó
+    /// (<i>«las colocas, le das a Guardar y no se guarda»</i>). Se pasaban solo el estado y
+    /// los «no»; sin las que no dicen «sí», <see cref="Fichas.App.Vocabulario.LoQueSeLeeDeUnaPersona"/>
+    /// no puede saber que está a medias, y la tarjeta y el grupo ya se las pasaban desde el
+    /// 2026-09-16.
+    /// </para>
+    /// <para>
+    /// Es UNA frase para el ticket y para el acuse de «Guardadas las seis…»: dos frases de
+    /// la misma persona en la misma ventana serían dos verdades.
+    /// </para>
+    /// </remarks>
+    /// <param name="persona">La persona, releída de la base.</param>
+    public static string FraseDelEstadoDe(Persona persona)
+    {
+        ArgumentNullException.ThrowIfNull(persona);
+
+        var lectura = Fichas.App.Vocabulario.LoQueSeLeeDeUnaPersona.De(
+            LasDosPreguntas.EstadoDe(persona),
+            LasDosPreguntas.SeQuedoEn(persona),
+            LasDosPreguntas.LasQueNoDicenSi(persona));
+
+        return $"{lectura.Palabra} · {lectura.Detalle}";
     }
 
     /// <summary>Las seis de esa persona con su rótulo y su respuesta de ahora.</summary>
